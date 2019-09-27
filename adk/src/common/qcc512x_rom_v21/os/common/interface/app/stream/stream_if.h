@@ -431,7 +431,10 @@ typedef enum
     STREAM_RM_ENABLE_SW_ADJUST = 0x1200,                   /*!< Enable software rate adjustment on an endpoint. */
     STREAM_RM_ENABLE_HW_ADJUST = 0x1201,                   /*!< Enable hardware rate adjustment on an endpoint. */
     STREAM_RM_ENABLE_DEFERRED_KICK = 0x1205,               /*!< Use high priority background interrupt if kick processing. */
-    STREAM_RM_USE_RATE_ADJUST_OPERATOR = 0x1208            /*!< Use a standalone RATE ADJUST operator. */
+    STREAM_RM_USE_RATE_ADJUST_OPERATOR = 0x1208,           /*!< Use a standalone RATE ADJUST operator. */
+    STREAM_SOURCE_HANDOVER_POLICY = 0x1300                 /*!< Handover policy for L2CAP source stream.
+                                                                0 = Allow handover only if source buffer doesn't have data,
+                                                                1 = Allow handover even if source buffer has data */
 } stream_config_key;
 
 /*!

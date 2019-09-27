@@ -15,5 +15,13 @@ Typed packed Root Key of the device. ER (Encryption Root) and IR (Identity Root)
 root keys are packed in uint16 arrays. Used as param type in VmUpdateRootKeys().
 */
 typedef struct { uint16 er[8]; uint16 ir[8]; }packed_root_keys;
+
+/*!
+Opaque connection context type. Used in VmOverrideSyncConnContext,
+VmOverrideRfcommConnContext, VmOverrideL2capConnContext traps.
+This type is the same as Bluestack's context_t. It is redefined here to avoid
+type clashes between bluestack types and VM types.
+*/
+typedef unsigned int conn_context_t;
       
 #endif

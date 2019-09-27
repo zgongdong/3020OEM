@@ -37,8 +37,7 @@
 #define AVRCP_PROFILE_H_
 
 #include <avrcp.h>
-#include "avrcp_profile_types.h"
-#include "av_types.h"
+#include "av_typedef.h"
 #include "audio_sources_media_control_interface.h"
 
 /*! \brief Get operation lock */
@@ -72,35 +71,35 @@
 
 /*! Check if the specified event type is supported */
 #define appAvrcpIsEventSupported(theInst, event) \
-    ((theInst)->avrcp.supported_events & (1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.supported_events & (1 << ((event) - 1)))
 
 #define appAvrcpSetEventSupported(theInst, event) \
-    ((theInst)->avrcp.supported_events |= (1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.supported_events |= (1 << ((event) - 1)))
 
 #define appAvrcpClearEventSupported(theInst, event) \
-    ((theInst)->avrcp.supported_events &= ~(1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.supported_events &= ~(1 << ((event) - 1)))
 
 
 /*! Check if the specified event type is supported */
 #define appAvrcpIsEventChanged(theInst, event) \
-    ((theInst)->avrcp.changed_events & (1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.changed_events & (1 << ((event) - 1)))
 
 #define appAvrcpSetEventChanged(theInst, event) \
-    ((theInst)->avrcp.changed_events |= (1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.changed_events |= (1 << ((event) - 1)))
 
 #define appAvrcpClearEventChanged(theInst, event) \
-    ((theInst)->avrcp.changed_events &= ~(1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.changed_events &= ~(1 << ((event) - 1)))
 
 
 /*! Check if the specified event type has been registered */
 #define appAvrcpIsEventRegistered(theInst, event) \
-    ((theInst)->avrcp.registered_events & (1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.registered_events & (1 << ((event) - 1)))
 
 #define appAvrcpSetEventRegistered(theInst, event) \
-    ((theInst)->avrcp.registered_events |= (1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.registered_events |= (1 << ((event) - 1)))
 
 #define appAvrcpClearEventRegistered(theInst, event) \
-    ((theInst)->avrcp.registered_events &= ~(1 << ((event) - 1)))
+    ((theInst)->avrcp.bitfields.registered_events &= ~(1 << ((event) - 1)))
 
 
 /*! \brief Gets the interface for the avrcp remote commands

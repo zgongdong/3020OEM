@@ -148,12 +148,14 @@ void handleRfcommMessage(Task task,MessageId id,Message message)
                 
                 MAKE_TA_CLIENT_MESSAGE(TRANSPORT_DISCONNECT_CFM,msg);
                 
-                PRINT(("TRFCOMM:CL_RFCOMM_DISCONNECT_IND\n"));                
+                PRINT(("TRFCOMM:CL_RFCOMM_DISCONNECT_IND %d\n", m->status));
                 
                 ConnectionRfcommDisconnectResponse(m->sink);
 
                 if(m->status == rfcomm_disconnect_normal_disconnect ||
-				   m->status == rfcomm_disconnect_l2cap_link_loss)
+                   m->status == rfcomm_disconnect_abnormal_disconnect ||
+                   m->status == rfcomm_disconnect_success ||
+                   m->status == rfcomm_disconnect_l2cap_link_loss)
                     msg->status = SUCCESS;
                 else
                     msg->status = FAIL;

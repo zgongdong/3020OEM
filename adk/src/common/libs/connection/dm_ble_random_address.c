@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2011 - 2018 Qualcomm Technologies International, Ltd.
+Copyright (c) 2011 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -21,6 +21,12 @@ NOTES
 #include <vm.h>
 #include <app/bluestack/dm_prim.h>
 
+#if HYDRACORE
+#define NO_TASK_MESSAGE  ((Task)0x0FFFFFFF)
+#else
+#define NO_TASK_MESSAGE  ((Task)0x0000FFFF)
+#endif
+
 /****************************************************************************
 NAME
     ConnectionDmBleConfigureLocalAddressAutoReq
@@ -39,12 +45,7 @@ void ConnectionDmBleConfigureLocalAddressAutoReq(
         uint16                  rpa_tgap_timeout
         )
 {
-
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else if (addr_type >= ble_local_addr_last)
+    if (addr_type >= ble_local_addr_last)
     {
         CL_DEBUG(("addr_type parameter out of range: %d\n", addr_type));
     }
@@ -206,6 +207,7 @@ NAME
 
 DESCRIPTION
     Send the DM_SM_READ_RANDOM_ADDRESS_REQ to Bluestack.
+    The CFM will be sent to the  task that initialised the Connection library.
 
 RETURNS
    void
@@ -215,36 +217,100 @@ void ConnectionSmBleReadRandomAddressReq(
     const tp_bdaddr                 *peer_tpaddr
     )
 {
-    /* The tpaddr can be all 0 for reading the current local rpa. */
-    tp_bdaddr   temp_tpaddr = {{0, {0, 0, 0}}, 0};
-    MAKE_PRIM_T(DM_SM_READ_RANDOM_ADDRESS_REQ);
+    ConnectionSmBleReadRandomAddressTaskReq(NO_TASK_MESSAGE, flags, peer_tpaddr);
+}
 
-    prim->flags = DM_SM_READ_ADDRESS_LOCAL;
+/****************************************************************************
+NAME
+    ConnectionSmBleReadRandomAddressTaskReq
 
-    switch(flags) {
-    case ble_read_random_address_peer:
-        /* This CANNOT be null for reading the Peer address. */
-        PanicNull((void *)peer_tpaddr);
-        prim->flags = DM_SM_READ_ADDRESS_PEER;
-        /* DROP THROUGH */
-    case ble_read_random_address_local:
-        /* if peer_tpaddr is NULL, read the current random address, else if
-         * peer_tpaddr is set, read this device's RPA that was used to connect
-         * with the peer. */
-        if (peer_tpaddr) {
-            temp_tpaddr = *peer_tpaddr;
-        }
+DESCRIPTION
+    Send the DM_SM_READ_RANDOM_ADDRESS_REQ to Bluestack.
+    The CFM will be send to the specified client task.
+
+RETURNS
+   void
+*/
+void ConnectionSmBleReadRandomAddressTaskReq(
+    Task                            theAppTask,
+    ble_read_random_address_flags   flags,
+    const tp_bdaddr                 *peer_tpaddr
+    )
+{
+    MAKE_CL_MESSAGE(CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ);
+    message->theAppTask = theAppTask;
+    message->flags = flags;
+
+    if(peer_tpaddr)
+    {
+        message->peer_tpaddr = (tp_bdaddr *)PanicUnlessMalloc(sizeof(tp_bdaddr));
+        memmove(message->peer_tpaddr, peer_tpaddr, sizeof(tp_bdaddr));
+    }
+    else
+    {
+        message->peer_tpaddr = NULL;
+    }
+
+    MessageSend(
+                connectionGetCmTask(),
+                CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ,
+                message
+                );
+}
+
+void connectionHandleDmBleReadRandomAddress(
+        connectionBleReadRndAddrState *state,
+        const CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ_T *req
+        )
+{
+    /* Check the state of the task lock before doing anything. */
+    if(!state->bleReadRndAddrLock)
+    {
+        /* The tpaddr can be all 0 for reading the current local rpa. */
+        tp_bdaddr   temp_tpaddr = {{0, {0, 0, 0}}, 0};
+        MAKE_PRIM_T(DM_SM_READ_RANDOM_ADDRESS_REQ);
+
+        /* One request at a time, set the scan lock. */
+        state->bleReadRndAddrLock = req->theAppTask;
+
+        prim->flags = DM_SM_READ_ADDRESS_LOCAL;
+
+        switch(req->flags) {
+        case ble_read_random_address_peer:
+            /* This CANNOT be null for reading the Peer address. */
+            PanicNull((void *)(req->peer_tpaddr));
+            prim->flags = DM_SM_READ_ADDRESS_PEER;
+            /* DROP THROUGH */
+        case ble_read_random_address_local:
+            /* if peer_tpaddr is NULL, read the current random address, else if
+             * peer_tpaddr is set, read this device's RPA that was used to connect
+             * with the peer. */
+            if (req->peer_tpaddr) {
+                temp_tpaddr = (*req->peer_tpaddr);
+            }
         break;
-    default:
-        CL_DEBUG(("Read Random Address: flags out of range.\n"));
-        Panic();
+        default:
+            CL_DEBUG(("Read Random Address: flags out of range.\n"));
+            Panic();
         break;
     }
 
     BdaddrConvertTpVmToBluestack(&prim->tp_peer_addrt, &temp_tpaddr);
     VmSendDmPrim(prim);
+    }
+    else
+    {
+        /* Request already outstanding, queue up the request. */
+        MAKE_CL_MESSAGE(CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ);
+        COPY_CL_MESSAGE(req, message);
+        MessageSendConditionallyOnTask(
+                    connectionGetCmTask(),
+                    CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ,
+                    message,
+                    &state->bleReadRndAddrLock
+                    );
+    }
 }
-
 
 /****************************************************************************
 NAME    
@@ -261,6 +327,7 @@ void connectionHandleDmSmReadRandomAddressCfm(
         )
 {
     connectionState *cstate = (connectionState*)connectionGetCmTask();
+    Task clientTask = connectionGetAppTask();
 
     /* if this is set, then the Read Random Address was done in the context
      * of Configuring the Local Address, so need to return that instead.
@@ -316,12 +383,20 @@ void connectionHandleDmSmReadRandomAddressCfm(
                 );
         BdaddrConvertTpBluestackToVm(&message->random_tpaddr, &cfm->tp_addrt);
 
+        if(cstate->bleReadRdnAddrState.bleReadRndAddrLock != NO_TASK_MESSAGE)
+        {
+            clientTask = cstate->bleReadRdnAddrState.bleReadRndAddrLock;
+        }
+
         MessageSend(
-            connectionGetAppTask(), 
+            clientTask,
             CL_SM_BLE_READ_RANDOM_ADDRESS_CFM,
             message
             );
     }
+
+    /* Reset the scan lock */
+    cstate->bleReadRdnAddrState.bleReadRndAddrLock = NULL;
 }
 
 #else

@@ -80,54 +80,40 @@ $(document).ready(function(){initNavTree('structtask__list__t.html','');});
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a09b5d92caa14bac844e3428dc02a26f1"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html#a09b5d92caa14bac844e3428dc02a26f1">list_type</a>: 1</td></tr>
-<tr class="separator:a09b5d92caa14bac844e3428dc02a26f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aabfac73f05adb017f7ce50798447ae60"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html#aabfac73f05adb017f7ce50798447ae60">no_destroy</a>: 1</td></tr>
-<tr class="separator:aabfac73f05adb017f7ce50798447ae60"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adf8343506357d25cada6c7ddef8c69bb"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html#adf8343506357d25cada6c7ddef8c69bb">size_list</a>: 8</td></tr>
-<tr class="separator:adf8343506357d25cada6c7ddef8c69bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af9dd9cc4d949e6f282910baa3df8aea3"><td class="memItemLeft" align="right" valign="top">task_list_base_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html#af9dd9cc4d949e6f282910baa3df8aea3">base</a></td></tr>
+<tr class="separator:af9dd9cc4d949e6f282910baa3df8aea3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8bcc572b9d73774627be66dd46aa61a8"><td class="memItemLeft" align="right" valign="top">Task&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html#a8bcc572b9d73774627be66dd46aa61a8">task</a></td></tr>
+<tr class="separator:a8bcc572b9d73774627be66dd46aa61a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a88fc5c7831ffe4238f7e64972d236ab6"><td class="memItemLeft" align="right" valign="top">Task *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html#a88fc5c7831ffe4238f7e64972d236ab6">tasks</a></td></tr>
 <tr class="separator:a88fc5c7831ffe4238f7e64972d236ab6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>List of VM Tasks. </p>
+<p>This type has an initial capacity to store 1 task (in u.task). Futher tasks will be stored in dynamically allocated memory (in u.tasks). </p>
 </div><h2 class="groupheader">Field Documentation</h2>
-<a class="anchor" id="a09b5d92caa14bac844e3428dc02a26f1"></a>
+<a class="anchor" id="af9dd9cc4d949e6f282910baa3df8aea3"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">unsigned list_type</td>
+          <td class="memname">task_list_base_t base</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Standard <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> or one that can support data. </p>
+<p>Base task list elements </p>
 
 </div>
 </div>
-<a class="anchor" id="aabfac73f05adb017f7ce50798447ae60"></a>
+<a class="anchor" id="a8bcc572b9d73774627be66dd46aa61a8"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">unsigned no_destroy</td>
+          <td class="memname">Task task</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>If set, this task list was statically allocated and initialised with <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>, it is not valid to call <a class="el" href="task__list_8h.html#aeb7fd82b20a344092941676b7fab93ed" title="Destroy a task_list_t. ">TaskList_Destroy</a> </p>
-
-</div>
-</div>
-<a class="anchor" id="adf8343506357d25cada6c7ddef8c69bb"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">unsigned size_list</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Number of tasks in <a class="el" href="structtask__list__t.html#a88fc5c7831ffe4238f7e64972d236ab6">tasks</a>. </p>
+<p>A task, used when dynamic allocated list is not used </p>
 
 </div>
 </div>
@@ -140,7 +126,7 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>List of tasks. </p>
+<p>Pointer to dynamically allocated list of tasks </p>
 
 </div>
 </div>

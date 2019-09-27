@@ -171,38 +171,38 @@ enum peer_signalling_messages
     PEER_SIG_DISCONNECT_CFM,
 };
 
-/*! Channel IDs for peer signalling.
-    Bitmask used so that a single client task could register for multiple channels,
-    if we support that feature in the future.
- */
+/*! Channel IDs for peer signalling. */
 typedef enum
 {
     /*! Channel ID for SCO Forwarding control messages. */
-    PEER_SIG_MSG_CHANNEL_SCOFWD = 1UL << 0,
+    PEER_SIG_MSG_CHANNEL_SCOFWD,
 
     /*! Channel ID for Peer Sync messages. */
-    PEER_SIG_MSG_CHANNEL_PEER_SYNC = 1UL << 1,
-    
+    PEER_SIG_MSG_CHANNEL_PEER_SYNC,
+
     /*! Channel ID for State Proxy messages. */
-    PEER_SIG_MSG_CHANNEL_STATE_PROXY = 1UL << 2,
+    PEER_SIG_MSG_CHANNEL_STATE_PROXY,
 
     /*! Channel ID for Earbud application messages.
      *  Current usage is for commands from Primary Earbud to be sent to Secondary Earbud,
      *  at the application level.
      *  Temporarily a lot of the messages will be here, but move down into the TWS topology
      *  component. */
-    PEER_SIG_MSG_CHANNEL_APPLICATION = 1UL << 3,
+    PEER_SIG_MSG_CHANNEL_APPLICATION,
 
-    PEER_SIG_MSG_CHANNEL_LOGICAL_INPUT_SWITCH = 1UL << 4,
+    PEER_SIG_MSG_CHANNEL_LOGICAL_INPUT_SWITCH,
 
     /*! Channel ID for Key Sync messages. */
-    PEER_SIG_MSG_CHANNEL_KEY_SYNC = 1UL << 5,
+    PEER_SIG_MSG_CHANNEL_KEY_SYNC,
 
     /*! Channel ID for shadow profile messages. */
-    PEER_SIG_MSG_CHANNEL_SHADOW_PROFILE = 1UL << 6,
+    PEER_SIG_MSG_CHANNEL_SHADOW_PROFILE,
 
-    /* force peerSigMsgChannel to be a 32-bit enum */
-    PEER_SIG_MSG_CHANNEL_MAX    = 1UL << 30
+    /*! Channel ID for Peer UI messages. */
+    PEER_SIG_MSG_CHANNEL_PEER_UI,
+
+    /* Number of peer sig channels */
+    PEER_SIG_MSG_CHANNEL_MAX
 } peerSigMsgChannel;
 
 /*! Message sent to client task with result of operation to send link key to peer. */
@@ -276,7 +276,7 @@ typedef struct
 typedef struct
 {
     peerSigStatus status;           /*!< Result of msg channel transmission. */
-    uint8* msg_ptr;                 /*!< Pointer to the message memory. */
+    marshal_type_t type;            /*!< Marshal type of the message */
     peerSigMsgChannel channel;      /*!< Msg channel transmission channel used. */
 } PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T;
 
@@ -323,8 +323,6 @@ typedef enum
     /*! Request to send traditional peer signalling message. */
     PEER_SIG_INTERNAL_MSG_CHANNEL_TX_REQ,
 
-    /*! Request to send marshalled peer signalling message. */
-    PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ,
 } PEER_SIG_INTERNAL_MSG;
 
 /*! Internal message sent to start signalling to a peer */
@@ -364,15 +362,6 @@ typedef struct
     uint16 msg_size;            /*!< Size of data in msg. */
     uint8 msg[1];               /*!< Message data to transmit. */
 } PEER_SIG_INTERNAL_MSG_CHANNEL_TX_REQ_T;
-
-/*! Structure used to request marshalled message channel transmission to peer. */
-typedef struct
-{
-    Task client_task;           /*!< Task to receive the msg tx result. */
-    peerSigMsgChannel channel;  /*!< Channel over which to transmit message. */
-    void* msg_ptr;              /*!< Pointer to the message to be transmitted. */
-    marshal_type_t type;        /*!< Marshal type of the message. */
-} PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ_T;
 
 /*! \brief Initialise the peer signalling module.
  */
@@ -449,16 +438,16 @@ void appPeerSigDisconnect(Task task);
 /*! \brief Register to receive PEER_SIG_MSG_CHANNEL_RX_IND messages for a channel.
 
     \param[in] task         Task to receive PEER_SIG_MSG_CHANNEL_RX_IND messages
-    \param     channel_mask Mask of channels to receive messages for.
+    \param     channel Channel to receive messages for.
  */
-void appPeerSigMsgChannelTaskRegister(Task task, peerSigMsgChannel channel_mask);
+void appPeerSigMsgChannelTaskRegister(Task task, peerSigMsgChannel channel);
 
 /*! \brief Stop receiving PEER_SIG_MSG_CHANNEL_RX_IND messages.
 
     \param[in] task         Task to cancel receiving PEER_SIG_MSG_CHANNEL_RX_IND messages
-    \param[in] channel_mask Mask of channels to unregister.
+    \param[in] channel Channel to unregister.
 */
-void appPeerSigMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel_mask);
+void appPeerSigMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel);
 
 /*! \brief Request a transmission on a message channel.
 
@@ -466,6 +455,9 @@ void appPeerSigMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel_mas
     \param channel       Channel to transmit on.
     \param[in] msg       Payload of message.
     \param msg_size      Length of message in bytes.
+
+    A PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM will be sent when the message is
+    transmitted. Peer signalling will free the msg when transmitted.
  */
 void appPeerSigMsgChannelTxRequest(Task task,
                                    peerSigMsgChannel channel,
@@ -473,20 +465,20 @@ void appPeerSigMsgChannelTxRequest(Task task,
 
 /*! \brief Register a task for a marshalled message channel(s).
     \param[in] task             Task to associate with the channel(s).
-    \param[in] channel_mask     Bitmask of #peerSigMsgChannel to register for.
+    \param[in] channel          Channel to register.
     \param[in] type_desc        Array of marshal type descriptors for messages.
     \param[in] num_type_desc    Number of entries in the type_desc array.
 */
-void appPeerSigMarshalledMsgChannelTaskRegister(Task task, peerSigMsgChannel channel_mask,
+void appPeerSigMarshalledMsgChannelTaskRegister(Task task, peerSigMsgChannel channel,
                                                 const marshal_type_descriptor_t * const * type_desc,
                                                 size_t num_type_desc);
 
 /*! \brief Unregister peerSigMsgChannel(s) for the a marshalled message channel.
     \param[in] task             Task associated with the channel(s).
-    \param[in] channel_mask     Bitmask of #peerSigMsgChannel to unregister.
+    \param[in] channel          Channel to unregister.
 */
 void appPeerSigMarshalledMsgChannelTaskUnregister(Task task,
-                                                  peerSigMsgChannel channel_mask);
+                                                  peerSigMsgChannel channel);
 
 /*! \brief Transmit a marshalled message channel message to the peer.
     \param[in] task      Task to send confirmation message to.
@@ -497,6 +489,15 @@ void appPeerSigMarshalledMsgChannelTaskUnregister(Task task,
 void appPeerSigMarshalledMsgChannelTx(Task task,
                                       peerSigMsgChannel channel,
                                       void* msg, marshal_type_t type);
+
+/*! \brief Cancel any pending marshalled message channel message to the peer.
+    \param[in] task      The client's task.
+    \param[in] channel   The message channel.
+    \param[in] type      Marshal type of the message to cancel.
+*/
+void appPeerSigMarshalledMsgChannelTxCancelAll(Task task,
+                                               peerSigMsgChannel channel,
+                                               marshal_type_t type);
 
 /*! \brief Test if peer signalling is connected to a peer.
 
@@ -510,5 +511,20 @@ bool appPeerSigIsConnected(void);
     that require a sink.
 */
 Sink appPeerSigGetSink(void);
+
+/*! \brief Get last transmitted message sequence number sent to 
+           the other earbud.
+
+    \return Last transmitted message sequence number
+*/
+uint8 appPeerSigGetLastTxMsgSequenceNumber(void);
+
+/*! \brief Get last received message sequence number transmitted 
+           from the other earbud.
+
+    \return Last received message sequence number
+*/
+uint8 appPeerSigGetLastRxMsgSequenceNumber(void);
+
 
 #endif /* PEER_SIGNALLING_H_ */

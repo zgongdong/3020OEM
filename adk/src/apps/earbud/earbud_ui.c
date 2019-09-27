@@ -45,7 +45,6 @@ const message_group_t indication_interested_msg_groups[] =
     SYSTEM_MESSAGE_GROUP,
     APP_HFP_MESSAGE_GROUP,
     AV_UI_MESSAGE_GROUP,
-    POWER_UI_MESSAGE_GROUP,
     CHARGER_MESSAGE_GROUP,
     PAIRING_MESSAGE_GROUP,
     SFWD_MESSAGE_GROUP,
@@ -77,39 +76,6 @@ void EarbudUi_AvError(void)
 {
     appUiPlayTone(app_tone_error);
     appLedSetPattern(app_led_pattern_error, LED_PRI_EVENT);
-}
-
-/*! \brief Play power on prompt and LED pattern */
-void EarbudUi_PowerOn(void)
-{
-    /* Enable LEDs */
-    appLedEnable(TRUE);
-
-    appLedSetPattern(app_led_pattern_power_on, LED_PRI_EVENT);
-    appUiPlayPrompt(PROMPT_POWER_ON);
-}
-
-/*! \brief Play power off prompt and LED pattern.
-    \param lock The caller's lock, may be NULL.
-    \param lock_mask Set bits in lock_mask will be cleared in lock when the UI completes.
- */
-void EarbudUi_PowerOff(uint16 *lock, uint16 lock_mask)
-{
-    appLedSetPattern(app_led_pattern_power_off, LED_PRI_EVENT);
-    appUiPlayPromptClearLock(PROMPT_POWER_OFF, lock, lock_mask);
-
-    /* Disable LEDs */
-    appLedEnable(FALSE);
-}
-
-/*! \brief Prepare UI for sleep.
-    \note If in future, this function is modified to play a tone, it should
-    be modified to resemble #EarbudUi_PowerOff, so the caller's lock is cleared when
-    the tone is completed. */
-void EarbudUi_Sleep(void)
-{
-    appLedSetPattern(app_led_pattern_power_off, LED_PRI_EVENT);
-    appLedEnable(FALSE);
 }
 
 static void earbudUi_PlayToneFeedbackOnButtonPress(MessageId ui_input)
@@ -164,14 +130,11 @@ static void earbudUi_IndicateTelephonyUiEvents(MessageId id, Message message)
     UNUSED(message);
     switch (id)
     {
-    case TELEPHONY_CONNECTED:
-        appUiHfpConnected(appGetHfp()->flags & HFP_CONNECT_NO_UI);
-        break;
     case TELEPHONY_INCOMING_CALL:
         appUiHfpCallIncomingActive();
         break;
     case TELEPHONY_INCOMING_CALL_OUT_OF_BAND_RINGTONE:
-        appUiHfpRing(appGetHfp()->caller_id_active);
+        appUiHfpRing(appGetHfp()->bitfields.caller_id_active);
         break;
     case TELEPHONY_INCOMING_CALL_ENDED:
         appUiHfpCallIncomingInactive();
@@ -194,19 +157,16 @@ static void earbudUi_IndicateTelephonyUiEvents(MessageId id, Message message)
         appUiHfpScoUnencryptedReminder();
         break;
     case TELEPHONY_CALL_CONNECTION_FAILURE:
-        EarbudUi_HfpError(appGetHfp()->flags & HFP_CONNECT_NO_ERROR_UI);
+        EarbudUi_HfpError(appGetHfp()->bitfields.flags & HFP_CONNECT_NO_ERROR_UI);
         break;
     case TELEPHONY_LINK_LOSS_OCCURRED:
         appUiHfpLinkLoss();
-        break;
-    case TELEPHONY_DISCONNECTED:
-        appUiHfpDisconnected();
         break;
     case TELEPHONY_CALL_AUDIO_RENDERED_LOCAL:
         appUiHfpScoConnected();
         break;
     case TELEPHONY_CALL_AUDIO_RENDERED_REMOTE:
-        if (appGetHfp()->sco_ui_indication)
+        if (appGetHfp()->bitfields.sco_ui_indication)
         {
             appUiHfpScoDisconnected();
         }
@@ -241,9 +201,6 @@ static void earbudUi_IndicateAvUiEvents(MessageId id)
     case AV_STREAMING_INACTIVE:
         appUiAvStreamingInactive();
         break;
-    case AV_CONNECTED:
-        appUiAvConnected();
-        break;
     case AV_CONNECTED_PEER:
         appUiAvPeerConnected();
         break;
@@ -252,9 +209,6 @@ static void earbudUi_IndicateAvUiEvents(MessageId id)
         break;
     case AV_LINK_LOSS:
         appUiAvLinkLoss();
-        break;
-    case AV_DISCONNECTED:
-        appUiAvDisconnected();
         break;
     case AV_REMOTE_CONTROL:
         appUiAvRemoteControl();
@@ -283,12 +237,6 @@ static void earbudUi_IndicatePairingUiEvents(MessageId id, Message message)
         break;
     case PAIRING_ACTIVE_USER_INITIATED:
         appUiPairingActive(TRUE);
-        break;
-    case PAIRING_COMPLETE:
-        appUiPairingComplete();
-        break;
-    case PAIRING_FAILED:
-        appUiPairingFailed();
         break;
     default:
         break;
@@ -320,24 +268,6 @@ static void earbudUi_IndicateChargerUiEvents(MessageId id, Message message)
     }
 }
 
-static void earbudUi_IndicatePowerUiEvents(MessageId id, Message message)
-{
-    switch (id)
-    {
-    case POWER_ON:
-        EarbudUi_PowerOn();
-        break;
-    case POWER_OFF_MSG:
-        {
-            POWER_OFF_MSG_T * msg = (POWER_OFF_MSG_T *)message;
-            EarbudUi_PowerOff(msg->lock, msg->mask);
-        }
-        break;
-    default:
-        break;
-    }
-}
-
 static void earbudUI_IndicateVolumeServiceUIEvents(MessageId id)
 {
     switch(id)
@@ -346,6 +276,34 @@ static void earbudUI_IndicateVolumeServiceUIEvents(MessageId id)
         case VOLUME_SERVICE_MAX_VOLUME:
             appUiAvVolumeLimit();
             break;
+        default:
+            break;
+    }
+}
+
+static void earbudUi_IndicatePowerClientEvents(MessageId id)
+{
+    switch(id)
+    {
+        /* Power indications */
+        case APP_POWER_SLEEP_PREPARE_IND:
+            appLedSetPattern(app_led_pattern_power_off, LED_PRI_EVENT);
+            appLedEnable(FALSE);
+            appPowerSleepPrepareResponse(EarbudUi_GetTask());
+            break;
+
+        case APP_POWER_SHUTDOWN_PREPARE_IND:
+            appLedSetPattern(app_led_pattern_power_off, LED_PRI_EVENT);
+            appLedEnable(FALSE);
+            appPowerShutdownPrepareResponse(EarbudUi_GetTask());
+            break;
+
+        /* Restore LEDs in case of SLEEP/SHUTDOWN cancelled*/
+        case APP_POWER_SLEEP_CANCELLED_IND:
+        case APP_POWER_SHUTDOWN_CANCELLED_IND:
+            appLedEnable(TRUE);
+            appLedStopPattern(LED_PRI_EVENT);
+      
         default:
             break;
     }
@@ -373,9 +331,6 @@ static void earbudUi_IndicateUiEvent(MessageId id, Message message)
         break;
     case CHARGER_MESSAGE_GROUP:
         earbudUi_IndicateChargerUiEvents(id, message);
-        break;
-    case POWER_APP_MESSAGE_GROUP:
-        earbudUi_IndicatePowerUiEvents(id, message);
         break;
     case VOLUME_SERVICE_MESSAGE_GROUP:
         earbudUI_IndicateVolumeServiceUIEvents(id);
@@ -422,6 +377,10 @@ static void earbudUi_HandleMessage(Task task, MessageId id, Message message)
     {
         earbudUi_PlayToneFeedbackOnButtonPress(id);
     }
+    else if (id >= APP_POWER_INIT_CFM && id <= APP_POWER_SHUTDOWN_CANCELLED_IND)
+    {
+        earbudUi_IndicatePowerClientEvents(id);
+    }
     else
     {
         earbudUi_IndicateUiEvent(id, message);
@@ -435,8 +394,15 @@ bool EarbudUi_Init(Task init_task)
 
     task.handler = earbudUi_HandleMessage;
 
-    EarbudPrompts_Init();
     EarbudTones_Init();
+
+    /* register with power to receive sleep/shutdown messages. */
+    appPowerClientRegister(EarbudUi_GetTask());
+    appPowerClientAllowSleep(EarbudUi_GetTask());
+
+    /* Enabling and setting the LED pattern for power on*/
+    appLedEnable(TRUE);
+    appLedSetPattern(app_led_pattern_power_on, LED_PRI_EVENT);
 
     Ui_RegisterUiInputConsumer(
                 EarbudUi_GetTask(),

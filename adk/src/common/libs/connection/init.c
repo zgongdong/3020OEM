@@ -74,6 +74,7 @@ static void initLocks(void)
     theCm.l2capState.mapLock = 0;
     theCm.readTxPwrState.txPwrLock = 0;
     theCm.bleScanAdState.bleScanAdLock = 0;
+    theCm.bleReadRdnAddrState.bleReadRndAddrLock = 0;
     theCm.configAddrType = 0xFFFF;
 }
 
@@ -175,8 +176,6 @@ bool connectionGetLockState( void )
         theCm.smState.setSecurityModeLock ||
         theCm.smState.authReqLock ||
         theCm.smState.encryptReqLock ||
-        theCm.smState.deviceReqLock ||
-        theCm.smState.deviceReqLock ||
         theCm.smState.deviceReqLock ||
         theCm.smState.permanent_taddr ||
         theCm.infoState.stateInfoLock ||

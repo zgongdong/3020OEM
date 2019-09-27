@@ -35,8 +35,6 @@ key_sync_task_data_t key_sync;
 static void keySync_HandleMarshalledMsgChannelTxCfm(const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T* cfm)
 {
     DEBUG_LOG("keySync_HandleMarshalledMsgChannelTxCfm channel %u status %u", cfm->channel, cfm->status);
-    /* free the memory for the marshalled message now confirmed sent */
-    free(cfm->msg_ptr);
 }
 
 /*! \brief Handle incoming marshalled messages from peer key sync component. */

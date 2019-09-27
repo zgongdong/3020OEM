@@ -13,7 +13,7 @@
 #include <panic.h>
 
 #include <gatt.h>
-#include <gatt_manager.h>
+#include <gatt_connect.h>
 #include <gatt_handler.h>
 #include <gatt_handler_db.h>
 
@@ -36,6 +36,39 @@
 #include "peer_pair_le_sm.h"
 #include "peer_pair_le_init.h"
 #include "peer_pair_le_key.h"
+#include "pairing.h"
+
+#include <gatt_root_key_server_uuids.h>
+#include <uuid.h>
+#define NUMBER_OF_ADVERT_DATA_ITEMS     1
+#define SIZE_PEER_PAIR_LE_ADVERT        18
+
+static unsigned int peer_pair_le_NumberOfAdvItems(const le_adv_data_params_t * params);
+static le_adv_data_item_t peer_pair_le_GetAdvDataItems(const le_adv_data_params_t * params, unsigned int id);
+static void peer_pair_le_ReleaseAdvDataItems(const le_adv_data_params_t * params);
+static void peer_pair_le_GattConnect(uint16 cid);
+static void peer_pair_le_GattDisconnect(uint16 cid);
+
+static const gatt_connect_observer_callback_t peer_pair_le_connect_callback =
+{
+    .OnConnection = peer_pair_le_GattConnect,
+    .OnDisconnection = peer_pair_le_GattDisconnect
+};
+
+static le_adv_data_callback_t peer_pair_le_advert_callback =
+{
+    .GetNumberOfItems = peer_pair_le_NumberOfAdvItems,
+    .GetItem = peer_pair_le_GetAdvDataItems,
+    .ReleaseItems = peer_pair_le_ReleaseAdvDataItems
+};
+
+static const uint8 peer_pair_le_advert_data[SIZE_PEER_PAIR_LE_ADVERT] = {
+    SIZE_PEER_PAIR_LE_ADVERT - 1,
+    ble_ad_type_complete_uuid128,
+    UUID_128_FORMAT_uint8(UUID128_ROOT_KEY_SERVICE)
+};
+
+static le_adv_data_item_t peer_pair_le_advert;
 
 
 static void peer_pair_le_send_pair_confirm(peer_pair_le_status_t status)
@@ -111,6 +144,10 @@ static void peer_pair_le_handle_scan_timeout(void)
     {
         return;
     }
+    if (!BdaddrIsZero(&ppl->peer))
+    {
+        return;
+    }
 
     /* Eliminate the scan result if RSSI too close */
     if (!BdaddrIsZero(&ppl->scanned_devices[1].addr))
@@ -119,88 +156,71 @@ static void peer_pair_le_handle_scan_timeout(void)
         if (difference < appConfigPeerPairLeMinRssiDelta())
         {
             peer_pair_le_set_state(PEER_PAIR_LE_STATE_DISCOVERY);
+            return;
         }
     }
     peer_pair_le_set_state(PEER_PAIR_LE_STATE_CONNECTING);
 }
 
 
-static void peer_pair_le_handle_advert_set_data_cfm(const APP_ADVMGR_ADVERT_SET_DATA_CFM_T *message)
+static void peer_pair_le_handle_adv_mgr_select_dataset_cfm(const LE_ADV_MGR_SELECT_DATASET_CFM_T *message)
 {
     UNUSED(message);
 
-    DEBUG_LOG("peer_pair_le_handle_advert_set_data_cfm");
-    GattManagerWaitForRemoteClient(PeerPairLeGetTask(), NULL, gatt_connection_ble_slave_undirected);
+    DEBUG_LOG("peer_pair_le_handle_adv_mgr_select_dataset_cfm");
 }
 
 
-static void peer_pair_le_handle_con_manager_connection(const CON_MANAGER_CONNECTION_IND_T *conn)
+static void peer_pair_le_handle_con_manager_connection(const CON_MANAGER_TP_CONNECT_IND_T *conn)
+{
+    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+
+    DEBUG_LOG("peer_pair_le_handle_con_manager_connection.");
+
+    ppl->peer = conn->tpaddr.taddr.addr;
+    
+    if (PEER_PAIR_LE_STATE_CONNECTING == peer_pair_le_get_state())
+    {
+        /* When both earbuds trying to open ACL at same time with each other during
+           peer pair process then the eb which will get its ACL create request successful
+           first will become client and other eb will become in that case server*/
+        if (!conn->incoming)
+        {
+            peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_CLIENT);
+        }
+        else
+        {
+            peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_SERVER);
+        }
+    }
+}
+
+static void peer_pair_le_handle_con_manager_disconnection(const CON_MANAGER_TP_DISCONNECT_IND_T *conn)
 {
     PEER_PAIR_LE_STATE state;
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+    
+    DEBUG_LOG("peer_pair_le_handle_con_manager_disconnection. lap_ind:0x%x lap_peer:0x%x",
+        conn->tpaddr.taddr.addr.lap, ppl->peer.lap);
 
-    if (!conn->ble || conn->connected || !BdaddrIsSame(&conn->bd_addr, &ppl->peer))
-        return;
-
-    state = peer_pair_le_get_state();
-
-    switch (state)
+    if (BdaddrIsSame(&conn->tpaddr.taddr.addr, &ppl->peer))
     {
-        case PEER_PAIR_LE_STATE_COMPLETED_WAIT_FOR_DISCONNECT:
-        case PEER_PAIR_LE_STATE_DISCONNECTING:
-            DEBUG_LOG("peer_pair_le_handle_con_manager_connection. Peer BLE Link disconnected");
-            peer_pair_le_set_state(PEER_PAIR_LE_STATE_INITIALISED);
-        break;
+        state = peer_pair_le_get_state();
 
-        default:
-            DEBUG_LOG("peer_pair_le_handle_con_manager_connection. IGNORED. State:%d Connected:%d",
-                       state, conn->connected);
-        break;
-    }
-}
+        switch (state)
+        {
+            case PEER_PAIR_LE_STATE_COMPLETED_WAIT_FOR_DISCONNECT:
+            case PEER_PAIR_LE_STATE_DISCONNECTING:
+                DEBUG_LOG("peer_pair_le_handle_con_manager_disconnection. Peer BLE Link disconnected");
+                peer_pair_le_set_state(PEER_PAIR_LE_STATE_INITIALISED);
+            break;
 
-
-static void peer_pair_le_handle_remote_client_connect_cfm(const GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM_T *cfm)
-{
-    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-
-    DEBUG_LOG("peer_pair_le_handle_remote_client_connect_cfm. sts:%d", cfm->status);
-
-    if (gatt_status_success == cfm->status)
-    {
-        ppl->peer = cfm->taddr.addr;
-        ppl->gatt_cid = cfm->cid;
-        peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_SERVER);
-    }
-    else
-    {
-        /*! \todo restart advertising */
-    }
-
-}
-
-
-static void peer_pair_le_handle_remote_server_connect_cfm(const GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM_T *cfm)
-{
-    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-
-    DEBUG_LOG("peer_pair_le_handle_remote_server_connect_cfm. sts:%d", cfm->status);
-
-    if (gatt_status_success == cfm->status)
-    {
-        ppl->peer = cfm->taddr.addr;
-        ppl->gatt_cid = cfm->cid;
-        peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_CLIENT);
-    }
-    else if (gatt_status_failure == cfm->status)
-    {
-        /* Get a generic failure code if failed to connect */
-        peer_pair_le_set_state(PEER_PAIR_LE_STATE_DISCOVERY);
-    }
-    else 
-    {
-        DEBUG_LOG("peer_pair_le_handle_remote_server_connect_cfm. Unknown sts:%d", cfm->status);
-        peer_pair_le_set_state(PEER_PAIR_LE_STATE_DISCOVERY);
+            default:
+                DEBUG_LOG("peer_pair_le_handle_con_manager_disconnection. IGNORED. State:%d",
+                           state);
+            break;
+        }
+        BdaddrSetZero(&ppl->peer);
     }
 }
 
@@ -249,8 +269,8 @@ static void peer_pair_le_convert_key_to_grks_key(GRKS_KEY_T *dest_key, const uin
 
     while (octets > 1)
     {
-        *dest++ = *src & 0xFF;
-        *dest++ = ((*src++)>>8) & 0xFF;
+        *dest++ = (uint8)(*src & 0xFF);
+        *dest++ = (uint8)(((*src++)>>8) & 0xFF);
         octets -= 2;
     }
 }
@@ -260,13 +280,13 @@ static void peer_pair_le_convert_grks_key_to_key(uint16 *dest, const GRKS_KEY_T 
 {
     const uint8 *src = src_key->key;
     int words = GRKS_KEY_SIZE_128BIT_WORDS;
-    uint16 word;
+    unsigned word;
 
     while (words--)
     {
         word = *src++;
-        word += (*src++) << 8;
-        *dest++ = word;
+        word += ((unsigned)(*src++)) << 8;
+        *dest++ = (uint16)word;
     }
 }
 
@@ -307,7 +327,7 @@ static void peer_pair_le_add_device_entry(const bdaddr *address, deviceType type
     device_t device = BtDevice_GetDeviceCreateIfNew(address, type);
 
     Device_SetPropertyU16(device, device_property_tws_version, DEVICE_TWS_STANDARD); /*! \todo Set correct TWS version */
-    Device_SetPropertyU16(device, device_property_flags, flags);
+    Device_SetPropertyU16(device, device_property_flags, (uint16)flags);
     Device_SetPropertyU16(device, device_property_sco_fwd_features, 0x0);
 }
 
@@ -421,6 +441,76 @@ static void peer_pair_le_handle_server_keys_written(const GATT_ROOT_KEY_SERVER_K
     peer_pair_le_set_state(PEER_PAIR_LE_STATE_COMPLETED_WAIT_FOR_DISCONNECT);
 }
 
+static void peer_pair_le_handle_start_scan (const LE_SCAN_MANAGER_START_CFM_T* message)
+{
+   peerPairLeRunTimeData *pp1 = PeerPairLeGetData();
+   
+   if(NULL == message->handle)
+   { 
+       DEBUG_LOG(" peer_pair_le_handle_start_scan. Unable to acquire scan");
+   } 
+   pp1->scan = message->handle;
+}
+
+static void peer_pair_le_handle_advertisement_ind(const CL_DM_BLE_ADVERTISING_REPORT_IND_T* message)
+{
+    PeerPairLe_HandleFoundDeviceScan((CL_DM_BLE_ADVERTISING_REPORT_IND_T*) message);
+}
+
+static void peerPairLe_handle_pairing_pair_confirm_success(void)
+{
+    switch (peer_pair_le_get_state())
+    {
+        case PEER_PAIR_LE_STATE_PAIRING_AS_CLIENT:
+            peer_pair_le_set_state(PEER_PAIR_LE_STATE_NEGOTIATE_C_ROLE);
+            break;
+
+        case PEER_PAIR_LE_STATE_PAIRING_AS_SERVER:
+            peer_pair_le_set_state(PEER_PAIR_LE_STATE_NEGOTIATE_P_ROLE);
+            break;
+
+        default:
+            DEBUG_LOG("peerPairLe_handle_pairing_pair_confirm. success in unexpected state:%d",
+                        peer_pair_le_get_state());
+            Panic();
+            break;
+    }
+}
+
+static void peerPairLe_handle_pairing_pair_confirm_timeout(void)
+{
+    switch (peer_pair_le_get_state())
+    {
+        case PEER_PAIR_LE_STATE_PAIRING_AS_CLIENT:
+        case PEER_PAIR_LE_STATE_PAIRING_AS_SERVER:
+            peer_pair_le_set_state(PEER_PAIR_LE_STATE_DISCOVERY);
+            break;
+
+        default:
+            Panic();
+            break;
+    }
+}
+
+static void peerPairLe_handle_pairing_pair_confirm(PAIRING_PAIR_CFM_T *cfm)
+{
+    DEBUG_LOG("peerPairLe_handle_pairing_pair_confirm");
+
+    switch(cfm->status)
+    {
+        case pairingSuccess:
+            peerPairLe_handle_pairing_pair_confirm_success();
+            break;
+
+        case pairingTimeout:
+            peerPairLe_handle_pairing_pair_confirm_timeout();
+            break;
+
+        default:
+            Panic();
+            break;
+    }
+}
 
 static void peer_pair_le_handler(Task task, MessageId id, Message message)
 {
@@ -455,28 +545,17 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
             break;
 
         /* ---- Advertising Manager messages ---- */
-        case APP_ADVMGR_ADVERT_SET_DATA_CFM:
-            peer_pair_le_handle_advert_set_data_cfm((const APP_ADVMGR_ADVERT_SET_DATA_CFM_T *)message);
+        case LE_ADV_MGR_SELECT_DATASET_CFM:
+            peer_pair_le_handle_adv_mgr_select_dataset_cfm((const LE_ADV_MGR_SELECT_DATASET_CFM_T *)message);
             break;
 
         /* ---- Connection Manager messages ---- */
-        case CON_MANAGER_CONNECTION_IND:
-            peer_pair_le_handle_con_manager_connection((const CON_MANAGER_CONNECTION_IND_T *)message);
+        case CON_MANAGER_TP_CONNECT_IND:
+            peer_pair_le_handle_con_manager_connection((const CON_MANAGER_TP_CONNECT_IND_T *)message);
             break;
-
-        /* ---- GATT Manager messages ---- */
-        case GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM:
-            peer_pair_le_handle_remote_client_connect_cfm((const GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM_T *)message);
-            break;
-
-        case GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM:
-            peer_pair_le_handle_remote_server_connect_cfm((const GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM_T *)message);
-            break;
-
-        case GATT_MANAGER_CANCEL_REMOTE_CLIENT_CONNECT_CFM:
-            /* Don't really care about status, but we requested this - so report */
-            DEBUG_LOG("peer_pair_le_handler. GATT_MANAGER_CANCEL_REMOTE_CLIENT_CONNECT_CFM sts:%d",
-                        ((GATT_MANAGER_CANCEL_REMOTE_CLIENT_CONNECT_CFM_T*)message)->status);
+            
+        case CON_MANAGER_TP_DISCONNECT_IND:
+            peer_pair_le_handle_con_manager_disconnection((const CON_MANAGER_TP_DISCONNECT_IND_T *)message);
             break;
 
         /* ---- GATT messages ---- */
@@ -503,6 +582,24 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
         case GATT_ROOT_KEY_SERVER_KEY_UPDATE_IND:
             peer_pair_le_handle_server_keys_written((GATT_ROOT_KEY_SERVER_KEY_UPDATE_IND_T *)message);
             break;
+         /* ---- LE SCAN Manager messages ---- */
+        case LE_SCAN_MANAGER_START_CFM:
+            DEBUG_LOG("peer_find_role_handler LE Scan Manager is Started!");
+            peer_pair_le_handle_start_scan((LE_SCAN_MANAGER_START_CFM_T*)message);
+            break;
+        
+        case LE_SCAN_MANAGER_STOP_CFM:
+            DEBUG_LOG("peer_find_role_handler LE Scan Manager is Stopped!");
+            break;
+
+        case LE_SCAN_MANAGER_ADV_REPORT_IND:
+            DEBUG_LOG("Receiving LE Adverts!!!");
+            peer_pair_le_handle_advertisement_ind((CL_DM_BLE_ADVERTISING_REPORT_IND_T*)message);
+            break;
+
+        case PAIRING_PAIR_CFM:
+            peerPairLe_handle_pairing_pair_confirm((PAIRING_PAIR_CFM_T *)message);
+            break;
 
         default:
             DEBUG_LOG("peer_pair_le_handler. Unhandled message %d(0x%x)", id, id);
@@ -510,6 +607,97 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
     }
 } 
 
+static unsigned int peer_pair_le_NumberOfAdvItems(const le_adv_data_params_t * params)
+{
+    if((le_adv_data_set_peer == params->data_set) && \
+        (le_adv_data_completeness_full == params->completeness) && \
+        (le_adv_data_placement_advert == params->placement))
+        return NUMBER_OF_ADVERT_DATA_ITEMS;
+    else
+        return 0;
+}
+
+static le_adv_data_item_t peer_pair_le_GetAdvDataItems(const le_adv_data_params_t * params, unsigned int id)
+{
+    UNUSED(id);
+
+    if((le_adv_data_set_peer == params->data_set) && \
+        (le_adv_data_completeness_full == params->completeness) && \
+        (le_adv_data_placement_advert == params->placement))
+        return peer_pair_le_advert;
+    else
+    {
+        Panic();
+        return peer_pair_le_advert;
+    };
+}
+
+static void peer_pair_le_ReleaseAdvDataItems(const le_adv_data_params_t * params)
+{
+    UNUSED(params);
+
+    return;
+}
+
+static void peer_pair_le_GattConnect(uint16 cid)
+{
+    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+    tp_bdaddr tpaddr;
+    PEER_PAIR_LE_STATE state = peer_pair_le_get_state();
+
+    switch(state)
+    {
+        case PEER_PAIR_LE_STATE_SELECTING:
+        case PEER_PAIR_LE_STATE_DISCOVERY:
+            DEBUG_LOG("peer_pair_le_GattConnect. cid:0x%x", cid);
+
+            ppl->gatt_cid = cid;
+            PanicFalse(VmGetBdAddrtFromCid(cid, &tpaddr));
+            if (!BdaddrIsSame(&ppl->peer, &tpaddr.taddr.addr))
+            {
+                /*! \todo Check to see if ACL addr and GATT addr is the same */
+                Panic();
+            }
+            peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_SERVER);
+            break;
+
+        case PEER_PAIR_LE_STATE_UNINITIALISED:
+        case PEER_PAIR_LE_STATE_INITIALISED:
+            /* Can't unregister observer. Block debug */
+            break;
+
+        default:
+            DEBUG_LOG("peer_pair_le_GattConnect. cid:0x%x. Not in correct state:%d", cid, state);
+            break;
+    }
+}
+
+static void peer_pair_le_GattDisconnect(uint16 cid)
+{
+    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+    
+    if (ppl)
+    {
+        if (ppl->gatt_cid == cid)
+        {
+            ppl->gatt_cid = 0;
+        }
+    }
+}
+
+static void peer_pair_le_register_advertising(void)
+{
+    peer_pair_le_advert.size = SIZE_PEER_PAIR_LE_ADVERT;
+    peer_pair_le_advert.data = peer_pair_le_advert_data;
+
+    LeAdvertisingManager_Register(NULL, &peer_pair_le_advert_callback);
+}
+
+static void peer_pair_le_register_connections(void)
+{
+    ConManagerRegisterTpConnectionsObserver(cm_transport_ble, PeerPairLeGetTask());
+    GattConnect_RegisterObserver(&peer_pair_le_connect_callback);
+}
 
 void peer_pair_le_init(void)
 {
@@ -526,6 +714,10 @@ void peer_pair_le_init(void)
             DEBUG_LOG("peer_pair_le_init. Server init failed");
             Panic();
         }
+        
+        peer_pair_le_register_connections();
+        
+        peer_pair_le_register_advertising();
     
         ConManagerRequestDefaultQos(cm_transport_ble, cm_qos_low_latency);
     
@@ -539,8 +731,6 @@ void peer_pair_le_start_service(void)
     {
         peer_pair_le.data = (peerPairLeRunTimeData*)PanicNull(calloc(1, sizeof(peerPairLeRunTimeData)));
 
-        ConManagerRegisterConnectionsClient(PeerPairLeGetTask());
-
         peer_pair_le_set_state(PEER_PAIR_LE_STATE_PENDING_LOCAL_ADDR);
     }
 }
@@ -548,17 +738,18 @@ void peer_pair_le_start_service(void)
 
 void peer_pair_le_disconnect(void)
 {
-    peerPairLeRunTimeData *data = PeerPairLeGetData();
+    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+    tp_bdaddr tp_addr;
 
-    if (data)
+    if (ppl)
     {
-        uint16 cid = data->gatt_cid;
-        data->gatt_cid = 0;
-
-        if (cid)
+        tp_addr.transport = TRANSPORT_BLE_ACL;
+        tp_addr.taddr.type = TYPED_BDADDR_PUBLIC;
+        tp_addr.taddr.addr = ppl->peer;
+    
+        if (!BdaddrIsZero(&ppl->peer))
         {
-            DEBUG_LOG("peer_pair_le_disconnect. Disconnecting cid:%d", cid);
-            GattManagerDisconnectRequest(cid);
+            ConManagerReleaseTpAcl(&tp_addr);
             return;
         }
     }

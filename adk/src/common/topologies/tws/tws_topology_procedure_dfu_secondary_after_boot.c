@@ -14,6 +14,7 @@
 
 #include "tws_topology_procedure_set_address.h"
 #include "tws_topology_procedure_permit_bt.h"
+#include "tws_topology_procedure_permit_connection_le.h"
 #include "tws_topology_procedure_pri_connectable_peer.h"
 
 
@@ -22,6 +23,7 @@
 #define DFU_SECONDARY_AFTER_BOOT_SCRIPT(ENTRY) \
     ENTRY(proc_set_address_fns, PROC_SET_ADDRESS_TYPE_DATA_SECONDARY), \
     ENTRY(proc_permit_bt_fns, NO_DATA), \
+    ENTRY(proc_permit_connection_le_fns, NO_DATA), \
     ENTRY(proc_pri_connectable_peer_fns, PROC_PRI_CONNECTABLE_PEER_DATA_ENABLE)
 
 /* Define the dfu_secondary_after_boot_script */

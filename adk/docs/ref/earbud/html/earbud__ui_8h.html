@@ -95,16 +95,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earb
 <tr class="separator:aef50df28f821ec289c6f3973c77d6915"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5406c3d8aecd4c8d077dd789a2e4295f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__ui_8h.html#a5406c3d8aecd4c8d077dd789a2e4295f">EarbudUi_Init</a> (Task init_task)</td></tr>
 <tr class="separator:a5406c3d8aecd4c8d077dd789a2e4295f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add8fcc998bfc5731a0a62d0cab9d868d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__ui_8h.html#add8fcc998bfc5731a0a62d0cab9d868d">EarbudUi_PowerOff</a> (uint16 *lock, uint16 lock_mask)</td></tr>
-<tr class="memdesc:add8fcc998bfc5731a0a62d0cab9d868d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Play power off prompt and LED pattern.  <a href="#add8fcc998bfc5731a0a62d0cab9d868d">More...</a><br /></td></tr>
-<tr class="separator:add8fcc998bfc5731a0a62d0cab9d868d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7aacbfe4401c16452f13bff701af7219"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7aacbfe4401c16452f13bff701af7219"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__ui_8h.html#a7aacbfe4401c16452f13bff701af7219">EarbudUi_PowerOn</a> (void)</td></tr>
-<tr class="memdesc:a7aacbfe4401c16452f13bff701af7219"><td class="mdescLeft">&#160;</td><td class="mdescRight">Play power on prompt and LED pattern. <br /></td></tr>
-<tr class="separator:a7aacbfe4401c16452f13bff701af7219"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a788e769f9d96ab590b2103e17398af6c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__ui_8h.html#a788e769f9d96ab590b2103e17398af6c">EarbudUi_Sleep</a> (void)</td></tr>
-<tr class="memdesc:a788e769f9d96ab590b2103e17398af6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prepare UI for sleep.  <a href="#a788e769f9d96ab590b2103e17398af6c">More...</a><br /></td></tr>
-<tr class="separator:a788e769f9d96ab590b2103e17398af6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Header file for the application User Interface. </p>
@@ -113,7 +103,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earb
  Qualcomm Technologies International, Ltd. Confidential and Proprietary. </dd></dl>
 <dl class="section version"><dt>Version</dt><dd></dd></dl>
 </div><h2 class="groupheader">Enumeration Type Documentation</h2>
-<a class="anchor" id="adf764cbdea00d65edcd07bb9953ad2b7"></a>
+<a class="anchor" id="a99fb83031ce9923c84392b4e92f956b5"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -124,10 +114,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earb
 </div><div class="memdoc">
 <p>Internal messages </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="adf764cbdea00d65edcd07bb9953ad2b7a64500d161a1684a9badecf8a30d0a048"></a>APP_INTERNAL_UI_CONNECTING_TIMEOUT&#160;</td><td class="fielddoc">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="a99fb83031ce9923c84392b4e92f956b5a64500d161a1684a9badecf8a30d0a048"></a>APP_INTERNAL_UI_CONNECTING_TIMEOUT&#160;</td><td class="fielddoc">
 <p>Connecting reminder timeout </p>
 </td></tr>
-<tr><td class="fieldname"><a class="anchor" id="adf764cbdea00d65edcd07bb9953ad2b7ad990dd204954023697588aa0ca10b681"></a>APP_INTERNAL_UI_INQUIRY_TIMEOUT&#160;</td><td class="fielddoc">
+<tr><td class="fieldname"><a class="anchor" id="a99fb83031ce9923c84392b4e92f956b5ad990dd204954023697588aa0ca10b681"></a>APP_INTERNAL_UI_INQUIRY_TIMEOUT&#160;</td><td class="fielddoc">
 <p>Inquiry reminder timeout </p>
 </td></tr>
 </table>
@@ -198,60 +188,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earb
       </table>
 </div><div class="memdoc">
 <p>brief Initialise indicator module </p>
-
-</div>
-</div>
-<a class="anchor" id="add8fcc998bfc5731a0a62d0cab9d868d"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void EarbudUi_PowerOff </td>
-          <td>(</td>
-          <td class="paramtype">uint16 *&#160;</td>
-          <td class="paramname"><em>lock</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint16&#160;</td>
-          <td class="paramname"><em>lock_mask</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Play power off prompt and LED pattern. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">lock</td><td>The caller's lock, may be NULL. </td></tr>
-    <tr><td class="paramname">lock_mask</td><td>Set bits in lock_mask will be cleared in lock when the UI completes. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a class="anchor" id="a788e769f9d96ab590b2103e17398af6c"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void EarbudUi_Sleep </td>
-          <td>(</td>
-          <td class="paramtype">void&#160;</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Prepare UI for sleep. </p>
-<dl class="section note"><dt>Note</dt><dd>If in future, this function is modified to play a tone, it should be modified to resemble <a class="el" href="earbud__ui_8c.html#add8fcc998bfc5731a0a62d0cab9d868d" title="Play power off prompt and LED pattern. ">EarbudUi_PowerOff</a>, so the caller's lock is cleared when the tone is completed. </dd></dl>
 
 </div>
 </div>

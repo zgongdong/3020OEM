@@ -25,7 +25,7 @@ NOTES
 #include "a2dp_init.h"
 
 #include "marshal.h"
-#include <app/bluestack/l2cap_prim.h>
+
 #include <panic.h>
 #include <sink.h>
 #include <stream.h>
@@ -199,6 +199,8 @@ RETURNS
 */
 static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn)
 {
+    uint16 cid;
+    uint8 mediaChannelIndex;
     remote_device *remote_conn = NULL;
 
 #ifdef A2DP_MARSHAL_PEER_EARBUD_CONN
@@ -209,10 +211,10 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn)
      * from existing peer earbud connection.  */
 
     uint8 i;
-    uint16 cid;
     bool found = FALSE;
 
     cid = SinkGetL2capCid(unmarshalled_remote_conn->signal_conn.connection.active.sink);
+    PanicZero(cid);   /* Invalid Connection ID */
 
     for (i = 0; i < ARRAY_DIM(a2dp->remote_conn); i++)
     {
@@ -241,6 +243,31 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn)
                 free(remote_conn->signal_conn.connection.active.received_packet);
             }
 
+            /* Initialize the connection context for the relevant connection id on signalling channel */
+            VmOverrideL2capConnContext(cid, &a2dp->task);
+            /* Stitch the sink and the task */
+            MessageStreamTaskFromSink(unmarshalled_remote_conn->signal_conn.connection.active.sink, &a2dp->task);
+            /* Configure sink messages */
+            SinkConfigure(unmarshalled_remote_conn->signal_conn.connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);              
+            /* Initialize the connection context for the relevant connection id on the media channels */
+            for (mediaChannelIndex=0; mediaChannelIndex < A2DP_MAX_MEDIA_CHANNELS; mediaChannelIndex++)
+            {
+                media_channel *media = &unmarshalled_remote_conn->media_conn[mediaChannelIndex];
+                
+                if ( ((media->status.conn_info.connection_state == avdtp_connection_connected) || 
+                      (media->status.conn_info.connection_state == avdtp_connection_disconnecting) ||
+                      (media->status.conn_info.connection_state == avdtp_connection_disconnect_pending)) && 
+                      (media->connection.active.sink) )
+                {
+                    cid = SinkGetL2capCid(media->connection.active.sink);
+                    PanicZero(cid); /* Invalid Connection ID */
+                    VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
+                    /* Stitch the media channel sink and the task */
+                    MessageStreamTaskFromSink(media->connection.active.sink, &a2dp->task);
+                    /* Configure sink messages */
+                    SinkConfigure(media->connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);            
+                }
+            }
             return;
         }
     }
@@ -256,7 +283,35 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn)
     a2dp_marshal_inst->device_id = remote_conn->bitfields.device_id;
     unmarshalled_remote_conn->bitfields.device_id = a2dp_marshal_inst->device_id;
     *remote_conn = *unmarshalled_remote_conn;
-
+    
+    /* Initialize the connection context for the relevant connection id on signalling channel */
+    cid = SinkGetL2capCid(unmarshalled_remote_conn->signal_conn.connection.active.sink);
+    PanicZero(cid); /* Invalid Connection ID */    
+    VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
+    /* Stitch the signalling channel sink and the task */
+    MessageStreamTaskFromSink(unmarshalled_remote_conn->signal_conn.connection.active.sink, &a2dp->task);
+    /* Configure sink messages */
+    SinkConfigure(unmarshalled_remote_conn->signal_conn.connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);    
+    
+    /* Initialize the connection context for the relevant connection id on the media channels */
+    for (mediaChannelIndex=0; mediaChannelIndex < A2DP_MAX_MEDIA_CHANNELS; mediaChannelIndex++)
+    {
+        media_channel *media = &unmarshalled_remote_conn->media_conn[mediaChannelIndex];
+        
+        if ( ((media->status.conn_info.connection_state == avdtp_connection_connected) || 
+              (media->status.conn_info.connection_state == avdtp_connection_disconnecting) ||
+              (media->status.conn_info.connection_state == avdtp_connection_disconnect_pending)) && 
+              (media->connection.active.sink) )
+        {
+            cid = SinkGetL2capCid(media->connection.active.sink);
+            PanicZero(cid); /* Invalid Connection ID */            
+            VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
+            /* Stitch the media channel sink and the task */
+            MessageStreamTaskFromSink(media->connection.active.sink, &a2dp->task);
+            /* Configure sink messages */
+            SinkConfigure(media->connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);            
+        }
+    }
     free(unmarshalled_remote_conn);
 }
 

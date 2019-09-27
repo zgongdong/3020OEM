@@ -38,6 +38,27 @@ uint16 SinkGetScoHandle(Sink sink);
  * \ingroup trapset_rfcomm
  */
 uint16 SinkGetRfcommConnId(Sink sink);
+
+/**
+ *  \brief Find the RFCOMM server channel corresponding to a sink. 
+ *  \param sink The Sink to get the RFCOMM server channel for.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_rfcomm
+ */
+uint8 SinkGetRfcommServerChannel(Sink sink);
+
+/**
+ *  \brief Find the Sink corresponding to an RFCOMM server connection with remote device. 
+ *  \param tpaddr Bluetooth address of remote device. 
+ *  \param server_channel The RFCOMM server channel associated with remote device
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_rfcomm
+ */
+Sink StreamRfcommSinkFromServerChannel(const tp_bdaddr * tpaddr, uint8 server_channel);
 #endif /* TRAPSET_RFCOMM */
 #if TRAPSET_STREAM
 

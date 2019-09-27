@@ -21,6 +21,8 @@
 #include "peer_find_role_config.h"
 #include "peer_find_role_private.h"
 
+#include "timestamp_event.h"
+
 
 bool peer_find_role_is_central(void)
 {
@@ -38,13 +40,15 @@ bool peer_find_role_is_central(void)
 }
 
 
-/*! \todo Stub implementation 
- */
 void PeerFindRole_FindRole(int32 high_speed_time_ms)
 {
+    DEBUG_LOG("PeerFindRole_FindRole. Current state:%d. Timeout:%d", peer_find_role_get_state(), high_speed_time_ms);
+
     if(peer_find_role_get_state() == PEER_FIND_ROLE_STATE_INITIALISED)
     {
         peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+        
+        TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_STARTED);
 
         if (high_speed_time_ms < 0)
         {
@@ -55,12 +59,12 @@ void PeerFindRole_FindRole(int32 high_speed_time_ms)
         pfr->role_timeout_ms = high_speed_time_ms;
         pfr->advertising_backoff_ms = PeerFindRoleConfigInitialAdvertisingBackoffMs();
 
-    if (high_speed_time_ms != 0)
-    {
-        /* Start the timeout before setting the state as the state change can cancel it */
-        MessageSendLater(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_TIMEOUT_CONNECTION,
-                         NULL, pfr->role_timeout_ms);
-    }
+        if (high_speed_time_ms != 0)
+        {
+            /* Start the timeout before setting the state as the state change can cancel it */
+            MessageSendLater(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_TIMEOUT_CONNECTION,
+                             NULL, pfr->role_timeout_ms);
+        }
 
         peer_find_role_set_state(PEER_FIND_ROLE_STATE_CHECKING_PEER);
     }
@@ -69,9 +73,19 @@ void PeerFindRole_FindRole(int32 high_speed_time_ms)
 
 void PeerFindRole_FindRoleCancel(void)
 {
+    DEBUG_LOG("PeerFindRole_FindRoleCancel. Current state:%d", peer_find_role_get_state());
+
     peer_find_role_cancel_initial_timeout();
 
     MessageSend(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_CANCEL_FIND_ROLE, NULL);
+}
+
+
+void PeerFindRole_DisableScanning(bool disable)
+{
+    DEBUG_LOG("PeerFindRole_DisableScanning disable:%d",disable);
+
+    peer_find_role_update_media_flag(disable, PEER_FIND_ROLE_SCANNING_DISABLED);
 }
 
 
@@ -88,12 +102,39 @@ void PeerFindRole_RegisterTask(Task t)
 }
 
 
+void PeerFindRole_UnregisterTask(Task t)
+{
+    TaskList_RemoveTask(PeerFindRoleGetTaskList(), t);
+}
+
+
 peer_find_role_score_t PeerFindRole_CurrentScore(void)
 {
-    peer_find_role_score_t score = 0;
-
-    return score;
+    peer_find_role_calculate_score();
+    return peer_find_role_score();
 }
+
+
+void PeerFindRole_RegisterPrepareClient(Task task)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    PanicNotZero(TaskList_Size(&pfr->prepare_tasks));
+    TaskList_AddTask(&pfr->prepare_tasks, task);
+}
+
+
+void PeerFindRole_UnregisterPrepareClient(Task task)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    TaskList_RemoveTask(&pfr->prepare_tasks, task);
+}
+
+
+void PeerFindRole_PrepareResponse(void)
+{
+    MessageSend(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_PREPARED, NULL);
+}
+
 
 
 /*! Internal handler for adverts
@@ -136,9 +177,9 @@ static bool peer_find_role_handle_encryption_change(const CL_SM_ENCRYPTION_CHANG
 
         if (ind->encrypted)
         {
-            if (PEER_FIND_ROLE_STATE_AWAITING_ENCRYPTION == peer_find_role_get_state())
+            if (PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION == peer_find_role_get_state())
             {
-                peer_find_role_set_state(PEER_FIND_ROLE_STATE_DECIDING);
+                peer_find_role_set_state(PEER_FIND_ROLE_STATE_CLIENT_PREPARING);
             }
         }
         return TRUE;
@@ -175,7 +216,7 @@ bool PeerFindRole_HandleConnectionLibraryMessages(MessageId id, Message message,
                 return TRUE;
             }
             break;
-
+  
         case PEER_FIND_ROLE_STATE_DISCOVER:
         case PEER_FIND_ROLE_STATE_DISCOVER_CONNECTABLE:
             if (CL_DM_BLE_ADVERTISING_REPORT_IND == id)
@@ -191,4 +232,3 @@ bool PeerFindRole_HandleConnectionLibraryMessages(MessageId id, Message message,
 
     return FALSE;
 }
-

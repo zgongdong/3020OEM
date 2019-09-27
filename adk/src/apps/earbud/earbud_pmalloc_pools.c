@@ -9,8 +9,6 @@ The pools defined here will be merged at run time with the base definitions
 from Hydra OS - see 'pmalloc_config_P1.h'.
 */
 
-#ifndef __QCC514X_APPS__
-
 #include <pmalloc.h>
 
 _Pragma ("unitsuppress Unused")
@@ -45,5 +43,3 @@ static const pmalloc_pool_config app_pools[] =
        Total bytes: 13956
     */
 };
-
-#endif /* !__QCC514X_APPS__ */

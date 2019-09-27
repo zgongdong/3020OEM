@@ -121,10 +121,10 @@ static const struct {
     gatt_uuid_t expected_uuid[4];
     size_t      offset_in_instance;
 } expectedCharacteristics[] = {
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_FEATURES),     offsetof(GATT_ROOT_KEY_CLIENT, handle_features) },
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_STATUS),       offsetof(GATT_ROOT_KEY_CLIENT, handle_status) },
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_CHALLENGE_CONTROL), offsetof(GATT_ROOT_KEY_CLIENT, handle_challenge_control) },
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_KEYS_CONTROL),  offsetof(GATT_ROOT_KEY_CLIENT, handle_keys_control) }};
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_FEATURES)},     offsetof(GATT_ROOT_KEY_CLIENT, handle_features) },
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_STATUS)},       offsetof(GATT_ROOT_KEY_CLIENT, handle_status) },
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_CHALLENGE_CONTROL)}, offsetof(GATT_ROOT_KEY_CLIENT, handle_challenge_control) },
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_KEYS_CONTROL)},  offsetof(GATT_ROOT_KEY_CLIENT, handle_keys_control) }};
 
 static bool rootKeyUuidCompare(const gatt_uuid_t *uuid_a, const gatt_uuid_t *uuid_b)
 {

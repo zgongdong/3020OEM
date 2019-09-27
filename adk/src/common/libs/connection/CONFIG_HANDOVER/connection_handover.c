@@ -76,6 +76,10 @@ bool connectionVeto( void )
     /* Check Lock Status */
     if(!connectionGetLockState())
         return TRUE;
+    
+    /* Check for outstanding scan requests */
+    if(!connectionOutstandingWriteScanEnableReqsGet() != 0)
+        return TRUE;
 
     if(MessagesPendingForTask(connectionGetAppTask(), NULL) != 0)
     {

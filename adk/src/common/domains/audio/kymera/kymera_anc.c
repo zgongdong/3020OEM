@@ -16,6 +16,7 @@
 
 #include "kymera_private.h"
 #include "kymera_config.h"
+#include "microphones.h"
 #include "usb_common.h"
 
 #define ANC_TUNING_SINK_USB_LEFT      0 /*can be any other backend device. PCM used in this tuning graph*/
@@ -64,7 +65,6 @@
 #define EB_CAP_ID_USB_AUDIO_RX CAP_ID_USB_AUDIO_RX
 #define EB_CAP_ID_USB_AUDIO_TX CAP_ID_USB_AUDIO_TX
 #endif
-
 void KymeraAnc_EnterTuning(void)
 {
     Usb_ClientRegister(KymeraGetTask());
@@ -92,10 +92,10 @@ void KymeraAnc_TuningStop(void)
     MessageSend(&theKymera->task, KYMERA_INTERNAL_ANC_TUNING_STOP, NULL);
 }
 
-static void kymeraAnc_GetMics(uint8 *mic0, uint8 *mic1)
+static void kymeraAnc_GetMics(microphone_number_t *mic0, microphone_number_t *mic1)
 {
-    *mic0 = NO_MIC;
-    *mic1 = NO_MIC;
+    *mic0 = microphone_none;
+    *mic1 = microphone_none;
 
     if (appConfigAncPathEnable() & feed_forward_left)
     {
@@ -107,6 +107,16 @@ static void kymeraAnc_GetMics(uint8 *mic0, uint8 *mic1)
     {
         if (appConfigAncPathEnable() & feed_back_left)
             *mic0 = appConfigAncFeedBackMic();
+    }
+}
+
+static inline void kymeraAnc_SynchroniseAncTuningMicrophoneSources(Source mic_source_0, Source mic_source_1, Source monitor_mic_source)
+{
+    PanicFalse(SourceSynchronise(monitor_mic_source, mic_source_0));
+    if(mic_source_1)
+    {
+        PanicFalse(SourceSynchronise(mic_source_0, mic_source_1));
+        PanicFalse(SourceSynchronise(monitor_mic_source, mic_source_1));
     }
 }
 
@@ -144,7 +154,6 @@ void KymeraAnc_TuningCreateChain(uint16 usb_rate)
         16,             // subframe_resolution
     };
 
-/* On Aura 2.1 usb rx, tx capabilities are downloaded */
 #ifdef DOWNLOAD_USB_AUDIO
     const char usb_audio_edkcs[] = "download_usb_audio.edkcs";
     index = FileFind(FILE_ROOT, usb_audio_edkcs, strlen(usb_audio_edkcs));
@@ -165,16 +174,12 @@ void KymeraAnc_TuningCreateChain(uint16 usb_rate)
     Sink DAC_L = (Sink)PanicFalse(StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_A));
     PanicFalse(SinkConfigure(DAC_L, STREAM_CODEC_OUTPUT_RATE, usb_rate));
 
-    /* Get the ANC microphone sources */
-    Source mic_in0, mic_in1;
-    uint8 mic0, mic1;
+    microphone_number_t mic0, mic1;
     kymeraAnc_GetMics(&mic0, &mic1);
-    appKymeraMicSetup(mic0, &mic_in0, mic1, &mic_in1, usb_rate);
-
-    /* Get the ANC tuning monitor microphone sources */
-    Source fb_mon0;
-    appKymeraMicSetup(appConfigAncTuningMonitorMic(), &fb_mon0, NO_MIC, NULL, usb_rate);
-    PanicFalse(SourceSynchronise(mic_in0, fb_mon0));
+    Source mic_in0 = Kymera_GetMicrophoneSource(mic0, NULL, theKymera->sco_info->rate, high_priority_user);
+    Source mic_in1 = Kymera_GetMicrophoneSource(mic1, NULL, theKymera->sco_info->rate, high_priority_user);
+    Source fb_mon0 = Kymera_GetMicrophoneSource(appConfigAncTuningMonitorMic(), NULL, theKymera->sco_info->rate, high_priority_user);
+    PanicFalse(SourceSynchronise(fb_mon0, mic_in0));
 
     uint16 anc_tuning_frontend_config[3] =
     {
@@ -252,23 +257,17 @@ void KymeraAnc_TuningDestroyChain(void)
     /* Get the DAC output sinks */
     Sink DAC_L = (Sink)PanicFalse(StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_A));
 
-    /* Get the ANC microphone sources */
-    Source mic_in0, mic_in1;
-    uint8 mic0, mic1;
+    microphone_number_t mic0, mic1;
     kymeraAnc_GetMics(&mic0, &mic1);
-    appKymeraMicSetup(mic0, &mic_in0, mic1, &mic_in1, theKymera->usb_rate);
+    Source mic_in0 = Kymera_GetMicrophoneSource(mic0, NULL, theKymera->usb_rate, high_priority_user);
+    Source mic_in1 = Kymera_GetMicrophoneSource(mic1, NULL, theKymera->usb_rate, high_priority_user);
+    Source fb_mon0 = Kymera_GetMicrophoneSource(appConfigAncTuningMonitorMic(), NULL, theKymera->usb_rate, high_priority_user);
 
-    /* Get the ANC tuning monitor microphone sources */
-    Source fb_mon0;
-    appKymeraMicSetup(appConfigAncTuningMonitorMic(), &fb_mon0, NO_MIC, NULL, theKymera->usb_rate);
-
-    /* Connect microphone */
     StreamDisconnect(mic_in0, 0);
     if (mic_in1)
         StreamDisconnect(mic_in1, 0);
 
-    /* Connect FBMON microphone */
-    StreamConnect(fb_mon0, 0);
+    StreamDisconnect(fb_mon0, 0);
 
     /* Disconnect speaker */
     StreamDisconnect(0, DAC_L);

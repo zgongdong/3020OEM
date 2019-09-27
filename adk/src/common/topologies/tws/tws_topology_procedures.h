@@ -29,61 +29,60 @@ typedef enum
 typedef enum
 {
     /*! Procedure to pair with peer Earbud. */
-    tws_topology_procedure_pair_peer                        = 1UL << 0,
+    tws_topology_procedure_pair_peer = 1,
 
     /*! Procedure to determine Primary/Secondary role of Earbud. */
-    tws_topology_procedure_find_role                        = 1UL << 1,
+    tws_topology_procedure_find_role,
 
     /*! Procedure to connect BREDR ACL to Primary Earbud. */
-    tws_topology_procedure_sec_connect_peer                 = 1UL << 2,
+    tws_topology_procedure_sec_connect_peer,
 
     /*! Procedure to connect BREDR profiles to Secondary Earbud. */
-    tws_topology_procedure_pri_connect_peer_profiles        = 1UL << 3,
+    tws_topology_procedure_pri_connect_peer_profiles,
 
     /*! Procedure to connect BREDR profiles to Earbud. */
-    tws_topology_procedure_disconnect_peer_profiles         = 1UL << 4,
+    tws_topology_procedure_disconnect_peer_profiles,
 
     /*! Procedure to enable page scan for Secondary to establish BREDR ACL to Primary Earbud. */
-    tws_topology_procedure_pri_connectable_peer             = 1UL << 5,
+    tws_topology_procedure_pri_connectable_peer,
 
-    tws_topology_procedure_no_role_idle                     = 1UL << 6,
-    tws_topology_procedure_set_role                         = 1UL << 7,
+    tws_topology_procedure_no_role_idle,
+    tws_topology_procedure_set_role,
 
-    tws_topology_procedure_connect_handset                  = 1UL << 8,
+    tws_topology_procedure_connect_handset,
 
-    tws_topology_procedure_disconnect_handset               = 1UL << 9,
+    tws_topology_procedure_disconnect_handset,
 
-    tws_topology_procedure_connectable_handset              = 1UL << 10,
+    tws_topology_procedure_connectable_handset,
 
-    tws_topology_procedure_permit_bt                        = 1UL << 11,
-    tws_topology_procedure_prohibit_bt                      = 1UL << 12,
-    tws_topology_procedure_set_address                      = 1UL << 13,
+    tws_topology_procedure_permit_bt,
+    tws_topology_procedure_prohibit_bt,
+    tws_topology_procedure_set_address,
 
-    tws_topology_procedure_become_primary                   = 1UL << 14,
-    tws_topology_procedure_become_secondary                 = 1UL << 15,
-    tws_topology_procedure_become_acting_primary            = 1UL << 16,
-    tws_topology_procedure_set_primary_address_and_find_role= 1UL << 17,
+    tws_topology_procedure_become_primary,
+    tws_topology_procedure_become_secondary,
+    tws_topology_procedure_become_acting_primary,
+    tws_topology_procedure_set_primary_address_and_find_role,
 
-    tws_topology_procedure_role_switch_to_secondary         = 1UL << 18,
-    tws_topology_procedure_no_role_find_role                = 1UL << 19,
-    tws_topology_procedure_cancel_find_role                 = 1UL << 20,
-    tws_topology_procedure_primary_find_role                = 1UL << 21,
+    tws_topology_procedure_role_switch_to_secondary,
+    tws_topology_procedure_no_role_find_role,
+    tws_topology_procedure_cancel_find_role,
+    tws_topology_procedure_primary_find_role,
 
-    tws_topology_procedure_permit_connection_le             = 1UL << 22,
-    tws_topology_procedure_prohibit_connection_le           = 1UL << 23,
+    tws_topology_procedure_permit_connection_le,
+    tws_topology_procedure_prohibit_connection_le,
 
-    tws_topology_procedure_pair_peer_script                 = 1UL << 24,
+    tws_topology_procedure_pair_peer_script,
 
-    tws_topology_procedure_dfu_role                         = 1UL << 25,
-    tws_topology_procedure_dfu_primary                      = 1UL << 26,
-    tws_topology_procedure_dfu_secondary                    = 1UL << 27,
+    tws_topology_procedure_dfu_role,
+    tws_topology_procedure_dfu_primary,
+    tws_topology_procedure_dfu_secondary,
 
-    tws_topology_procedure_allow_handset_connection         = 1UL << 28,
+    tws_topology_procedure_allow_handset_connection,
 
-    tws_topology_procedure_disconnect_peer_find_role        = 1UL << 29,
+    tws_topology_procedure_disconnect_peer_find_role,
 
-    tws_topology_procedure_clean_connections                = 1UL << 30,
-    /* Note that << 31 doesn't work. Presumably enums are signed */
+    tws_topology_procedure_clean_connections,
 
 } tws_topology_procedure;
 

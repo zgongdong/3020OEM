@@ -19,6 +19,8 @@ DESCRIPTION
 #include "audio_plugin_if.h"
 #include "audio_plugin_common.h"
 
+#define RAW_INPUT_GAIN_0DB  (0x8020)
+
 /****************************************************************************
 DESCRIPTION
     Set up of a couple of common microphone levels
@@ -117,6 +119,7 @@ void AudioPluginSetMicGain(Source mic_source, bool digital, uint16 gain)
     else
     {
         SourceConfigure(mic_source, STREAM_CODEC_INPUT_GAIN, gain);
+        SourceConfigure(mic_source, STREAM_CODEC_RAW_INPUT_GAIN, RAW_INPUT_GAIN_0DB);
     }
 }
 

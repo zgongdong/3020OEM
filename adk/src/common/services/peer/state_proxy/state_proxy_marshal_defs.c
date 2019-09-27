@@ -144,8 +144,16 @@ void stateProxy_MarshalToConnectedPeer(marshal_type_t marshal_type, Message msg,
 
     if (send)
     {
-        void* copy = PanicUnlessMalloc(size);
+        void* copy;
         SP_LOG_VERBOSE("stateProxy_MarshalToConnectedPeer forwarding type:0x%x to primary", marshal_type);
+
+        /* Cancel any pending messages of this type - its more important to send
+        the latest state, so cancel any pending messages. */
+        appPeerSigMarshalledMsgChannelTxCancelAll(stateProxy_GetTask(),
+                                                  PEER_SIG_MSG_CHANNEL_STATE_PROXY,
+                                                  marshal_type);
+
+        copy = PanicUnlessMalloc(size);
         memcpy(copy, msg, size);
         appPeerSigMarshalledMsgChannelTx(stateProxy_GetTask(),
                                          PEER_SIG_MSG_CHANNEL_STATE_PROXY,

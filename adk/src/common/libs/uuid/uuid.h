@@ -35,8 +35,8 @@ typedef struct uuid_base
 } uuid_base_t;
 
 
-#define UUID_128_FORMAT_gatt_uuid_t_(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) { 0x##a##b##c##d##u, 0x##e##f##g##h##u, 0x##i##j##k##l##u, 0x##m##n##o##p##u}
-#define UUID_128_FORMAT_uint8_(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) { 0x##p, 0x##o, 0x##n, 0x##m, 0x##l, 0x##k, 0x##j, 0x##i, 0x##h, 0x##g, 0x##f, 0x##e, 0x##d, 0x##c, 0x##b, 0x##a}
+#define UUID_128_FORMAT_gatt_uuid_t_(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) 0x##a##b##c##d##u, 0x##e##f##g##h##u, 0x##i##j##k##l##u, 0x##m##n##o##p##u
+#define UUID_128_FORMAT_uint8_(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) 0x##p, 0x##o, 0x##n, 0x##m, 0x##l, 0x##k, 0x##j, 0x##i, 0x##h, 0x##g, 0x##f, 0x##e, 0x##d, 0x##c, 0x##b, 0x##a
 
 /*! \def UUID_128_FORMAT_gatt_uuid_t(uuid)
     \brief A macro that converts a 128-bit GATT UUID into the gatt library format.
@@ -47,7 +47,7 @@ typedef struct uuid_base
     
     Example:
     #define UUID128_EXAMPLE_UUID 00,11,22,33,44,55,66,77,88,99,88,77,66,55,44,33
-    gatt_uuid_t uuid[] = UUID_128_FORMAT_gatt_uuid_t(UUID128_EXAMPLE_UUID);
+    gatt_uuid_t uuid[] = {UUID_128_FORMAT_gatt_uuid_t(UUID128_EXAMPLE_UUID)};
 */
 #define UUID_128_FORMAT_gatt_uuid_t(uuid) UUID_128_FORMAT_gatt_uuid_t_(uuid)
 /*! \def UUID_128_FORMAT_uint8(uuid)
@@ -55,7 +55,7 @@ typedef struct uuid_base
    
     Example:
     #define UUID128_EXAMPLE_UUID 00,11,22,33,44,55,66,77,88,99,88,77,66,55,44,33
-    uint8 uuid[] = UUID_128_FORMAT_uint8(UUID128_EXAMPLE_UUID);
+    uint8 uuid[] = {UUID_128_FORMAT_uint8(UUID128_EXAMPLE_UUID)};
 */
 #define UUID_128_FORMAT_uint8(uuid) UUID_128_FORMAT_uint8_(uuid)
 

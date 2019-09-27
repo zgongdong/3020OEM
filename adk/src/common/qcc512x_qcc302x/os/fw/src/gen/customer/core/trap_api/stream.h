@@ -72,22 +72,22 @@ transport has not been configured.)
 */
 #define StreamFastPipeSource(id) StreamSourceFromSink(StreamFastPipeSink(id))
 
-#if TRAPSET_SPIFLASH
+#if TRAPSET_SHUNT
 
 /**
- *  \brief Return a source with the contents of the specified SPI flash address. 
- *  \param address The array address to read data from. 
- *  \param size  The amount of data (in octets )to read. 
- *  \return The source associated with the SPI flash stream.
+ *  \brief Return the sink corresponding to the shunt for the given L2CAP CID on the given
+ *  ACL 
+ *  \param acl the ACL connection handle (from the host) 
+ *  \param cid the L2CAP connection id (from the host)
  * 
- * \note This trap may be called from a high-priority task handler
+ * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_spiflash
+ * \ingroup trapset_shunt
  * 
- * WARNING: This trap is unless HIDE_SPIFLASH
+ * WARNING: This trap is UNIMPLEMENTED
  */
-Source StreamSpiflashSource(uint32 address, uint16 size);
-#endif /* TRAPSET_SPIFLASH */
+Sink StreamShuntSink(uint16 acl, uint16 cid);
+#endif /* TRAPSET_SHUNT */
 #if TRAPSET_STREAM
 
 /**
@@ -247,187 +247,6 @@ Source StreamRegionSource(const uint8 * data, uint16 length);
  */
 bool StreamSinksFromBdAddr(uint16 * max, Sink * sinks, const tp_bdaddr * tpaddr);
 #endif /* TRAPSET_STREAM */
-#if TRAPSET_RFCOMM
-
-/**
- *  \brief Find the Sink corresponding to an RFCOMM connection.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_rfcomm
- */
-Sink StreamRfcommSink(uint16 conn_id);
-#endif /* TRAPSET_RFCOMM */
-#if TRAPSET_UART
-
-/**
- *  \brief Find the Sink associated with the raw UART.
- *   Returns zero if it is unavailable (for example the appropriate
- *   transport has not been configured.)
- *   If the Source buffer overflows it will cause the chip to panic.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_uart
- */
-Sink StreamUartSink(void );
-
-/**
- *  \brief Dynamically configure the UART settings. 
- *         PIOs are not handled by this but can be assigned to the UART at any
- *         point. This is done by using PioSetMapPins32Bank to put the PIO under
- *         HW control and then PioSetFunction to set the function to one of the
- *         UART signals.
- *         Please note that one PIO can be assigned for multiple signals at the
- *         same time. All UART signals are initially muxed to PIO 96 (which
- *         doesn't exist) to make sure there are no conflicts. Once a PIO is muxed
- *         to a UART signal, that signal cannot be muxed back to PIO 96.
- *         This trap is ignored unless raw access to the UART is enabled. UART is
- *         enabled by adding TRANSPORT_USER to the firmware defines (enabled by
- *         default). 
- *  \param rate The UART rate to use. Custom baud rates can be calculated as
- *  round(baud_rate_in_mbps*4096).
- *             Consult the data sheet for part specific information.
- *  \param stop The UART stop to use. 
- *  \param parity The UART parity to use.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_uart
- */
-void StreamUartConfigure(vm_uart_rate rate, vm_uart_stop stop, vm_uart_parity parity);
-#endif /* TRAPSET_UART */
-
-/**
- *  \brief Make an automatic connection between a source and sink, or dispose it.
- *   Like StreamConnect(), but if the connection could not be made then the
- *   source will be passed to StreamConnectDispose(). Similarly, if the
- *   connection is subsequently broken using StreamDisconnect() or by the
- *   sink being closed the source will be passed to StreamConnectDispose().
- *   The end result is that the source will be tidied up correctly, no
- *   matter what happens after this call.
- *   Note that the task associated with the source will be
- *   changed. Messages related to the source will no longer be sent to
- *   the task previously associated with it.
- *  \param source The Source data will be taken from. 
- *  \param sink The Sink data will be written to. 
- *  \return TRUE if the connection was made between \e source and \e sink; FALSE if the
- *  initial connection failed (in which case, if \e source was valid, it will have
- *  been immediately passed to StreamConnectDispose()).
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset___special_inline
- */
-bool StreamConnectAndDispose(Source source, Sink sink);
-#if TRAPSET_FASTPIPE
-
-/**
- *  \brief Return the FastPipe Sink for the pipe requested. 
- *  \param id The ID of the pipe needed.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_fastpipe
- * 
- * WARNING: This trap is UNIMPLEMENTED
- */
-Sink StreamFastPipeSink(uint16 id);
-#endif /* TRAPSET_FASTPIPE */
-#if TRAPSET_PARTITION
-
-/**
- *  \brief Open a sink to erase and write to an external flash partition. This function
- *  will perform a flash erase on the entire partition specified and then provide
- *  a Sink to allow it to be written from the start.
- *   
- *   \note
- *   If the VM application uses the VM software watchdog functionality, BlueCore
- *   firmware automatically extends the VM software watchdog before the erase of
- *   an external serial flash memory. Erasing of the external serial flash memory
- *   is time consuming. This ensures that the VM application is given enough time
- *   to kick the VM software watchdog when the operation has completed.
- *   \note
- *   This trap expects all the partitions in the \#PARTITION_SERIAL_FLASH 
- *   device to be sector aligned. If partition is not sector aligned then
- *   firmware will erase shared sectors (i.e., end of previous partition's 
- *   sector or start of next partition's sector).
- *  \param device device to which to write, cannot be internal flash, see
- *  \#partition_filesystem_devices
- *  \param partition partition number to overwrite
- *  \return Sink if partition found and erased successfully, otherwise zero
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_partition
- * 
- * WARNING: This trap is UNIMPLEMENTED
- */
-Sink StreamPartitionOverwriteSink(partition_filesystem_devices device, uint16 partition);
-
-/**
- *  \brief Resume external flash sink partition after a controlled power failure.
- *   
- *   This VM trap is used to resume sink stream to write into external flash
- *   partition which got interrupted while writing previously. This trap returns
- *   the sink stream by reopening the stream for the interrupted external flash
- *   partition. This trap will not erase the contents of the partition.
- *   See \#PartitionSinkGetPosition trap description to know how to retrieve the
- *   sink position from which the data can be written.
- *  \param device device to which to write, cannot be internal flash, see
- *  \#partition_filesystem_devices. 
- *  \param partition_no partition number of the sink partition to be resumed. 
- *  \param first_word first word of the sink partition to be resumed.
- *  \return Sink if partition found or sink already exists, else return NULL 
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_partition
- * 
- * WARNING: This trap is UNIMPLEMENTED
- */
-Sink StreamPartitionResumeSink(partition_filesystem_devices device, uint16 partition_no, uint16 first_word);
-#endif /* TRAPSET_PARTITION */
-#if TRAPSET_OPERATOR
-
-/**
- *  \brief Gets operator source stream for the operator 
- *   This trap checks validity of the operator and its specified source terminal
- *   number. If the supplied input parameters are valid then it provides the
- *   operator source stream.
- *   @note
- *   This API returns zero(0) in either one of the below mentioned scenarios:
- *   1. Operator is not valid
- *   2. Source terminal ID is not valid with regards to the supplied operator.
- *  \param opid Operator, which was created in the DSP 
- *  \param terminal Source stream connection number for the specified operator 
- *  \return Operator source stream, if it is successful, otherwise zero(0).
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_operator
- */
-Source StreamSourceFromOperatorTerminal(Operator opid, uint16 terminal);
-
-/**
- *  \brief Gets operator sink stream for the operator 
- *   This API checks validity of the operator and its specified sink terminal
- *   number. If the supplied input parameters are valid then it provides the
- *   operator sink stream.
- *   @note
- *   This API returns zero(0) in either one of the below specified scenarios:
- *   1. Operator is not valid
- *   2. Sink terminal ID is not valid with regards to the supplied operator.
- *  \param opid Operator, which was created in the DSP 
- *  \param terminal Sink stream connection number for the specified operator 
- *  \return Operator sink stream, if it is successful, otherwise zero(0).
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_operator
- */
-Sink StreamSinkFromOperatorTerminal(Operator opid, uint16 terminal);
-#endif /* TRAPSET_OPERATOR */
 #if TRAPSET_ATT
 
 /**
@@ -566,107 +385,6 @@ Sink StreamAttClientSink(uint16 cid);
  */
 Sink StreamAttServerSink(uint16 cid);
 #endif /* TRAPSET_ATT */
-#if TRAPSET_CSB
-
-/**
- *  \brief Find the Sink corresponding to a CSB transmitter stream.
- *  \param lt_addr The logical transport address used for CSB link.
- *  \return  Sink if CSB transmitter stream exists for a given lt_addr otherwise 
- * NULL.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_csb
- */
-Sink StreamCsbSink(uint16 lt_addr);
-
-/**
- *  \brief Find the Source corresponding to a CSB receiver stream.
- *  \param remote_addr The remote device Bluetooth address.
- *  \param lt_addr The logical transport address used for CSB link.
- *  \return  Source if CSB receiver stream exists for a given parameters otherwise 
- * NULL.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_csb
- */
-Source StreamCsbSource(const bdaddr * remote_addr, uint16 lt_addr);
-#endif /* TRAPSET_CSB */
-#if TRAPSET_SHUNT
-
-/**
- *  \brief Return the sink corresponding to the shunt for the given L2CAP CID on the given
- *  ACL 
- *  \param acl the ACL connection handle (from the host) 
- *  \param cid the L2CAP connection id (from the host)
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_shunt
- * 
- * WARNING: This trap is UNIMPLEMENTED
- */
-Sink StreamShuntSink(uint16 acl, uint16 cid);
-#endif /* TRAPSET_SHUNT */
-#if TRAPSET_KALIMBA
-
-/**
- *  \brief The Sink connected to the port passed on Kalimba. 
- *  \param port In the range 0..3 (BC3-MM) or 0..7 (BC5-MM)
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_kalimba
- * 
- * WARNING: This trap is UNIMPLEMENTED
- */
-Sink StreamKalimbaSink(uint16 port);
-#endif /* TRAPSET_KALIMBA */
-#if TRAPSET_SD_MMC
-
-/**
- *  \brief Return a source with data on an SD/MMC card.
- *   
- *  \param slot SD slot number, counting from 0
- *  \param start_block number of the first 512-byte block to be read from a card.
- *  \param blocks_count total number of 512-byte blocks to be read from a card
- *  \return 0 if params are not correct or there is no SD/MMC card in the slot.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_sd_mmc
- */
-Source StreamSdMmcSource(uint8 slot, uint32 start_block, uint32 blocks_count);
-
-/**
- *  \brief Return a sink that writes data on an SD/MMC card.
- *   
- *  \param slot SD slot number, counting from 0
- *  \param start_block number of the first 512-byte block to write data to.
- *  \param blocks_count total number of 512-byte blocks that can be written.
- *  \return 0 if params are not correct or there is no SD/MMC card in the slot.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_sd_mmc
- */
-Sink StreamSdMmcSink(uint8 slot, uint32 start_block, uint32 blocks_count);
-#endif /* TRAPSET_SD_MMC */
-#if TRAPSET_HOSTSTREAM
-
-/**
- *  \brief Get the Sink for the specified stream-based BCSP\#13 channel. 
- *  \param channel The channel to fetch the Sink for.
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_hoststream
- * 
- * WARNING: This trap is UNIMPLEMENTED
- */
-Sink StreamHostSink(uint16 channel);
-#endif /* TRAPSET_HOSTSTREAM */
 #if TRAPSET_REFORMATSQIF
 
 /**
@@ -802,6 +520,22 @@ Source StreamFilesystemSource(FILESYSTEM_ID filesystem_id);
  */
 Sink StreamFilesystemSink(FILESYSTEM_ID filesystem_id);
 #endif /* TRAPSET_FILE */
+#if TRAPSET_IICSTREAM
+
+/**
+ *  \brief Return a source with the contents of the specified I2C address. 
+ *   
+ *  \param slave_addr The slave address of the device to read data from. 
+ *  \param array_addr The array address to read data from. 
+ *  \param size The amount of data (in bytes) to read.
+ *  \return The source associated with the I2C stream.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_iicstream
+ */
+Source StreamI2cSource(uint16 slave_addr, uint16 array_addr, uint16 size);
+#endif /* TRAPSET_IICSTREAM */
 #if TRAPSET_USB
 
 /**
@@ -834,6 +568,159 @@ Sink StreamUsbEndPointSink(uint16 end_point);
  */
 Sink StreamUsbVendorSink(void );
 #endif /* TRAPSET_USB */
+#if TRAPSET_SPIFLASH
+
+/**
+ *  \brief Return a source with the contents of the specified SPI flash address. 
+ *  \param address The array address to read data from. 
+ *  \param size  The amount of data (in octets )to read. 
+ *  \return The source associated with the SPI flash stream.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_spiflash
+ * 
+ * WARNING: This trap is unless HIDE_SPIFLASH
+ */
+Source StreamSpiflashSource(uint32 address, uint16 size);
+#endif /* TRAPSET_SPIFLASH */
+#if TRAPSET_RFCOMM
+
+/**
+ *  \brief Find the Sink corresponding to an RFCOMM connection.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_rfcomm
+ */
+Sink StreamRfcommSink(uint16 conn_id);
+#endif /* TRAPSET_RFCOMM */
+#if TRAPSET_UART
+
+/**
+ *  \brief Find the Sink associated with the raw UART.
+ *   Returns zero if it is unavailable (for example the appropriate
+ *   transport has not been configured.)
+ *   If the Source buffer overflows it will cause the chip to panic.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_uart
+ */
+Sink StreamUartSink(void );
+
+/**
+ *  \brief Dynamically configure the UART settings. 
+ *         PIOs are not handled by this but can be assigned to the UART at any
+ *         point. This is done by using PioSetMapPins32Bank to put the PIO under
+ *         HW control and then PioSetFunction to set the function to one of the
+ *         UART signals.
+ *         Please note that one PIO can be assigned for multiple signals at the
+ *         same time. All UART signals are initially muxed to PIO 96 (which
+ *         doesn't exist) to make sure there are no conflicts. Once a PIO is muxed
+ *         to a UART signal, that signal cannot be muxed back to PIO 96.
+ *         This trap is ignored unless raw access to the UART is enabled. UART is
+ *         enabled by adding TRANSPORT_USER to the firmware defines (enabled by
+ *         default). 
+ *  \param rate The UART rate to use. Custom baud rates can be calculated as
+ *  round(baud_rate_in_mbps*4096).
+ *             Consult the data sheet for part specific information.
+ *  \param stop The UART stop to use. 
+ *  \param parity The UART parity to use.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_uart
+ */
+void StreamUartConfigure(vm_uart_rate rate, vm_uart_stop stop, vm_uart_parity parity);
+#endif /* TRAPSET_UART */
+#if TRAPSET_FASTPIPE
+
+/**
+ *  \brief Return the FastPipe Sink for the pipe requested. 
+ *  \param id The ID of the pipe needed.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_fastpipe
+ * 
+ * WARNING: This trap is UNIMPLEMENTED
+ */
+Sink StreamFastPipeSink(uint16 id);
+#endif /* TRAPSET_FASTPIPE */
+#if TRAPSET_SHADOWING
+
+/**
+ *  \brief  Return the source containing marshal data for ACL link with given remote
+ *  device 
+ *         
+ *          
+ *  \param tpaddr Bluetooth address of remote device. 
+ *  \return 0 if no ACL connection exists with remote device 
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_shadowing
+ */
+Source StreamAclMarshalSource(const tp_bdaddr * tpaddr);
+
+/**
+ *  \brief  Return the sink to unmarshal data for ACL link with given remote device 
+ *         
+ *          
+ *  \param tpaddr Bluetooth address of remote device. 
+ *  \return 0 if no ACL connection exists with remote device 
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_shadowing
+ */
+Sink StreamAclMarshalSink(const tp_bdaddr * tpaddr);
+#endif /* TRAPSET_SHADOWING */
+#if TRAPSET_SD_MMC
+
+/**
+ *  \brief Return a source with data on an SD/MMC card.
+ *   
+ *  \param slot SD slot number, counting from 0
+ *  \param start_block number of the first 512-byte block to be read from a card.
+ *  \param blocks_count total number of 512-byte blocks to be read from a card
+ *  \return 0 if params are not correct or there is no SD/MMC card in the slot.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_sd_mmc
+ */
+Source StreamSdMmcSource(uint8 slot, uint32 start_block, uint32 blocks_count);
+
+/**
+ *  \brief Return a sink that writes data on an SD/MMC card.
+ *   
+ *  \param slot SD slot number, counting from 0
+ *  \param start_block number of the first 512-byte block to write data to.
+ *  \param blocks_count total number of 512-byte blocks that can be written.
+ *  \return 0 if params are not correct or there is no SD/MMC card in the slot.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_sd_mmc
+ */
+Sink StreamSdMmcSink(uint8 slot, uint32 start_block, uint32 blocks_count);
+#endif /* TRAPSET_SD_MMC */
+#if TRAPSET_HOSTSTREAM
+
+/**
+ *  \brief Get the Sink for the specified stream-based BCSP\#13 channel. 
+ *  \param channel The channel to fetch the Sink for.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_hoststream
+ * 
+ * WARNING: This trap is UNIMPLEMENTED
+ */
+Sink StreamHostSink(uint16 channel);
+#endif /* TRAPSET_HOSTSTREAM */
 #if TRAPSET_NFC
 
 /**
@@ -848,6 +735,139 @@ Sink StreamUsbVendorSink(void );
  */
 Sink StreamNfcSink(void );
 #endif /* TRAPSET_NFC */
+#if TRAPSET_BLUESTACK
+
+/**
+ *  \brief Find the Sink corresponding to an L2CAP connection
+ *  \param cid The connection ID to fetch the Sink for.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_bluestack
+ */
+Sink StreamL2capSink(uint16 cid);
+#endif /* TRAPSET_BLUESTACK */
+#if TRAPSET_PARTITION
+
+/**
+ *  \brief Open a sink to erase and write to an external flash partition. This function
+ *  will perform a flash erase on the entire partition specified and then provide
+ *  a Sink to allow it to be written from the start.
+ *   
+ *   \note
+ *   If the VM application uses the VM software watchdog functionality, BlueCore
+ *   firmware automatically extends the VM software watchdog before the erase of
+ *   an external serial flash memory. Erasing of the external serial flash memory
+ *   is time consuming. This ensures that the VM application is given enough time
+ *   to kick the VM software watchdog when the operation has completed.
+ *   \note
+ *   This trap expects all the partitions in the \#PARTITION_SERIAL_FLASH 
+ *   device to be sector aligned. If partition is not sector aligned then
+ *   firmware will erase shared sectors (i.e., end of previous partition's 
+ *   sector or start of next partition's sector).
+ *  \param device device to which to write, cannot be internal flash, see
+ *  \#partition_filesystem_devices
+ *  \param partition partition number to overwrite
+ *  \return Sink if partition found and erased successfully, otherwise zero
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_partition
+ * 
+ * WARNING: This trap is UNIMPLEMENTED
+ */
+Sink StreamPartitionOverwriteSink(partition_filesystem_devices device, uint16 partition);
+
+/**
+ *  \brief Resume external flash sink partition after a controlled power failure.
+ *   
+ *   This VM trap is used to resume sink stream to write into external flash
+ *   partition which got interrupted while writing previously. This trap returns
+ *   the sink stream by reopening the stream for the interrupted external flash
+ *   partition. This trap will not erase the contents of the partition.
+ *   See \#PartitionSinkGetPosition trap description to know how to retrieve the
+ *   sink position from which the data can be written.
+ *  \param device device to which to write, cannot be internal flash, see
+ *  \#partition_filesystem_devices. 
+ *  \param partition_no partition number of the sink partition to be resumed. 
+ *  \param first_word first word of the sink partition to be resumed.
+ *  \return Sink if partition found or sink already exists, else return NULL 
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_partition
+ * 
+ * WARNING: This trap is UNIMPLEMENTED
+ */
+Sink StreamPartitionResumeSink(partition_filesystem_devices device, uint16 partition_no, uint16 first_word);
+#endif /* TRAPSET_PARTITION */
+#if TRAPSET_CSB
+
+/**
+ *  \brief Find the Sink corresponding to a CSB transmitter stream.
+ *  \param lt_addr The logical transport address used for CSB link.
+ *  \return  Sink if CSB transmitter stream exists for a given lt_addr otherwise 
+ * NULL.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_csb
+ */
+Sink StreamCsbSink(uint16 lt_addr);
+
+/**
+ *  \brief Find the Source corresponding to a CSB receiver stream.
+ *  \param remote_addr The remote device Bluetooth address.
+ *  \param lt_addr The logical transport address used for CSB link.
+ *  \return  Source if CSB receiver stream exists for a given parameters otherwise 
+ * NULL.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_csb
+ */
+Source StreamCsbSource(const bdaddr * remote_addr, uint16 lt_addr);
+#endif /* TRAPSET_CSB */
+#if TRAPSET_OPERATOR
+
+/**
+ *  \brief Gets operator source stream for the operator 
+ *   This trap checks validity of the operator and its specified source terminal
+ *   number. If the supplied input parameters are valid then it provides the
+ *   operator source stream.
+ *   @note
+ *   This API returns zero(0) in either one of the below mentioned scenarios:
+ *   1. Operator is not valid
+ *   2. Source terminal ID is not valid with regards to the supplied operator.
+ *  \param opid Operator, which was created in the DSP 
+ *  \param terminal Source stream connection number for the specified operator 
+ *  \return Operator source stream, if it is successful, otherwise zero(0).
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_operator
+ */
+Source StreamSourceFromOperatorTerminal(Operator opid, uint16 terminal);
+
+/**
+ *  \brief Gets operator sink stream for the operator 
+ *   This API checks validity of the operator and its specified sink terminal
+ *   number. If the supplied input parameters are valid then it provides the
+ *   operator sink stream.
+ *   @note
+ *   This API returns zero(0) in either one of the below specified scenarios:
+ *   1. Operator is not valid
+ *   2. Sink terminal ID is not valid with regards to the supplied operator.
+ *  \param opid Operator, which was created in the DSP 
+ *  \param terminal Sink stream connection number for the specified operator 
+ *  \return Operator sink stream, if it is successful, otherwise zero(0).
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_operator
+ */
+Sink StreamSinkFromOperatorTerminal(Operator opid, uint16 terminal);
+#endif /* TRAPSET_OPERATOR */
 #if TRAPSET_AUDIO
 
 /**
@@ -917,32 +937,41 @@ Sink StreamScoSink(uint16 handle);
  */
 Source StreamScoSource(uint16 handle);
 #endif /* TRAPSET_AUDIO */
-#if TRAPSET_IICSTREAM
 
 /**
- *  \brief Return a source with the contents of the specified I2C address. 
- *   
- *  \param slave_addr The slave address of the device to read data from. 
- *  \param array_addr The array address to read data from. 
- *  \param size The amount of data (in bytes) to read.
- *  \return The source associated with the I2C stream.
+ *  \brief Make an automatic connection between a source and sink, or dispose it.
+ *   Like StreamConnect(), but if the connection could not be made then the
+ *   source will be passed to StreamConnectDispose(). Similarly, if the
+ *   connection is subsequently broken using StreamDisconnect() or by the
+ *   sink being closed the source will be passed to StreamConnectDispose().
+ *   The end result is that the source will be tidied up correctly, no
+ *   matter what happens after this call.
+ *   Note that the task associated with the source will be
+ *   changed. Messages related to the source will no longer be sent to
+ *   the task previously associated with it.
+ *  \param source The Source data will be taken from. 
+ *  \param sink The Sink data will be written to. 
+ *  \return TRUE if the connection was made between \e source and \e sink; FALSE if the
+ *  initial connection failed (in which case, if \e source was valid, it will have
+ *  been immediately passed to StreamConnectDispose()).
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_iicstream
+ * \ingroup trapset___special_inline
  */
-Source StreamI2cSource(uint16 slave_addr, uint16 array_addr, uint16 size);
-#endif /* TRAPSET_IICSTREAM */
-#if TRAPSET_BLUESTACK
+bool StreamConnectAndDispose(Source source, Sink sink);
+#if TRAPSET_KALIMBA
 
 /**
- *  \brief Find the Sink corresponding to an L2CAP connection
- *  \param cid The connection ID to fetch the Sink for.
+ *  \brief The Sink connected to the port passed on Kalimba. 
+ *  \param port In the range 0..3 (BC3-MM) or 0..7 (BC5-MM)
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_bluestack
+ * \ingroup trapset_kalimba
+ * 
+ * WARNING: This trap is UNIMPLEMENTED
  */
-Sink StreamL2capSink(uint16 cid);
-#endif /* TRAPSET_BLUESTACK */
+Sink StreamKalimbaSink(uint16 port);
+#endif /* TRAPSET_KALIMBA */
 #endif

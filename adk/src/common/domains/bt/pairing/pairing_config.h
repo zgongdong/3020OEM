@@ -34,6 +34,9 @@
 /*! Timeout in seconds for automatic peer pairing */
 #define appConfigAutoPeerPairingTimeout()       (0)
 
+/*! Timeout in seconds for authentication */
+#define appConfigAuthenticationTimeout()       (5)
+
 /*! Timeout in seconds for automatic handset pairing */
 #define appConfigAutoHandsetPairingTimeout()    (300)
 

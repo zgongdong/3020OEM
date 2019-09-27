@@ -25,6 +25,8 @@ void gattRoleSelectionClientSetState(GATT_ROLE_SELECTION_CLIENT *instance, role_
         return;
     }
 
+    GATT_ROLE_SELECTION_CLIENT_DEBUG("gattRoleSelectionClientSetState %d==>%d",old_state,state);
+
     switch (state)
     {
         case role_selection_client_error:
@@ -39,9 +41,16 @@ void gattRoleSelectionClientSetState(GATT_ROLE_SELECTION_CLIENT *instance, role_
         case role_selection_client_initialised:
             gattRoleSelectionInitSendInitCfm(instance, 
                                              gatt_role_selection_client_status_success);
+            instance->active_procedure = FALSE;
+            break;
+
+        case role_selection_client_finding_handles:
+        case role_selection_client_uninitialised:
             break;
 
         default:
+            /* Keep the procedure flag set until we return to initialised */
+            instance->active_procedure = TRUE;
             break;
     }
 

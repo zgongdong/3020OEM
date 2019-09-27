@@ -9,10 +9,6 @@
 #ifndef SCOFWD_PROFILE_CONFIG_H_
 #define SCOFWD_PROFILE_CONFIG_H_
 
-
-/*! Setting used to indicate that the MIC to use is not configured */
-#define NO_MIC  (0xFF)
-
 /*! The time to play delay added in the SCO receive path.
 
     A value of 40 will cause some missing / delayed packets in

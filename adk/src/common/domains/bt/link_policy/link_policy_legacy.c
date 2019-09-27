@@ -20,12 +20,10 @@
 #include <sink.h>
 
 #include "link_policy_config.h"
-#include "av_types.h"
 #include "av.h"
 
 #include <app/bluestack/dm_prim.h>
 
-#ifndef INCLUDE_SHADOWING
 
 /*! Make and populate a bluestack DM primitive based on the type.
 
@@ -88,6 +86,16 @@ void appLinkPolicyPreventRoleSwitchForSink(Sink sink)
     {
         appLinkPolicyPreventRoleSwitch(&bd_addr.taddr.addr);
     }
+}
+
+void appLinkPolicyBredrSecureConnectionHostSupportOverrideEnable(const bdaddr *bd_addr)
+{
+    UNUSED(bd_addr);
+}
+
+void appLinkPolicyBredrSecureConnectionHostSupportOverrideRemove(const bdaddr *bd_addr)
+{
+    UNUSED(bd_addr);
 }
 
 /*! \brief Check and update links
@@ -432,4 +440,3 @@ void appLinkPolicyHandleClDmAclOpendedIndication(const CL_DM_ACL_OPENED_IND_T *i
     }
 }
 
-#endif

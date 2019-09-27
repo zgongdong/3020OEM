@@ -262,7 +262,7 @@ typedef void (*gatt_ancs_ready_state_observer_t)(const GANCS *ancs, bool is_read
     @return The status result of calling the API.
 
 */
-gatt_ancs_status_t GattAncsInit(GANCS *ancs, Task app_task, uint16 cid, uint16 start_handle, uint16 end_handle);
+bool GattAncsInit(Task app_task, uint16 cid, uint16 start_handle, uint16 end_handle, void *ancs_dynamic, void* ancs_constant);
 
 /*!
     @brief When a GATT connection is removed, the application must remove all client service instances that were
@@ -276,7 +276,7 @@ gatt_ancs_status_t GattAncsInit(GANCS *ancs, Task app_task, uint16 cid, uint16 s
     @return The status result of calling the API.
 
 */
-gatt_ancs_status_t GattAncsDestroy(GANCS *ancs);
+bool GattAncsDestroy(void *ancs_dynamic);
 
 /*!
     @brief This API is used to write the client characteristic configuration on a remote device,

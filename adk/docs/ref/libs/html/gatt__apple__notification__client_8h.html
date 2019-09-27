@@ -134,9 +134,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ab176a7b264ec4138ff27cba302a22113"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#ab176a7b264ec4138ff27cba302a22113">GattAncsAddReadyStateObserver</a> (gatt_ancs_ready_state_observer_t observer)</td></tr>
 <tr class="memdesc:ab176a7b264ec4138ff27cba302a22113"><td class="mdescLeft">&#160;</td><td class="mdescRight">The function passed will be called when the ready state of a client instance changes. Ready means a client instance has just been fully initialised. Non-ready means a client instance is going to be destroyed immediately after this call.  <a href="#ab176a7b264ec4138ff27cba302a22113">More...</a><br /></td></tr>
 <tr class="separator:ab176a7b264ec4138ff27cba302a22113"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a117d8a6052f2edea87104bac89dd9fbb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="gatt__apple__notification__client_8h.html#a061820432e7ef790eb2d6e1072217d82">gatt_ancs_status_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#a117d8a6052f2edea87104bac89dd9fbb">GattAncsDestroy</a> (<a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *ancs)</td></tr>
-<tr class="memdesc:a117d8a6052f2edea87104bac89dd9fbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">When a GATT connection is removed, the application must remove all client service instances that were associated with the connection (using the CID value). This is the clean up routine as a result of calling the GattAncsInit API. That is, the GattAncsInit API is called when a connection is made, and the GattAncsDestroy is called when the connection is removed.  <a href="#a117d8a6052f2edea87104bac89dd9fbb">More...</a><br /></td></tr>
-<tr class="separator:a117d8a6052f2edea87104bac89dd9fbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4cfc7069a5c7a24437c75e737b7fc877"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#a4cfc7069a5c7a24437c75e737b7fc877">GattAncsDestroy</a> (void *ancs_dynamic)</td></tr>
+<tr class="memdesc:a4cfc7069a5c7a24437c75e737b7fc877"><td class="mdescLeft">&#160;</td><td class="mdescRight">When a GATT connection is removed, the application must remove all client service instances that were associated with the connection (using the CID value). This is the clean up routine as a result of calling the GattAncsInit API. That is, the GattAncsInit API is called when a connection is made, and the GattAncsDestroy is called when the connection is removed.  <a href="#a4cfc7069a5c7a24437c75e737b7fc877">More...</a><br /></td></tr>
+<tr class="separator:a4cfc7069a5c7a24437c75e737b7fc877"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:accbddc4135beef44c513d2ce130cad1f"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#accbddc4135beef44c513d2ce130cad1f">GattAncsGetConnectionId</a> (const <a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *ancs)</td></tr>
 <tr class="memdesc:accbddc4135beef44c513d2ce130cad1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the connection id used by the client.  <a href="#accbddc4135beef44c513d2ce130cad1f">More...</a><br /></td></tr>
 <tr class="separator:accbddc4135beef44c513d2ce130cad1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -149,9 +149,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a677955232c5ab930790a34a14374a09e"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#a677955232c5ab930790a34a14374a09e">GattAncsGetNotificationSourceHandle</a> (const <a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *ancs)</td></tr>
 <tr class="memdesc:a677955232c5ab930790a34a14374a09e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the Notification Source characteristic handle.  <a href="#a677955232c5ab930790a34a14374a09e">More...</a><br /></td></tr>
 <tr class="separator:a677955232c5ab930790a34a14374a09e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4537430e8cf0f7814b4564ad5d65521c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="gatt__apple__notification__client_8h.html#a061820432e7ef790eb2d6e1072217d82">gatt_ancs_status_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#a4537430e8cf0f7814b4564ad5d65521c">GattAncsInit</a> (<a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *ancs, Task app_task, uint16 cid, uint16 start_handle, uint16 end_handle)</td></tr>
-<tr class="memdesc:a4537430e8cf0f7814b4564ad5d65521c"><td class="mdescLeft">&#160;</td><td class="mdescRight">After the VM application has used the GATT manager library to establish a connection to a discovered BLE device in the Client role, it can discover any supported services in which it has an interest. It should then register with the relevant client service library (passing the relevant CID and handles to the service). For the Apple notification client it will use this API. The GATT manager will then route notifications and indications to the correct instance of the client service library for the CID.  <a href="#a4537430e8cf0f7814b4564ad5d65521c">More...</a><br /></td></tr>
-<tr class="separator:a4537430e8cf0f7814b4564ad5d65521c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ef33ba508f43cc0fce1153b524719c4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#a5ef33ba508f43cc0fce1153b524719c4">GattAncsInit</a> (Task app_task, uint16 cid, uint16 start_handle, uint16 end_handle, void *ancs_dynamic, void *ancs_constant)</td></tr>
+<tr class="memdesc:a5ef33ba508f43cc0fce1153b524719c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">After the VM application has used the GATT manager library to establish a connection to a discovered BLE device in the Client role, it can discover any supported services in which it has an interest. It should then register with the relevant client service library (passing the relevant CID and handles to the service). For the Apple notification client it will use this API. The GATT manager will then route notifications and indications to the correct instance of the client service library for the CID.  <a href="#a5ef33ba508f43cc0fce1153b524719c4">More...</a><br /></td></tr>
+<tr class="separator:a5ef33ba508f43cc0fce1153b524719c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab9aeec4eff623b940587aa5f96bcfc87"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__apple__notification__client_8h.html#ab9aeec4eff623b940587aa5f96bcfc87">GattAncsSetDataSourceNotificationEnableRequest</a> (Task task, const <a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *ancs, bool notifications_enable)</td></tr>
 <tr class="memdesc:ab9aeec4eff623b940587aa5f96bcfc87"><td class="mdescLeft">&#160;</td><td class="mdescRight">Use to enable/disable notifications for Data Source characteristic on the server. An error will be returned if the server does not support notifications.  <a href="#ab9aeec4eff623b940587aa5f96bcfc87">More...</a><br /></td></tr>
 <tr class="separator:ab9aeec4eff623b940587aa5f96bcfc87"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -229,15 +229,15 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a117d8a6052f2edea87104bac89dd9fbb"></a>
+<a class="anchor" id="a4cfc7069a5c7a24437c75e737b7fc877"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="gatt__apple__notification__client_8h.html#a061820432e7ef790eb2d6e1072217d82">gatt_ancs_status_t</a> GattAncsDestroy </td>
+          <td class="memname">bool GattAncsDestroy </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *&#160;</td>
-          <td class="paramname"><em>ancs</em></td><td>)</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ancs_dynamic</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -380,19 +380,13 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a4537430e8cf0f7814b4564ad5d65521c"></a>
+<a class="anchor" id="a5ef33ba508f43cc0fce1153b524719c4"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="gatt__apple__notification__client_8h.html#a061820432e7ef790eb2d6e1072217d82">gatt_ancs_status_t</a> GattAncsInit </td>
+          <td class="memname">bool GattAncsInit </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="gatt__apple__notification__client_8h.html#a7a19b7d1c058eff52be959a98b39a994">GANCS</a> *&#160;</td>
-          <td class="paramname"><em>ancs</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
           <td class="paramtype">Task&#160;</td>
           <td class="paramname"><em>app_task</em>, </td>
         </tr>
@@ -412,7 +406,19 @@ Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">uint16&#160;</td>
-          <td class="paramname"><em>end_handle</em>&#160;</td>
+          <td class="paramname"><em>end_handle</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ancs_dynamic</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ancs_constant</em>&#160;</td>
         </tr>
         <tr>
           <td></td>

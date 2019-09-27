@@ -73,12 +73,13 @@ static void profileManager_SendConnectedInd(device_t device, unsigned profile)
     TaskList_MessageSendWithSize(&pm->client_tasks, CONNECTED_PROFILE_IND, msg, sizeof(*msg));
 }
 
-static void profileManager_SendDisconnectedInd(device_t device, unsigned profile)
+static void profileManager_SendDisconnectedInd(device_t device, unsigned profile, profile_manager_disconnected_ind_reason_t reason)
 {
     profile_manager_task_data * pm = ProfileManager_GetTaskData();
     MESSAGE_MAKE(msg, DISCONNECTED_PROFILE_IND_T);
     msg->device = device;
     msg->profile = profile;
+    msg->reason = reason;
     TaskList_MessageSendWithSize(&pm->client_tasks, DISCONNECTED_PROFILE_IND, msg, sizeof(*msg));
 }
 
@@ -156,6 +157,44 @@ static bool profileManager_IsAlreadyConnected(uint8 connected_profiles, profile_
         break;
     }
     return already_connected;
+}
+
+static profile_manager_disconnected_ind_reason_t profileManager_ConvertHfpDisconnectReason(appHfpDisconnectReason hfp_reason)
+{
+    profile_manager_disconnected_ind_reason_t reason;
+    switch (hfp_reason)
+    {
+    case APP_HFP_DISCONNECT_NORMAL:
+        reason = profile_manager_disconnected_normal;
+        break;
+    case APP_HFP_DISCONNECT_LINKLOSS:
+        reason = profile_manager_disconnected_link_loss;
+        break;
+    case APP_HFP_DISCONNECT_ERROR:
+    default:
+        reason = profile_manager_disconnected_error;
+        break;
+    }
+    return reason;
+}
+
+static profile_manager_disconnected_ind_reason_t profileManager_ConvertA2dpDisconnectReason(avA2dpDisconnectReason hfp_reason)
+{
+    profile_manager_disconnected_ind_reason_t reason;
+    switch (hfp_reason)
+    {
+    case AV_A2DP_DISCONNECT_NORMAL:
+        reason = profile_manager_disconnected_normal;
+        break;
+    case AV_A2DP_DISCONNECT_LINKLOSS:
+        reason = profile_manager_disconnected_link_loss;
+        break;
+    case AV_A2DP_DISCONNECT_ERROR:
+    default:
+        reason = profile_manager_disconnected_error;
+        break;
+    }
+    return reason;
 }
 
 static profile_t profileManager_GetNextProfile(device_t device, profile_manager_request_type_t type)
@@ -460,7 +499,7 @@ static void profileManager_HandleConnectedProfileInd(bdaddr* bd_addr, unsigned p
     profileManager_SendConnectedInd(device, profile);
 }
 
-static void profileManager_HandleDisconnectedProfileInd(bdaddr* bd_addr, unsigned profile, profile_request_status_t status)
+static void profileManager_HandleDisconnectedProfileInd(bdaddr* bd_addr, unsigned profile, profile_request_status_t status, profile_manager_disconnected_ind_reason_t reason)
 {
     device_t device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_bdaddr, bd_addr, sizeof(bdaddr));
 
@@ -468,7 +507,7 @@ static void profileManager_HandleDisconnectedProfileInd(bdaddr* bd_addr, unsigne
               bd_addr->nap, bd_addr->uap, bd_addr->lap, profile );
 
     profileManager_HandleProfileStatusChange(device, profile, profile_manager_disconnect, status);
-    profileManager_SendDisconnectedInd(device, profile);
+    profileManager_SendDisconnectedInd(device, profile, reason);
 }
 
 static void profileManager_HandleMessage(Task task, MessageId id, Message message)
@@ -528,14 +567,12 @@ static void profileManager_HandleMessage(Task task, MessageId id, Message messag
         {
             profileManager_HandleConnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_HFP, request_failed);
         }
-        else if (msg->reason == APP_HFP_DISCONNECT_NORMAL)
-        {
-            profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_HFP, request_succeeded );
-        }
         else
         {
+            profile_manager_disconnected_ind_reason_t reason = profileManager_ConvertHfpDisconnectReason(msg->reason);
+
             // Treat link loss and error conditions as successful disconnections if a disconnect request had been sent.
-            profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_HFP, request_succeeded );
+            profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_HFP, request_succeeded, reason );
         }
         break;
     }
@@ -548,7 +585,8 @@ static void profileManager_HandleMessage(Task task, MessageId id, Message messag
     case AV_A2DP_DISCONNECTED_IND:
     {
         AV_A2DP_DISCONNECTED_IND_T *msg = (AV_A2DP_DISCONNECTED_IND_T *)message;
-        profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_A2DP, request_succeeded);
+        profile_manager_disconnected_ind_reason_t reason = profileManager_ConvertA2dpDisconnectReason(msg->reason);
+        profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_A2DP, request_succeeded, reason);
         break;
     }
     case AV_AVRCP_CONNECTED_IND:
@@ -560,7 +598,7 @@ static void profileManager_HandleMessage(Task task, MessageId id, Message messag
     case AV_AVRCP_DISCONNECTED_IND:
     {
         AV_AVRCP_DISCONNECTED_IND_T *msg = (AV_AVRCP_DISCONNECTED_IND_T *)message;
-        profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_AVRCP, request_succeeded);
+        profileManager_HandleDisconnectedProfileInd(&msg->bd_addr, DEVICE_PROFILE_AVRCP, request_succeeded, profile_manager_disconnected_normal);
         break;
     }
     case AV_AVRCP_CONNECT_IND:

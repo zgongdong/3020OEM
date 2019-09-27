@@ -17,6 +17,7 @@
 #include <kymera_config.h>
 #include <earbud_sm.h>
 #include <connection_manager.h>
+#include <earbud_test.h>
 
 #include <domain_message.h>
 #include <av.h>
@@ -25,8 +26,10 @@
 #include <bredr_scan_manager.h>
 #include <hfp_profile.h>
 #include <scofwd_profile.h>
+#include <scofwd_profile_config.h>
 #include <state_proxy.h>
 #include <rules_engine.h>
+#include <peer_signalling.h>
 
 #include <bdaddr.h>
 #include <panic.h>
@@ -35,13 +38,8 @@
 #pragma unitsuppress Unused
 
 /*! \{
-    Macros for diagnostic output that can be suppressed.
-    Allows debug of the rules module at two levels. */
-#define PRIMARY_RULES_LOG(x)       //DEBUG_LOG(x)
-#define PRIMARY_RULES_LOGF(x, ...) //DEBUG_LOGF(x, __VA_ARGS__)
-
-#define PRIMARY_RULE_LOG(x)         DEBUG_LOG(x)
-#define PRIMARY_RULE_LOGF(x, ...)   DEBUG_LOGF(x, __VA_ARGS__)
+    Macros for diagnostic output that can be suppressed. */
+#define PRIMARY_RULE_LOG         DEBUG_LOG
 /*! \} */
 
 /* Forward declaration for use in RULE_ACTION_RUN_PARAM macro below */
@@ -61,30 +59,9 @@ PrimaryRulesTaskData primary_rules_task_data;
 
 /*! \{
     Rule function prototypes, so we can build the rule tables below. */
- DEFINE_RULE(rulePeerPair);
 DEFINE_RULE(ruleAutoHandsetPair);
-DEFINE_RULE(ruleDecideRole);
 DEFINE_RULE(ruleForwardLinkKeys);
 
- DEFINE_RULE(rulePeerEventConnectHandset);
- DEFINE_RULE(ruleSyncConnectPeer);
- DEFINE_RULE(ruleSyncDisconnectPeer);
- DEFINE_RULE(ruleSyncDisconnectHandset);
- DEFINE_RULE(ruleDisconnectPeer);
- DEFINE_RULE(rulePairingConnectPeerHandset);
-
- DEFINE_RULE(ruleUserConnectHandset);
- DEFINE_RULE(ruleUserConnectPeerHandset);
- DEFINE_RULE(ruleUserConnectPeer);
-
- DEFINE_RULE(ruleOutOfCaseConnectHandset);
- DEFINE_RULE(ruleOutOfCaseConnectPeer);
-
- DEFINE_RULE(ruleLinkLossConnectHandset);
- DEFINE_RULE(ruleLinkLossConnectPeerHandset);
-
- DEFINE_RULE(ruleUpdateMruHandset);
- DEFINE_RULE(ruleSendStatusToHandset);
 DEFINE_RULE(ruleOutOfEarA2dpActive);
 DEFINE_RULE(ruleInEarCancelAudioPause);
 DEFINE_RULE(ruleInEarA2dpRestart);
@@ -92,9 +69,6 @@ DEFINE_RULE(ruleOutOfEarScoActive);
 DEFINE_RULE(ruleInEarScoTransferToEarbud);
 DEFINE_RULE(ruleOutOfEarLedsEnable);
 DEFINE_RULE(ruleInEarLedsDisable);
- DEFINE_RULE(ruleInCaseDisconnectHandset);
- DEFINE_RULE(ruleInCaseDisconnectPeer);
- DEFINE_RULE(rulePeerInCaseDisconnectPeer);
 DEFINE_RULE(ruleInCaseEnterDfu);
 DEFINE_RULE(ruleOutOfCaseAllowHandsetConnect);
 DEFINE_RULE(ruleInCaseRejectHandsetConnect);
@@ -102,13 +76,9 @@ DEFINE_RULE(ruleInCaseRejectHandsetConnect);
 DEFINE_RULE(ruleDfuAllowHandsetConnect);
 DEFINE_RULE(ruleCheckUpgradable);
 
-DEFINE_RULE(rulePageScanUpdate);
-
 DEFINE_RULE(ruleInCaseScoTransferToHandset);
 DEFINE_RULE(ruleSelectMicrophone);
 DEFINE_RULE(ruleScoForwardingControl);
-
- DEFINE_RULE(ruleBothConnectedDisconnect);
 
  DEFINE_RULE(rulePairingConnectTwsPlusA2dp);
  DEFINE_RULE(rulePairingConnectTwsPlusHfp);
@@ -116,14 +86,11 @@ DEFINE_RULE(ruleScoForwardingControl);
 DEFINE_RULE(ruleInEarAncEnable);
 DEFINE_RULE(ruleOutOfEarAncDisable);
 
- DEFINE_RULE(ruleHandoverDisconnectHandset);
- DEFINE_RULE(ruleHandoverConnectHandset);
- DEFINE_RULE(ruleHandoverConnectHandsetAndPlay);
-
 DEFINE_RULE(ruleOutOfCaseAncTuning);
 DEFINE_RULE(ruleInCaseAncTuning);
 
-DEFINE_RULE(ruleBleConnectionUpdate);
+DEFINE_RULE(ruleSelectRemoteAudioMix);
+DEFINE_RULE(ruleSelectLocalAudioMix);
 /*! \} */
 
 /*! \brief Set of rules to run on Earbud startup. */
@@ -213,6 +180,21 @@ const rule_entry_t primary_rules_set[] =
     RULE(RULE_EVENT_PEER_IN_EAR,                ruleSelectMicrophone,               CONN_RULES_SELECT_MIC),
     RULE(RULE_EVENT_PEER_OUT_EAR,               ruleSelectMicrophone,               CONN_RULES_SELECT_MIC),
     /*! \} */
+
+    /*! \{
+        Rules to control local/remote audio mix. */
+    RULE(RULE_EVENT_PEER_CONNECTED,             ruleSelectRemoteAudioMix,           CONN_RULES_SET_REMOTE_AUDIO_MIX),
+    RULE(RULE_EVENT_OUT_EAR,                    ruleSelectRemoteAudioMix,           CONN_RULES_SET_REMOTE_AUDIO_MIX),
+    RULE(RULE_EVENT_IN_EAR,                     ruleSelectRemoteAudioMix,           CONN_RULES_SET_REMOTE_AUDIO_MIX),
+    RULE(RULE_EVENT_IN_CASE,                    ruleSelectRemoteAudioMix,           CONN_RULES_SET_REMOTE_AUDIO_MIX),
+    RULE(RULE_EVENT_OUT_CASE,                   ruleSelectRemoteAudioMix,           CONN_RULES_SET_REMOTE_AUDIO_MIX),
+    RULE(RULE_EVENT_PEER_CONNECTED ,            ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
+    RULE(RULE_EVENT_PEER_DISCONNECTED,          ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
+    RULE(RULE_EVENT_PEER_OUT_EAR,               ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
+    RULE(RULE_EVENT_PEER_IN_EAR,                ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
+    RULE(RULE_EVENT_PEER_IN_CASE,               ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
+    RULE(RULE_EVENT_PEER_OUT_CASE,              ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
+    /*! \} */
 };
 
 /*! \brief Types of event that can cause connect rules to run. */
@@ -230,78 +212,6 @@ typedef enum
 /*****************************************************************************
  * RULES FUNCTIONS
  *****************************************************************************/
-
-/*! @brief Rule to determine if Earbud should start automatic peer pairing
-    This rule determins if automatic peer pairing should start, it is triggered
-    by the startup event.
-    @startuml
-
-    start
-        if (IsPairedWithPeer()) then (no)
-            :Start peer pairing;
-            end
-        else (yes)
-            :Already paired;
-            stop
-    @enduml
-*/
-static rule_action_t rulePeerPair(void)
-{
-    if (!BtDevice_IsPairedWithPeer())
-    {
-        PRIMARY_RULE_LOG("ruleStartupPeerPaired, run");
-        return rule_action_run;
-    }
-    else
-    {
-        PRIMARY_RULE_LOG("ruleStartupPeerPaired, done");
-        return rule_action_complete;
-    }
-}
-
-/*! @brief Rule to determine if this Earbud is the primary.
- *
- * \note This is a temporary rule to emulate a simple role
- * selection for use in determining which rule set to use.
- * It will be removed once we have the full role selection
- * implementation.
- *
- * Decision on Primary is determined by the following truth table.
- * (X=Don't care).
- *
- * A = this Earbud out of case
- * B = peer Earbud out of case
- * C = this Earbud is left
- *
- * A | B | C | Is this Earbud (A) Primary
- * - | - | - | --------------------------
- * 1 | 0 | X | 1
- * 0 | 1 | X | 0
- * 0 | 0 | X | 0
- * 1 | 1 | 1 | 1
- * 1 | 1 | 0 | 0
- */
-static rule_action_t ruleDecideRole(void)
-{
-    const bool primary_role = TRUE;
-    const bool secondary_role = FALSE;
-
-    if (appSmIsOutOfCase())
-    {
-        PRIMARY_RULE_LOG("ruleDecideRole out of the case -> DECIDE ROLE");
-        return RULE_ACTION_RUN_PARAM(primary_role);
-    }
-    else if(appSmIsInCase() && appSmIsDfuPending())
-    {
-    	   return rule_action_ignore;
-    }
-    else
-    {
-        PRIMARY_RULE_LOG("ruleDecideRole in the case -> SECONDARY ROLE");
-        return RULE_ACTION_RUN_PARAM(secondary_role);
-    }
-}
-
 /*! @brief Rule to determine if Earbud should start automatic handset pairing
     @startuml
 
@@ -350,6 +260,12 @@ static rule_action_t ruleAutoHandsetPair(void)
     {
         PRIMARY_RULE_LOG("ruleAutoHandsetPair, complete, already paired with handset");
         return rule_action_complete;
+    }
+
+    if (appTestHandsetPairingBlocked)
+    {
+        PRIMARY_RULE_LOG("ruleAutoHandsetPair, ignore, blocked by test command");
+        return rule_action_ignore;
     }
 
     if (StateProxy_IsPeerPairing())
@@ -404,688 +320,6 @@ static rule_action_t ruleForwardLinkKeys(void)
         PRIMARY_RULE_LOG("ruleForwardLinkKeys, ignore as there's no peer");
         return rule_action_ignore;
     }
-}
-
-/*! @brief Sub-rule to determine if Earbud should connect to standard handset
-*/
-static rule_action_t ruleConnectHandsetStandard(ruleConnectReason reason)
-{
-    if ((reason == RULE_CONNECT_USER) ||
-        (reason == RULE_CONNECT_LINK_LOSS) ||
-        (reason == RULE_CONNECT_PEER_EVENT) ||
-        (reason == RULE_CONNECT_OUT_OF_CASE))
-    {
-        /* Check if out of case */
-        if (appSmIsOutOfCase())
-        {
-            PRIMARY_RULE_LOG("ruleConnectHandsetStandard, run Primary Earbud with standard handset and out of case");
-            return rule_action_run;
-        }
-    }
-    PRIMARY_RULE_LOGF("ruleConnectHandsetStandard, ignore for reason %u or in-case", reason);
-    return rule_action_ignore;
-}
-
-/*! @brief Rule to determine if Earbud should connect to Handset
-    @startuml
-
-    start
-    if (IsInCase()) then (yes)
-        :Never connect when in case;
-        end
-    endif
-
-    if (IsPeerSyncComplete()) then (yes)
-        if (Not IsPairedWithHandset()) then (yes)
-            :Not paired with handset, don't connect;
-            end
-        endif
-        if (IsHandsetA2dpConnected() and IsHandsetAvrcpConnected() and IsHandsetHfpConnected()) then (yes)
-            :Already connected;
-            end
-        endif
-
-        if (IsTwsPlusHandset()) then (yes)
-            :Handset is a TWS+ device;
-            if (WasConnected() or Reason is 'User', 'Start-up' or 'Out of Case') then (yes)
-                if (not just paired) then (yes)
-                    :Connect to handset;
-                    end
-                else
-                    :Just paired, handset will connect to us;
-                    stop
-                endif
-            else (no)
-                :Wasn't connected before;
-                stop
-            endif
-        else (no)
-            if (IsPeerConnectedA2dp() or IsPeerConnectedAvrcp() or IsPeerConnectedHfp()) then (yes)
-                :Peer already has profile(s) connected, don't connect;
-                stop
-            else (no)
-                if (WasConnected() or Reason is 'User', 'Start-up' or 'Out of Case') then (yes)
-                    :run RuleConnectHandsetStandard();
-                    end
-                else (no)
-                    :Wasn't connected before;
-                    stop
-                endif
-            endif
-        endif
-    else (no)
-        :Not sync'ed with peer;
-        if (IsPairedWithHandset() and IsHandsetTwsPlus() and WasConnected()) then (yes)
-            :Connect to handset, it is TWS+ handset;
-            stop
-        else (no)
-            :Don't connect, not TWS+ handset;
-            end
-        endif
-    endif
-
-    @enduml
-*/
-static rule_action_t ruleConnectHandset(ruleConnectReason reason,
-                                        rulePostHandsetConnectAction post_connect_action)
-{
-    bdaddr handset_addr;
-    PrimaryRulesTaskData* primary_rules = PrimaryRulesGetTaskData();
-    CONN_RULES_CONNECT_HANDSET_T action = {0, post_connect_action};
-
-    PRIMARY_RULE_LOGF("ruleConnectHandset, reason %u", reason);
-
-    /* Don't attempt to connect if we're in the case */
-    if (appSmIsInCase())
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as in case");
-        return rule_action_ignore;
-    }
-
-    /* Don't attempt to connect if we're pairing */
-    if (appSmIsPairing())
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as pairing");
-        return rule_action_ignore;
-    }
-
-    if (StateProxy_IsPeerDfuInProgress())
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as peer has DFU in progress");
-        return rule_action_ignore;
-    }
-
-    /* Don't attempt to connect if peer is pairing */
-    if (StateProxy_IsPeerPairing())
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as peer is pairing");
-        return rule_action_ignore;
-    }
-
-    /* If we're not paired with handset then don't connect */
-    if (!appDeviceGetHandsetBdAddr(&handset_addr))
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as not paired with handset");
-        return rule_action_ignore;
-    }
-
-    /* If we're already connected to handset then don't connect */
-    if (appDeviceIsHandsetA2dpConnected() && appDeviceIsHandsetAvrcpConnected() && appDeviceIsHandsetHfpConnected())
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as already connected to handset");
-        return rule_action_ignore;
-    }
-
-    /* Peer is not connected to handset, so we should connect to our handset if it's a TWS+ handset or
-       it's a standard handset and our battery level is higer */
-
-    /* Check if TWS+ handset, if so just connect, otherwise compare battery levels
-     * if we have higher battery level connect to handset */
-    if (appDeviceIsTwsPlusHandset(&handset_addr))
-    {
-        /* this call will read persistent store, so just called once and re-use
-         * results */
-        action.profiles = BtDevice_GetLastConnectedProfiles(&handset_addr);
-
-        /* Always attempt to connect HFP and A2DP if user initiated connect, or out-of-case connect, or pairing connect */
-        if ((reason == RULE_CONNECT_OUT_OF_CASE) || (reason == RULE_CONNECT_USER) || (reason == RULE_CONNECT_PAIRING))
-            action.profiles |= DEVICE_PROFILE_HFP | DEVICE_PROFILE_A2DP;
-
-        /* Check if device was connected before, or we connecting due to user request */
-        if (action.profiles != 0 ||
-                (reason == RULE_CONNECT_USER) ||
-                (reason == RULE_CONNECT_PAIRING) ||
-                (reason == RULE_CONNECT_OUT_OF_CASE))
-        {
-            if (/*primary_rules->allow_connect_after_pairing ||*/ !BtDevice_IsJustPaired(&handset_addr))
-            {
-                PRIMARY_RULE_LOGF("ruleConnectHandset, run as TWS+ handset for profiles:%u", action.profiles);
-                /*! \todo generate command to secondary to connect to TWS+ handset? */
-                return RULE_ACTION_RUN_PARAM(action);
-            }
-            else
-            {
-                PRIMARY_RULE_LOG("ruleConnectHandset, ignore as just paired with TWS+ handset");
-                return rule_action_ignore;
-            }
-        }
-        else
-        {
-            PRIMARY_RULE_LOG("ruleConnectHandset, ignore as TWS+ handset but wasn't connected before");
-            return rule_action_ignore;
-        }
-    }
-    else
-    {
-        /* Check if device was connected before, or we connecting due to user request or startup */
-        if (BtDevice_GetWasConnected(&handset_addr) ||
-                (reason == RULE_CONNECT_USER) ||
-                (reason == RULE_CONNECT_PAIRING) ||
-                (reason == RULE_CONNECT_OUT_OF_CASE) ||
-                (reason == RULE_CONNECT_PEER_EVENT))
-        {
-            action.profiles = BtDevice_GetLastConnectedProfiles(&handset_addr);
-
-            /* Always attempt to connect HFP and A2DP if user initiated connect, or out-of-case connect, or pairing connect */
-            if ((reason == RULE_CONNECT_OUT_OF_CASE) || (reason == RULE_CONNECT_USER) || (reason == RULE_CONNECT_PAIRING) || (reason == RULE_CONNECT_PEER_EVENT))
-                action.profiles |= DEVICE_PROFILE_HFP | DEVICE_PROFILE_A2DP;
-
-            PRIMARY_RULE_LOG("ruleConnectHandset, calling ruleConnectHandsetStandard()");
-            if (ruleConnectHandsetStandard(reason) == rule_action_run)
-            {
-                PRIMARY_RULE_LOG("ruleConnectHandset, run as standard handset we were connected to before");
-                return RULE_ACTION_RUN_PARAM(action);
-            }
-            else
-            {
-                PRIMARY_RULE_LOGF("ruleConnectHandset, ignore, standard handset but not connected before or reason %u", reason);
-                return rule_action_ignore;
-            }
-        }
-        else
-        {
-            PRIMARY_RULE_LOGF("ruleConnectHandset, ignore as standard handset but wasn't connected before or reason %u", reason);
-            return rule_action_ignore;
-        }
-    }
-}
-
-/*! @brief Wrapper around ruleConnectHandset() that calls it with 'Peer sync' connect reason
-*/
-static rule_action_t rulePeerEventConnectHandset(void)
-{
-    PRIMARY_RULE_LOG("rulePeerEventConnectHandset");
-    return ruleConnectHandset(RULE_CONNECT_PEER_EVENT, RULE_POST_HANDSET_CONNECT_ACTION_NONE);
-}
-
-/*! @brief Wrapper around ruleConnectHandset() that calls it with 'User' connect reason
-*/
-static rule_action_t ruleUserConnectHandset(void)
-{
-    PRIMARY_RULE_LOG("ruleUserConnectHandset");
-    return ruleConnectHandset(RULE_CONNECT_USER, RULE_POST_HANDSET_CONNECT_ACTION_PLAY_MEDIA);
-}
-
-/*! @brief Wrapper around ruleConnectHandset() that calls it with 'Out of case' connect reason
-*/
-static rule_action_t ruleOutOfCaseConnectHandset(void)
-{
-    PRIMARY_RULE_LOG("ruleOutOfCaseConnectHandset");
-    return ruleConnectHandset(RULE_CONNECT_OUT_OF_CASE, RULE_POST_HANDSET_CONNECT_ACTION_NONE);
-}
-
-/*! @brief Wrapper around ruleConnectHandset() that calls it with 'link loss' connect reason
-*/
-static rule_action_t ruleLinkLossConnectHandset(void)
-{
-    PRIMARY_RULE_LOG("ruleLinkLossConnectHandset");
-    return ruleConnectHandset(RULE_CONNECT_LINK_LOSS, RULE_POST_HANDSET_CONNECT_ACTION_NONE);
-}
-
-/*! @brief Rule to determine if Earbud should connect to peer's Handset
-    @startuml
-
-    start
-    if (IsInCase()) then (yes)
-        :Never connect when in case;
-        stop
-    endif
-
-    if (Not IsPeerSyncComplete()) then (yes)
-        :Not sync'ed with peer;
-        end
-    endif
-
-    if (IsPeerHandsetA2dpConnected() or IsPeerHandsetAvrcpConnected() or IsPeerHandsetHfpConnected()) then (yes)
-        if (IsPeerHandsetTws()) then (yes)
-            if (IsPairedWithHandset())) then (yes)
-                if (Not JustPaired()) then (yes)
-                    if (Reason is 'User' or 'Start-up' or 'Out of case') then (yes)
-                        :Connect to peer's handset;
-                        stop
-                    else (no)
-                        :Don't connect to peer's handset;
-                        end
-                    endif
-                else (no)
-                    :Don't connect as just paired;
-                    end
-                endif
-            else (no)
-                :Not paired with peer's handset;
-                end
-            endif
-        else (no)
-            :Peer is connected to standard handset;
-            end
-        endif
-    else (no)
-        :Don't connect as peer is not connected to handset;
-        end
-    endif
-    @enduml
-*/
-static rule_action_t ruleConnectPeerHandset(ruleConnectReason reason)
-{
-    PrimaryRulesTaskData* primary_rules = PrimaryRulesGetTaskData();
-
-    /* Don't attempt to connect if we're in the case */
-    if (appSmIsInCase())
-    {
-        PRIMARY_RULE_LOG("ruleConnectHandset, ignore as in case");
-        return rule_action_ignore;
-    }
-
-    /* Don't attempt to connect if we're pairing */
-    if (appSmIsPairing())
-    {
-        PRIMARY_RULE_LOG("ruleConnectPeer, ignore as pairing");
-        return rule_action_ignore;
-    }
-
-    /* Don't attempt to connect if peer is pairing */
-    if (StateProxy_IsPeerPairing())
-    {
-        PRIMARY_RULE_LOG("ruleConnectPeerHandset, ignore as peer is pairing");
-        return rule_action_ignore;
-    }
-
-    /* If connecting due to pairing or peer is connected to handset then we should also connect to this handset if it's TWS+ */
-    if ((reason == RULE_CONNECT_PAIRING) ||
-        StateProxy_IsPeerHandsetA2dpConnected() ||
-        StateProxy_IsPeerHandsetHfpConnected())
-    {
-        /*  Check peer's handset is TWS+ */
-        if (StateProxy_IsPeerHandsetTws())
-        {
-            bdaddr handset_addr;
-            StateProxy_GetPeerHandsetAddr(&handset_addr);
-
-            /* Check we paired with this handset */
-            if (appDeviceIsHandset(&handset_addr))
-            {
-                if (/*primary_rules->allow_connect_after_pairing ||*/ !BtDevice_IsJustPaired(&handset_addr))
-                {
-                    if ((reason == RULE_CONNECT_USER) ||
-                        (reason == RULE_CONNECT_PAIRING) ||
-                        (reason == RULE_CONNECT_OUT_OF_CASE)
-                        )
-                    {
-                        uint8 profiles = 0;
-
-                        if (StateProxy_IsPeerHandsetA2dpConnected())
-                            profiles |= DEVICE_PROFILE_A2DP;
-                        if (StateProxy_IsPeerHandsetHfpConnected())
-                            profiles |= DEVICE_PROFILE_HFP;
-                        if (StateProxy_IsPeerHandsetAvrcpConnected())
-                            profiles |= DEVICE_PROFILE_AVRCP;
-
-                        /* Always attempt to connect HFP, A2DP and AVRCP if pairing connect */
-                        if (reason == RULE_CONNECT_PAIRING)
-                            profiles |= DEVICE_PROFILE_HFP | DEVICE_PROFILE_A2DP | DEVICE_PROFILE_AVRCP;
-
-                        PRIMARY_RULE_LOGF("ruleConnectPeerHandset, run as peer is connected to TWS+ handset, profiles:%u", profiles);
-
-                        return RULE_ACTION_RUN_PARAM(profiles);
-                    }
-                    else
-                    {
-                        PRIMARY_RULE_LOG("ruleConnectPeerHandset, ignore as peer is connected to TWS+ handset but not user or startup connect and not just paired (or allow_connect_after_pairing disabled)");
-                        return rule_action_ignore;
-                    }
-                }
-                else
-                {
-                    PRIMARY_RULE_LOG("ruleConnectPeerHandset, ignore as just paired with peer's TWS+ handset or allow_connect_after_pairing disabled");
-                    return rule_action_ignore;
-                }
-            }
-            else
-            {
-                PRIMARY_RULE_LOG("ruleConnectPeerHandset, ignore as peer is connected to TWS+ handset but we're not paired with it");
-                return rule_action_ignore;
-            }
-        }
-        else
-        {
-            PRIMARY_RULE_LOG("ruleConnectPeerHandset, ignore as peer is connected to standard handset");
-            return rule_action_ignore;
-        }
-    }
-    else
-    {
-        /* Peer is not connected to handset, don't connect as ruleConnectHandset handles this case */
-        PRIMARY_RULE_LOG("ruleConnectPeerHandset, done as peer is not connected");
-        return rule_action_complete;
-    }
-}
-
-/*! @brief Wrapper around ruleUserConnectPeerHandset() that calls it with 'User' connect reason
-*/
-static rule_action_t ruleUserConnectPeerHandset(void)
-{
-    PRIMARY_RULE_LOG("ruleUserConnectPeerHandset");
-    return ruleConnectPeerHandset(RULE_CONNECT_USER);
-}
-
-/*! @brief Wrapper around ruleOutOfCaseConnectPeerHandset() that calls it with 'Out of case' connect reason
-*/
-static rule_action_t ruleOutOfCaseConnectPeerHandset(void)
-{
-    PRIMARY_RULE_LOG("ruleOutOfCaseConnectPeerHandset");
-    return ruleConnectPeerHandset(RULE_CONNECT_OUT_OF_CASE);
-}
-
-
-/*! @brief Wrapper around ruleLinkLossConnectPeerHandset() that calls it with 'link loss' connect reason
-*/
-static rule_action_t ruleLinkLossConnectPeerHandset(void)
-{
-    PRIMARY_RULE_LOG("ruleLinkLossConnectPeerHandset");
-    return ruleConnectPeerHandset(RULE_CONNECT_LINK_LOSS);
-}
-
-static rule_action_t rulePairingConnectPeerHandset(void)
-{
-    PRIMARY_RULE_LOG("rulePairingConnectPeerHandset");
-    return ruleConnectPeerHandset(RULE_CONNECT_PAIRING);
-}
-
-/*! @brief Rule to determine if Earbud should connect A2DP & AVRCP to peer Earbud
-    @startuml
-
-    start
-    if (IsPeerA2dpConnected()) then (yes)
-        :Already connected;
-        end
-    endif
-
-    if (IsPeerSyncComplete()) then (yes)
-        if (IsPeerInCase()) then (yes)
-            :Peer is in case, so don't connect to it;
-            end
-        endif
-
-        if (IsPeerHandsetA2dpConnected() or IsPeerHandsetHfpConnected()) then (yes)
-            if (IsPeerHandsetTws()) then (yes)
-                :Don't need to connect to peer, as peer is connected to TWS+ handset;
-                end
-            else (no)
-                :Don't need to connect, peer will connect to us;
-                end
-            endif
-        else (no)
-            :Peer is not connected to handset yet;
-            if (IsPairedWithHandset()) then (yes)
-                if (Not IsTwsHandset()) then (yes)
-                    if (IsHandsetA2dpConnected() or IsHandsetHfpConnected()) then (yes)
-                        :Connect to peer as  connected to standard handset, peer won't be connected;
-                        stop
-                    else (no)
-                        :Run RuleConnectHandsetStandard() to determine if we're going to connect to handset;
-                        if (RuleConnectHandsetStandard()) then (yes)
-                            :Will connect to handset, so should also connect to peer;
-                            stop
-                        else (no)
-                            :Won't connect to handset, so don't connect to peer;
-                            end
-                        endif
-                    endif
-                else (no)
-                    :Don't connect to peer, as connected to TWS+ handset;
-                    end
-                endif
-            else (no)
-                :Don't connect to peer, as not paired with handset;
-                end
-            endif
-        endif
-    else (no)
-        :Not sync'ed with peer;
-        end
-    endif
-
-    @enduml
-*/
-static rule_action_t ruleConnectPeer(ruleConnectReason reason)
-{
-    bdaddr handset_addr;
-
-    /* Don't run rule if we're connected to peer */
-    if (appDeviceIsPeerA2dpConnected() && (appDeviceIsPeerScoFwdConnected() || appDeviceIsPeerShadowConnected()))
-    {
-        PRIMARY_RULE_LOG("ruleConnectPeer, ignore as already connected to peer");
-        return rule_action_ignore;
-    }
-
-    /* Don't attempt to connect if we're pairing */
-    if (appSmIsPairing())
-    {
-        PRIMARY_RULE_LOG("ruleConnectPeer, ignore as pairing");
-        return rule_action_ignore;
-    }
-
-    /* Check if peer is in case */
-    if (StateProxy_IsPeerInCase())
-    {
-        PRIMARY_RULE_LOG("ruleConnectPeer, ignore as peer is in case");
-        return rule_action_ignore;
-    }
-
-    /* Don't attempt to connect if peer is pairing */
-    if (StateProxy_IsPeerPairing())
-    {
-        PRIMARY_RULE_LOG("ruleConnectPeer, ignore as peer is pairing");
-        return rule_action_ignore;
-    }
-
-    /* Check if peer is connected to handset */
-    if (StateProxy_IsPeerHandsetA2dpConnected() || StateProxy_IsPeerHandsetHfpConnected())
-    {
-        /* Don't connect to peer if handset is TWS+  */
-        if (StateProxy_IsPeerHandsetTws())
-        {
-            PRIMARY_RULE_LOG("ruleConnectPeer, ignore as peer is connected to TWS+ handset");
-            return rule_action_ignore;
-        }
-        else
-        {
-            PRIMARY_RULE_LOG("ruleConnectPeer, ignore as peer is connected to standard handset and peer will connect to us");
-            return rule_action_ignore;
-        }
-    }
-    else
-    {
-        /* Peer is not connected to handset yet */
-        /* Get handset address */
-        if (appDeviceGetHandsetBdAddr(&handset_addr))
-        {
-            /* Check if the handset we would connect to is a standard handset */
-            if (!appDeviceIsTwsPlusHandset(&handset_addr))
-            {
-                bdaddr peer_addr;
-                uint8 profiles;
-
-                appDeviceGetPeerBdAddr(&peer_addr);
-                profiles = BtDevice_GetLastConnectedProfiles(&peer_addr);
-
-                /* Always attempt to connect A2DP and SCOFWD if user initiated connect,
-                 * out-of-case connect or sync connect */
-                if ((reason == RULE_CONNECT_OUT_OF_CASE) ||
-                        (reason == RULE_CONNECT_USER) ||
-                        (reason == RULE_CONNECT_PEER_SYNC))
-                {
-#ifndef INCLUDE_SHADOWING
-                    profiles |= DEVICE_PROFILE_A2DP;
-#ifdef INCLUDE_SCOFWD
-                    profiles |= DEVICE_PROFILE_SCOFWD;
-#endif
-#endif
-                }
-
-                /* Check if we're already connected to handset */
-                if (appDeviceIsHandsetA2dpConnected() || appDeviceIsHandsetHfpConnected())
-                {
-                    PRIMARY_RULE_LOG("ruleConnectPeer, run as connected to standard handset, peer won't be connected");
-                    return RULE_ACTION_RUN_PARAM(profiles);
-                }
-                else
-                {
-                    /* Not connected to handset, if we are going to connect to standard handset, we should also connect to peer */
-                    PRIMARY_RULE_LOG("ruleConnectPeer, calling ruleConnectHandsetStandard() to determine if we're going to connect to handset");
-                    if (ruleConnectHandsetStandard(reason) == rule_action_run)
-                    {
-                        PRIMARY_RULE_LOG("ruleConnectPeer, run as connected/ing to standard handset");
-                        return RULE_ACTION_RUN_PARAM(profiles);
-                    }
-                    else
-                    {
-                        PRIMARY_RULE_LOG("ruleConnectPeer, ignore as not connected/ing to standard handset");
-                        return rule_action_ignore;
-                    }
-                }
-            }
-            else
-            {
-                PRIMARY_RULE_LOG("ruleConnectPeer, ignore as connected/ing to TWS+ handset");
-                return rule_action_ignore;
-            }
-        }
-        else
-        {
-            PRIMARY_RULE_LOG("ruleConnectPeer, ignore as no handset, so no need to connect to peer");
-            return rule_action_ignore;
-        }
-    }
-}
-
-/*! @brief Wrapper around ruleConnectPeer() that calls it with 'Peer sync' connect reason
-*/
-static rule_action_t ruleSyncConnectPeer(void)
-{
-    PRIMARY_RULE_LOG("ruleSyncConnectPeer");
-    return ruleConnectPeer(RULE_CONNECT_PEER_SYNC);
-}
-
-/*! @brief Wrapper around ruleConnectPeer() that calls it with 'User' connect reason
-*/
-static rule_action_t ruleUserConnectPeer(void)
-{
-    PRIMARY_RULE_LOG("ruleUserConnectPeer");
-    return ruleConnectPeer(RULE_CONNECT_USER);
-}
-
-/*! @brief Wrapper around ruleConnectPeer() that calls it with 'Out of case' connect reason
-*/
-static rule_action_t ruleOutOfCaseConnectPeer(void)
-{
-    PRIMARY_RULE_LOG("ruleOutOfCaseConnectPeer");
-    return ruleConnectPeer(RULE_CONNECT_OUT_OF_CASE);
-}
-
-/*! @brief Rule to determine if most recently used handset should be updated
-    @startuml
-
-    start
-    if (Not IsPeerSyncComplete()) then (yes)
-        :Peer sync not completed;
-        end
-    endif
-
-    if (IsPeerHandsetA2dpConnected() or IsPeerHandsetHfpConnected()) then (yes)
-        if (IsPairedPeerHandset()) then (yes)
-            :Update MRU handzset as peer is connected to handset;
-            stop
-        else (no)
-            :Do nothing as not paired to peer's handset;
-            end
-        endif
-    else
-        :Do nothing as peer is not connected to handset;
-        end
-    endif
-    @enduml
-*/
-/*! \todo run on local or remote handset connection
-    May result in command to secondary to update MRU handset */
-static rule_action_t ruleUpdateMruHandset(void)
-{
-    /* If peer is connected to handset then we should mark this handset as most recently used */
-    if (StateProxy_IsPeerHandsetA2dpConnected() || StateProxy_IsPeerHandsetHfpConnected())
-    {
-        /* Check we paired with this handset */
-        bdaddr handset_addr;
-        StateProxy_GetPeerHandsetAddr(&handset_addr);
-        if (appDeviceIsHandset(&handset_addr))
-        {
-            PRIMARY_RULE_LOG("ruleUpdateMruHandset, run as peer is connected to handset");
-            return rule_action_run;
-        }
-        else
-        {
-            PRIMARY_RULE_LOG("ruleUpdateMruHandset, ignore as not paired with peer's handset");
-            return rule_action_ignore;
-        }
-    }
-    else
-    {
-        /* Peer is not connected to handset */
-        PRIMARY_RULE_LOG("ruleUpdateMruHandset, ignore as peer is not connected");
-        return rule_action_ignore;
-    }
-
-}
-
-/*! @brief Rule to determine if Earbud should send status to handset over HFP and/or AVRCP
-    @startuml
-
-    start
-    if (IsPairedHandset() and IsTwsPlusHandset()) then (yes)
-        if (IsHandsetHfpConnected() or IsHandsetAvrcpConnected()) then (yes)
-            :HFP and/or AVRCP connected, send status update;
-            stop
-        endif
-    endif
-
-    :Not connected with AVRCP or HFP to handset;
-    end
-    @enduml
-*/
-static rule_action_t ruleSendStatusToHandset(void)
-{
-    bdaddr handset_addr;
-
-    if (appDeviceGetHandsetBdAddr(&handset_addr) && appDeviceIsTwsPlusHandset(&handset_addr))
-    {
-        if (appDeviceIsHandsetHfpConnected() || appDeviceIsHandsetAvrcpConnected())
-        {
-            PRIMARY_RULE_LOG("ruleSendStatusToHandset, run as TWS+ handset");
-            return rule_action_run;
-        }
-    }
-
-    PRIMARY_RULE_LOG("ruleSendStatusToHandset, ignore as not connected to TWS+ handset");
-    return rule_action_ignore;
 }
 
 /*! @brief Rule to determine if A2DP streaming when out of ear
@@ -1266,39 +500,6 @@ static bool handsetDisconnectAllowed(void)
     return appDeviceIsHandsetAnyProfileConnected() && !appSmIsDfuPending() && !ScoFwdIsSending();
 }
 
-/*! @brief Rule to determine if Earbud should disconnect from handset when put in case
-    Rule is triggered by the 'in case' event
-    @startuml
-
-    start
-    if (IsInCase() and IsHandsetConnected() and Not DfuUpgradePending()) then (yes)
-        :Disconnect from handset as now in case;
-        stop
-    endif
-    end
-    @enduml
-*/
-static rule_action_t ruleInCaseDisconnectHandset(void)
-{
-    if(appSmIsInCase() && appSmIsDfuPending())
-    {
-        return rule_action_ignore;
-    }
-    else if (appSmIsInCase() && handsetDisconnectAllowed())
-    {
-        PRIMARY_RULE_LOG("ruleInCaseDisconnectHandset, run as in case and handset connected");
-        // Try to handover the handset connection to the other earbud
-        bool handover = TRUE;
-        return RULE_ACTION_RUN_PARAM(handover);
-    }
-    else
-    {
-        PRIMARY_RULE_LOG("ruleInCaseDisconnectHandset, ignore as not in case or handset not connected or master of active call forwarding");
-        return rule_action_ignore;
-    }
-}
-
-
 /*! @brief Rule to connect A2DP to TWS+ handset if peer Earbud has connected A2DP for the first time */
 static rule_action_t rulePairingConnectTwsPlusA2dp(void)
 {
@@ -1377,134 +578,6 @@ static rule_action_t rulePairingConnectTwsPlusHfp(void)
     return RULE_ACTION_RUN_PARAM(profiles);
 }
 
-/*! @brief Rule to decide if one Earbud should disconnect from handset, if both connected.
- */
-static rule_action_t ruleBothConnectedDisconnect(void)
-{
-      bdaddr handset_addr;
-      bdaddr peer_handset_addr;
-
-    appDeviceGetHandsetBdAddr(&handset_addr);
-    StateProxy_GetPeerHandsetAddr(&peer_handset_addr);
-
-    /* if both earbuds connected to the same TWS Standard handset */
-    if (   appDeviceIsHandsetConnected()
-        &&
-           (StateProxy_IsPeerHandsetA2dpConnected()   ||
-            StateProxy_IsPeerHandsetHfpConnected()    ||
-            StateProxy_IsPeerHandsetAvrcpConnected())
-        &&
-            (!appDeviceIsTwsPlusHandset(&handset_addr))
-        &&
-            (BdaddrIsSame(&handset_addr, &peer_handset_addr)))
-    {
-        /* Score each earbud, to determine which should disconnect.
-         * Weight an active SCO or active A2DP stream higher, so that even if
-         * only 1 profile is connected, but there is active audio this will
-         * count higher than all profiles being connected. */
-        int this_earbud_score = (appDeviceIsHandsetA2dpConnected() ? 1 : 0) +
-                                (appDeviceIsHandsetAvrcpConnected() ? 1 : 0) +
-                                (appDeviceIsHandsetHfpConnected() ? 1 : 0) +
-                                (appHfpIsScoActive() ? 3 : 0) +
-                                (appDeviceIsHandsetA2dpStreaming() ? 3 : 0);
-        int other_earbud_score = (StateProxy_IsPeerHandsetA2dpConnected() ? 1 : 0) +
-                                (StateProxy_IsPeerHandsetAvrcpConnected() ? 1 : 0) +
-                                (StateProxy_IsPeerHandsetHfpConnected() ? 1 : 0) +
-                                (StateProxy_IsPeerScoActive() ? 3 : 0) +
-                                (StateProxy_IsPeerHandsetA2dpStreaming() ? 3 : 0);
-
-        /* disconnect lowest scoring earbud */
-        if (this_earbud_score < other_earbud_score)
-        {
-            PRIMARY_RULE_LOGF("ruleBothConnectedDisconnect, run as lower score: this %u other %u",
-                        this_earbud_score, other_earbud_score);
-            return rule_action_run;
-        }
-        else if (this_earbud_score > other_earbud_score)
-        {
-            PRIMARY_RULE_LOGF("ruleBothConnectedDisconnect, ignore as higher score: this %u other %u",
-                    this_earbud_score, other_earbud_score);
-            /* \todo needs to become run and send command to secondary to disconnect */
-            return rule_action_ignore;
-        }
-        else
-        {
-            /* equal scores, disconnect the left */
-            if (appConfigIsLeft())
-            {
-                PRIMARY_RULE_LOGF("ruleBothConnectedDisconnect, run, same score and we're left: this %u other %u",
-                        this_earbud_score, other_earbud_score);
-                return rule_action_run;
-            }
-            else
-            {
-                PRIMARY_RULE_LOGF("ruleBothConnectedDisconnect, ignore, same score and we're right: this %u other %u",
-                        this_earbud_score, other_earbud_score);
-                /* \todo needs to become run and send command to secondary to disconnect */
-                return rule_action_ignore;
-            }
-        }
-    }
-
-    PRIMARY_RULE_LOG("ruleBothConnectedDisconnect, ignore, both earbuds not connected to the same TWS Standard handset");
-    return rule_action_ignore;
-}
-
-/*! @brief Rule to determine if Earbud should disconnect A2DP/AVRCP/SCOFWD from peer when put in case
-    Rule is triggered by the 'in case' event
-    @startuml
-
-    start
-    if (IsInCase() and IsPeerA2dpConnected() and IsPeerAvrcpConnectedForAv()) then (yes)
-        :Disconnect from peer as now in case;
-        stop
-    endif
-    end
-    @enduml
-*/
-static rule_action_t ruleInCaseDisconnectPeer(void)
-{
-    if(appSmIsInCase() && appSmIsDfuPending())
-    {
-        return rule_action_ignore;
-    }
-    else if (appSmIsInCase() && (appDeviceIsPeerA2dpConnected() ||
-                            appDeviceIsPeerAvrcpConnectedForAv() ||
-                            appDeviceIsPeerScoFwdConnected() ||
-                            appDeviceIsPeerShadowConnected()))
-    {
-        if (ScoFwdIsSending())
-        {
-            PRIMARY_RULE_LOG("ruleInCaseDisconnectPeer, ignore as master of active SCO forwarding");
-            return rule_action_ignore;
-        }
-
-        PRIMARY_RULE_LOG("ruleInCaseDisconnectPeer, run as in case and peer connected");
-        return rule_action_run;
-    }
-    else
-    {
-        PRIMARY_RULE_LOG("ruleInCaseDisconnectPeer, ignore as not in case or peer not connected");
-        return rule_action_ignore;
-    }
-}
-
-static rule_action_t rulePeerInCaseDisconnectPeer(void)
-{
-    if(appSmIsInCase() && appSmIsDfuPending())
-    {
-        return rule_action_ignore;
-    }
-    else if (StateProxy_IsPeerInCase() && (appDeviceIsPeerA2dpConnected() ||
-                                      appDeviceIsPeerAvrcpConnectedForAv() ||
-                                      appDeviceIsPeerScoFwdConnected() ||
-                                      appDeviceIsPeerShadowConnected()))
-    {
-        PRIMARY_RULE_LOG("rulePeerInCaseDisconnectPeer, run as peer in the case and it is connected");
-        return rule_action_run;
-    }
-    return rule_action_ignore;
-}
 /*! @brief Rule to determine if Earbud should start DFU  when put in case
     Rule is triggered by the 'in case' event
     @startuml
@@ -1612,77 +685,6 @@ static rule_action_t ruleCheckUpgradable(void)
     }
 }
 
-
-/*! @brief Rule to determine if Earbud should disconnect A2DP/AVRCP from peer Earbud
-    @startuml
-
-    start
-    if (Not IsPeerA2dpConnected() and Not IsPeerAvrcoConnectedForAv()) then (yes)
-        :Not connected, do nothing;
-        stop
-    endif
-
-    if (Not IsHandsetPaired()) then (yes)
-        :Not paired with handset, disconnect from peer;
-        stop
-    endif
-
-    if (IsHandsetA2dpConnected()) then (yes)
-        if (IsTwsPlusHandset()) then (yes)
-            :Connected to TWS+ handset, no need for A2DP/AVCRP to peer;
-            stop
-        else
-            :Connected to standard handset, still require A2DP/AVRCP to peer;
-            end
-        endif
-    else
-        :Not connected with A2DP to handset;
-        end
-    endif
-    @enduml
-*/
-static rule_action_t ruleDisconnectPeer(void)
-{
-    bdaddr handset_addr;
-
-    /* Don't run rule if we're not connected to peer */
-    if (!appDeviceIsPeerA2dpConnected() &&
-        !appDeviceIsPeerAvrcpConnectedForAv() &&
-        !appDeviceIsPeerScoFwdConnected() &&
-        !appDeviceIsPeerShadowConnected())
-    {
-        PRIMARY_RULE_LOG("ruleDisconnectPeer, ignore as not connected to peer");
-        return rule_action_ignore;
-    }
-
-    /* If we're not paired with handset then disconnect */
-    if (!appDeviceGetHandsetBdAddr(&handset_addr))
-    {
-        PRIMARY_RULE_LOG("ruleDisconnectPeer, run as not paired with handset");
-        return rule_action_run;
-    }
-
-    /* If we're connected to a handset, but it's a TWS+ handset then we don't need media connction to peer */
-    if (appDeviceIsHandsetA2dpConnected() || appDeviceIsHandsetHfpConnected())
-    {
-        if (appDeviceIsTwsPlusHandset(&handset_addr))
-        {
-            PRIMARY_RULE_LOG("ruleDisconnectPeer, run as connected to TWS+ handset");
-            return rule_action_run;
-        }
-        else
-        {
-            PRIMARY_RULE_LOG("ruleDisconnectPeer, ignore as connected to standard handset");
-            return rule_action_ignore;
-        }
-    }
-    else
-    {
-        PRIMARY_RULE_LOG("ruleDisconnectPeer, run as not connected handset");
-        return rule_action_run;
-    }
-}
-
 static rule_action_t ruleOutOfCaseAllowHandsetConnect(void)
 {
     PRIMARY_RULE_LOG("ruleOutOfCaseAllowHandsetConnect, run as out of case");
@@ -1717,162 +719,6 @@ static rule_action_t ruleOutOfCaseAncTuning(void)
         return rule_action_run;
     else
         return rule_action_ignore;
-}
-
-/*! Rule to disconnect the peer when peer is pairing. */
-static rule_action_t ruleSyncDisconnectPeer(void)
-{
-    /* Don't run rule if we're not connected to peer */
-    if (!appDeviceIsPeerA2dpConnected() &&
-        !appDeviceIsPeerAvrcpConnectedForAv() &&
-        !appDeviceIsPeerScoFwdConnected() &&
-        !appDeviceIsPeerShadowConnected())
-    {
-        PRIMARY_RULE_LOG("ruleSyncDisconnectPeer, ignore as not connected to peer");
-        return rule_action_ignore;
-    }
-
-    if (StateProxy_IsPeerPairing())
-    {
-        PRIMARY_RULE_LOG("ruleSyncDisconnectPeer, run as peer is pairing");
-        return rule_action_run;
-    }
-
-    return rule_action_ignore;
-}
-
-
-/*! Rule to disconnect the handset when peer is pairing. */
-static rule_action_t ruleSyncDisconnectHandset(void)
-{
-    /* Don't run rule if we're not connected to handset */
-    if (!appDeviceIsHandsetA2dpConnected() &&
-        !appDeviceIsHandsetAvrcpConnected() &&
-        !appDeviceIsHandsetHfpConnected())
-    {
-        PRIMARY_RULE_LOG("ruleSyncDisconnectHandset, ignore as not connected to handset");
-        return rule_action_ignore;
-    }
-
-    if (StateProxy_IsPeerPairing())
-    {
-        PRIMARY_RULE_LOG("ruleSyncDisconnectHandset, run as peer is pairing");
-        return rule_action_run;
-    }
-
-    return rule_action_ignore;
-}
-
-
-
-
-/*! @brief Rule to determine if page scan settings should be changed.
-
-    @startuml
-        (handset1)
-        (handset2)
-        (earbud1)
-        (earbud2)
-        earbud1 <-> earbud2 : A
-        earbud1 <--> handset1 : B
-        earbud2 <--> handset2 : C
-    @enduml
-    A = link between earbuds
-    B = link from earbud1 to handset1
-    C = link from earbud2 to handset2
-    D = earbud1 handset is TWS+
-    E = earbud2 handset is TWS+
-    F = earbud is connectable
-    Links B and C are mutually exclusive.
-
-    Page scan is controlled as defined in the following truth table (X=Don't care).
-    Viewed from the perspective of Earbud1.
-
-    Peer sync must be complete for the rule to run if the state of the peer handset
-    affects the result of the rule.
-
-    A | B | C | D | E | F | Page Scan On
-    - | - | - | - | - | - | ------------
-    X | X | X | X | X | 0 | 0
-    0 | X | X | X | X | 1 | 1
-    1 | 0 | 0 | X | X | 1 | 1
-    1 | 0 | 1 | X | 1 | 1 | 1
-    1 | 0 | 1 | X | 0 | 1 | 0
-    1 | 1 | X | X | X | 1 | 0
-*/
-static rule_action_t rulePageScanUpdate(void)
-{
-    bool ps_on = FALSE;
-    bool sm_connectable = appSmIsConnectable();
-    bool peer = appDeviceIsPeerConnected();
-    bool handset = appDeviceIsHandsetAnyProfileConnected();
-    bool peer_handset = StateProxy_IsPeerHandsetA2dpConnected() || StateProxy_IsPeerHandsetAvrcpConnected() || StateProxy_IsPeerHandsetHfpConnected();
-    bool peer_handset_tws = StateProxy_IsPeerHandsetTws();
-
-    if (!sm_connectable)
-    {
-        // Not connectable
-        ps_on = FALSE;
-    }
-    else if (!peer)
-    {
-        // No peer
-        ps_on = TRUE;
-    }
-    else if (handset)
-    {
-        // Peer, handset
-        ps_on = FALSE;
-    }
-    else if (peer_handset)
-    {
-        if (peer_handset_tws)
-        {
-            // Peer, no handset, tws peer handset
-            ps_on = TRUE;
-        }
-        else
-        {
-            // Peer, no handset, standard peer handset
-            ps_on = FALSE;
-        }
-    }
-    else
-    {
-        // Peer, no handset, no peer handset
-        ps_on = TRUE;
-    }
-
-#ifndef DISABLE_LOG
-    /* Reduce log utilisation by this frequently run rule by compressing the
-       booleans into nibbles in a word. When printed in hex, this will display
-       as a binary bitfield. */
-    uint32 log_val = (!!sm_connectable   << 20) |
-                     (!!peer             << 16) |
-                     (!!handset          << 12) |
-                     (!!peer_handset     << 4)  |
-                     (!!peer_handset_tws << 0);
-    PRIMARY_RULE_LOGF("rulePageScanUpdate, (sm_connectable,peer,handset,peer_handset,peer_handset_tws)=%06x, ps=%d", log_val, ps_on);
-#endif
-
-    if (ps_on && !BredrScanManager_IsPageScanEnabledForClient(SmGetTask()))
-    {
-        /* need to enable page scan and it is not already enabled for the SM user */
-        PRIMARY_RULE_LOG("rulePageScanUpdate, run, need to enable page scan");
-
-        /* using CONN_RULES_PAGE_SCAN_UPDATE message which take a bool parameter,
-         * use RULE_ACTION_RUN_PARAM macro to prime the message data and indicate
-         * to the rules engine it should return it in the message to the client task */
-        return RULE_ACTION_RUN_PARAM(ps_on);
-    }
-    else if (!ps_on && BredrScanManager_IsPageScanEnabledForClient(SmGetTask()))
-    {
-        /* need to disable page scan and it is currently enabled for SM user */
-        PRIMARY_RULE_LOG("rulePageScanUpdate, run, need to disable page scan");
-        return RULE_ACTION_RUN_PARAM(ps_on);
-    }
-
-    return rule_action_ignore;
 }
 
 static rule_action_t ruleInCaseScoTransferToHandset(void)
@@ -1944,131 +790,39 @@ static rule_action_t ruleScoForwardingControl(void)
     return rule_action_ignore;
 }
 
-
-/*! @brief Rule to validate whether handover should be initiated */
-static rule_action_t ruleHandoverDisconnectHandset(void)
+/*! @brief Rule to select the audio mix to be rendered by the remote earbud */
+static rule_action_t ruleSelectLocalAudioMix(void)
 {
-    bdaddr addr;
-    if (appDeviceIsHandsetConnected() &&
-        appDeviceGetHandsetBdAddr(&addr) &&
-        !appDeviceIsTwsPlusHandset(&addr))
+    bool stereo_mix = TRUE;
+
+    if (appPeerSigIsConnected() && StateProxy_IsPeerInEar())
     {
-        bool allowed = !appSmIsDfuPending();
-        return allowed ? RULE_ACTION_RUN_PARAM(allowed) : rule_action_defer;
+        stereo_mix = FALSE;
     }
-    return rule_action_ignore;
+
+    PRIMARY_RULE_LOG("ruleSelectLocalAudioMix stereo_mix=%d", stereo_mix);
+    return RULE_ACTION_RUN_PARAM(stereo_mix);
 }
 
-/*! @brief Rule to validate whether handover should cause handset to be connected */
-static rule_action_t ruleHandoverConnectHandset(void)
+/*! @brief Rule to select the audio mix to be rendered by the local earbud */
+static rule_action_t ruleSelectRemoteAudioMix(void)
 {
-    return ruleConnectHandset(RULE_CONNECT_USER, RULE_POST_HANDSET_CONNECT_ACTION_NONE);
-}
+    bool stereo_mix = TRUE;
 
-/*! @brief Rule to validate whether handover should cause handset to be connected
-    then media played */
-static rule_action_t ruleHandoverConnectHandsetAndPlay(void)
-{
-    return ruleConnectHandset(RULE_CONNECT_USER, RULE_POST_HANDSET_CONNECT_ACTION_PLAY_MEDIA);
-}
-
-
-/*! @brief Rule to determine if BLE connection settings should be changed
-
-    \todo include UML documentation.
-
-*/
-static rule_action_t ruleBleConnectionUpdate(void)
-{
-    bool peer = appDeviceIsPeerConnected();
-    bool peer_handset = StateProxy_IsPeerHandsetA2dpConnected() || StateProxy_IsPeerHandsetAvrcpConnected() || StateProxy_IsPeerHandsetHfpConnected();
-    bool peer_handset_paired = StateProxy_HasPeerHandsetPairing();
-    bool peer_ble_advertising = StateProxy_IsPeerAdvertising();
-    bool peer_ble_connected = StateProxy_IsPeerBleConnected();
-    bool left = appConfigIsLeft();
-    bool peer_dfu = StateProxy_IsPeerDfuInProgress();
-    bool in_case = appSmIsInCase();
-    bool peer_in_case = StateProxy_IsPeerInCase();
-    bool ble_connectable = appSmStateAreNewBleConnectionsAllowed(appGetState());
-    bool paired_with_peer = BtDevice_IsPairedWithPeer();
-    bool paired_with_handset = BtDevice_IsPairedWithHandset();
-
-    bool has_ble_connection = ConManagerAnyTpLinkConnected(cm_transport_ble);
-    bool is_ble_connecting = appSmIsBleAdvertising();
-
-    bool connectable;
-
-        /* Use our own status to decide if we should be connectable */
-    connectable = paired_with_peer && paired_with_handset && ble_connectable && !has_ble_connection;
-    DEBUG_LOG("ruleBleConnectionUpdate Paired(peer:%d, handset:%d). BLE(allowed:%d,allowed_out_case:%d,has:%d,is_trying:%d)",
-                    paired_with_peer,paired_with_handset,
-                    ble_connectable, appConfigBleAllowedOutOfCase(),
-                    has_ble_connection, is_ble_connecting);
-
-    /* Now take the peer status into account */
-    if (connectable && peer)
+    if (appPeerSigIsConnected())
     {
-        if (peer_handset || peer_dfu || (peer_ble_advertising && ! peer_in_case) || peer_ble_connected)
+        if (appSmIsInEar())
         {
-            DEBUG_LOG("ruleBleConnectionUpdate Peer has handset connection:%d, DFU:%d, BLE-adv:%d (out of case), or BLE-connection. We don't want to do BLE",
-                        peer_handset, peer_dfu, peer_ble_advertising, peer_ble_connected);
-
-            connectable = FALSE;
+            stereo_mix = FALSE;
         }
-        else if (!peer_handset_paired)
-        {
-            DEBUG_LOG("ruleBleConnectionUpdate Peer has no handset.");
-        }
-        else if (in_case)
-        {
-            /* Do nothing. We want both to be connectable, unless DFU/BLE
-               which were eliminated above */
-            DEBUG_LOG("ruleBleConnectionUpdate In case, ignore excuses not to advertise");
-        }
-        else if (!peer_in_case)
-        {
-            uint16 our_battery;
-            uint16 peer_battery;
-
-            StateProxy_GetLocalAndRemoteBatteryLevels(&our_battery,&peer_battery);
-            if (our_battery < peer_battery)
-            {
-                DEBUG_LOG("ruleBleConnectionUpdate Peer (out of case) has stronger battery.");
-                connectable = FALSE;
-            }
-            else if (our_battery == peer_battery)
-            {
-                if (!left)
-                {
-                    DEBUG_LOG("ruleBleConnectionUpdate we have same battery, and are right handset. Don't do BLE.");
-                    connectable = FALSE;
-                }
-            }
-        }
-    }
-    else if (connectable)
-    {
-        DEBUG_LOG("ruleBleConnectionUpdate No peer connection, just using local values");
-    }
-
-    if (connectable == is_ble_connecting)
-    {
-        PRIMARY_RULE_LOG("ruleBleConnectionUpdate, IGNORE - no change");
-        return rule_action_ignore;
-    }
-
-    if (connectable)
-    {
-        PRIMARY_RULE_LOG("ruleBleConnectionUpdate, run, need to allow new BLE connections");
+        PRIMARY_RULE_LOG("ruleSelectRemoteAudioMix stereo_mix=%d", stereo_mix);
+        return RULE_ACTION_RUN_PARAM(stereo_mix);
     }
     else
     {
-        PRIMARY_RULE_LOG("ruleBleConnectionUpdate, run, need to disallow new BLE connections");
+        return rule_action_ignore;
     }
-    return RULE_ACTION_RUN_PARAM(connectable);
-
 }
-
 
 /*****************************************************************************
  * END RULES FUNCTIONS

@@ -1,7 +1,6 @@
 var earbud__sm__private_8h =
 [
     [ "SM_INTERNAL_LINK_DISCONNECTION_COMPLETE_T", "struct_s_m___i_n_t_e_r_n_a_l___l_i_n_k___d_i_s_c_o_n_n_e_c_t_i_o_n___c_o_m_p_l_e_t_e___t.html", null ],
-    [ "earbud_sm_msg_type", "earbud__sm__private_8h.html#a27c22935656da25c0b4953a3f02253f5", null ],
     [ "sm_internal_message_ids", "earbud__sm__private_8h.html#a6e2092e700d3eba870dd1645a866c784", [
       [ "SM_INTERNAL_PAIR_HANDSET", "earbud__sm__private_8h.html#a6e2092e700d3eba870dd1645a866c784ad9b2231ccac3f1a373fe9f26dfcbcaf9", null ],
       [ "SM_INTERNAL_DELETE_HANDSETS", "earbud__sm__private_8h.html#a6e2092e700d3eba870dd1645a866c784a8691ab021b9844020939f06820a063e8", null ],

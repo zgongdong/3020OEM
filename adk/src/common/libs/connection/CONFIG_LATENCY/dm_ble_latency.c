@@ -45,20 +45,13 @@ void ConnectionDmUlpEnableZeroSlaveLatency(
         bool  zero_latency
         )
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_PRIM_T(DM_ULP_ENABLE_ZERO_SLAVE_LATENCY_REQ);
-        
-        prim->phandle = 0;
-        BdaddrConvertTpVmToBluestack(&prim->tp_addrt, tpaddr);
-        prim->zero_latency = zero_latency;
+    MAKE_PRIM_T(DM_ULP_ENABLE_ZERO_SLAVE_LATENCY_REQ);
 
-        VmSendDmPrim(prim);
-    }
+    prim->phandle = 0;
+    BdaddrConvertTpVmToBluestack(&prim->tp_addrt, tpaddr);
+    prim->zero_latency = zero_latency;
+
+    VmSendDmPrim(prim);
 }
 
 

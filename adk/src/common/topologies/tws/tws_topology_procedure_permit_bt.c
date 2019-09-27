@@ -56,7 +56,7 @@ twsTopProcPermitBtTaskData twstop_proc_permit_bt = {twsTopology_ProcPermitBtHand
 
 /*! Enables run in parallel and we don't need confirmation of their success
     Bitmasks are used to record the status for debug purposes only */
-#define TWS_TOP_PROC_PERMIT_LE_SCAN       0//(1 << 0)  /*! \todo No scan message yet */
+#define TWS_TOP_PROC_PERMIT_LE_SCAN       (1 << 0)
 #define TWS_TOP_PROC_PERMIT_ADVERTISING   (1 << 1)
 
 #define TwsTopProcPermitBtGetTaskData()     (&twstop_proc_permit_bt)
@@ -85,8 +85,8 @@ void TwsTopology_ProcedurePermitBtStart(Task result_task,
     permitData->active = TRUE;
 
     BredrScanManager_ScanEnable();
-    LeAdvertisingManager_AllowAdvertising(TwsTopProcPermitBtGetTask(), FALSE);
-//    LeScanManager_Enable(TwsTopProcPermitBtGetTask());
+    LeAdvertisingManager_AllowAdvertising(TwsTopProcPermitBtGetTask(), TRUE);
+    LeScanManager_Enable(TwsTopProcPermitBtGetTask());
 
     permitData->pending_permissions =   TWS_TOP_PROC_PERMIT_LE_SCAN
                                       | TWS_TOP_PROC_PERMIT_ADVERTISING;
@@ -125,6 +125,20 @@ static void twsTopology_ProcPermitBtHandleLeAdvManagerAllowCfm(const LE_ADV_MGR_
     }
 }
 
+static void twsTopology_ProcPermitBtHandleLeScanManagerEnableCfm(const LE_SCAN_MANAGER_ENABLE_CFM_T *cfm)
+{
+    DEBUG_LOG("twsTopology_ProcPermitBtHandleLeScanManagerEnableCfm %u", cfm->status);
+
+    if (LE_SCAN_MANAGER_RESULT_SUCCESS == cfm->status)
+    {
+        TwsTopProcPermitBtGetTaskData()->pending_permissions &= ~TWS_TOP_PROC_PERMIT_LE_SCAN;
+    }
+    else
+    {
+        Panic();
+    }
+}
+
 static void twsTopology_ProcPermitBtHandleMessage(Task task, MessageId id, Message message)
 {
     twsTopProcPermitBtTaskData *permitData = TwsTopProcPermitBtGetTaskData();
@@ -146,6 +160,10 @@ static void twsTopology_ProcPermitBtHandleMessage(Task task, MessageId id, Messa
 
         case LE_ADV_MGR_ALLOW_ADVERTISING_CFM:
             twsTopology_ProcPermitBtHandleLeAdvManagerAllowCfm((const LE_ADV_MGR_ALLOW_ADVERTISING_CFM_T *)message);
+            break;
+
+        case LE_SCAN_MANAGER_ENABLE_CFM:
+            twsTopology_ProcPermitBtHandleLeScanManagerEnableCfm((const LE_SCAN_MANAGER_ENABLE_CFM_T *)message);
             break;
 
         default:

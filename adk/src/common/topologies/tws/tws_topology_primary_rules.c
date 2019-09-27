@@ -76,7 +76,7 @@ DEFINE_RULE(ruleTwsTopPriRoleSwitchConnectHandset);
 DEFINE_RULE(ruleTwsTopPriOutCaseConnectHandset);
 DEFINE_RULE(ruleTwsTopPriInCaseDisconnectHandset);
 
-DEFINE_RULE(ruleTwsTopSecSwitchToDfuRole);
+DEFINE_RULE(ruleTwsTopPriSwitchToDfuRole);
 
 /*! \} */
 
@@ -134,7 +134,11 @@ const rule_entry_t twstop_primary_rules_set[] =
     RULE(TWSTOP_RULE_EVENT_PEER_DISCONNECTED_BREDR,        ruleTwsTopPriPeerLostFindRole,           TWSTOP_PRIMARY_GOAL_PRIMARY_FIND_ROLE),
 
     /* When requested to select DFU rules, select them */
-    RULE(TWSTOP_RULE_EVENT_DFU_ROLE,                       ruleTwsTopSecSwitchToDfuRole,            TWSTOP_PRIMARY_GOAL_DFU_ROLE),
+    RULE(TWSTOP_RULE_EVENT_DFU_ROLE,                       ruleTwsTopPriSwitchToDfuRole,            TWSTOP_PRIMARY_GOAL_DFU_ROLE),
+
+    /* When Secondary fails to connect BREDR ACL after role selection, decide if Primary Earbud should restart
+     * role selection. */
+    RULE(TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT,            ruleTwsTopPriPeerLostFindRole,           TWSTOP_PRIMARY_GOAL_PRIMARY_FIND_ROLE),
 
     /*****************************
      * Peer connectivity rules 
@@ -290,7 +294,11 @@ static rule_action_t ruleTwsTopPriEnableConnectablePeer(void)
         return rule_action_ignore;
     }
 
-    /*! \todo ignore if acting primary? */
+    if (TwsTopology_IsActingPrimary())
+    {
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriConnectablePeer ignore as acting primary");
+        return rule_action_ignore;
+    }
 
     TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriConnectablePeer, run as out of case and peer not connected");
     return RULE_ACTION_RUN_PARAM(enable_connectable);
@@ -418,6 +426,13 @@ static rule_action_t ruleTwsTopPriPeerLostFindRole(void)
     {
         TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriPeerLostFindRole, ignore as not primary");
         return rule_action_ignore;
+    }
+
+    if (   TwsTopology_IsGoalActive(tws_topology_goal_no_role_idle)
+        || TwsTopology_IsGoalActive(tws_topology_goal_no_role_find_role))
+    {
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriPeerLostFindRole, defer as switching role");
+        return rule_action_defer;
     }
 
     if (!appDeviceGetSecondaryBdAddr(&secondary_addr))
@@ -606,7 +621,7 @@ static rule_action_t ruleTwsTopPriInCaseDisconnectHandset(void)
 
     This may be re-addressed.
 */
-static rule_action_t ruleTwsTopSecSwitchToDfuRole(void)
+static rule_action_t ruleTwsTopPriSwitchToDfuRole(void)
 {
     TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriSwitchToDfuRole, run unconditionally");
 

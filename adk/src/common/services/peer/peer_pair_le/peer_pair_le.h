@@ -11,6 +11,7 @@
 
 #include <message.h>
 #include "domain_message.h"
+#include "le_scan_manager.h"
 
 /*! \ingroup le_peer_pairing_service
     \{
@@ -56,6 +57,13 @@ bool PeerPairLe_Init(Task init_task);
     
  */
 void PeerPairLe_FindPeer(Task task);
+
+/*! Accepts the LE Advertisements from Scan Manager.
+
+    \param  CL_DM_BLE_ADVERTISING_REPORT_IND_T  CL Structure for LE Adverts
+
+ */
+void PeerPairLe_HandleFoundDeviceScan(const CL_DM_BLE_ADVERTISING_REPORT_IND_T* scan);
 
 
 /*! Handler for connection library messages
@@ -142,14 +150,10 @@ bool PeerPairLe_HandleConnectionLibraryMessages(MessageId id, Message message,
 
     <H3>Connect</H3>
 
-    The service makes connections using the gatt_manager library.
-
-    When advertising the service is always trying to connect to a server,
-    using GattManagerConnectToRemoteServer.
+    When advertising the service is always trying to connect to a server.
 
     When an advert has been seen the service stops advertising and 
-    attempt to make a connection to a client, 
-    using GattManagerWaitForRemoteClient.
+    attempt to make a connection to a client.
 
     When a connection is established the gatt root key service is started
     at each end of the link. As a server by one device and as a client by

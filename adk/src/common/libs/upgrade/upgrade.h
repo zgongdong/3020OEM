@@ -775,6 +775,13 @@ void UpgradeCopyStatus(Message message);
 void UpgradeCopyAudioStatus(Message message);
 
 /*!
+    @brief Inform the Upgrade library of the result an attempt to calculate teh hash over all sections.
+
+    @param message #MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS message containing status of the hash operation.
+*/
+void UpgradeHashAllSectionsUpdateStatus(Message message);
+
+/*!
     @brief Control reboot of device in interactive mode.
 
     The upgrade library needs to reboot the device to complete an upgrade. If 
@@ -1005,7 +1012,7 @@ void UpgradePeerProcessDataRequest(upgrade_peer_app_msg_t iD, uint8 *data,
 
     Returns None
 */
-bool UpgradePeerIsPrimaryDevice(void);
+bool UpgradePeer_IsPrimaryDevice(void);
 
 /*!
     @brief Initialise the Upgrade Peer library.

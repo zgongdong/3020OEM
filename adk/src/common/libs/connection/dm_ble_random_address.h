@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2011 - 2018 Qualcomm Technologies International, Ltd.
+Copyright (c) 2011 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -29,6 +29,24 @@ RETURNS
 void connectionHandleDmSmAutoConfigureLocalAddressCfm(
         const DM_SM_AUTO_CONFIGURE_LOCAL_ADDRESS_CFM_T* cfm
         );
+
+#ifndef DISABLE_BLE
+/****************************************************************************
+NAME
+    connectionHandleDmBleReadRandomAddress
+
+DESCRIPTION
+    This function is called on receipt of an
+    CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ message.
+
+RETURNS
+   void
+*/
+void connectionHandleDmBleReadRandomAddress(
+        connectionBleReadRndAddrState *state,
+        const CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ_T* req
+        );
+#endif
 
 /****************************************************************************
 NAME    

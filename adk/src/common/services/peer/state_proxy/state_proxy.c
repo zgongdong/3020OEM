@@ -218,9 +218,6 @@ static void stateProxy_SendVersion(uint16 version)
 static void stateProxy_HandleMarshalledMsgChannelTxCfm(const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T* cfm)
 {
     SP_LOG_VERBOSE("stateProxy_HandleMarshalledMsgChannelTxCfm channel %u status %u", cfm->channel, cfm->status);
-
-    /* free the memory for the marshalled message now confirmed sent */
-    free(cfm->msg_ptr);
 }
 
 /*! \brief Handle incoming marshalled messages.
@@ -327,12 +324,24 @@ static void stateProxy_HandleMessage(Task task, MessageId id, Message message)
             break;
 
             /* connection change indications */
-        case CON_MANAGER_TP_CONNECT_IND:
         case SHADOW_PROFILE_CONNECT_IND:
+            if (stateProxy_IsPrimary())
+            {
+                break;
+            }
+        /* Fallthrough */
+        case CON_MANAGER_TP_CONNECT_IND:
             stateProxy_HandleConManagerConnectInd((const CON_MANAGER_TP_CONNECT_IND_T*)message);
             break;
-        case CON_MANAGER_TP_DISCONNECT_IND:
+
+        /* disconnection change indications */
         case SHADOW_PROFILE_DISCONNECT_IND:
+            if (stateProxy_IsPrimary())
+            {
+                break;
+            }
+        /* Fallthrough */
+        case CON_MANAGER_TP_DISCONNECT_IND:
             stateProxy_HandleConManagerDisconnectInd((const CON_MANAGER_TP_DISCONNECT_IND_T*)message);
             break;
 

@@ -52,132 +52,22 @@
 #define PeerFindRoleConfigAllowScanAfterActivityDelayMs()   D_SEC(2)
 
 
-/*! \name Connection parameters
+/*! The MTU value needed to optimise the operation of GATT for
+    peer find role
 
-    These should be selected to have
-    \li A reasonably low duty cycle for scanning
-    \li A short connection interval and latency so message exchanges are fast
-    \li A short supervision timeout so that poor/failed connections drop
-    \li A range for parameters where applicable. 
-        This allows the controllers some flexibility in negotiating the best 
-        settings to fit around other activities
-
-    \todo These need review and need to be similar for peer pairing
+    This value is selected so that the initial discovery can be 
+    completed using a single request/response (although this may
+    use several packets).
  */
- /* @{ */
 
-/*! Interval at which the scanning to create a connection repeats 
+/*! The MTU value needed to optimise the operation of GATT for
+    peer find role
 
-    This is in units of 0.625 ms. The allowed range is between
-    0x0004 (2.5 ms) and 0x4000 (10240 ms). */
-#define PeerFindRoleConfigConnectionScanInterval()          320
-
-/*! The amount of the scan interval used for scanning
-
-    The duty cycle can be calculated as 
-    PeerFindRoleConfigConnectionScanWindow()/PeerFindRoleConfigConnectionScanInterval()
-
-    Scan window in units of 0.625 ms. The allowed range is between
-    0x0004 (2.5 ms) and 0x4000 (10.240 s). */
-#define PeerFindRoleConfigConnectionScanWindow()            80
-
-/*! The supervision timeout for the link when created
-
-    The supervision timeout is in units of 10 ms. The allowed 
-    range is between 0x000a (100 ms) and 0x0c80 (32 s). */
-#define PeerFindRoleConfigConnectionSupervisionTimeout()    100
-
-/*! The minimum supervision timeout we will accept if the peer attempts
-    to change it */
-#define PeerFindRoleConfigConnectionMinSupervisionTimeout() PeerFindRoleConfigConnectionSupervisionTimeout()
-
-/*! The maximum supervision timeout we will accept if the peer attempts
-    to change it */
-#define PeerFindRoleConfigConnectionMaxSupervisionTimeout() 150
-
-/*! The maximum time that we will attempt to create a timeout for
-
-    This is in units of 100ms
-    \todo Check the units. Documentation suggests slots?
-
-    \note that this is the default setting used if PeerFindRole_FindRole()
-    is called with 0 as its high_speed_timeout parameter. Scanning
-    will be restarted after this timeout */
-#define PeerFindRoleConfigConnectionAttemptsTimeout()       100 
-
-/*! The initial latency of the connection
-
-    This is the number of events that the slave is allowed to intentionally 
-    miss
+    This value is selected so that the initial discovery can be 
+    completed using a single request/response (although this may
+    use several packets).
  */
-#define PeerFindRoleConfigConnectionLatency()               0
-
-/*! The maximum latency that we will allow if the slave requests an 
-    update to the latency setting */
-#define PeerFindRoleConfigConnectionMaxLatency()            4
-
-
-/*! The minimum size of the connection interval that the controller can select
-
-    The controller may select a value between this and 
-    PeerFindRoleConfigConnectionIntervalMaximum() to fit around any
-    other activities on the radio.
-
-    The connection interval is in units of 1.25 ms. The allowed range is between
-    0x0006 (7.5 ms) and 0x0c80 (4 s). */
-#define PeerFindRoleConfigConnectionIntervalMinimum()       12
-
-/*! The maximum size of the connection interval that the controller can select
-
-    The controller may select a value between 
-    PeerFindRoleConfigConnectionIntervalMinimum() and this to 
-    fit around any other activities on the radio.
-
-    The connection interval is in units of 1.25 ms. The allowed range is between
-    0x0006 (7.5 ms) and 0x0c80 (4 s). */
-#define PeerFindRoleConfigConnectionIntervalMaximum()       24
-
-/* @} */
-
-
-/*! \name Advertising parameters
-
-    Parameters used for advertising when connecting to peer
-
-    The parameters should be selected to be reasonably slow so as to fit
-    around other activities. When other activities may be taking place and
-    the peer needs to be found, the intention is that the active peer 
-    will only advertise - fairly slowly - and relies upon the other peer
-    scanning a higher percentage of the time.
-
-    PeerFindRoleConfigMinimumAdvertisingInterval() and 
-    PeerFindRoleConfigMaximumAdvertisingInterval() should be different so 
-    that the controller has the flexibility to select a value.
- */
-/* @{ */
-
-/*! The minimum advertising interval.
-
-    This is specified in units of 0.625ms. Allowed values are
-    32 (0x20, 20ms) to 16,384 (0x4000, 10 seconds)
-
-    The controller may select an interval between this and 
-    PeerFindRoleConfigMaximumAdvertisingInterval() to fit advertising
-    around any other radio activity
-    */
-#define PeerFindRoleConfigMinimumAdvertisingInterval()  0xA0
-
-/*! The maximum advertising interval.
-
-    This is specified in units of 0.625ms. Allowed values are
-    32 (0x20, 20ms) to 16,384 (0x4000, 10 seconds)
-
-    The controller may select an interval between 
-    PeerFindRoleConfigMinimumAdvertisingInterval() and this to 
-    fit advertising around any other radio activity
-    */
-#define PeerFindRoleConfigMaximumAdvertisingInterval()  0xC0
-/*! @} */
+#define PeerFindRoleConfigMtu()     65
 
 
 #endif /* PEER_FIND_ROLE_CONFIG_H_ */

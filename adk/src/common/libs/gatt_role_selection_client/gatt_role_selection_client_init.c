@@ -32,6 +32,11 @@ void gattRoleSelectionInitSendInitCfm(GATT_ROLE_SELECTION_CLIENT *instance,
 /****************************************************************************/
 bool GattRoleSelectionClientDestroy(GATT_ROLE_SELECTION_CLIENT *instance)
 {
+    PanicNull(instance);
+
+    instance->active_procedure = FALSE;
+    instance->state = role_selection_client_uninitialised;
+
     return GattManagerUnregisterClient(&instance->lib_task) == gatt_manager_status_success; 
 }
 

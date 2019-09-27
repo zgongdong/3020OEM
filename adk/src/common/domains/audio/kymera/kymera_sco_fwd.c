@@ -202,10 +202,9 @@ void appKymeraHandleInternalScoSlaveStart(Source link_source, const appKymeraSco
     appKymeraScoCreateChain(info);
     kymera_chain_handle_t sco_chain = PanicNull(appKymeraGetScoChain());
 
-    /* Get microphone sources */
-    Source mic_src_1a;
-    Source mic_src_1b;
-    appKymeraMicSetup(appConfigScoMic1(), &mic_src_1a, appConfigScoMic2(), &mic_src_1b, theKymera->sco_info->rate);
+    Source mic_src_1a = Kymera_GetMicrophoneSource(appConfigScoMic1(), NULL, theKymera->sco_info->rate, high_priority_user);
+    Source mic_src_1b = Kymera_GetMicrophoneSource(appConfigScoMic2(), mic_src_1a, theKymera->sco_info->rate, high_priority_user);
+
 
     /* Get speaker sink */
     Sink spk_snk = StreamAudioSink(appConfigLeftAudioHardware(), appConfigLeftAudioInstance(), appConfigLeftAudioChannel());
@@ -216,7 +215,7 @@ void appKymeraHandleInternalScoSlaveStart(Source link_source, const appKymeraSco
     Source sco_ep_src  = ChainGetOutput(sco_chain, EPR_MICFWD_TX_OTA);
     Sink sco_ep_snk    = ChainGetInput(sco_chain, EPR_SCOFWD_RX_OTA);
     Sink mic_1a_ep_snk = ChainGetInput(sco_chain, EPR_SCO_MIC1);
-    Sink mic_1b_ep_snk = (appConfigScoMic2() != NO_MIC) ? ChainGetInput(sco_chain, EPR_SCO_MIC2) : 0;
+    Sink mic_1b_ep_snk = (appConfigScoMic2() != microphone_none) ? ChainGetInput(sco_chain, EPR_SCO_MIC2) : 0;
 
     ScoFwdNotifyIncomingSink(sco_ep_snk);
     if (theKymera->sco_info->mic_fwd)
@@ -253,7 +252,7 @@ void appKymeraHandleInternalScoSlaveStart(Source link_source, const appKymeraSco
 
     /* Connect microphones to chain microphone endpoints */
     StreamConnect(mic_src_1a, mic_1a_ep_snk);
-    if (appConfigScoMic2() != NO_MIC)
+    if (appConfigScoMic2() != microphone_none)
         StreamConnect(mic_src_1b, mic_1b_ep_snk);
 
     /* Connect chain speaker endpoint to speaker */
@@ -301,7 +300,7 @@ void appKymeraHandleInternalScoSlaveStop(void)
     kymera_chain_handle_t sco_chain = PanicNull(appKymeraGetScoChain());
 
     Sink mic_1a_ep_snk = ChainGetInput(sco_chain, EPR_SCO_MIC1);
-    Sink mic_1b_ep_snk = (appConfigScoMic2() != NO_MIC) ? ChainGetInput(sco_chain, EPR_SCO_MIC2) : 0;
+    Sink mic_1b_ep_snk = (appConfigScoMic2() != microphone_none) ? ChainGetInput(sco_chain, EPR_SCO_MIC2) : 0;
     Source spk_ep_src  = ChainGetOutput(sco_chain, EPR_SCO_SPEAKER);
 
     /* A tone still playing at this point must be interruptable */
@@ -312,14 +311,14 @@ void appKymeraHandleInternalScoSlaveStop(void)
 
     /* Disconnect microphones from chain microphone endpoints */
     StreamDisconnect(NULL, mic_1a_ep_snk);
-    if (appConfigScoMic2() != NO_MIC)
+    if (appConfigScoMic2() != microphone_none)
         StreamDisconnect(NULL, mic_1b_ep_snk);
 
     /* Disconnect chain speaker endpoint to speaker */
     StreamDisconnect(spk_ep_src, NULL);
 
-    /* Close microphone sources */
-    appKymeraMicCleanup(appConfigScoMic1(), appConfigScoMic2());
+    Kymera_CloseMicrophone(appConfigScoMic1(), high_priority_user);
+    Kymera_CloseMicrophone(appConfigScoMic2(), high_priority_user);
 
     /* Destroy chains */
     ChainDestroy(sco_chain);

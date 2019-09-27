@@ -5,13 +5,13 @@
 \file
 \defgroup   le_scan_manager LE Scan Manager
 \ingroup    bt_domain
-\brief	    LE scanning component
+\brief      LE scanning component
 
 LE scanning component with support for multiple clients.
 Clients can request its own scan interval and advertising filter.
 
 Each advertising filter request is applied.
-Which means the a set of passed-through adverts is a combination of all client's requests.
+Which means that a set of passed-through adverts is a combination of all client's requests.
 
 Whereas the scan interval is worked out by the LE Scan Manager.
 If at least one client requests fast scan interval then the scan interval will be fast.
@@ -25,25 +25,22 @@ Scan window is not an explicit parameter but it is derived from the scan interva
 #define LE_SCAN_MANAGER_H_
 
 #include <connection.h>
+#include "domain_message.h"
 
+#define SCAN_INTERVAL_SLOW      0x1800  /*!< 3.84s Tgap(scan_slow_interval1_coded) */
+#define SCAN_WINDOW_SLOW        0x36    /*!< 33.75ms Tgap(scan_slow_window1_coded) */
+#define SCAN_INTERVAL_FAST      0x90    /*!< 90ms Tgap(scan_fast_interval_coded) 
+                                            \note Using the same interval and window allows 
+                                                 all supported bluetooth devices to schedule 
+                                                 effectively */
+#define SCAN_WINDOW_FAST        0x90    /*!< 90ms Tgap(scan_fast_window_coded) */
 
-#define ENABLE_ACTIVE_SCANNING  FALSE
-#define RANDOM_OWN_ADDRESS      FALSE
-#define WHITE_LIST_ONLY         FALSE
-
-#define SCAN_INTERVAL_SLOW      0x1800  /* 3.84s Tgap(scan_slow_interval1_coded) */
-#define SCAN_WINDOW_SLOW        0x36    /* 33.75ms Tgap(scan_slow_window1_coded) */
-#define SCAN_INTERVAL_FAST      0x91    /* 90.625ms Tgap(scan_fast_interval_coded) */
-#define SCAN_WINDOW_FAST        0x90    /* 90ms Tgap(scan_fast_window_coded) */
 
 #define MAX_ACTIVE_SCANS        2
 
 
-/*! \brief Opaque type for an le scan handle index object. */
-typedef struct le_scan_handle * le_scan_handle_t;
 
-/*! \brief LE scan interval types
-*/
+/*! \brief LE scan interval types. */
 typedef enum
 {
     le_scan_interval_slow = 0,
@@ -59,49 +56,192 @@ typedef struct
     uint8* pattern;
 } le_advertising_report_filter_t;
 
-/*! \brief Confirmation Messages to be sent to Clients for Scan Module Confirmtion */
-enum scan_manager_messages
+/* \brief LE scan handle data. */
+struct le_scan_handle
 {
-    SCAN_MANAGER_INIT_CFM,    /*!< Indicate SM has been initialised */
-    SCAN_MANAGER_ENABLE_CFM,  /*!< Sm Module Enabled */
-    SCAN_MANAGER_DISABLE_CFM,  /*!< Sm Module Disabled */
-    SCAN_MANAGER_START_PENDING_CFM,  /*!< Sm Module Starting the Scan */
-    SCAN_MANAGER_START_FAIL_CFM,  /*!< Sm Module Failed the Scan Start Request */
-    SCAN_MANAGER_STOP_PENDING_CFM,  /*!< Sm Module Stopping the scan */
-    SCAN_MANAGER_PAUSE_PENDING_CFM,  /*!< Sm Module Pausing the Scan */
-    SCAN_MANAGER_START_SCANNING_CFM,  /*!< Sm Module Scan Started */
-    SCAN_MANAGER_STOP_SCANNING_CFM,  /*!< Sm Module Scan Stopped */
-    SCAN_MANAGER_PAUSE_CFM,  /*!< Sm Module Scan Paused */
-    SCAN_MANAGER_RESUME_CFM,  /*!< Sm Module Scan Resumed */
-    SCAN_MANAGER_ADV_REPORT_CFM, /*!< Sm Module ADV Report */
-
+    le_scan_interval_t scan_interval;
+    le_advertising_report_filter_t  filter;
+    Task scan_task;
 };
 
-/*! \brief Message to store handle for  Pause API */
-typedef struct
+/*! \brief Opaque type for an le scan handle index object. */
+typedef struct le_scan_handle * le_scan_handle_t;
+
+/*! \brief Confirmation Messages to be sent to ccanning clients */
+typedef enum scan_manager_messages
 {
-    /*! Message sent when LeScanManager_Pause() sarts */
+    /*! Scan Manager Enabled */
+    LE_SCAN_MANAGER_ENABLE_CFM = LE_SCAN_MANAGER_MESSAGE_BASE,
+    /*! Scan Manager Disabled */
+    LE_SCAN_MANAGER_DISABLE_CFM,
+    /*! Scanning in progress */
+    LE_SCAN_MANAGER_START_CFM,
+    /*! Scanning has been stopped */
+    LE_SCAN_MANAGER_STOP_CFM,
+    /*! Scanning has been paused */
+    LE_SCAN_MANAGER_PAUSE_CFM,
+    /*! Scanning has resumed */
+    LE_SCAN_MANAGER_RESUME_CFM,
+    /*! Scan Advertisment Report */
+    LE_SCAN_MANAGER_ADV_REPORT_IND,
+}scanMessages;
+
+/*! \brief result of le scan operations */
+typedef enum {
+    LE_SCAN_MANAGER_RESULT_SUCCESS,
+    LE_SCAN_MANAGER_RESULT_FAILURE,
+    LE_SCAN_MANAGER_RESULT_BUSY
+}le_scan_result_t;
+
+/*! \brief Data sent with LE_SCAN_MANAGER_ENABLE_CFM message. */
+typedef struct {
+    /*! Scan Enable Status */
+    le_scan_result_t status;
+}LE_SCAN_MANAGER_ENABLE_CFM_T;
+
+/*! \brief Data sent with LE_SCAN_MANAGER_DISABLE_CFM message. */
+typedef struct {
+    /*! Scan Disable Status */
+    le_scan_result_t status;
+}LE_SCAN_MANAGER_DISABLE_CFM_T;
+
+/*! \brief Data sent with LE_SCAN_MANAGER_START_CFM message. */
+typedef struct {
+    /*! Scan handle */
     le_scan_handle_t handle;
-} SCAN_MANAGER_PAUSE_PENDING_CFM_T;
+    le_scan_result_t status;
+} LE_SCAN_MANAGER_START_CFM_T;
 
-/*\{*/
+/*! \brief Data sent with LE_SCAN_MANAGER_STOP_CFM message. */
+typedef struct {
+    /*! Scan Stop Status */
+    le_scan_result_t status;
+}LE_SCAN_MANAGER_STOP_CFM_T;
 
-/*! \brief Start scanning for an LE device.
-    @param fast     scan interval
-    @param filter   pointer to advertising filter
-    @retval handle  LE scan handle
+/*! \brief Data sent with LE_SCAN_MANAGER_PAUSE_CFM message. */
+typedef struct {
+    /*! Scan Stop Status */
+    le_scan_result_t status;
+}LE_SCAN_MANAGER_PAUSE_CFM_T;
+
+/*! \brief Data sent with LE_SCAN_MANAGER_RESUME_CFM message. */
+typedef struct {
+    /*! Scan Stop Status */
+    le_scan_result_t status;
+}LE_SCAN_MANAGER_RESUME_CFM_T;
+
+
+
+/*! Advertisement Report to be sent to Application. */
+typedef CL_DM_BLE_ADVERTISING_REPORT_IND_T LE_SCAN_MANAGER_ADV_REPORT_IND_T;
+
+/*! \brief Function to handle the Events from Connecion Dispatcher */
+extern bool LeScanManager_HandleConnectionLibraryMessages(MessageId id, Message message,
+                                                          bool already_handled);
+
+
+/*! \brief Init the LE Scan Manager Module. This API is called first before any
+           other Scan Manager API.
+           This function initializes the Task ID for Scan Manager Module.
+           Inovacation of any APIs prior to Init, causes a Panic.
+
+    \param[in] Requester's Task \ref Task
 */
-le_scan_handle_t LeScanManager_Start(le_scan_interval_t scan_interval, le_advertising_report_filter_t * filter);
+bool LeScanManager_Init(Task init_task);
 
-/*! \brief Stop scanning for an LE device.
-    @param handle   LE scan handle
-*/
-void LeScanManager_Stop(le_scan_handle_t handle);
+/*! \brief Enables the LE Scan Manager Module.
+           LE Scans can only be started if the component is enabled.
+           Once enabled, Scan Manager registers with Conection Dispatcher.
 
-/*! \brief Checks if there are active scans.
-    @retval TRUE, if there are active scans.
+           This message is responded with LE_SCAN_MANAGER_STATE_ENABLED_CFM.
+           \ref LE_SCAN_MANAGER_STATE_ENABLED_CFM_T for message data.
+
+    \param[in] Requester's Task \ref Task
 */
-bool ScanManager_IsScanActive(void);
+void LeScanManager_Enable(Task task);
+
+/*! \brief Disables the LE Scan Manager Module. Disable command stops ongoing scan
+           and removes all ongoing/pending scan requests.
+
+           This messages is responded with LE SCAN_MANAGER_DISABLE_CFM. No data is
+           associated with this response. This message is sent to all active
+           clients.
+
+    \param[in] Requester's Task \ref Task
+*/
+void LeScanManager_Disable(Task task);
+
+/*! \brief Start scanning for an LE device using the provided scan parameters.
+           If there is already an ongoing scan, Scan Manager selects fastest
+           scan interval among the requests.
+
+           Once scan is started, LE SCAN_MANAGER_START_CFM message is sent
+           as response to requester. \ref LE_SCAN_MANAGER_START_CFM_T for
+           corresponding message data.
+
+           Scan handle received in LE SCAN_MANAGER_START_CFM can be later
+           used by client to stop the scan.
+
+           If scan cannot be started, LE SCAN_MANAGER_START_CFM is
+           sent with NULL handle. This could happen if scan has been disabled.
+
+           If Scan Manager has been Paused (using LeScanManager_Pause()), the
+           request is queued. Confirmation would be sent to requester once the
+           scanning resumes.
+
+    \param[in] fast   scan interval \ref le_scan_interval_t
+    \param[in] filter pointer to advertising filter \ref le_advertising_report_filter_t
+    \param[in] task   Requester's Task \ref Task
+*/
+void LeScanManager_Start(Task task, le_scan_interval_t scan_interval, le_advertising_report_filter_t * filter);
+
+/*! \brief Stops scanning for an LE device.
+           If scanning is ongoing for multiple clients, scanning filter corresponding
+           to the callee is removed and scanning continues. Scanning is stopped
+           only when all the clients have requested Stop. This request is honored
+           even when scanning has been paused by any client.
+
+           This request is responded with LE SCAN_MANAGER_STOP_CFM message.
+           No data is associated with this response.
+
+           If the request is sent with incorrect handle, Panic is raised.
+           This could happen in two cases,
+           1. Client had already stopped scanning once, resulting in invalidation
+              of scan handle.
+           2. Another client has requested Disable, resulting in invalidation of
+              scan requests and handles.
+
+    \param[in] handle LE scan handle \ref le_scan_handle_t
+    \param[in] task   Requester's Task \ref Task
+*/
+void LeScanManager_Stop(Task task, le_scan_handle_t handle);
+
+/*! \brief Pauses the scan.
+           This request stops the scan for all active clients. However no indication
+           is sent to the clients. The message is useful when a client wants to
+           temporarily pause the scanning activity for a connection request.
+           Subsequent Resume request causes scanning to re-start.
+
+           This request is responded with LE SCAN_MANAGER_PAUSE_CFM. No data is
+           associated with this response. This response is sent even in a case
+           when scanning has already been stopped.
+
+           Any Start requests received during Pause are queued up.
+    \param[in] task Requester's Task \ref Task
+*/
+void LeScanManager_Pause(Task task);
+
+/*! \brief Resume the scan.
+           This request resumes the scan for all active clients. However no indication
+           is sent to the active clients.
+
+           This request is responded with LE SCAN_MANAGER_RESUME_CFM. No data is
+           associated with this response. This response is sent even in a case
+           when there are no active clients to resume the scanning.
+
+    \param[in] task Requester's Task \ref Task
+*/
+void LeScanManager_Resume(Task task);
 
 /*\}*/
 

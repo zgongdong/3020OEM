@@ -28,6 +28,7 @@
 #include "acceleration_config.h"
 #include "phy_state.h"
 #include "ui.h"
+#include "prompts.h"
 
 /*! \brief The client task allows sleep */
 #define APP_POWER_ALLOW_SLEEP                       0x00000001
@@ -364,10 +365,7 @@ static void appPowerEnterPowerStateTerminatingClientsResponded(void)
     MessageSendConditionally(PowerGetTask(), APP_POWER_INTERNAL_UI_COMPLETE,
                              NULL, &PowerGetTaskData()->lock);
 
-    MESSAGE_MAKE(message,POWER_OFF_MSG_T);
-    message->lock = &PowerGetTaskData()->lock;
-    message->mask = APP_POWER_LOCK_UI;
-    TaskList_MessageSend(appPowerGetUiClients(), POWER_OFF_MSG, message);
+    Prompts_PlayPrompt(PROMPT_POWER_OFF, FALSE, TRUE, &PowerGetTaskData()->lock, APP_POWER_LOCK_UI);
 }
 
 /*! \brief Exiting means shutdown was aborted, tell clients */
@@ -398,7 +396,6 @@ static void appPowerEnterPowerStateSoporificClientsResponded(void)
     DEBUG_LOG("appPowerEnterPowerStateSoporificClientsResponded");
     if (appPowerCanSleep())
     {
-        TaskList_MessageSendId(appPowerGetUiClients(), POWER_SLEEP);
         appPowerEnterDormantMode(TRUE);
     }
     else
@@ -550,7 +547,7 @@ void appPowerOn(void)
 {
     DEBUG_LOG("appPowerOn");
 
-    TaskList_MessageSendId(appPowerGetUiClients(), POWER_ON);
+    Prompts_PlayPrompt(PROMPT_POWER_ON, FALSE, TRUE, NULL, 0);
 }
 
 void appPowerReboot(void)
@@ -605,33 +602,61 @@ void appPowerClientRegister(Task task)
 
     DEBUG_LOGF("appPowerClientRegister %p", task);
 
-    /* Registering during termination/soporific, not yet supported */
-    PanicFalse(POWER_STATE_OK == PowerGetTaskData()->state);
-
     PanicFalse(TaskList_AddTaskWithData(appPowerGetClients(), task, &data));
+
+    switch (PowerGetTaskData()->state)
+    {
+        case POWER_STATE_INIT:
+            /* Cannot register during initialisation */
+            Panic();
+            break;
+        case POWER_STATE_OK:
+            break;
+        case POWER_STATE_TERMINATING_CLIENTS_NOTIFIED:
+            /* Notify the new client  */
+            appPowerSetFlagInClient(task, APP_POWER_SHUTDOWN_PREPARE_RESPONSE_PENDING);
+            MessageSend(task, APP_POWER_SHUTDOWN_PREPARE_IND, NULL);
+            break;
+        case POWER_STATE_TERMINATING_CLIENTS_RESPONDED:
+            /* Already shutting down, the new client will not be informed of the
+               shutdown, unless it is cancelled */
+            break;
+        case POWER_STATE_SOPORIFIC_CLIENTS_NOTIFIED:
+            /* Notify the new client  */
+            appPowerSetFlagInClient(task, APP_POWER_SLEEP_PREPARE_RESPONSE_PENDING);
+            MessageSend(task, APP_POWER_SLEEP_PREPARE_IND, NULL);
+            break;
+        case POWER_STATE_SOPORIFIC_CLIENTS_RESPONDED:
+            /* This should never happen, since entering this state results in
+               the chip going to sleep. */
+            break;
+    }
 }
 
 void appPowerClientUnregister(Task task)
 {
     DEBUG_LOGF("appPowerClientUnregister %p", task);
 
-    /* Unregistering during termination/soporific, not yet supported */
-    PanicFalse(POWER_STATE_OK == PowerGetTaskData()->state);
+    /* Tidy up any outstanding actions the client may have. */
+    appPowerClientAllowSleep(task);
+    appPowerShutdownPrepareResponse(task);
+    appPowerSleepPrepareResponse(task);
 
-    if (TaskList_RemoveTask(appPowerGetClients(), task))
-    {
-        if (appPowerAllClientsHaveFlagSet(APP_POWER_ALLOW_SLEEP))
-        {
-            appPowerSetState(POWER_STATE_SOPORIFIC_CLIENTS_NOTIFIED);
-        }
-    }
+    MessageCancelAll(task, APP_POWER_SLEEP_PREPARE_IND);
+    MessageCancelAll(task, APP_POWER_SLEEP_CANCELLED_IND);
+    MessageCancelAll(task, APP_POWER_SHUTDOWN_PREPARE_IND);
+    MessageCancelAll(task, APP_POWER_SHUTDOWN_CANCELLED_IND);
+
+    TaskList_RemoveTask(appPowerGetClients(), task);
 }
 
 void appPowerClientAllowSleep(Task task)
 {
     DEBUG_LOGF("appPowerClientAllowSleep %p", task);
 
-    if (appPowerSetFlagInClient(task, APP_POWER_ALLOW_SLEEP))
+    appPowerSetFlagInClient(task, APP_POWER_ALLOW_SLEEP);
+
+    if (POWER_STATE_OK == PowerGetTaskData()->state)
     {
         if (appPowerAllClientsHaveFlagSet(APP_POWER_ALLOW_SLEEP))
         {
@@ -726,7 +751,6 @@ bool appPowerInit(Task init_task)
     thePower->state = POWER_STATE_INIT;
 
     TaskList_WithDataInitialise(&thePower->clients);
-    TaskList_Initialise(&thePower->ui_clients);
 
     VmRequestRunTimeProfile(VM_BALANCED);
 
@@ -754,12 +778,3 @@ bool appPowerInit(Task init_task)
 
     return TRUE;
 }
-
-
-static void powerManager_RegisterUiMessageGroup(Task task, message_group_t group)
-{
-    PanicFalse(group == POWER_UI_MESSAGE_GROUP);
-    TaskList_AddTask(appPowerGetUiClients(), task);
-}
-
-MESSAGE_BROKER_GROUP_REGISTRATION_MAKE(POWER_UI, powerManager_RegisterUiMessageGroup, NULL);

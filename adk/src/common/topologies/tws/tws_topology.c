@@ -29,6 +29,8 @@
 #include <bredr_scan_manager.h>
 #include <key_sync.h>
 #include <shadow_profile.h>
+#include <hfp_profile.h>
+#include <hdma.h>
 
 #include <task_list.h>
 #include <logging.h>
@@ -111,23 +113,35 @@ void twsTopology_SetRole(tws_topology_role role)
 
     DEBUG_LOG("twsTopology_SetRole Current role %u -> New role %u", current_role, role);
 
-    /* only need to change role and notify clients if role
-     * actually changes */
+    TwsTopology_SendRoleChangedInd(role);
+
+    /* only need to change role if actually changes */
     if (current_role != role)
     {
         TwsTopologyGetTaskData()->role = role;
-        TwsTopology_SendRoleChangedInd(role);
         if(role == tws_topology_role_secondary)
         {
             Av_SetupForSecondaryRole();
+            HfpProfile_SetRole(FALSE);
             ShadowProfile_SetRole(FALSE);
         }
-        else
+        else if(role == tws_topology_role_primary)
         {
             Av_SetupForPrimaryRole();
+            HfpProfile_SetRole(TRUE);
             ShadowProfile_SetRole(TRUE);
         }
     }
+}
+
+void twsTopology_SetActingInRole(bool acting)
+{
+    TwsTopologyGetTaskData()->acting_in_role = acting;
+}
+
+static void twsTopology_SetHdmaCreated(bool created)
+{
+    TwsTopologyGetTaskData()->hdma_created = created;
 }
 
 /*! \brief Handle failure to find a role due to not having a paired peer Earbud.
@@ -173,10 +187,9 @@ static void twsTopology_HandlePeerFindRoleSecondary(void)
 
 static void twsTopology_Start(void)
 {
-    bdaddr bd_addr;
-    if (appDeviceGetSecondaryBdAddr(&bd_addr))
+    bdaddr bd_addr_secondary;
+    if (appDeviceGetSecondaryBdAddr(&bd_addr_secondary))
     {
-        appLinkPolicyAlwaysMaster(&bd_addr);
         twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_PEER_PAIRED);
     }
     else
@@ -365,6 +378,26 @@ static void twsTopology_HandleConManagerConnectionInd(const CON_MANAGER_CONNECTI
     }
 }
 
+static void twsTopology_HandleShadowProfileConnectedInd(void)
+{
+    /*  Shadow ACL connection established, Invoke Hdma_Init  */
+    if(TwsTopology_IsPrimary())
+    {
+        twsTopology_SetHdmaCreated(TRUE);
+        Hdma_Init();
+    }
+}
+
+static void twsTopology_HandleShadowProfileDisconnectedInd(void)
+{
+    /*  Shadow ACL connection disconnected, Invoke HDMA_Destroy  */
+    if(TwsTopology_IsPrimary())
+    {
+        twsTopology_SetHdmaCreated(FALSE);
+        Hdma_Destroy();
+    }
+}
+
 /*! \brief TWS Topology message handler.
  */
 static void twsTopology_HandleMessage(Task task, MessageId id, Message message)
@@ -398,6 +431,7 @@ static void twsTopology_HandleMessage(Task task, MessageId id, Message message)
             break;
         case PEER_FIND_ROLE_CANCELLED:
             /* no action required */
+            DEBUG_LOG("twsTopology_HandleMessage: PEER_FIND_ROLE_CANCELLED");
             break;
 
         case PROC_PAIR_PEER_RESULT:
@@ -409,7 +443,16 @@ static void twsTopology_HandleMessage(Task task, MessageId id, Message message)
 //        case STATE_PROXY_EVENT_INITIAL_STATE_SENT:
 //            break;
 
-            /* PHY STATE MESSAGES */
+        /* Shadow Profile messages */
+        case SHADOW_PROFILE_CONNECT_IND:
+            twsTopology_HandleShadowProfileConnectedInd();
+            break;
+
+        case SHADOW_PROFILE_DISCONNECT_IND:
+            twsTopology_HandleShadowProfileDisconnectedInd();
+            break;
+
+        /* PHY STATE MESSAGES */
         case PHY_STATE_CHANGED_IND:
             twsTopology_HandlePhyStateChangedInd((PHY_STATE_CHANGED_IND_T*)message);
             break;
@@ -496,9 +539,16 @@ bool TwsTopology_Init(Task init_task)
 
     tws_taskdata->role = tws_topology_role_none;
 
+    /* Set hdma_created to FALSE */
+    tws_taskdata->hdma_created = FALSE; 
+
+    /* Handover is allowed by default, app may prohibit handover by calling
+    TwsTopology_ProhibitHandover() function with TRUE parameter */
+    tws_taskdata->app_prohibit_handover = FALSE;
+
     /* setup task used to queue goals waiting on contention with currently
        active goals to clear. */
-    tws_taskdata->pending_goal_queue.handler = TwsTopology_HandleGoalDecision;
+    tws_taskdata->pending_goal_queue_task.handler = TwsTopology_HandleGoalDecision;
 
     TwsTopologyPrimaryRules_Init(NULL);
     TwsTopologySecondaryRules_Init(NULL);
@@ -507,6 +557,10 @@ bool TwsTopology_Init(Task init_task)
     PeerFindRole_RegisterTask(TwsTopologyGetTask());
     /*! \todo deliberately left in, will be needed just not yet. */
 //    StateProxy_StateProxyEventRegisterClient(TwsTopologyGetTask());
+
+    /* Register for connect / disconnect events from shadow profile */
+    ShadowProfile_ClientRegister(TwsTopologyGetTask());
+    
     appPhyStateRegisterClient(TwsTopologyGetTask());
     ConManagerRegisterConnectionsClient(TwsTopologyGetTask());
     BredrScanManager_PageScanParametersRegister(&page_scan_params);
@@ -514,7 +568,7 @@ bool TwsTopology_Init(Task init_task)
 
     TwsTopology_SetState(TWS_TOPOLOGY_STATE_SETTING_SDP);
 
-    tws_taskdata->role_changed_tasks = TaskList_Create();
+    TaskList_Initialise(&tws_taskdata->role_changed_tasks);
 
     return TRUE;
 }
@@ -536,13 +590,13 @@ void TwsTopology_Start(Task requesting_task)
 void TwsTopology_RoleChangedRegisterClient(Task client_task)
 {
     twsTopologyTaskData *twst = TwsTopologyGetTaskData();
-    TaskList_AddTask(twst->role_changed_tasks, client_task);
+    TaskList_AddTask(&twst->role_changed_tasks, client_task);
 }
 
 void TwsTopology_RoleChangedUnRegisterClient(Task client_task)
 {
     twsTopologyTaskData *twst = TwsTopologyGetTaskData();
-    TaskList_RemoveTask(twst->role_changed_tasks, client_task);
+    TaskList_RemoveTask(&twst->role_changed_tasks, client_task);
 }
 
 tws_topology_role TwsTopology_GetRole(void)
@@ -564,6 +618,8 @@ void TwsTopology_EndDfuRole(void)
     DEBUG_LOG("TwsTopology_EndDfuRole. Setting event TWSTOP_RULE_EVENT_DFU_ROLE_COMPLETE");
 
     twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_DFU_ROLE_COMPLETE);
+
+    TwsTopologyPrimaryRules_ResetEvent(TWSTOP_RULE_EVENT_DFU_ROLE);
 }
 
 
@@ -587,4 +643,26 @@ bool TwsTopology_IsPrimary(void)
     }
 
     return (TwsTopology_GetRole() == tws_topology_role_primary);
+}
+
+bool TwsTopology_IsFullPrimary(void)
+{
+    return (   (TwsTopology_GetRole() == tws_topology_role_primary)
+            && !TwsTopologyGetTaskData()->acting_in_role);
+}
+
+bool TwsTopology_IsSecondary(void)
+{
+    return (TwsTopology_GetRole() == tws_topology_role_secondary);
+}
+
+bool TwsTopology_IsActingPrimary(void)
+{
+    return ((TwsTopology_GetRole() == tws_topology_role_primary)
+            && (TwsTopologyGetTaskData()->acting_in_role));
+}
+
+void TwsTopology_ProhibitHandover(bool prohibit)
+{
+    TwsTopologyGetTaskData()->app_prohibit_handover = prohibit;
 }

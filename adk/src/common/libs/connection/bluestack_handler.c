@@ -39,6 +39,7 @@ NOTES
 #include "dm_crypto_api_handler.h"
 #include "dm_ble_latency.h"
 #include "dm_ble_channel_selection_algorithm.h"
+#include "dm_ble_random_address.h"
 
 #ifndef DISABLE_BLE
 #include "dm_ble_handler.h"
@@ -49,6 +50,7 @@ NOTES
 #include "dm_ble_advertising.h"
 #include "dm_read_ble_ad_chan_tx_pwr.h"
 #include "dm_ble_scanning.h"
+#include "dm_ble_privacy_mode.h"
 #endif
 
 #ifndef DISABLE_CSB
@@ -299,6 +301,13 @@ static void connectionBluestackHandlerDm(connectionState *theCm, const DM_UPRIM_
                         (const DM_ULP_ADV_PARAM_UPDATE_IND_T *)message
                         );
                 return;
+
+            case DM_HCI_ULP_SET_PRIVACY_MODE_CFM:
+                PRINT(("DM_HCI_ULP_SET_PRIVACY_MODE_CFM\n"));
+                connectionHandleDmUlpSetPrivacyModeCfm(
+                    (const DM_HCI_ULP_SET_PRIVACY_MODE_CFM_T*)message
+                    );
+            return;
 #endif
 #ifndef DISABLE_CSB
             case DM_HCI_SET_RESERVED_LT_ADDR_CFM:
@@ -687,7 +696,6 @@ static void connectionBluestackHandlerDm(connectionState *theCm, const DM_UPRIM_
                        be in response to a connectionSmInit function call.
                      */
                     handleSecurityInitCfm(
-                        &theCm->infoState,
                         (const DM_SM_INIT_CFM_T *)message
                         );
                 }
@@ -1235,7 +1243,7 @@ static void connectionBluestackHandlerInitialising(connectionState *theCm, Messa
 
         case CL_INTERNAL_SM_INIT_REQ:
             PRINT(("CL_INTERNAL_SM_INIT_REQ\n"));
-            handleSecurityInitReq(&theCm->infoState, (const CL_INTERNAL_SM_INIT_REQ_T *)message);
+            handleSecurityInitReq((const CL_INTERNAL_SM_INIT_REQ_T *)message);
             break;
 
         case CL_INTERNAL_DM_READ_LOCAL_VERSION_REQ:
@@ -1506,6 +1514,12 @@ static void connectionBluestackHandlerReady(connectionState *theCm, MessageId id
                         (const CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ_T *) message
                         );
             break;
+        case CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ:
+            PRINT(("CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ\n"));
+            connectionHandleDmBleReadRandomAddress(
+                        &theCm->bleReadRdnAddrState,
+                        (const CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ_T *) message);
+        break;
 #endif /* DISABLE_BLE */
 
         case CL_INTERNAL_DM_SET_BT_VERSION_REQ:

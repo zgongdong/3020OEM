@@ -12,7 +12,7 @@
 
 #include "earbud_role.h"
 #include "phy_state.h"
-#include "av_types.h"
+#include "av_typedef.h"
 
 #include <hfp.h>
 

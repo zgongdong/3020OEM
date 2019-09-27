@@ -22,6 +22,5 @@ var earbud__sm_8c =
     [ "appSmPairHandset", "earbud__sm_8c.html#ae22236ebd33b23a0a467319b0c9fa1c1", null ],
     [ "appSmReboot", "earbud__sm_8c.html#ab6f9b7188abc24e389741e420ff27b09", null ],
     [ "SmGetTask", "earbud__sm_8c.html#aaa3798ecb1e55a979f3ac16d2c92e2c5", null ],
-    [ "app_sm", "earbud__sm_8c.html#a93ac222e1437b796da36727229a8e788", null ],
-    [ "dfu_has_been_restarted", "earbud__sm_8c.html#a40e8dc36a37b3af242dfe628e2faf3b1", null ]
+    [ "app_sm", "earbud__sm_8c.html#a93ac222e1437b796da36727229a8e788", null ]
 ];

@@ -193,6 +193,33 @@ Task MessageSystemTask(Task task);
  * \ingroup trapset_core
  */
 Task MessagePioTask(Task task);
+
+/**
+ *  \brief Search the message queue for all messages pending delivery to the specified
+ *  task.
+ *  \param task The task whose messages will be searched.
+ *  \param first_due The relative time at which the first message pending is due for delivery.
+ *  \return The number of messages pending delivery.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_core
+ */
+uint16 MessagesPendingForTask(Task task, int32 * first_due);
+
+/**
+ *  \brief Search the message queue for the first specified message pending delivery to
+ *  the specified task.
+ *  \param task The task whose messages will be searched.
+ *  \param id The message id to seek. 
+ *  \param first_due The relative time at which the first message pending is due for delivery.
+ *  \return TRUE if a message was found pending delivery.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_core
+ */
+bool MessagePendingFirst(Task task, MessageId id, int32 * first_due);
 #endif /* TRAPSET_CORE */
 #if TRAPSET_NFC
 
@@ -216,7 +243,8 @@ Task MessageNfcTask(Task task);
 /**
  *  \brief Register a task to handle BlueStack primitives.
  *  \param task This task will receive MESSAGE_BLUESTACK_*_PRIM, except
- *  \#MESSAGE_BLUESTACK_ATT_PRIM that are handled by the MessageAttTask(). 
+ *  \#MESSAGE_BLUESTACK_ATT_PRIM that are handled by the MessageAttTask() and
+ *  \#MESSAGE_BLUESTACK_SDM_PRIM that are handled by the MessageSdmTask(). 
  *  \return The old task (or zero).
  * 
  * \note This trap may be called from a high-priority task handler
@@ -473,4 +501,17 @@ Task MessageAttTask(Task task);
  */
 Task MessageCapacitiveSensorTask(Task task);
 #endif /* TRAPSET_CAPACITIVE_SENSOR */
+#if TRAPSET_SHADOWING
+
+/**
+ *  \brief Register a task to handle BlueStack Shadow Manager(SDM) primitives.
+ *  \param task This task will receive \#MESSAGE_BLUESTACK_SDM_PRIM. 
+ *  \return The old task (or zero).
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_shadowing
+ */
+Task MessageSdmTask(Task task);
+#endif /* TRAPSET_SHADOWING */
 #endif

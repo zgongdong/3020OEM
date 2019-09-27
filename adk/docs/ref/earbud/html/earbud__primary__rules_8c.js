@@ -15,7 +15,7 @@ var earbud__primary__rules_8c =
       [ "RULE_CONNECT_LINK_LOSS", "earbud__secondary__rules_8c.html#a617c617582d5d90009046de5c64dfefea9b29b991babb98c7c3ad84ccac1ea0ff", null ],
       [ "RULE_CONNECT_PEER_OUT_OF_CASE", "earbud__secondary__rules_8c.html#a617c617582d5d90009046de5c64dfefead30b27d9a16115a2bfab04b141503aec", null ]
     ] ],
-    [ "DEFINE_RULE", "earbud__primary__rules_8c.html#a661b07216cf3cbf4a8cb83d4c38653cb", null ],
+    [ "DEFINE_RULE", "earbud__primary__rules_8c.html#a900725ce12eef44e3bb387235eb5a457", null ],
     [ "PrimaryRules_GetEvents", "earbud__primary__rules_8c.html#a0402ec5c8d85b6e11a7341b1c896aae9", null ],
     [ "PrimaryRules_GetRuleSet", "earbud__primary__rules_8c.html#a13d23f0e628dd0e72a30b6d1607cb40f", null ],
     [ "PrimaryRules_Init", "earbud__primary__rules_8c.html#a3a52ff806097f95cb5f8015a43d6aa92", null ],

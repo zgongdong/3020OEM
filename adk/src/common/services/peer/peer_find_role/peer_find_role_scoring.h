@@ -31,6 +31,8 @@ typedef struct
     uint8                   battery_level_percent;
         /*! The score that has most recently been calculated for this device */
     grss_figure_of_merit_t  last_local_score;
+        /*! Test override of score. */
+    grss_figure_of_merit_t  score_override;
 
         /*! Is the handset connected to this device. */
     bool                    handset_connected;
@@ -47,9 +49,33 @@ void peer_find_role_scoring_setup(void);
 /*! Calculate a score
 
     Use information cached from autonomous indications to calculate
-    a "score".
+    a "score". Cache the new score in the peer_find_role context.
+
+    Note: Does not update the gatt server score value.
 */
 void peer_find_role_calculate_score(void);
+
+/*! Get the local score to use
+
+    This can be overriden by a test command.
+
+    \returns The local score to be used in calculations 
+ */
+grss_figure_of_merit_t peer_find_role_score(void);
+
+
+/*! \brief Update the figure of merit value in the gatt server
+
+    Updates the figure of merit score for the local device and updates
+    the gatt server figure of merit characteristic.
+*/
+void peer_find_role_update_server_score(void);
+
+/*! \brief Reset the figure of merit value in the gatt server
+
+    Set the figure of merit characteristic to GRSS_FIGURE_OF_MERIT_INVALID.
+*/
+void peer_find_role_reset_server_score(void);
 
 
 /*! \name Calculation of scores for bitmask 

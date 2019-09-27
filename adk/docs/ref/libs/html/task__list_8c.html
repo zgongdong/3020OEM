@@ -87,6 +87,9 @@ Functions</h2></td></tr>
 <tr class="memitem:abd94542176a288203c7954e441df286e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structtask__list__t.html">task_list_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8c.html#abd94542176a288203c7954e441df286e">TaskList_Create</a> (void)</td></tr>
 <tr class="memdesc:abd94542176a288203c7954e441df286e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>.  <a href="#abd94542176a288203c7954e441df286e">More...</a><br /></td></tr>
 <tr class="separator:abd94542176a288203c7954e441df286e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1cf56e75444775c5154bf68d8f95cfc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structtask__list__t.html">task_list_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8c.html#aa1cf56e75444775c5154bf68d8f95cfc">TaskList_CreateWithCapacity</a> (unsigned capacity)</td></tr>
+<tr class="memdesc:aa1cf56e75444775c5154bf68d8f95cfc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity.  <a href="#aa1cf56e75444775c5154bf68d8f95cfc">More...</a><br /></td></tr>
+<tr class="separator:aa1cf56e75444775c5154bf68d8f95cfc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb7fd82b20a344092941676b7fab93ed"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8c.html#aeb7fd82b20a344092941676b7fab93ed">TaskList_Destroy</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list)</td></tr>
 <tr class="memdesc:aeb7fd82b20a344092941676b7fab93ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>.  <a href="#aeb7fd82b20a344092941676b7fab93ed">More...</a><br /></td></tr>
 <tr class="separator:aeb7fd82b20a344092941676b7fab93ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -106,6 +109,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
 <tr class="memitem:a042a8c88b30606c774c6bacde880e89d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8c.html#a042a8c88b30606c774c6bacde880e89d">TaskList_Initialise</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list)</td></tr>
 <tr class="memdesc:a042a8c88b30606c774c6bacde880e89d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>.  <a href="#a042a8c88b30606c774c6bacde880e89d">More...</a><br /></td></tr>
 <tr class="separator:a042a8c88b30606c774c6bacde880e89d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af90512c72e2c065460b01b0d6faaf9b5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8c.html#af90512c72e2c065460b01b0d6faaf9b5">TaskList_InitialiseWithCapacity</a> (<a class="el" href="structtask__list__flexible__t.html">task_list_flexible_t</a> *flex_list, unsigned capacity)</td></tr>
+<tr class="memdesc:af90512c72e2c065460b01b0d6faaf9b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity.  <a href="#af90512c72e2c065460b01b0d6faaf9b5">More...</a><br /></td></tr>
+<tr class="separator:af90512c72e2c065460b01b0d6faaf9b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1e4dd480b0d14a2d9ecdb2e8384730c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8c.html#ac1e4dd480b0d14a2d9ecdb2e8384730c">TaskList_IsTaskListWithData</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list)</td></tr>
 <tr class="memdesc:ac1e4dd480b0d14a2d9ecdb2e8384730c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determine if the list is one that supports data.  <a href="#ac1e4dd480b0d14a2d9ecdb2e8384730c">More...</a><br /></td></tr>
 <tr class="separator:ac1e4dd480b0d14a2d9ecdb2e8384730c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -250,6 +256,32 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
 </div><div class="memdoc">
 
 <p>Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. </p>
+<p>Must only be used for dynamically allocated task lists, i.e. task_list_t* For statically allocated task lists, use <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>.</p>
+<dl class="section return"><dt>Returns</dt><dd>task_list_t* Pointer to new <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="aa1cf56e75444775c5154bf68d8f95cfc"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structtask__list__t.html">task_list_t</a>* TaskList_CreateWithCapacity </td>
+          <td>(</td>
+          <td class="paramtype">unsigned&#160;</td>
+          <td class="paramname"><em>capacity</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">capacity</td><td>The initial capacity of the list.</td></tr>
+  </table>
+  </dd>
+</dl>
 <p>Must only be used for dynamically allocated task lists, i.e. task_list_t* For statically allocated task lists, use <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>.</p>
 <dl class="section return"><dt>Returns</dt><dd>task_list_t* Pointer to new <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. </dd></dl>
 
@@ -415,6 +447,43 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
   </dd>
 </dl>
 <p>Must only be used for statically allocated task lists, i.e. <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. For dynamically allocated task lists, use <a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e" title="Create a task_list_t. ">TaskList_Create</a>. </p>
+
+</div>
+</div>
+<a class="anchor" id="af90512c72e2c065460b01b0d6faaf9b5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void TaskList_InitialiseWithCapacity </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structtask__list__flexible__t.html">task_list_flexible_t</a> *&#160;</td>
+          <td class="paramname"><em>list</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned&#160;</td>
+          <td class="paramname"><em>capacity</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initialise a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">list</td><td>The list to initialise. </td></tr>
+    <tr><td class="paramname">capacity</td><td>The initial capacity of the list.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>Must only be used for statically allocated task lists with a flexible number of tasks, e.g. task_list_capacity_N_t.</p>
+<p>For dynamically allocated task lists, use <a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e" title="Create a task_list_t. ">TaskList_Create</a>. For non-flexible statically allocated task lists, use <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>. </p>
 
 </div>
 </div>

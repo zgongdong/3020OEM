@@ -11,7 +11,7 @@
 
 
 /*! Link supervision timeout for ACL between Earbuds (in milliseconds) */
-#define appConfigEarbudLinkSupervisionTimeout()  (5000)
+#define appConfigEarbudLinkSupervisionTimeout()  (2000)
 
 /*! Default link supervision timeout for other ACLs (in milliseconds) */
 #define appConfigDefaultLinkSupervisionTimeout()  (5000)

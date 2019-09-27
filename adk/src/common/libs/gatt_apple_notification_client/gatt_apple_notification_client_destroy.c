@@ -5,13 +5,15 @@
 #include "gatt_apple_notification_client_ready_state.h"
 #include <gatt_manager.h>
 
-gatt_ancs_status_t GattAncsDestroy(GANCS *ancs)
+bool GattAncsDestroy(void *ancs_dynamic)
 {
+    GANCS* ancs = (GANCS*)ancs_dynamic;
+
     if (ancs == NULL)
-        return gatt_ancs_status_invalid_parameter;
+        return FALSE;
 
     if (GattManagerUnregisterClient(&ancs->lib_task) != gatt_manager_status_success)
-        return gatt_ancs_status_failed;
+        return FALSE;
 
     gattAncsReadyStateUpdate(ancs, FALSE);
 
@@ -19,5 +21,5 @@ gatt_ancs_status_t GattAncsDestroy(GANCS *ancs)
 
     PRINT(("ANCS: Destroyed instance [%p] with cid [0x%02x]\n", (void *) ancs, ancs->cid));
 
-    return gatt_ancs_status_success;
+    return TRUE;
 }

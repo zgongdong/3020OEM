@@ -10,6 +10,7 @@ var sink_8h =
     [ "SinkGetBdAddr", "group__trapset__stream.html#ga919f283d937498f8c72427260b04b298", null ],
     [ "SinkGetL2capCid", "group__trapset__bluestack.html#ga5789ebdfd7814f743c051b45289b58b6", null ],
     [ "SinkGetRfcommConnId", "group__trapset__rfcomm.html#gaf8cd14866d9f0215eb1a9f5d617e1ddb", null ],
+    [ "SinkGetRfcommServerChannel", "group__trapset__rfcomm.html#gab0e0e6d795f2b6c7736a074d7d6a1a75", null ],
     [ "SinkGetRssi", "group__trapset__stream.html#ga4b57d4faf6a2b73616db3813184567b6", null ],
     [ "SinkGetScoHandle", "group__trapset__audio.html#gaf1dcd623b3ff1bbc078f80a8a24baa0f", null ],
     [ "SinkGetWallclock", "group__trapset__stream.html#ga9058e625d9dc68ac6d073eb974cfb32a", null ],
@@ -20,5 +21,6 @@ var sink_8h =
     [ "SinkSlack", "group__trapset__stream.html#gafa1e5dbd177b2b6c27b5dfb316ffbe5e", null ],
     [ "SinkSynchronise", "group__trapset__stream.html#ga42bcbadf3d88b1f463f25dfc653c3270", null ],
     [ "SinkUnmap", "group__trapset__stream.html#ga2bafb62c349ddead71b0bb1312583e4f", null ],
-    [ "StreamPipePair", "group__trapset__stream.html#gaf84a961372615e789539511b6938be5a", null ]
+    [ "StreamPipePair", "group__trapset__stream.html#gaf84a961372615e789539511b6938be5a", null ],
+    [ "StreamRfcommSinkFromServerChannel", "group__trapset__rfcomm.html#ga33863fe695ee18e84eb41c3769d7f6a7", null ]
 ];

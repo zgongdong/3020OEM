@@ -49,6 +49,7 @@ static bool HandleAborting(MessageId id, Message message);
 static bool HandleDataReady(MessageId id, Message message);
 static bool HandleDataTransfer(MessageId id, Message message);
 static bool HandleDataTransferSuspended(MessageId id, Message message);
+static bool HandleDataHashChecking(MessageId id, Message message);
 static bool HandleValidating(MessageId id, Message message);
 static bool HandleWaitForValidate(MessageId id, Message message);
 static bool HandleRestartedForCommit(MessageId id, Message message);
@@ -190,6 +191,10 @@ void UpgradeSMHandleMsg(MessageId id, Message message)
 
     case UPGRADE_STATE_DATA_TRANSFER_SUSPENDED:
         handled = HandleDataTransferSuspended(id, message);
+        break;
+
+    case UPGRADE_STATE_DATA_HASH_CHECKING:
+        handled = HandleDataHashChecking(id, message);
         break;
 
     case UPGRADE_STATE_VALIDATING:
@@ -489,7 +494,7 @@ bool HandleDataTransfer(MessageId id, Message message)
             {
                 rc = UPGRADE_HOST_ERROR_FILE_TOO_SMALL;
             }
-            else if(rc == UPGRADE_HOST_OEM_VALIDATION_SUCCESS && !msg->moreData)
+            else if(rc == UPGRADE_HOST_DATA_TRANSFER_COMPLETE && !msg->moreData)
             {
                 rc = UPGRADE_HOST_ERROR_FILE_TOO_BIG;
             }
@@ -521,16 +526,10 @@ bool HandleDataTransfer(MessageId id, Message message)
                     }
                 }
             }
-            else if(rc == UPGRADE_HOST_OEM_VALIDATION_SUCCESS)
+            else if(rc == UPGRADE_HOST_DATA_TRANSFER_COMPLETE)
             {
-                /* change the resume point, now that all data has been
-                 * downloaded, and ensure we remember it. */
-                UpgradeCtxGetPSKeys()->upgrade_in_progress_key = UPGRADE_RESUME_POINT_PRE_VALIDATE;
-                UpgradeSavePSKeys();
-                PRINT(("P&R: UPGRADE_RESUME_POINT_PRE_VALIDATE saved\n"));
-
-                UpgradePartitionValidationInit();
-                UpgradeSMMoveToState(UPGRADE_STATE_VALIDATING);
+                /*    Calculate and validate data hash(s).   */
+                UpgradeSMMoveToState(UPGRADE_STATE_DATA_HASH_CHECKING);
             }
             else
             {
@@ -558,6 +557,95 @@ bool HandleDataTransferSuspended(MessageId id, Message message)
     UNUSED(id);
     UNUSED(message);
     return FALSE;
+}
+
+bool HandleDataHashChecking(MessageId id, Message message)
+{
+    UNUSED(message);
+
+    UpgradeCtx *ctx = UpgradeCtxGet();
+
+    PRINT(("Message id = %d", id));
+
+    bool hashCheckedOk = FALSE;
+    
+    switch(id)
+    {
+    case UPGRADE_INTERNAL_CONTINUE:
+        ctx->isCsrValidDoneReqReceived = FALSE;
+        ctx->vctx = ImageUpgradeHashInitialise(SHA256_ALGORITHM);
+
+        if (ctx->vctx == NULL)
+        {
+            Panic();
+        }
+        
+        switch(UpgradeFWIFValidateStart(ctx->vctx))
+        {
+            case UPGRADE_HOST_OEM_VALIDATION_SUCCESS:
+                hashCheckedOk = UpgradeFWIFValidateFinish(ctx->vctx, ctx->partitionData->signature);
+                if(!hashCheckedOk)
+                {
+                    FatalError(UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER);
+                }
+                break;
+                
+            case UPGRADE_HOST_HASHING_IN_PROGRESS:
+                break;
+                
+            case UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER:
+            default:
+                FatalError(UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER);
+                break;
+        }  
+        break;
+
+    case UPGRADE_HOST_IS_CSR_VALID_DONE_REQ:
+        
+        if(UpgradePartitionValidationValidate() == UPGRADE_PARTITION_VALIDATION_IN_PROGRESS)
+        {
+            UpgradeHostIFDataSendIsCsrValidDoneCfm(VALIDATAION_BACKOFF_TIME_MS);
+        }
+        else
+        {
+            /* Record arrival the 'UPGRADE_HOST_IS_CSR_VALID_DONE_REQ' message from the host as 
+               no 'backoff' mechanism is implemented in the HID (USB) upgrade mechanism. */
+            
+            ctx->isCsrValidDoneReqReceived = TRUE;
+        }
+        break;
+
+    case UPGRADE_VM_HASH_ALL_SECTIONS_SUCCESSFUL:
+        hashCheckedOk = UpgradeFWIFValidateFinish(ctx->vctx, ctx->partitionData->signature);
+        if(!hashCheckedOk)
+        {
+            FatalError(UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER);
+        }
+        break;
+        
+    case UPGRADE_VM_HASH_ALL_SECTIONS_FAILED:
+        FatalError(UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER);
+        break;
+        
+    default:
+        return FALSE;
+    }
+
+    if(hashCheckedOk)
+    {
+        free(ctx->partitionData->signature);
+        ctx->partitionData->signature = 0;
+
+        /* change the resume point, now that all data has been
+         * downloaded, and ensure we remember it. */
+        UpgradeCtxGetPSKeys()->upgrade_in_progress_key = UPGRADE_RESUME_POINT_PRE_VALIDATE;
+        UpgradeSavePSKeys();
+        PRINT(("P&R: UPGRADE_RESUME_POINT_PRE_VALIDATE saved\n"));
+       
+        UpgradePartitionValidationInit();
+        UpgradeSMMoveToState(UPGRADE_STATE_VALIDATING);
+    }
+    return TRUE;
 }
 
 bool HandleValidating(MessageId id, Message message)
@@ -1289,11 +1377,7 @@ static void UpgradeSendUpgradeStatusInd(Task task, upgrade_state_t state)
     UPGRADE_STATUS_IND_T *upgradeStatusInd = (UPGRADE_STATUS_IND_T *)PanicUnlessMalloc(sizeof(UPGRADE_STATUS_IND_T));
     upgradeStatusInd->state = state;
 
-    /* 5 sec delay such that Primary and Secondary are insync with reboot */
-    if (state == upgrade_state_done)
-        MessageSendLater(task, UPGRADE_STATUS_IND, upgradeStatusInd, 5000);
-    else
-        MessageSend(task, UPGRADE_STATUS_IND, upgradeStatusInd);
+    MessageSend(task, UPGRADE_STATUS_IND, upgradeStatusInd);
 }
 
 /***************************************************************************
@@ -1433,6 +1517,23 @@ void UpgradeSMCopyAudioStatus(Message message)
         /* Tell the host that the attempt to copy the SQIF failed. */
         FatalError(UPGRADE_HOST_ERROR_AUDIO_SQIF_COPY);
         UpgradeSMHandleValidated(UPGRADE_VM_AUDIO_DFU_FAILURE, NULL);
+    }
+}
+#endif
+
+#ifdef MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS
+void UpgradeSMHashAllSectionsUpdateStatus(Message message)
+{
+    MessageImageUpgradeHashAllSectionsUpdateStatus *msg = (MessageImageUpgradeHashAllSectionsUpdateStatus*)message;
+    PRINT(("UpgradeSMHashAllSectionsUpdateStatus(%d)\n", msg->status));   
+    
+    if(msg->status)
+    {
+        (void)UpgradeSMHandleMsg(UPGRADE_VM_HASH_ALL_SECTIONS_SUCCESSFUL, message);
+    }
+    else
+    {
+        (void)UpgradeSMHandleMsg(UPGRADE_VM_HASH_ALL_SECTIONS_FAILED, message);
     }
 }
 #endif

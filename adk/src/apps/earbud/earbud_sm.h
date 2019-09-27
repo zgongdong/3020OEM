@@ -207,6 +207,9 @@ typedef struct
                                             need to be placed into the case (attached to a charger) before DFU
                                             will be allowed */
     bool enter_dfu_in_case:1;
+                                        /*! Flag used to restore the correct DFU rule set when the Application
+                                            reboots into the upgraded image during a DFU session. */
+    bool dfu_has_been_restarted:1;
 
     tws_topology_role role;             /*!< Current primary/secondary/none role of the earbud */
     rule_set_t primary_rules;

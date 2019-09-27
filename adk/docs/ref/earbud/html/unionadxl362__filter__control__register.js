@@ -1,7 +1,7 @@
 var unionadxl362__filter__control__register =
 [
     [ "_reserved", "unionadxl362__filter__control__register.html#a9efa33fafbebfe72d86669a676327b51", null ],
-    [ "bits", "unionadxl362__filter__control__register.html#ad97aa438a0f92c40857f89d3f28cd94f", null ],
+    [ "bits", "unionadxl362__filter__control__register.html#a6c2703163ce5bf5b60b1ec9f94abe77f", null ],
     [ "ext_sample", "unionadxl362__filter__control__register.html#a17459587daf7cf2aed58104cf46d6cf4", null ],
     [ "half_bw", "unionadxl362__filter__control__register.html#a4dd946f8e0bd1f9427da28fe676a22b0", null ],
     [ "odr", "unionadxl362__filter__control__register.html#a8f848c0aaf7f754810bf95a1e1df23f6", null ],

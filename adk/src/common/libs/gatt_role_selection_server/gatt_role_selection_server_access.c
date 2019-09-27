@@ -265,7 +265,6 @@ static void roleSelectionFigureClientConfigAccess(GATT_ROLE_SELECTION_SERVER *in
         {
             uint16 config_value =    (access_ind->value[0] & 0xFF) 
                                   + ((access_ind->value[1] << 8) & 0xFF00);
-            uint16 old_config = instance->merit_client_config;
 
             instance->merit_client_config = config_value;
 
@@ -273,10 +272,13 @@ static void roleSelectionFigureClientConfigAccess(GATT_ROLE_SELECTION_SERVER *in
                                  access_ind->cid, HANDLE_ROLE_SELECTION_FIGURE_OF_MERIT_CLIENT_CONFIG,
                                  gatt_status_success, 0, NULL);
 
-            if (config_value && !old_config
-                && !instance->figure_of_merit_notified)
+            /* If notifications are enabled, always send the current value. */
+            if (config_value)
             {
-                /* Now enabled and latest state has not been read/notified */
+                /* Reset the notified flag because the client has explicitly
+                   asked for notifications and may not have received previous ones. */
+                instance->figure_of_merit_notified = FALSE;
+
                 sendInternalFigureOfMeritChanged(instance, access_ind->cid);
             }
         }
@@ -379,6 +381,8 @@ bool GattRoleSelectionServerSetFigureOfMerit(GATT_ROLE_SELECTION_SERVER *instanc
 
     grss_figure_of_merit_t old_fom = instance->figure_of_merit;
     bool old_notified = instance->figure_of_merit_notified;
+
+    GATT_ROLE_SELECTION_SERVER_DEBUG("GattRoleSelectionServerSetFigureOfMerit old_fom 0x%x old_notified %d", old_fom, old_notified);
 
     if (figure_of_merit != old_fom)
     {

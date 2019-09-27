@@ -13,6 +13,7 @@
 
 #include <logging.h>
 
+#include <connection_manager.h>
 #include <gatt_root_key_server.h>
 #include <gatt_root_key_server_uuids.h>
 #include <gatt_handler.h>
@@ -22,7 +23,7 @@
 #include "peer_pair_le_init.h"
 #include "peer_pair_le_private.h"
 #include "peer_pair_le_key.h"
-
+#include "pairing.h"
 #include <uuid.h>
 
 
@@ -47,51 +48,20 @@ bool peer_pair_le_in_pairing_state(void)
 }
 
 
-static void peer_pair_le_start_advertising(void)
-{
-    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-    uint8 uuid[] = UUID_128_FORMAT_uint8(UUID128_ROOT_KEY_SERVICE);
-    ble_adv_params_t    adv_params;
-
-    DEBUG_LOG("peer_pair_le_start_advertising");
-
-    ppl->advert = AdvertisingManager_NewAdvert();
-    if (NULL == ppl->advert)
-    {
-        DEBUG_LOG("peer_pair_le_start_advertising. Unable to acquire advert");
-        /*! \todo Panic during development only */
-        Panic();
-    }
-    AdvertisingManager_SetServiceUuid128(ppl->advert, uuid);
-    AdvertisingManager_SetAdvertisingType(ppl->advert, ble_adv_ind);
-    
-    adv_params.undirect_adv.filter_policy = ble_filter_none;
-    adv_params.undirect_adv.adv_interval_min = PeerPairLeConfigMinimumAdvertisingInterval();
-    adv_params.undirect_adv.adv_interval_max = PeerPairLeConfigMaximumAdvertisingInterval();
-    AdvertisingManager_SetAdvertParams(ppl->advert, &adv_params);
-
-        /* Want to use connectable advertising, so just set data 
-           And we get a message back */
-    AdvertisingManager_SetAdvertData(ppl->advert, PeerPairLeGetTask());
-
-        /*! \todo This is out of sync completely with the gatt handler */
-}
-
-
-/* This is used when we get a server connect */
 static void peer_pair_le_cancel_advertising(void)
 {
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
 
     DEBUG_LOG("peer_pair_le_cancel_advertising");
 
-    if (NULL == ppl->advert)
+    if (NULL == ppl->advert_handle)
     {
-        DEBUG_LOG("peer_pair_le_cancel_advertising. Unable to acquire advert");
+        DEBUG_LOG("peer_pair_le_cancel_advertising. Unable to acquire advert handle");
         /*! \todo Panic during development only */
         Panic();
     }
-    AdvertisingManager_DeleteAdvert(ppl->advert);
+    LeAdvertisingManager_ReleaseAdvertisingDataSet(ppl->advert_handle);
+    ppl->advert_handle = NULL;
 }
 
 
@@ -99,16 +69,23 @@ static void peer_pair_le_stop_advertising(void)
 {
     DEBUG_LOG("peer_pair_le_stop_advertising");
 
-    GattManagerCancelWaitForRemoteClient();
-
     peer_pair_le_cancel_advertising();
+}
+
+
+static void peer_pair_le_start_advertising(void)
+{
+    const le_adv_select_params_t adv_select_params = {.set = le_adv_data_set_peer};
+    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+    
+    ppl->advert_handle = LeAdvertisingManager_SelectAdvertisingDataSet(PeerPairLeGetTask(), &adv_select_params);
 }
 
 
 static void peer_pair_le_start_scanning(void)
 {
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-    uint8 uuid[] = UUID_128_FORMAT_uint8(UUID128_ROOT_KEY_SERVICE);
+    uint8 uuid[] = {UUID_128_FORMAT_uint8(UUID128_ROOT_KEY_SERVICE)};
     le_advertising_report_filter_t filter;
 
     DEBUG_LOG("peer_pair_le_start_scanning");
@@ -119,13 +96,7 @@ static void peer_pair_le_start_scanning(void)
     filter.interval = filter.size_pattern = sizeof(uuid);
     filter.pattern = uuid;
 
-    ppl->scan = LeScanManager_Start(le_scan_interval_fast, &filter);
-    if (NULL == ppl->scan)
-    {
-        DEBUG_LOG("peer_pair_le_start_scanning. Unable to acquire scan");
-        /*! \todo Panic during development only */
-        Panic();
-    }
+    LeScanManager_Start(PeerPairLeGetTask(),le_scan_interval_fast, &filter);
 }
 
 
@@ -138,7 +109,7 @@ static void peer_pair_le_stop_scanning(void)
     if (ppl->scan)
     {
         MessageCancelAll(PeerPairLeGetTask(), PEER_PAIR_LE_TIMEOUT_FROM_FIRST_SCAN);
-        LeScanManager_Stop(ppl->scan);
+        LeScanManager_Stop(PeerPairLeGetTask(),ppl->scan);
     }
 }
 
@@ -151,7 +122,9 @@ static void peer_pair_le_enter_discovery(PEER_PAIR_LE_STATE old_state)
 
     ppl->gatt_cid = 0;
 
-    peer_pair_le_start_advertising();
+    memset(ppl->scanned_devices, 0, sizeof(ppl->scanned_devices));
+
+     peer_pair_le_start_advertising();
 
     if (!peer_pair_le_is_discovery_state(old_state))
     {
@@ -178,14 +151,12 @@ static void peer_pair_le_exit_discovery(PEER_PAIR_LE_STATE new_state)
             break;
 
         case PEER_PAIR_LE_STATE_CONNECTING:
-            /* We have identified a device. Need to stop our adverts */
-            peer_pair_le_stop_advertising();
+            /* We have identified a device. Need to stop scanning */
             peer_pair_le_stop_scanning();
             break;
 
         case PEER_PAIR_LE_STATE_PAIRING_AS_SERVER:
             peer_pair_le_stop_scanning();
-                /*! \todo This is a problem with GATT being outside advert manager */
             peer_pair_le_cancel_advertising();
             break;
             
@@ -266,25 +237,20 @@ static void peer_pair_le_enter_idle(void)
 
 static void peer_pair_le_enter_connecting(void)
 {
-    typed_bdaddr tb;
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-
-    DEBUG_LOG("peer_pair_le_enter_connecting");
+    tp_bdaddr tp_addr;
+    tp_addr.transport = TRANSPORT_BLE_ACL;
+    tp_addr.taddr.type = TYPED_BDADDR_PUBLIC;
+    tp_addr.taddr.addr = ppl->scanned_devices[0].addr;
     
-    tb.type = TYPED_BDADDR_PUBLIC;
-    tb.addr = ppl->scanned_devices[0].addr;
-
-    GattManagerConnectAsCentral(PeerPairLeGetTask(),
-                                &tb,
-                                gatt_connection_ble_master_directed,
-                                TRUE);
+    ConManagerCreateTpAcl(&tp_addr);
 }
 
 
 static void peer_pair_le_enter_negotiate_p_role(void)
 {
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-    gatt_uuid_t uuid[] = UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_SERVICE);
+    gatt_uuid_t uuid[] = {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_SERVICE)};
 
     DEBUG_LOG("peer_pair_le_enter_negotiate_p_role");
 
@@ -349,18 +315,29 @@ static void peer_pair_le_enter_initialsed(void)
 static void peer_pair_le_enter_pairing_as_server(void)
 {
     DEBUG_LOG("peer_pair_le_enter_pairing_as_server");
+    
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-    tp_bdaddr tb;
+    typed_bdaddr tb;
+    
+    tb.addr = ppl->peer;
+    tb.type = TYPED_BDADDR_PUBLIC;
 
-    PanicFalse(VmGetBdAddrtFromCid(ppl->gatt_cid, &tb));
-
-    ConnectionDmBleSecurityReq(PeerPairLeGetTask(), &tb.taddr, ble_security_authenticated_bonded, ble_connection_slave_directed);
+    Pairing_PairLePeer(PeerPairLeGetTask(), &tb, TRUE);
 }
 
 
 static void peer_pair_le_enter_pairing_as_client(void)
 {
     DEBUG_LOG("peer_pair_le_enter_pairing_as_client");
+
+    peer_pair_le_cancel_advertising();
+    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
+    typed_bdaddr tb;
+
+    tb.addr = ppl->peer;
+    tb.type = TYPED_BDADDR_PUBLIC;
+
+    Pairing_PairLePeer(PeerPairLeGetTask(), &tb, FALSE);
 }
 
 void peer_pair_le_set_state(PEER_PAIR_LE_STATE new_state)

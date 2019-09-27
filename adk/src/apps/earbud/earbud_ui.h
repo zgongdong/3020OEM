@@ -13,7 +13,6 @@
 #include "domain_message.h"
 #include "earbud_tones.h"
 #include "earbud_led.h"
-#include "earbud_prompts.h"
 
 /*! \brief Time between inquiry in progress reminders (in seconds) */
 #define APP_UI_INQUIRY_REMINDER_TIME            (5)
@@ -61,11 +60,10 @@ Task EarbudUi_GetTask(void);
     { appUiPlayTone(app_tone_paging_reminder); \
       MessageSendLater(EarbudUi_GetTask(), APP_INTERNAL_UI_CONNECTING_TIMEOUT, NULL, D_SEC(APP_UI_CONNECTING_TIME)); }
 
-/*! \brief Show pairing active LED pattern and play prompt */
+/*! \brief Show pairing active LED pattern only, prompt is played by prompts module*/
 #define appUiPairingActive(is_user_initiated) \
 do \
 {  \
-    appUiPlayPrompt(PROMPT_PAIRING); \
     appLedSetPattern(app_led_pattern_pairing, LED_PRI_MED); \
 } while(0)
 
@@ -117,8 +115,5 @@ bool EarbudUi_Init(Task init_task);
 void EarbudUi_Error(void);
 void EarbudUi_HfpError(bool silent);
 void EarbudUi_AvError(void);
-void EarbudUi_PowerOn(void);
-void EarbudUi_PowerOff(uint16 *lock, uint16 lock_mask);
-void EarbudUi_Sleep(void);
 
 #endif /* EARBUD_UI_H_ */

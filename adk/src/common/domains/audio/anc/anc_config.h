@@ -41,17 +41,6 @@ typedef struct {
     unsigned short initial_anc_mode:4;
 } anc_writeable_config_def_t;
 
-typedef enum
-{
-    disabled,
-    microphone_1,
-    microphone_2,
-    microphone_3,
-    microphone_4,
-    microphone_5,
-    microphone_6
-} mic_selection;
-
 #define EVENTS_USR_MESSAGE_BASE (0x4000)
 
 /*This enum is ANC specific user events and should be removed once peer service layer is provided  */
@@ -89,12 +78,6 @@ uint16 ancConfigManagerGetReadOnlyConfig(uint16 config_id, const void **data);
 void ancConfigManagerReleaseConfig(uint16 config_id);
 uint16 ancConfigManagerGetWriteableConfig(uint16 config_id, void **data, uint16 size);
 void ancConfigManagerUpdateWriteableConfig(uint16 config_id);
-audio_mic_params ancAudioGetMic1Params(void);
-audio_mic_params ancAudioGetMic2Params(void);
-audio_mic_params ancAudioGetMic3Params(void);
-audio_mic_params ancAudioGetMic4Params(void);
-audio_mic_params ancAudioGetMic5Params(void);
-audio_mic_params ancAudioGetMic6Params(void);
 
 #ifdef ANC_PEER_SUPPORT
 bool ancPeerProcessEvent(MessageId id);

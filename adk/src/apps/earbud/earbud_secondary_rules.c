@@ -61,16 +61,11 @@ SecondaryRulesTaskData secondary_rules_task_data;
 
 /*! \{
     Rule function prototypes, so we can build the rule tables below. */
-DEFINE_RULE(rulePeerPair);
-DEFINE_RULE(ruleSendStatusToHandset);
-DEFINE_RULE(ruleDecideRole);
 DEFINE_RULE(ruleOutOfCaseAllowHandsetConnect);
 DEFINE_RULE(ruleOutOfCasePeerSignallingConnect);
 DEFINE_RULE(ruleInCaseRejectHandsetConnect);
 DEFINE_RULE(ruleCheckUpgradable);
 DEFINE_RULE(ruleInCaseEnterDfu);
-DEFINE_RULE(ruleRoleSwitchDisconnectHandset);
-DEFINE_RULE(ruleRoleSwitchConnectPeer);
 /*! \} */
 
 /*! \brief Set of rules to run on Earbud startup. */
@@ -101,115 +96,6 @@ typedef enum
 /*****************************************************************************
  * RULES FUNCTIONS
  *****************************************************************************/
-
-static rule_action_t ruleRoleSwitchConnectPeer(void)
-{
-    uint8 profiles = DEVICE_PROFILE_PEERSIG;
-    SECONDARY_RULE_LOG("ruleRoleSwitchConnectPeer, run");
-    return RULE_ACTION_RUN_PARAM(profiles);
-}
-
-/*! @brief Rule to determine if Earbud should start automatic peer pairing
-    This rule determins if automatic peer pairing should start, it is triggered
-    by the startup event.
-    @startuml
-
-    start
-        if (IsPairedWithPeer()) then (no)
-            :Start peer pairing;
-            end
-        else (yes)
-            :Already paired;
-            stop
-    @enduml
-*/
-static rule_action_t rulePeerPair(void)
-{
-    if (!BtDevice_IsPairedWithPeer())
-    {
-        SECONDARY_RULE_LOG("ruleStartupPeerPaired, run");
-        return rule_action_run;
-    }
-    else
-    {
-        SECONDARY_RULE_LOG("ruleStartupPeerPaired, done");
-        return rule_action_complete;
-    }
-}
-/*! @brief Rule to determine if Earbud should send status to handset over HFP and/or AVRCP
-    @startuml
-
-    start
-    if (IsPairedHandset() and IsTwsPlusHandset()) then (yes)
-        if (IsHandsetHfpConnected() or IsHandsetAvrcpConnected()) then (yes)
-            :HFP and/or AVRCP connected, send status update;
-            stop
-        endif
-    endif
-
-    :Not connected with AVRCP or HFP to handset;
-    end
-    @enduml
-*/
-static rule_action_t ruleSendStatusToHandset(void)
-{
-    bdaddr handset_addr;
-
-    if (appDeviceGetHandsetBdAddr(&handset_addr) && appDeviceIsTwsPlusHandset(&handset_addr))
-    {
-        if (appDeviceIsHandsetHfpConnected() || appDeviceIsHandsetAvrcpConnected())
-        {
-            SECONDARY_RULE_LOG("ruleSendStatusToHandset, run as TWS+ handset");
-            return rule_action_run;
-        }
-    }
-
-    SECONDARY_RULE_LOG("ruleSendStatusToHandset, ignore as not connected to TWS+ handset");
-    return rule_action_ignore;
-}
-
-/*! @brief Rule to determine if this Earbud is the primary.
- *
- * \note This is a temporary rule to emulate a simple role
- * selection for use in determining which rule set to use.
- * It will be removed once we have the full role selection
- * implementation.
- *
- * Decision on Primary is determined by the following truth table.
- * (X=Don't care).
- *
- * A = this Earbud out of case
- * B = peer Earbud out of case
- * C = this Earbud is left
- *
- * A | B | C | Is this Earbud (A) Primary
- * - | - | - | --------------------------
- * 1 | 0 | X | 1
- * 0 | 1 | X | 0
- * 0 | 0 | X | 0
- * 1 | 1 | 1 | 1
- * 1 | 1 | 0 | 0
- */
-static rule_action_t ruleDecideRole(void)
-{
-    const bool primary_role = TRUE;
-    const bool secondary_role = FALSE;
-
-    if (appSmIsOutOfCase())
-    {
-        SECONDARY_RULE_LOG("ruleDecideRole out of the case -> DECIDE ROLE");
-        return RULE_ACTION_RUN_PARAM(primary_role);
-    }
-    else if(appSmIsInCase() && appSmIsDfuPending())
-    {
-    	   return rule_action_ignore;
-    }
-    else
-    {
-        SECONDARY_RULE_LOG("ruleDecideRole in the case -> SECONDARY ROLE");
-        return RULE_ACTION_RUN_PARAM(secondary_role);
-    }
-}
 
 static rule_action_t ruleOutOfCaseAllowHandsetConnect(void)
 {
@@ -288,13 +174,6 @@ static rule_action_t ruleInCaseEnterDfu(void)
 #else
     return rule_action_ignore;
 #endif
-}
-
-/*! Rule to determine if the Secondary is in the case with handset connection and should disconnect. */
-static rule_action_t ruleRoleSwitchDisconnectHandset(void)
-{
-    SECONDARY_RULE_LOG("ruleRoleSwitchDisconnectHandset, run as Secondary should never have connection to handset");
-    return rule_action_run;
 }
 
 /*****************************************************************************

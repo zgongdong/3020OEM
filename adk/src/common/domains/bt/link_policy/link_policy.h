@@ -109,9 +109,23 @@ void appLinkPolicyPreventSniffMode(const bdaddr *bd_addr);
  */
 void appLinkPolicyAlwaysMaster(const bdaddr *bd_addr);
 
+/*! \brief Enable BR/EDR secure connections host support override for a device.
+    \param bd_addr The address of the remote device to enable BR/EDR SC host support override.
+ */
+void appLinkPolicyBredrSecureConnectionHostSupportOverrideEnable(const bdaddr *bd_addr);
+
+/*! \brief Remove BR/EDR secure connections host support override for a device.
+    \param bd_addr The address of the remote device.
+ */
+void appLinkPolicyBredrSecureConnectionHostSupportOverrideRemove(const bdaddr *bd_addr);
+
 /*! \brief Link policy performs actions early on acl opened.
     \param ind The indication.
 */
 void appLinkPolicyHandleClDmAclOpendedIndication(const CL_DM_ACL_OPENED_IND_T *ind);
+
+/*! \brief Make changes to link policy following an address swap.
+*/
+void appLinkPolicyHandleAddressSwap(void);
 
 #endif /* LINK_POLICY_H_ */

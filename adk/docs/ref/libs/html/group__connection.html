@@ -167,6 +167,9 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_c_l___d_m___u_l_p___s_e_t___p_h_y___c_f_m___t.html">CL_DM_ULP_SET_PHY_CFM_T</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates a confirmation of a PHY change.  <a href="struct_c_l___d_m___u_l_p___s_e_t___p_h_y___c_f_m___t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_c_l___d_m___u_l_p___s_e_t___p_r_i_v_a_c_y___m_o_d_e___c_f_m___t.html">CL_DM_ULP_SET_PRIVACY_MODE_CFM_T</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates a confirmation of a privacy mode change.  <a href="struct_c_l___d_m___u_l_p___s_e_t___p_r_i_v_a_c_y___m_o_d_e___c_f_m___t.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html">CL_SM_BLE_READ_RANDOM_ADDRESS_CFM_T</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Received in response to <a class="el" href="group__connection.html#ga5e79c5f8703f7000f37541f719200b43" title="Read Random Address of either the local device or a peer device. ">ConnectionSmBleReadRandomAddressReq()</a>.  <a href="struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -257,9 +260,15 @@ Functions</h2></td></tr>
 <tr class="memitem:ga886275ea9ae25a23ac7e5ee50776963d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__connection.html#ga886275ea9ae25a23ac7e5ee50776963d">ConnectionDmUlpSetPhy</a> (const tp_bdaddr *tpaddr, const uint8 min_tx, const uint8 max_tx, const uint8 min_rx, const uint8 max_rx, const uint8 flags)</td></tr>
 <tr class="memdesc:ga886275ea9ae25a23ac7e5ee50776963d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set PHY preferences for a given LE connection.  <a href="#ga886275ea9ae25a23ac7e5ee50776963d">More...</a><br /></td></tr>
 <tr class="separator:ga886275ea9ae25a23ac7e5ee50776963d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga524563123ebcc1fae0175d960ccfd975"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__connection.html#ga524563123ebcc1fae0175d960ccfd975">ConnectionDmUlpSetPrivacyModeReq</a> (const typed_bdaddr *peer_taddr, const <a class="el" href="group__connection.html#ga8baabe5f17f04e1a22d079350757fdd8">privacy_mode</a> mode)</td></tr>
+<tr class="memdesc:ga524563123ebcc1fae0175d960ccfd975"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set privacy mode for a given LE connection.  <a href="#ga524563123ebcc1fae0175d960ccfd975">More...</a><br /></td></tr>
+<tr class="separator:ga524563123ebcc1fae0175d960ccfd975"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5e79c5f8703f7000f37541f719200b43"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__connection.html#ga5e79c5f8703f7000f37541f719200b43">ConnectionSmBleReadRandomAddressReq</a> (<a class="el" href="group__connection.html#gae8995b0862f865a5c20bc1a24f69c466">ble_read_random_address_flags</a> flags, const tp_bdaddr *peer_tpaddr)</td></tr>
 <tr class="memdesc:ga5e79c5f8703f7000f37541f719200b43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read Random Address of either the local device or a peer device.  <a href="#ga5e79c5f8703f7000f37541f719200b43">More...</a><br /></td></tr>
 <tr class="separator:ga5e79c5f8703f7000f37541f719200b43"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9f9976af1233a4d5a0282d2d88f41fd0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__connection.html#ga9f9976af1233a4d5a0282d2d88f41fd0">ConnectionSmBleReadRandomAddressTaskReq</a> (Task theAppTask, <a class="el" href="group__connection.html#gae8995b0862f865a5c20bc1a24f69c466">ble_read_random_address_flags</a> flags, const tp_bdaddr *peer_tpaddr)</td></tr>
+<tr class="memdesc:ga9f9976af1233a4d5a0282d2d88f41fd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read Random Address of either the local device or a peer device.  <a href="#ga9f9976af1233a4d5a0282d2d88f41fd0">More...</a><br /></td></tr>
+<tr class="separator:ga9f9976af1233a4d5a0282d2d88f41fd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Header file for the Connection library. </p>
@@ -689,6 +698,27 @@ INTRODUCTION</h1>
 </td></tr>
 <tr><td class="fieldname"><a class="anchor" id="gga734c117dbb41f524b6156e513ce3e834ada919b6827cf685bebf1949ca47ab6f9"></a>channel_selection_algorithm_invalid&#160;</td><td class="fielddoc">
 <p>Invalid value indicated from Bluestack. </p>
+</td></tr>
+</table>
+
+</div>
+</div>
+<a class="anchor" id="ga8baabe5f17f04e1a22d079350757fdd8"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="group__connection.html#ga8baabe5f17f04e1a22d079350757fdd8">privacy_mode</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="connection_8h.html">connection/connection.h</a>&gt;</code></p>
+
+<p>Privacy mode type values that are used to indicate privacy mode type of a link. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a class="anchor" id="gga8baabe5f17f04e1a22d079350757fdd8a066b5509c3e92f403fac75c95b9cc116"></a>privacy_mode_last&#160;</td><td class="fielddoc">
+<p>Privacy Mode last - should not be used. </p>
 </td></tr>
 </table>
 
@@ -1819,6 +1849,44 @@ INTRODUCTION</h1>
 
 </div>
 </div>
+<a class="anchor" id="ga524563123ebcc1fae0175d960ccfd975"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ConnectionDmUlpSetPrivacyModeReq </td>
+          <td>(</td>
+          <td class="paramtype">const typed_bdaddr *&#160;</td>
+          <td class="paramname"><em>peer_taddr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="group__connection.html#ga8baabe5f17f04e1a22d079350757fdd8">privacy_mode</a>&#160;</td>
+          <td class="paramname"><em>mode</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="connection_8h.html">connection/connection.h</a>&gt;</code></p>
+
+<p>Set privacy mode for a given LE connection. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">peer_taddr</td><td>The remote device address. </td></tr>
+    <tr><td class="paramname">mode</td><td>Selected Privacy Mode</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>A <a class="el" href="struct_c_l___d_m___u_l_p___s_e_t___p_r_i_v_a_c_y___m_o_d_e___c_f_m___t.html" title="Indicates a confirmation of a privacy mode change. ">CL_DM_ULP_SET_PRIVACY_MODE_CFM_T</a> message will be sent in response. </p>
+
+</div>
+</div>
 <a class="anchor" id="ga5e79c5f8703f7000f37541f719200b43"></a>
 <div class="memitem">
 <div class="memproto">
@@ -1849,10 +1917,56 @@ INTRODUCTION</h1>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">flags</td><td>Indicate whether it is the local device or a peer device, that the Read request is for. See <a class="el" href="group__connection.html#gae8995b0862f865a5c20bc1a24f69c466" title="Flags used to identify whether it is the local or peer device random address to read when calling the...">ble_read_random_address_flags</a>.</td></tr>
-    <tr><td class="paramname">peer_tpaddr</td><td>Transport typed Bluetooth Device Address of the Peer device. If the request is to read the Local device's Random address, this will be ignored. </td></tr>
+    <tr><td class="paramname">peer_tpaddr</td><td>Transport typed Bluetooth Device Address of the Peer device. If the request is to read the Local device's Random address, this will be ignored.</td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section return"><dt>Returns</dt><dd>A message of type <a class="el" href="struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html" title="Received in response to ConnectionSmBleReadRandomAddressReq(). ">CL_SM_BLE_READ_RANDOM_ADDRESS_CFM_T</a> is sent to the task that initialised the Connection library when operation has completed. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga9f9976af1233a4d5a0282d2d88f41fd0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void ConnectionSmBleReadRandomAddressTaskReq </td>
+          <td>(</td>
+          <td class="paramtype">Task&#160;</td>
+          <td class="paramname"><em>theAppTask</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__connection.html#gae8995b0862f865a5c20bc1a24f69c466">ble_read_random_address_flags</a>&#160;</td>
+          <td class="paramname"><em>flags</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const tp_bdaddr *&#160;</td>
+          <td class="paramname"><em>peer_tpaddr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="connection_8h.html">connection/connection.h</a>&gt;</code></p>
+
+<p>Read Random Address of either the local device or a peer device. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">theAppTask</td><td>The client task.</td></tr>
+    <tr><td class="paramname">flags</td><td>Indicate whether it is the local device or a peer device, that the Read request is for. See <a class="el" href="group__connection.html#gae8995b0862f865a5c20bc1a24f69c466" title="Flags used to identify whether it is the local or peer device random address to read when calling the...">ble_read_random_address_flags</a>.</td></tr>
+    <tr><td class="paramname">peer_tpaddr</td><td>Transport typed Bluetooth Device Address of the Peer device. If the request is to read the Local device's Random address, this will be ignored.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A message of type <a class="el" href="struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html" title="Received in response to ConnectionSmBleReadRandomAddressReq(). ">CL_SM_BLE_READ_RANDOM_ADDRESS_CFM_T</a> is sent to the specified client task. </dd></dl>
 
 </div>
 </div>

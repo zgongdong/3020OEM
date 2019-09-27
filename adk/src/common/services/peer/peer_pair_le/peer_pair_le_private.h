@@ -61,8 +61,8 @@ typedef struct
     /*! Details of the current scan (if any) provided by LeScanManager_Start */
     le_scan_handle_t        scan;
 
-    /*! Details of the current advert (if any) provided by AdvertisingManager_NewAdvert */
-    adv_mgr_advert_t        *advert;
+    /*! Details of the current LE advertising data set */
+    le_adv_data_set_handle  advert_handle;
 
     /*! The find command has been deferred as not in a valid state */
     bool                    find_pending;

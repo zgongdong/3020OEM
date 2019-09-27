@@ -88,8 +88,42 @@ static void IsValidatedToTrySwap(bool reset)
 /* This is the last state before reboot */
 bool UpgradeSMHandleValidated(MessageId id, Message message)
 {
+    UpgradeCtx *ctx = UpgradeCtxGet();
+
+    PRINT(("UpgradeSMHandleValidated(%d, %p)\n", id, message));
+
     switch(id)
     {
+        
+    case UPGRADE_INTERNAL_CONTINUE:
+
+        if(UPGRADE_PEER_IS_SUPPORTED)
+        {
+            /* Check if Validation is completed */
+            if(ctx->isCsrValidDoneReqReceived)
+            {
+                /* Send UPGRADE_HOST_TRANSFER_COMPLETE_IND later once peer
+                 * upgrade is done.
+                 */
+                if(!UPGRADE_PEER_IS_STARTED)
+                {
+                    if(UpgradePeerStartDfu()== FALSE)
+                    {
+                        /* TODO: An error has occured, fail the DFU */
+                    }
+                }
+                else
+                {
+                    UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+                }
+            }
+        }
+        else
+        {
+            UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+        }
+        break;
+
     case UPGRADE_HOST_TRANSFER_COMPLETE_RES:
         {
             UPGRADE_HOST_TRANSFER_COMPLETE_RES_T *msg = (UPGRADE_HOST_TRANSFER_COMPLETE_RES_T *)message;
@@ -141,20 +175,7 @@ bool UpgradeSMHandleValidated(MessageId id, Message message)
 
     case UPGRADE_HOST_IS_CSR_VALID_DONE_REQ:
         PRINT(("UPGRADE_HOST_IS_CSR_VALID_DONE_REQ\n"));
-        /* Send UPGRADE_HOST_TRANSFER_COMPLETE_IND later once peer upgrade is
-         * done.
-         */
-        if(UPGRADE_PEER_IS_SUPPORTED && !UPGRADE_PEER_IS_STARTED)
-        {
-            if(UpgradePeerStartDfu()== FALSE)
-            {
-                /* TODO: An error has occured, failed the DFU */
-            }
-        }
-        else
-        {
-            UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
-        }
+        UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
         break;
 
     /* application finally gave permission, warm reboot */

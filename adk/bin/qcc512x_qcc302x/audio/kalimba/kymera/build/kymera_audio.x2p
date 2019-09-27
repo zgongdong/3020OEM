@@ -3,7 +3,7 @@
     <configurations>
         <configuration name="prebuilt_image" options="build|default">
             <devkitConfiguration>prebuilt_image</devkitConfiguration>
-            <devkitGroup>kitres://{BBAC163C-41BE-4ce7-B236-236F15FF18CA}</devkitGroup>
+            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
             <deployProject>deploy</deployProject>
             <property name="MAKEFILE_TO_CALL">makefile</property>
             <property name="BUILD_ARGUMENTS">CONFIG=stre_rom_v02_release OSTYPE=Windows_NT</property>
@@ -21,7 +21,7 @@
         </configuration>
         <configuration name="kse" options="deploy">
             <devkitConfiguration>prebuilt_image</devkitConfiguration>
-            <devkitGroup>kitres://{BBAC163C-41BE-4ce7-B236-236F15FF18CA}</devkitGroup>
+            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
             <property name="MAKEFILE_TO_CALL">makefile</property>
             <property name="BUILD_ARGUMENTS">CONFIG=stre_rom_v02_release OSTYPE=Windows_NT</property>
             <property name="CLEAN_ARGUMENTS">clean CONFIG=stre_rom_v02_release OSTYPE=Windows_NT</property>

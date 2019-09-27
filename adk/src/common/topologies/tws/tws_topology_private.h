@@ -65,6 +65,9 @@ typedef struct
     /*! Current primary/secondary role */
     tws_topology_role   role;
 
+    /*! Whether we are acting in a role until a firm role is determined. */
+    bool                acting_in_role;
+
     /*! Internal state */
     tws_topology_state  state;
 
@@ -73,19 +76,29 @@ typedef struct
 
     /*! List of clients registered to receive TWS_TOPOLOGY_ROLE_CHANGED_IND_T
      * messages */
-    task_list_t*        role_changed_tasks;
+    task_list_t         role_changed_tasks;
 
     /*! Task handler for pairing activity notification */
     TaskData            pairing_notification_task;
 
     /*! Bitmask of currently active goals. */
-    tws_topology_goal   active_goals;
+    tws_topology_goal   active_goals_mask;
 
     /*! Queue of goals already decided but waiting to be run. */
-    TaskData            pending_goal_queue;
+    TaskData            pending_goal_queue_task;
 
-    /*! Bitmask of currently active procedures. */
-    tws_topology_procedure active_procedures;
+    /*! Number of items queued in #pending_goal_queue_task. */
+    unsigned            pending_goal_queue_size;
+
+    /*! A conditional field used to hold pending goals in the queue. */
+    tws_topology_goal   pending_goal_lock_mask[TWS_TOPOLOGY_GOALS_MAX];
+    MessageId           pending_goal_lock_id[TWS_TOPOLOGY_GOALS_MAX];
+
+    /*! Whether hdma is created or not.TRUE if created. FALSE otherwise */
+    bool                hdma_created;
+    
+    /* Whether Handover is allowed or prohibited. controlled by APP */
+    bool                app_prohibit_handover;
 } twsTopologyTaskData;
 
 /* Make the tws_topology instance visible throughout the component. */
@@ -101,6 +114,7 @@ extern twsTopologyTaskData tws_topology;
 #define MAKE_TWS_TOPOLOGY_MESSAGE(TYPE) TYPE##_T *message = (TYPE##_T*)PanicNull(calloc(1,sizeof(TYPE##_T)))
 
 void twsTopology_SetRole(tws_topology_role role);
+void twsTopology_SetActingInRole(bool acting);
 bool TwsTopology_IsPeerBdAddr(bdaddr* addr);
 void twsTopology_RulesSetEvent(rule_events_t event);
 void twsTopology_RulesMarkComplete(MessageId message);

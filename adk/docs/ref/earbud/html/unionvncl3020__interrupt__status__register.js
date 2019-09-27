@@ -2,7 +2,7 @@ var unionvncl3020__interrupt__status__register =
 [
     [ "__unused", "unionvncl3020__interrupt__status__register.html#af6684d5c3089cb3e59c162e7a3da1a4f", null ],
     [ "_unused", "unionvncl3020__interrupt__status__register.html#ac842b28384300fc31607e79871349d16", null ],
-    [ "bits", "unionvncl3020__interrupt__status__register.html#a0612285f212ef282051bc81f37817fd4", null ],
+    [ "bits", "unionvncl3020__interrupt__status__register.html#aee98e284ff0798eec422932634e92e11", null ],
     [ "prox_ready", "unionvncl3020__interrupt__status__register.html#a05e3d67d420b2ff7e558648e6f402166", null ],
     [ "reg", "unionvncl3020__interrupt__status__register.html#a33c1489b227fc2077911661ebf5b294d", null ],
     [ "threshold_high", "unionvncl3020__interrupt__status__register.html#aac637e54ffe454a2cb90b6ee75661c72", null ],

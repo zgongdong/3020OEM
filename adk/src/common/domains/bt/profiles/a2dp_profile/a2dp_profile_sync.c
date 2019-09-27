@@ -461,9 +461,12 @@ void appA2dpSyncRegister(avInstanceTaskData *theInst, audio_sync_t *sync_if)
 
 void appA2dpSyncUnregister(avInstanceTaskData *theInst, audio_sync_t *sync_if)
 {
-    PanicFalse(theInst->a2dp.sync_inst == sync_if);
-    AudioSync_CancelQueuedMessages(theInst->a2dp.sync_inst);
-    theInst->a2dp.sync_inst = NULL;
+    if (appAvIsValidInst(theInst))
+    {
+        PanicFalse(theInst->a2dp.sync_inst == sync_if);
+        AudioSync_CancelQueuedMessages(theInst->a2dp.sync_inst);
+        theInst->a2dp.sync_inst = NULL;
+    }
 }
 
 /*! \brief Handler function for all audio_sync_msg_t messages */

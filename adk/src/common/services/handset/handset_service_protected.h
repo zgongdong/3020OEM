@@ -15,6 +15,7 @@
 #include <task_list.h>
 
 #include "handset_service.h"
+#include "handset_service_sm.h"
 
 
 /*! \{
@@ -27,6 +28,20 @@
 #define assert(x) PanicFalse(x)
 
 
+/*! \brief The global data for the handset_service */
+typedef struct
+{
+    /*! Handset Service task */
+    TaskData task_data;
+
+    /* Handset Service state machine */
+    handset_service_state_machine_t state_machine;
+
+    /*! Client list for notifications */
+    task_list_t client_list;
+
+} handset_service_data_t;
+
 /*! \brief Internal messages for the handset_service */
 typedef enum
 {
@@ -38,6 +53,9 @@ typedef enum
 
     /*! Delivered when an ACL connect request has completed. */
     HANDSET_SERVICE_INTERNAL_CONNECT_ACL_COMPLETE,
+
+    /*! Request to cancel any in-progress connect to handset. */
+    HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ,
 } handset_service_internal_msg_t;
 
 typedef struct
@@ -54,6 +72,13 @@ typedef struct
     /* Handset device to disconnect. */
     device_t device;
 } HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ_T;
+
+typedef struct
+{
+    /* Handset device to stop connect for */
+    device_t device;
+} HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ_T;
+
 
 
 /*! \brief Send a HANDSET_SERVICE_CONNECTED_IND to registered clients.
@@ -72,5 +97,17 @@ void HandsetService_SendConnectedIndNotification(device_t device,
 */
 void HandsetService_SendDisconnectedIndNotification(device_t device,
     handset_service_status_t status);
+
+/*! Handset Service module data. */
+extern handset_service_data_t handset_service;
+
+/*! Get pointer to the Handset Service modules data structure */
+#define HandsetService_Get() (&handset_service)
+
+/*! Get the Task for the handset_service */
+#define HandsetService_GetTask() (&HandsetService_Get()->task_data)
+
+/*! Get the state machine for the handset service. */
+#define HandsetService_GetSm() (&HandsetService_Get()->state_machine)
 
 #endif /* HANDSET_SERVICE_PROTECTED_H_ */

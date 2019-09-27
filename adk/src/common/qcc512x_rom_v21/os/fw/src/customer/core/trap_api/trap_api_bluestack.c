@@ -11,6 +11,7 @@
 #include "bluestack/l2cap_prim.h"
 #include "bluestack/rfcomm_prim.h"
 #include "bluestack/sds_prim.h"
+#include "bluestack/sdm_prim.h"
 
 #include "ipc/ipc.h"
 #include "hydra_log/hydra_log.h"
@@ -26,6 +27,7 @@ PRESERVE_TYPE_FOR_DEBUGGING(L2CAP_PRIM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(RFC_PRIM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(SDC_PRIM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(SDS_PRIM_T)
+PRESERVE_TYPE_FOR_DEBUGGING(SDM_PRIM_T)
 
 PRESERVE_TYPE_FOR_DEBUGGING(RFC_CLIENT_CONNECT_CFM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(RFC_SERVER_CONNECT_CFM_T)
@@ -43,6 +45,14 @@ Task MessageAttTask(Task task)
 {
     return trap_api_register_message_task(task, IPC_MSG_TYPE_ATT);
 }
+#endif
+
+#if TRAPSET_SHADOWING
+Task MessageSdmTask(Task task)
+{
+    return trap_api_register_message_task(task, IPC_MSG_TYPE_SDM);
+}
+
 #endif
 
 #if TRAPSET_BLUESTACK
@@ -69,6 +79,14 @@ void VmSendSdpPrim(void * prim)
 {
     L3_DBG_MSG1("SDP PRIM: ID 0x%x",((uint16*)prim)[0]);
     ipc_send_bluestack(SDP_PRIM, prim);
+}
+#endif
+
+#if TRAPSET_SHADOWING
+void VmSendSdmPrim(void * prim)
+{
+    L3_DBG_MSG1("SDM PRIM: ID 0x%x",((uint16*)prim)[0]);
+    ipc_send_bluestack(SDM_PRIM, prim);
 }
 #endif
 
@@ -138,6 +156,7 @@ bool VmGetLocalIrk(packed_irk *irk)
 {
     IPC_VM_GET_LOCAL_IRK ipc_send_prim;
     IPC_VM_GET_LOCAL_IRK_RSP ipc_recv_prim;
+    /*lint -e(603) allow uninitialised*/
     ipc_send(IPC_SIGNAL_ID_VM_GET_LOCAL_IRK, &ipc_send_prim, sizeof(ipc_send_prim));
     (void)ipc_recv(IPC_SIGNAL_ID_VM_GET_LOCAL_IRK_RSP, &ipc_recv_prim);
     memcpy(irk->irk, ipc_recv_prim.irk.irk, ARRAY_DIM(irk->irk) * sizeof(uint16_t));
@@ -149,9 +168,21 @@ bool VmGetLocalIrk(packed_irk *irk)
 
 void trap_api_send_bluestack_message(uint16 protocol, void *prim)
 {
-    Task hdlr = registered_hdlrs[protocol == ATT_PRIM ?
-                                                IPC_MSG_TYPE_ATT :
-                                                IPC_MSG_TYPE_BLUESTACK];
+    Task hdlr;
+
+    switch (protocol)
+    {
+        case ATT_PRIM:
+            hdlr = registered_hdlrs[IPC_MSG_TYPE_ATT];
+        break;
+        case SDM_PRIM:
+            hdlr = registered_hdlrs[IPC_MSG_TYPE_SDM];
+        break;
+        default:
+            hdlr = registered_hdlrs[IPC_MSG_TYPE_BLUESTACK];
+        break;
+    }
+
     if (hdlr)
     {
         switch (protocol)
@@ -170,6 +201,9 @@ void trap_api_send_bluestack_message(uint16 protocol, void *prim)
             break;
             case SDP_PRIM:
                 L3_DBG_MSG1("SDP EVT: ID 0x%x",((uint16*)prim)[0]);
+            break;
+            case SDM_PRIM:
+                L3_DBG_MSG1("SDM EVT: ID 0x%x",((uint16*)prim)[0]);
             break;
             default:
                L3_DBG_MSG1("UNKNOWN EVT: ID 0x%x",((uint16*)prim)[0]);

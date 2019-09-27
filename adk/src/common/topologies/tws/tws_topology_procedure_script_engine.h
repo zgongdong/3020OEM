@@ -12,8 +12,7 @@
 
 #include "tws_topology_procedures.h"
 
-extern const Message no_proc_data;
-#define NO_DATA    (&no_proc_data)
+#define NO_DATA (Message)NULL
 
 typedef struct
 {

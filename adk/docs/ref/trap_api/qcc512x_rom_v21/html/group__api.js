@@ -1,5 +1,6 @@
 var group__api =
 [
+    [ "ACL_CONTROL", "group__trapset__acl__control.html", "group__trapset__acl__control" ],
     [ "AMUXCLOCK", "group__trapset__amuxclock.html", "group__trapset__amuxclock" ],
     [ "ATT", "group__trapset__att.html", "group__trapset__att" ],
     [ "AUDIO", "group__trapset__audio.html", "group__trapset__audio" ],
@@ -52,6 +53,7 @@ var group__api =
     [ "RFCOMM", "group__trapset__rfcomm.html", "group__trapset__rfcomm" ],
     [ "RTSCTS", "group__trapset__rtscts.html", null ],
     [ "SD_MMC", "group__trapset__sd__mmc.html", "group__trapset__sd__mmc" ],
+    [ "SHADOWING", "group__trapset__shadowing.html", "group__trapset__shadowing" ],
     [ "SHUNT", "group__trapset__shunt.html", "group__trapset__shunt" ],
     [ "SPIFLASH", "group__trapset__spiflash.html", "group__trapset__spiflash" ],
     [ "SQIFEXECUTE", "group__trapset__sqifexecute.html", null ],

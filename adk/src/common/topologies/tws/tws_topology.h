@@ -116,10 +116,28 @@ void TwsTopology_RoleChangedUnRegisterClient(Task client_task);
 tws_topology_role TwsTopology_GetRole(void);
 
 /*! \brief Utility function to easily determine Primary role.
-    \return bool TRUE if Earbud is the Primary, otherwise FALSE.
+    \return bool TRUE if Earbud is the Primary (including acting), 
+        otherwise FALSE.
 */
 bool TwsTopology_IsPrimary(void);
 
+/*! \brief Utility function to easily determine Primary role.
+
+    \return bool TRUE if Earbud is the Primary (excluding acting), 
+        otherwise FALSE.
+*/
+bool TwsTopology_IsFullPrimary(void);
+
+/*! \brief Utility function to easily determine Primary role.
+    \return bool TRUE if Earbud is the Primary, otherwise FALSE.
+*/
+bool TwsTopology_IsActingPrimary(void);
+
+/*! \brief Utility function to easily determine Primary role.
+    \return bool TRUE if Earbud is the Primary, otherwise FALSE.
+*/
+
+bool TwsTopology_IsSecondary(void);
 
 /*! \brief Switch the topology to the DFU role
 
@@ -149,5 +167,18 @@ void TwsTopology_SelectPrimaryAddress(bool primary);
 
 /*! \todo exposed to enable layer violation due to VMCSA-1327 */
 void TwsTopology_GetPeerBdAddr(bdaddr* addr);
+
+/*! \brief function for Application to prohibit or allow handover.
+   
+   If app sets prohibit to TRUE, handover will not occur. 
+   If app sets prohibit to FALSE, handover may occur when system
+   determines handover should be performed.
+
+   Note: By default handover is allowed. App may prohibit handover by calling this 
+   function with TRUE parameter. 
+
+    \param prohibit To prohibit or allow handover.
+*/
+void TwsTopology_ProhibitHandover(bool prohibit);
 
 #endif /* TWS_TOPOLOGY_H_ */

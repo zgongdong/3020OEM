@@ -104,6 +104,9 @@ static void handsetServiceSm_EnterDisconnected(handset_service_state_machine_t *
 {
     HS_LOG("handsetServiceSm_EnterDisconnected");
 
+    /* Complete any outstanding connect stop request */
+    HandsetServiceSm_CompleteConnectStopRequests(sm, handset_service_status_disconnected);
+
     /* Complete any outstanding connect requests. */
     HandsetServiceSm_CompleteConnectRequests(sm, handset_service_status_failed);
 
@@ -199,6 +202,9 @@ static void handsetServiceSm_EnterConnected(handset_service_state_machine_t *sm)
     uint8 connected_profiles = BtDevice_GetConnectedProfiles(sm->handset_device);
 
     HS_LOG("handsetServiceSm_EnterConnected");
+
+    /* Complete any outstanding stop connect request */
+    HandsetServiceSm_CompleteConnectStopRequests(sm, handset_service_status_connected);
 
     /* Complete outstanding connect requests */
     HandsetServiceSm_CompleteConnectRequests(sm, handset_service_status_success);
@@ -474,6 +480,36 @@ static void handsetServiceSm_HandleInternalConnectAclComplete(handset_service_st
     }
 }
 
+/*! \brief Handle a HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ */
+static void handsetService_HandleInternalConnectStop(handset_service_state_machine_t *sm,
+    const HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ_T *req)
+{
+    HS_LOG("handsetService_HandleInternalConnectStop state 0x%x", sm->state);
+
+    UNUSED(req);
+
+    switch (sm->state)
+    {
+    case HANDSET_SERVICE_STATE_CONNECTING_ACL:
+        /* ACL has not connected yet so go to disconnected to stop it */
+        HS_LOG("handsetService_HandleInternalConnectStop, Cancel ACL connecting");
+        HandsetServiceSm_SetState(sm, HANDSET_SERVICE_STATE_DISCONNECTED);
+        break;
+    
+    case HANDSET_SERVICE_STATE_CONNECTING_PROFILES:
+        /* Wait for profiles connect to complete */
+        break;
+
+    case HANDSET_SERVICE_STATE_CONNECTED:
+        /* Already in a stable state, so send a CFM back immediately. */
+        HandsetServiceSm_CompleteConnectStopRequests(sm, handset_service_status_connected);
+        break;
+
+    default:
+        break;
+    }
+}
+
 /*! \brief Handle a CONNECT_PROFILES_CFM */
 static void handsetServiceSm_HandleProfileManagerConnectCfm(handset_service_state_machine_t *sm,
     const CONNECT_PROFILES_CFM_T *cfm)
@@ -681,6 +717,10 @@ static void handsetServiceSm_MessageHandler(Task task, MessageId id, Message mes
         handsetServiceSm_HandleInternalConnectAclComplete(sm);
         break;
 
+    case HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ:
+        handsetService_HandleInternalConnectStop(sm, (const HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ_T *)message);
+        break;
+
     default:
         HS_LOG("handsetService_MessageHandler unhandled msg id 0x%x", id);
         break;
@@ -745,4 +785,17 @@ void HandsetServiceSm_CompleteDisconnectRequests(handset_service_state_machine_t
 
     /* Flush any queued internal disconnect requests */
     MessageCancelAll(&sm->task_data, HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ);
+}
+
+void HandsetServiceSm_CompleteConnectStopRequests(handset_service_state_machine_t *sm, handset_service_status_t status)
+{
+    if (sm->connect_stop_task)
+    {
+        MESSAGE_MAKE(cfm, HANDSET_SERVICE_CONNECT_STOP_CFM_T);
+        cfm->addr = DeviceProperties_GetBdAddr(sm->handset_device);
+        cfm->status = status;
+
+        MessageSend(sm->connect_stop_task, HANDSET_SERVICE_CONNECT_STOP_CFM, cfm);
+        sm->connect_stop_task = (Task)0;
+    }
 }

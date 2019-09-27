@@ -2,8 +2,8 @@
 #define _BLUESTACK_L2CAP_PRIM_H_
 /*!
 
-        %%fullcopyright(2001)
-        (C) COPYRIGHT Cambridge Consultants Ltd 1998 
+Copyright (c) 2001 - 2019 Qualcomm Technologies International, Ltd.
+  
 
 \file   l2cap_prim.h
 
@@ -1759,7 +1759,7 @@ typedef struct
 /*! \brief Move a L2CAP channel indication, possibly over an AMP
 
     \c L2CA_MOVE_CHANNEL_IND \c is sent to the application to indicate that a peer wants to 
-    move a channel over to a particular AMP indicated in \c local_control \c. 
+    move a channel over to a particular AMP indicated in \c local_control. 
 
     See MSC of \ref L2CA_MOVE_CHANNEL_REQ_T
 

@@ -206,6 +206,7 @@ bool appUpgradeHandleSystemMessages(MessageId id, Message message, bool already_
         case MESSAGE_IMAGE_UPGRADE_ERASE_STATUS:
         case MESSAGE_IMAGE_UPGRADE_COPY_STATUS:
         case MESSAGE_IMAGE_UPGRADE_AUDIO_STATUS:
+        case MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS:
         {
             Task upg = UpgradeGetTask();
 
@@ -396,6 +397,10 @@ static void appUpgradeMessageHandler(Task task, MessageId id, Message message)
             UpgradeCopyStatus(message);
             break;
 
+        case MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS:
+            DEBUG_LOG("appUpgradeMessageHandler. MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS");
+            UpgradeHashAllSectionsUpdateStatus(message);
+            break;
             /* Catch-all panic for unexpected messages */
         default:
             if (UPGRADE_UPSTREAM_MESSAGE_BASE <= id && id <  UPGRADE_UPSTREAM_MESSAGE_TOP)

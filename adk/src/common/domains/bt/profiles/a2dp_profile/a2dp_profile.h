@@ -12,8 +12,7 @@
 #define A2DP_PROFILE_H_
 
 #include <a2dp.h>
-#include "a2dp_profile_types.h"
-#include "av_types.h"
+#include "av_typedef.h"
 #include "audio_sync.h"
 
 /*! Note that disconnects are not shown for clarity.
@@ -199,5 +198,6 @@ a2dpTaskData * A2dpProfile_GetHandsetData(void);
     \return peer device a2dpTaskData.
 */
 a2dpTaskData * A2dpProfile_GetPeerData(void);
+
 
 #endif /* A2DP_PROFILE_H_ */

@@ -41,6 +41,13 @@ twsTopProcCancelFindRoleTaskData twstop_proc_cancel_find_role = {twsTopology_Pro
 #define TwsTopProcCancelFindRoleGetTaskData()     (&twstop_proc_cancel_find_role)
 #define TwsTopProcCancelFindRoleGetTask()         (&twstop_proc_cancel_find_role.task)
 
+static void twsTopology_ProcedureCancelFindRoleReset(void)
+{
+    twsTopProcCancelFindRoleTaskData* td = TwsTopProcCancelFindRoleGetTaskData();
+    PeerFindRole_UnregisterTask(TwsTopProcCancelFindRoleGetTask());
+    td->active = FALSE;
+}
+
 void TwsTopology_ProcedureCancelFindRoleStart(Task result_task,
                                         twstop_proc_start_cfm_func_t proc_start_cfm_fn,
                                         twstop_proc_complete_func_t proc_complete_fn,
@@ -66,10 +73,10 @@ void TwsTopology_ProcedureCancelFindRoleStart(Task result_task,
 
 void TwsTopology_ProcedureCancelFindRoleCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn)
 {
-    twsTopProcCancelFindRoleTaskData* td = TwsTopProcCancelFindRoleGetTaskData();
     DEBUG_LOG("TwsTopology_ProcedureFindRoleCancel");
+
     /* nothing to do for cancel, except ignore any pending messages */
-    td->active = FALSE;
+    twsTopology_ProcedureCancelFindRoleReset();
     TwsTopology_DelayedCancelCfmCallback(proc_cancel_cfm_fn, tws_topology_procedure_cancel_find_role, proc_result_success);
 }
 
@@ -88,7 +95,7 @@ static void twsTopology_ProcCancelFindRoleHandleMessage(Task task, MessageId id,
     switch (id)
     {
         case PEER_FIND_ROLE_CANCELLED:
-            td->active = FALSE;
+            twsTopology_ProcedureCancelFindRoleReset();
             td->complete_fn(tws_topology_procedure_cancel_find_role, proc_result_success);
             break;
 

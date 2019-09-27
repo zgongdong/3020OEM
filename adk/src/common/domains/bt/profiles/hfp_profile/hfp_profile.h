@@ -58,29 +58,13 @@
 #include <hfp.h>
 #include <task_list.h>
 
-#include "battery_monitor.h"
 #include "bt_device.h"
 #include "ui_config_table.h"
+#include "hfp_profile_typedef.h"
 
 #include <marshal.h>
 
 #ifdef INCLUDE_HFP
-
-/*! \brief Application HFP state machine states */
-typedef enum
-{
-    HFP_STATE_NULL,                         /*!< Initial state */
-    HFP_STATE_INITIALISING_HFP,             /*!< Initialising HFP instance */
-    HFP_STATE_DISCONNECTED,                 /*!< No HFP connection */
-    HFP_STATE_CONNECTING_LOCAL,             /*!< Locally initiated connection in progress */
-    HFP_STATE_CONNECTING_REMOTE,            /*!< Remotely initiated connection is progress */
-    /* HFP_STATE_CONNECTD (Parent state) */
-        HFP_STATE_CONNECTED_IDLE,           /*!< HFP connected, no call in progress */
-        HFP_STATE_CONNECTED_OUTGOING,       /*!< HFP connected, outgoing call in progress */
-        HFP_STATE_CONNECTED_INCOMING,       /*!< HFP connected, incoming call in progress */
-        HFP_STATE_CONNECTED_ACTIVE,         /*!< HFP connected, active call in progress */
-    HFP_STATE_DISCONNECTING                 /*!< HFP disconnecting in progress */
-} hfpState;
 
 /*! \brief HFP UI Provider contexts */
 typedef enum
@@ -97,54 +81,6 @@ typedef enum
 #define HFP_CONNECT_NO_ERROR_UI (1 << 0)    /*!< Don't indicate connection error */
 #define HFP_CONNECT_NO_UI       (1 << 1)    /*!< Don't indicate connection success or error */
 #define	HFP_DISCONNECT_NO_UI    (1 << 2)    /*!< Don't indicate disconnection */
-
-/*! \brief HFP instance structure
-
-    This structure contains all the information for an HFP connection.
-*/
-typedef struct
-{
-    TaskData task;                                  /*!< HFP task */
-
-    hfpState    state;                              /*!< Current state */
-    uint16      hfp_lock;                           /*!< HFP operation lock, used to serialise HFP operations */
-
-    uint8       volume;                             /*!< Speaker volume */
-    uint8       mic_volume;                         /*!< Microphone volume/gain */
-    unsigned    in_band_ring:1;                     /*!< AG supports in-band ringing tone */
-    unsigned    volume_repeat:1;
-    unsigned    voice_recognition_active:1;         /*!< Voice recognition is active */
-    unsigned    voice_recognition_request:1;        /*!< Voice recognition pending */
-
-    unsigned    mute_active:1;                      /*!< Microphone mute is active */
-    unsigned    caller_id_active:1;                 /*!< Caller ID is active */
-
-    unsigned    flags:3;                            /*!< Flags indicating if we should connect/disconnect silently */
-
-    hfp_call_state  call_state:4;                   /*!< Current call state */
-    unsigned        call_accepted:1;                /*!< Flag indicating if we have accepted the call */
-#ifdef INCLUDE_AV
-    unsigned    sco_av_reconnect:1;                 /*!< Flag indicating if we connect AV after SCO */
-#endif
-    unsigned    sco_ui_indication:1;                /*!< Flag indicating if we need UI indication for SCO */
-    unsigned    encrypted:1;                        /*!< Flag indicating if ACL is encrypted */
-    unsigned    detach_pending:1;                   /*!< Flag indicating that ACL detach is pending */
-    unsigned    disconnect_reason:4;                /*!< Flag indicating the disconnect reason */
-
-    hfp_profile profile;                            /*!< Profile currently used */
-    uint16      sco_supported_packets;              /*!< Bitmap of supported SCO packets by both headset and AG*/
-    bdaddr      ag_bd_addr;                         /*!< Address of connected AG */
-    Sink        sco_sink;                           /*!< Sink for SCO, 0 if no SCO active */
-    Sink        slc_sink;                           /*!< Sink for SLC */
-
-    task_list_t*   slc_status_notify_list;             /*!< List of tasks to notify of SLC connection status. */
-    task_list_t*   status_notify_list;                 /*!< List of tasks to notify of general HFP status changes */
-    task_list_with_data_t connect_request_clients;     /*!< List of tasks requiring confirmation of HFP connect requests */
-    task_list_with_data_t disconnect_request_clients;  /*!< List of tasks requiring confirmation of HFP connect requests */
-    Task           at_cmd_task;                        /*!< Task to handle TWS+ AT commands. */
-
-    batteryRegistrationForm battery_form;
-} hfpTaskData;
 
 /*! Expose access to the app HFP taskdata, so the accessor macros work. */
 extern hfpTaskData appHfp;
@@ -358,11 +294,11 @@ typedef struct
 
 /*! \brief Is HFP SCO/ACL encrypted */
 #define appHfpIsEncrypted() \
-    (appGetHfp()->encrypted)
+    (appGetHfp()->bitfields.encrypted)
 
 /*! \brief Is HFP voice recognition active */
 #define appHfpIsVoiceRecognitionActive() \
-    (appGetHfp()->voice_recognition_active)
+    (appGetHfp()->bitfields.voice_recognition_active)
 
 /*! \brief Is current profile HSP */
 #define appHfpIsHsp() \
@@ -370,7 +306,7 @@ typedef struct
 
 /*! \brief Is microphone muted */
 #define appHfpIsMuted() \
-    (appGetHfp()->mute_active)
+    (appGetHfp()->bitfields.mute_active)
 
 Task appGetHfpTask(void);
 
@@ -413,9 +349,17 @@ void hfpProfile_RegisterSystemMessageGroup(Task task, message_group_t group);
 void hfpProfile_Connect(const Task client_task, bdaddr *bd_addr);
 void hfpProfile_Disconnect(const Task client_task, bdaddr *bd_addr);
 
+/*! \brief Inform hfp profile of current device Primary/Secondary role.
+
+    \param primary TRUE to set Primary role, FALSE to set Secondary role.
+*/
+void HfpProfile_SetRole(bool primary);
+
+
 #else
 
 #define appHfpIsScoActive() (FALSE)
+#define HfpProfile_SetRole(primary) UNUSED(primary)
 
 #endif
 #endif /* HFP_PROFILE_H_ */

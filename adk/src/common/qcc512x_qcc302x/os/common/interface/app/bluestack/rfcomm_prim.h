@@ -1,7 +1,7 @@
 /*!
 
-        %%fullcopyright(2001)
-        (C) COPYRIGHT Cambridge Consultants Ltd 1999
+Copyright (c) 2001 - 2019 Qualcomm Technologies International, Ltd.
+  
 
 \file   rfcomm_prim.h
 @{
@@ -604,15 +604,15 @@ typedef struct
 
 typedef struct
 {
-    uint8_t  baud_rate;        /*!< port speed indicator - see #defines above */
-    uint8_t  data_bits;        /*!< As per #defines above */
-    uint8_t  stop_bits;        /*!< As per #defines above */
-    uint8_t  parity;           /*!< As per #defines above */
-    uint8_t  parity_type;      /*!< As per #defines above */
-    uint8_t  flow_ctrl_mask;   /*!< 6 bits - As per #defines above */
+    uint8_t  baud_rate;        /*!< port speed indicator - see \#defines above */
+    uint8_t  data_bits;        /*!< As per \#defines above */
+    uint8_t  stop_bits;        /*!< As per \#defines above */
+    uint8_t  parity;           /*!< As per \#defines above */
+    uint8_t  parity_type;      /*!< As per \#defines above */
+    uint8_t  flow_ctrl_mask;   /*!< 6 bits - As per \#defines above */
     uint8_t  xon;              /*!< xon character  (default DC1) */
     uint8_t  xoff;             /*!< xoff character (default DC3) */
-    uint16_t parameter_mask;   /*!< As per #defines above (NB. top two bits reserved) */
+    uint16_t parameter_mask;   /*!< As per \#defines above (NB. top two bits reserved) */
 } RFC_PORTNEG_VALUES_T;  /* autogen_makefile_ignore_this */
 
 /*! \} */
@@ -734,7 +734,7 @@ typedef struct
 {
     RFC_PRIM_T type;          /*!< Always RFC_MODEM_STATUS_REQ */
     uint16_t   conn_id;       /*!< Connection id */
-    uint8_t    modem_signal;  /*!< modem signal - see #defines above */
+    uint8_t    modem_signal;  /*!< modem signal - see \#defines above */
     uint8_t    break_signal;  /*!< Bit 0: 1 if break signal encoded, 0 otherwise */
                               /*!< Bits 1-2: Reserved */
                               /*!< Bits 3-6: break value 0x0-0xF */
@@ -752,7 +752,7 @@ typedef struct
     RFC_PRIM_T type;          /*!< Always RFC_MODEM_STATUS_IND */
     phandle_t  phandle;       /*!< Routing phandle */
     uint16_t   conn_id;       /*!< Connection id */
-    uint8_t    modem_signal;  /*!< modem signal - see #defines above */
+    uint8_t    modem_signal;  /*!< modem signal - see \#defines above */
     uint8_t    break_signal;  /*!< Bit 0: 1 if break signal encoded, 0 otherwise */
                               /*!< Bits 1-2: Reserved */
                               /*!< Bits 3-6: break value 0x0-0xF */
@@ -965,7 +965,7 @@ typedef struct
     RFC_PRIM_T    type;             /*!< Always RFC_LINESTATUS_REQ */
     uint16_t      conn_id;          /*!< Connection id */
     bool_t        error_flag;       /*!< error flag - TRUE if error */
-    RFC_LINE_STATUS_T line_status;  /*!< Line Status value, see #defines above */
+    RFC_LINE_STATUS_T line_status;  /*!< Line Status value, see \#defines above */
 
 } RFC_LINESTATUS_REQ_T;
 
@@ -981,7 +981,7 @@ typedef struct
     phandle_t     phandle;          /*!< Routing phandle */
     uint16_t      conn_id;          /*!< Connection id */
     bool_t        error_flag;       /*!<  error flag - TRUE if error */
-    RFC_LINE_STATUS_T line_status;  /*!< Line Status value, see #defines above */
+    RFC_LINE_STATUS_T line_status;  /*!< Line Status value, see \#defines above */
 
 } RFC_LINESTATUS_IND_T;
 

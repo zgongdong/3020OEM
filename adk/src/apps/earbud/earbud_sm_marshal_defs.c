@@ -17,14 +17,25 @@
 #include <marshal.h>
 
 /*! earbud_sm_empty payload message marshalling type descriptor. */
-const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_msg_empty_payload_t =
-    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(sizeof(earbud_sm_msg_empty_payload_t));
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_dfu_active_when_in_case_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_req_dfu_active_when_in_case_t);
+
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_factory_reset_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_req_factory_reset_t);
+
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_ind_dfu_ready_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_ind_dfu_ready_t);
+
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_stereo_audio_mix_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_req_stereo_audio_mix_t);
+
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_mono_audio_mix_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_req_mono_audio_mix_t);
 
 /*! X-Macro generate earbud SM marshal type descriptor set that can be passed to a (un)marshaller
  *  to initialise it.
  *  */
 #define EXPAND_AS_TYPE_DEFINITION(type) (const marshal_type_descriptor_t *)&marshal_type_descriptor_##type,
-const marshal_type_descriptor_t * const earbud_sm_marshal_type_descriptors[NUMBER_OF_MARSHAL_OBJECT_TYPES] = {
-    MARSHAL_COMMON_TYPES_TABLE(EXPAND_AS_TYPE_DEFINITION)
+const marshal_type_descriptor_t * const earbud_sm_marshal_type_descriptors[] = {
     MARSHAL_TYPES_TABLE(EXPAND_AS_TYPE_DEFINITION)
 };

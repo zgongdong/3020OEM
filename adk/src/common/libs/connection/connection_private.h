@@ -126,6 +126,9 @@ DESCRIPTION
 /* Minimum Advertising interval */
 #define BLE_MIN_ADV_INTERVAL (0x00A0)
 
+/* Unknown sink, used in resource locks where the sink is unknown */
+#define CL_INVALID_SINK ((Sink)0xFFFF)
+
 /*****************************************************************************
  * PSKEYs used by the connection library 
  * PSKEY_CONNLIB0 (100) to PSKEY_CONNLIB49 (149).
@@ -306,7 +309,8 @@ typedef enum
 
     CL_INTERNAL_DM_BLE_READ_AD_CHAN_TX_PWR_REQ,
     CL_INTERNAL_DM_BLE_SET_SCAN_ENABLE_REQ,
-    CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ
+    CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ,
+    CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ
 } CL_INTERNAL_T;
 
 
@@ -1034,6 +1038,7 @@ typedef struct
 {
     Task        theAppTask;
     Sink        sink;
+    bdaddr      bd_addr;            /* only used if sink == NULL */	
     hci_role    role;   
 } CL_INTERNAL_DM_SET_ROLE_REQ_T;
 
@@ -1041,6 +1046,7 @@ typedef struct
 {
     Task        theAppTask;
     Sink        sink;
+    bdaddr      bd_addr;            /* only used if sink == NULL */	
 } CL_INTERNAL_DM_GET_ROLE_REQ_T;
 
 typedef struct
@@ -1139,6 +1145,12 @@ typedef struct
 typedef CL_INTERNAL_DM_BLE_SET_SCAN_ENABLE_REQ_T
             CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ_T;
 
+typedef struct
+{
+    Task                            theAppTask;
+    ble_read_random_address_flags   flags;
+    tp_bdaddr                       *peer_tpaddr;
+} CL_INTERNAL_DM_BLE_READ_RANDOM_ADDRESS_REQ_T;
 #endif 
 
 typedef struct
@@ -1268,6 +1280,11 @@ typedef struct
     Task        bleScanAdLock;
 } connectionBleScanAdState;
 
+typedef struct
+{
+    Task        bleReadRndAddrLock;
+} connectionBleReadRndAddrState;
+
 /* Structure to hold the instance state for the Connection Library */
 typedef struct
 {
@@ -1285,6 +1302,7 @@ typedef struct
     connectionL2capState            l2capState;
     connectionReadTxPwrState        readTxPwrState;
     connectionBleScanAdState        bleScanAdState;
+    connectionBleReadRndAddrState   bleReadRdnAddrState;
     uint16                          configAddrType;
 
 #ifndef DISABLE_CSB

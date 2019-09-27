@@ -52,6 +52,7 @@
 #include "trap_api/audio_clock.h" 
 #include "trap_api/codec_.h" 
 #include "trap_api/voltsense.h" 
+#include "trap_api/acl.h" 
 #include "trap_api/micbias.h" 
 #include "trap_api/usb.h" 
 #include "trap_api/lcd.h" 
@@ -86,6 +87,7 @@
 #include "trap_api/otp.h" 
 #include "trap_api/psu.h" 
 #include "trap_api/dormant.h" 
+#include "trap_api/acl.h" 
 #include "trap_api/charger.h" 
 #include "trap_api/partition.h" 
 #include "trap_api/sdmmc.h" 
@@ -317,6 +319,18 @@ uint16 SinkGetRfcommConnId(Sink sink)
     ipc_send(IPC_SIGNAL_ID_SINK_GET_RFCOMM_CONN_ID, &ipc_send_prim, sizeof(ipc_send_prim));
     assert(!ipc_disallow_high_priority_handler_calls());
     (void)ipc_recv(IPC_SIGNAL_ID_SINK_GET_RFCOMM_CONN_ID_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+uint8 SinkGetRfcommServerChannel(Sink sink)
+{
+    IPC_SINK_GET_RFCOMM_SERVER_CHANNEL ipc_send_prim;
+    IPC_UINT8_RSP ipc_recv_prim;
+    ipc_send_prim.sink = SINK_TO_ID(sink);
+    ipc_send(IPC_SIGNAL_ID_SINK_GET_RFCOMM_SERVER_CHANNEL, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_SINK_GET_RFCOMM_SERVER_CHANNEL_RSP, &ipc_recv_prim);
     return ipc_recv_prim.ret;
 }
 
@@ -1739,6 +1753,46 @@ Sink StreamFastPipeSink(uint16 id)
 #endif /* TRAPSET_FASTPIPE */
 
 
+#if TRAPSET_SHADOWING
+acl_handover_prepare_status AclHandoverPrepared(uint16 handle)
+{
+    IPC_ACL_HANDOVER_PREPARED ipc_send_prim;
+    IPC_ACL_HANDOVER_PREPARE_STATUS_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_PREPARED, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_PREPARED_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool AclHandoverCommit(uint16 handle)
+{
+    IPC_ACL_HANDOVER_COMMIT ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_COMMIT, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_COMMIT_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool AclHandoverCancel(uint16 handle)
+{
+    IPC_ACL_HANDOVER_CANCEL ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_CANCEL, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_CANCEL_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+#endif /* TRAPSET_SHADOWING */
+
+
 #if TRAPSET_LCD
 bool LcdConfigure(uint16 key, uint16 value)
 {
@@ -2404,6 +2458,45 @@ bool VmUpdateRootKeys(packed_root_keys * root_keys)
 }
 
 
+bool VmOverrideL2capConnContext(uint16 cid, conn_context_t context)
+{
+    IPC_VM_OVERRIDE_L2CAP_CONN_CONTEXT ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.cid = cid;
+    ipc_send_prim.context = context;
+    ipc_send(IPC_SIGNAL_ID_VM_OVERRIDE_L2CAP_CONN_CONTEXT, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_VM_OVERRIDE_L2CAP_CONN_CONTEXT_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool VmOverrideSyncConnContext(uint16 handle, conn_context_t context)
+{
+    IPC_VM_OVERRIDE_SYNC_CONN_CONTEXT ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send_prim.context = context;
+    ipc_send(IPC_SIGNAL_ID_VM_OVERRIDE_SYNC_CONN_CONTEXT, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_VM_OVERRIDE_SYNC_CONN_CONTEXT_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool VmOverrideRfcommConnContext(uint16 conn_id, conn_context_t context)
+{
+    IPC_VM_OVERRIDE_RFCOMM_CONN_CONTEXT ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.conn_id = conn_id;
+    ipc_send_prim.context = context;
+    ipc_send(IPC_SIGNAL_ID_VM_OVERRIDE_RFCOMM_CONN_CONTEXT, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_VM_OVERRIDE_RFCOMM_CONN_CONTEXT_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
 #endif /* TRAPSET_BLUESTACK */
 
 
@@ -2727,6 +2820,10 @@ Task MessageHostCommsTask(Task task)
 
 
 #endif /* TRAPSET_HOST */
+
+
+#if TRAPSET_ACL_CONTROL
+#endif /* TRAPSET_ACL_CONTROL */
 
 
 #if TRAPSET_OPERATOR

@@ -516,6 +516,73 @@ bool VmGetLocalIrk(packed_irk * irk);
  * \ingroup trapset_bluestack
  */
 bool VmUpdateRootKeys(packed_root_keys * root_keys);
+
+/**
+ *  \brief Override L2CAP connecton context.
+ *        
+ * This trap allows application to override the L2CAP connection context for a 
+ * given cid. In general, this trap will be used where the L2CAP connection 
+ * structures in Bluestack is populated as a result of unmarshalling and not 
+ * because of a L2CAP connection initiation from the application. In such a case 
+ * connection context in the L2CAP connection structures won't be initialized.
+ * So, after unmarshalling, the application needs to explicitly call this trap to 
+ * initialize the connection context for all the relevant L2CAP connection ids.
+ *         
+ *  \param cid  The L2CAP connection id 
+ *  \param context  Connection context 
+ *  \return TRUE if connection context value is set successfully, FALSE otherwise.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_bluestack
+ */
+bool VmOverrideL2capConnContext(uint16 cid, conn_context_t context);
+
+/**
+ *  \brief Override DM Sync connecton context.
+ *        
+ * This trap allows application to override the DM Sync connection context for a 
+ * given eSCO connection handle. In general, this trap will be used where the DM 
+ * Sync connection structures in Bluestack is populated as a result of
+ *  unmarshalling 
+ * and not because of a DM Sync connection initiation from the application. In
+ *  such 
+ * a case connection context in the DM Sync connection structures won't be
+ *  initialized.
+ * So, after unmarshalling, the application needs to explicitly call this trap to 
+ * initialize the connection context for all the relevant eSCO connection handles.
+ *         
+ *  \param handle  The eSCO connection handle 
+ *  \param context  Connection context 
+ *  \return TRUE if connection context value is set successfully, FALSE otherwise.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_bluestack
+ */
+bool VmOverrideSyncConnContext(uint16 handle, conn_context_t context);
+
+/**
+ *  \brief Override RFCOMM connecton context.
+ *        
+ * This trap allows application to override the RFCOMM connection context for a 
+ * given RFCOMM connection id. In general, this trap will be used where the RFCOMM 
+ * connection structures in Bluestack is populated as a result of unmarshalling 
+ * and not because of a RFCOMM client connection initiation from the application. 
+ * In such a case connection context in the RFCOMM connection structures won't be 
+ * initialized. So, after unmarshalling, the application needs to explicitly call 
+ * this trap to initialize the connection context for all the relevant RFCOMM 
+ * connection ids.
+ *         
+ *  \param conn_id  The RFCOMM connection id 
+ *  \param context  Connection context 
+ *  \return TRUE if connection context value is set successfully, FALSE otherwise.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_bluestack
+ */
+bool VmOverrideRfcommConnContext(uint16 conn_id, conn_context_t context);
 #endif /* TRAPSET_BLUESTACK */
 #if TRAPSET_RFCOMM
 
@@ -530,6 +597,19 @@ bool VmUpdateRootKeys(packed_root_keys * root_keys);
  */
 void VmSendRfcommPrim(void * prim);
 #endif /* TRAPSET_RFCOMM */
+#if TRAPSET_SHADOWING
+
+/**
+ *  \brief Sends a BlueStack Shadow Manager(SDM) primitive.
+ *  \param prim A pointer to the primitive to send. The memory must have been dynamically
+ *  allocated.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_shadowing
+ */
+void VmSendSdmPrim(void * prim);
+#endif /* TRAPSET_SHADOWING */
 #if TRAPSET_AMUXCLOCK
 
 /**

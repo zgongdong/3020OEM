@@ -225,16 +225,16 @@ static void appKymeraScoConfigureChain(uint16 wesco)
         {
             Operator sco_op = PanicZero(ChainGetOperatorByRole(sco_chain, OPR_SCO_RECEIVE));
             OperatorsStandardSetTimeToPlayLatency(sco_op, appConfigScoChainTTP(wesco));
-    
+#ifndef __QCC514X_APPS__
             /*! \todo AEC Gate is V2 silicon, downloadable has native TTP support*/
             OperatorsAecEnableTtpGate(aec_op, TRUE, 50, TRUE);
-        }        
+#endif
+        }
     }       
         
     appKymeraConfigureOutputChainOperators(sco_chain, theKymera->sco_info->rate, KICK_PERIOD_VOICE, 0, 0);
     appKymeraSetOperatorUcids(TRUE, theKymera->sco_info->mode);
 }
-
 
 
 void appKymeraHandleInternalScoStart(Sink sco_snk, const appKymeraScoChainInfo *info,
@@ -265,10 +265,8 @@ void appKymeraHandleInternalScoStart(Sink sco_snk, const appKymeraScoChainInfo *
     appKymeraScoCreateChain(info);
     kymera_chain_handle_t sco_chain = PanicNull(appKymeraGetScoChain());
 
-    /* Get microphone sources */
-    Source mic_src_1a;
-    Source mic_src_1b;
-    appKymeraMicSetup(appConfigScoMic1(), &mic_src_1a, appConfigScoMic2(), &mic_src_1b, theKymera->sco_info->rate);
+    Source mic_src_1a = Kymera_GetMicrophoneSource(appConfigScoMic1(), NULL, theKymera->sco_info->rate, high_priority_user);
+    Source mic_src_1b = Kymera_GetMicrophoneSource(appConfigScoMic2(), mic_src_1a, theKymera->sco_info->rate, high_priority_user);
 
     /* Get speaker sink */
     Sink spk_snk = StreamAudioSink(appConfigLeftAudioHardware(), appConfigLeftAudioInstance(), appConfigLeftAudioChannel());
@@ -361,7 +359,7 @@ void appKymeraHandleInternalScoStop(void)
     Source sco_ep_src  = ChainGetOutput(sco_chain, EPR_SCO_TO_AIR);
     Sink sco_ep_snk    = ChainGetInput(sco_chain, EPR_SCO_FROM_AIR);
     Sink mic_1a_ep_snk = ChainGetInput(sco_chain, EPR_SCO_MIC1);
-    Sink mic_1b_ep_snk = (appConfigScoMic2() != NO_MIC) ? ChainGetInput(sco_chain, EPR_SCO_MIC2) : 0;
+    Sink mic_1b_ep_snk = (appConfigScoMic2() != microphone_none) ? ChainGetInput(sco_chain, EPR_SCO_MIC2) : 0;
 
     /* A tone still playing at this point must be interruptable */
     appKymeraTonePromptStop();
@@ -375,14 +373,14 @@ void appKymeraHandleInternalScoStop(void)
 
     /* Disconnect microphones from chain microphone endpoints */
     StreamDisconnect(NULL, mic_1a_ep_snk);
-    if (appConfigScoMic2() != NO_MIC)
+    if (appConfigScoMic2() != microphone_none)
         StreamDisconnect(NULL, mic_1b_ep_snk);
 
     /* Disconnect chain speaker endpoint to speaker */
     StreamDisconnect(spk_ep_src, NULL);
 
-    /* Close microphone sources */
-    appKymeraMicCleanup(appConfigScoMic1(), appConfigScoMic2());
+    Kymera_CloseMicrophone(appConfigScoMic1(), high_priority_user);
+    Kymera_CloseMicrophone(appConfigScoMic2(), high_priority_user);
 
     /* Destroy chains */
     ChainDestroy(sco_chain);

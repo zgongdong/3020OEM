@@ -260,7 +260,7 @@ static void appKymeraScoStartHelper(Sink audio_sink, const appKymeraScoChainInfo
 bool appKymeraScoStart(Sink audio_sink, appKymeraScoMode mode, bool *allow_scofwd, bool *allow_micfwd,
                        uint8 wesco, int16 volume_in_db, uint8 pre_start_delay)
 {     
-    const bool cvc_2_mic = appConfigScoMic2() != NO_MIC;
+    const bool cvc_2_mic = appConfigScoMic2() != microphone_none;
     const appKymeraScoChainInfo *info = appKymeraScoFindChain(appKymeraScoChainTable,
                                                               mode, *allow_scofwd, *allow_micfwd,
                                                               cvc_2_mic);
@@ -307,7 +307,7 @@ void appKymeraScoSlaveStartHelper(Source link_source, int16 volume_in_db, const 
 void appKymeraScoSlaveStart(Source link_source, int16 volume_in_db, bool allow_micfwd, uint16 pre_start_delay)
 {
     DEBUG_LOGF("appKymeraScoSlaveStart, source 0x%x", link_source);
-    const bool cvc_2_mic = appConfigScoMic2() != NO_MIC;
+    const bool cvc_2_mic = appConfigScoMic2() != microphone_none;
     
     const appKymeraScoChainInfo *info = appKymeraScoFindChain(appKymeraScoSlaveChainTable,
                                                               SCO_WB, FALSE, allow_micfwd,
@@ -416,6 +416,7 @@ static void kymera_msg_handler(Task task, MessageId id, Message msg)
             KymeraAnc_TuningCreateChain(m->sample_rate);
             break;
         }
+
 
         case MESSAGE_USB_SUSPENDED:
             DEBUG_LOG("appkymera MESSAGE_USB_SUSPENDED");
@@ -638,7 +639,7 @@ bool appKymeraInit(Task init_task)
     if (bundle_config.number_of_capability_bundles > 0)
         ChainSetDownloadableCapabilityBundleConfig(&bundle_config);
     theKymera->mic = MIC_SELECTION_LOCAL;
-    appKymeraMicInit();
+    Microphones_Init();
 
     UNUSED(init_task);
     return TRUE;

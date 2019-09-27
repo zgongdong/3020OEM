@@ -73,6 +73,9 @@ typedef enum
 
     /*! Confirmation of completion of a disconnect request. */
     HANDSET_SERVICE_DISCONNECT_CFM,
+
+    /*! Confirmation of completion of a cancel connect request. */
+    HANDSET_SERVICE_CONNECT_STOP_CFM,
 } handset_service_msg_t;
 
 /*! \brief Status codes for the handset service. */
@@ -82,6 +85,7 @@ typedef enum
     handset_service_status_failed,
     handset_service_status_cancelled,
     handset_service_status_no_mru,
+    handset_service_status_connected,
     handset_service_status_disconnected,
 } handset_service_status_t;
 
@@ -118,7 +122,7 @@ typedef struct
 
 /*! \brief Confirmation of completed handset connect request
 
-    This message will get sent once handset service has completed the connect,
+    This message is sent once handset service has completed the connect,
     or it has been cancelled.
 
     The request could have completed successfully or it could have failed,
@@ -129,27 +133,27 @@ typedef struct
     /*! Address of the handset. */
     bdaddr addr;
 
-    /*! Status of the connect request */
+    /*! Status of the request */
     handset_service_status_t status;
 } HANDSET_SERVICE_CONNECT_CFM_T;
 
 /*! \brief Confirmation of completed handset disconnect request
 
-    This message will get sent once handset service has completed the
+    This message is sent once handset service has completed the
     disconnect, or it has been cancelled.
 
     The request could have completed successfully or it could have  been
     cancelled by a later connect request.
 */
-typedef struct
-{
-    /*! Address of the handset. */
-    bdaddr addr;
+typedef HANDSET_SERVICE_CONNECT_CFM_T HANDSET_SERVICE_DISCONNECT_CFM_T;
 
-    /*! Status of the connect request */
-    handset_service_status_t status;
-} HANDSET_SERVICE_DISCONNECT_CFM_T;
+/*! \brief Confirmation of completed handset cancel connect request
 
+    This message is sent once handset service has cancelled the ACL
+    connection to the handset, or otherwise when the connect has completed
+    normally.
+*/
+typedef HANDSET_SERVICE_CONNECT_CFM_T HANDSET_SERVICE_CONNECT_STOP_CFM_T;
 
 /*! \brief Initialise the handset_service module.
 
@@ -221,6 +225,33 @@ void HandsetService_ConnectMruRequest(Task task, uint8 profiles);
     \param addr Address of the handset to disconnect.
 */
 void HandsetService_DisconnectRequest(Task task, const bdaddr *addr);
+
+/*! \brief Stop the ACL connection to a handset.
+
+    Cancel any in-progress connect to a handset if, and only if, the ACL has
+    not been connected yet.
+
+    If the ACL has been connected or the profiles have started to be connected
+    then wait until the connection has completed normally.
+
+    When the connection has either been cancelled or has completed, send a 
+    #HANDSET_SERVICE_CONNECT_STOP_CFM to the client task.
+
+    If the original connect request completed successfully the status in 
+    #HANDSET_SERVICE_CONNECT_STOP_CFM will be handset_service_status_connected;
+    otherwise it will be handset_service_status_disconnected.
+
+    If the same client that requested a handset connect calls this function,
+    #HANDSET_SERVICE_CONNECT_STOP_CFM will be sent before
+    the #HANDSET_SERVICE_CONNECT_CFM for the original connect request.
+
+    Note: Currently only one stop request at a time is supported. If a second
+          request is made while one is in progress this function will panic.
+
+    \param task Client task requesting the stop
+    \param addr Public address of the handset to stop the connection for.
+*/
+void HandsetService_StopConnect(Task task, const bdaddr *addr);
 
 /*! \brief Make the local device connectable.
 

@@ -12,7 +12,7 @@ PRIVATE_LIBS_SEED ?=
 
 dirs_warning_free =
 
-DEFS += -DGATT_DBI_LIB
+DEFS += -DGATT_DBI_LIB -DHYDRA_LOG_MAX_LEVEL=5
 
 # Get the location of the libs directory being built by getting the Makefile
 # path (but replace the word Makefile with nothing)

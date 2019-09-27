@@ -47,6 +47,14 @@ twsTopProcFindRoleTaskData twstop_proc_find_role = {twsTopology_ProcFindRoleHand
 #define TwsTopProcFindRoleGetTaskData()     (&twstop_proc_find_role)
 #define TwsTopProcFindRoleGetTask()         (&twstop_proc_find_role.task)
 
+
+static void twsTopology_ProcedureFindRoleReset(void)
+{
+    twsTopProcFindRoleTaskData* td = TwsTopProcFindRoleGetTaskData();
+    PeerFindRole_UnregisterTask(TwsTopProcFindRoleGetTask());
+    td->active = FALSE;
+}
+
 void TwsTopology_ProcedureFindRoleStart(Task result_task,
                                         twstop_proc_start_cfm_func_t proc_start_cfm_fn,
                                         twstop_proc_complete_func_t proc_complete_fn,
@@ -102,12 +110,12 @@ static void twsTopology_ProcFindRoleHandleMessage(Task task, MessageId id, Messa
         case PEER_FIND_ROLE_ACTING_PRIMARY:
         case PEER_FIND_ROLE_PRIMARY:
         case PEER_FIND_ROLE_SECONDARY:
-            td->active = FALSE;
+            twsTopology_ProcedureFindRoleReset();
             td->complete_fn(tws_topology_procedure_find_role, proc_result_success);
             break;
 
         case PEER_FIND_ROLE_CANCELLED:
-            td->active = FALSE;
+            twsTopology_ProcedureFindRoleReset();
             td->cancel_fn(tws_topology_procedure_find_role, proc_result_success);
             break;
 
@@ -115,14 +123,3 @@ static void twsTopology_ProcFindRoleHandleMessage(Task task, MessageId id, Messa
             break;
     }
 }
-
-#define FIND_ROLE_SCRIPT(ENTRY) \
-    ENTRY(proc_permit_connection_le_fns,NO_DATA), \
-    ENTRY(proc_permit_bt_fns, NO_DATA), \
-    ENTRY(proc_find_role_fns, NO_DATA),
-
-
-/* Define the script find_role_script */
-DEFINE_TOPOLOGY_SCRIPT(find_role,FIND_ROLE_SCRIPT);
-
-

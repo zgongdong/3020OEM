@@ -144,6 +144,9 @@ Functions</h2></td></tr>
 <tr class="memitem:gab073d6e18fc7734b64b17adf1f36fece"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#gab073d6e18fc7734b64b17adf1f36fece">MessageFree</a> (<a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a> id, <a class="el" href="message___8h.html#acc69ef471490ab4c4bfd1e511aba5c74">Message</a> data)</td></tr>
 <tr class="memdesc:gab073d6e18fc7734b64b17adf1f36fece"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees the memory pointer to by data.  <a href="#gab073d6e18fc7734b64b17adf1f36fece">More...</a><br /></td></tr>
 <tr class="separator:gab073d6e18fc7734b64b17adf1f36fece"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadbb9fcff871c16cf57f12847e26abed4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#gadbb9fcff871c16cf57f12847e26abed4">MessagePendingFirst</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task, <a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a> id, int32 *first_due)</td></tr>
+<tr class="memdesc:gadbb9fcff871c16cf57f12847e26abed4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search the message queue for the first specified message pending delivery to the specified task.  <a href="#gadbb9fcff871c16cf57f12847e26abed4">More...</a><br /></td></tr>
+<tr class="separator:gadbb9fcff871c16cf57f12847e26abed4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3a491ae8deeebdcb69fc57f3c6f4d1cd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#ga3a491ae8deeebdcb69fc57f3c6f4d1cd">MessagePioTask</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task)</td></tr>
 <tr class="memdesc:ga3a491ae8deeebdcb69fc57f3c6f4d1cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Register a task to handle PIO changes.  <a href="#ga3a491ae8deeebdcb69fc57f3c6f4d1cd">More...</a><br /></td></tr>
 <tr class="separator:ga3a491ae8deeebdcb69fc57f3c6f4d1cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -153,6 +156,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga0f39613be3d1455b29e6ed560e692c1c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#ga0f39613be3d1455b29e6ed560e692c1c">MessageSendLater</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task, <a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a> id, void *message, uint32 delay)</td></tr>
 <tr class="memdesc:ga0f39613be3d1455b29e6ed560e692c1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message to the corresponding task after the given delay in ms. The message will be passed to free after delivery.  <a href="#ga0f39613be3d1455b29e6ed560e692c1c">More...</a><br /></td></tr>
 <tr class="separator:ga0f39613be3d1455b29e6ed560e692c1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga04c5032d8f7be7ce07da6ee9f41244b3"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#ga04c5032d8f7be7ce07da6ee9f41244b3">MessagesPendingForTask</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task, int32 *first_due)</td></tr>
+<tr class="memdesc:ga04c5032d8f7be7ce07da6ee9f41244b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search the message queue for all messages pending delivery to the specified task.  <a href="#ga04c5032d8f7be7ce07da6ee9f41244b3">More...</a><br /></td></tr>
+<tr class="separator:ga04c5032d8f7be7ce07da6ee9f41244b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabd1023998e25adee54f220a8d71736ae"><td class="memItemLeft" align="right" valign="top"><a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#gabd1023998e25adee54f220a8d71736ae">MessageSystemTask</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task)</td></tr>
 <tr class="memdesc:gabd1023998e25adee54f220a8d71736ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Register a task to handle system-wide messages.  <a href="#gabd1023998e25adee54f220a8d71736ae">More...</a><br /></td></tr>
 <tr class="separator:gabd1023998e25adee54f220a8d71736ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -743,6 +749,50 @@ A value of 0xFFFD, 0xFFFE and 0xFFFF MUST not be used for partition number since
 
 </div>
 </div>
+<a class="anchor" id="gadbb9fcff871c16cf57f12847e26abed4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool MessagePendingFirst </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a>&#160;</td>
+          <td class="paramname"><em>task</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a>&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int32 *&#160;</td>
+          <td class="paramname"><em>first_due</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Search the message queue for the first specified message pending delivery to the specified task. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">task</td><td>The task whose messages will be searched. </td></tr>
+    <tr><td class="paramname">id</td><td>The message id to seek. </td></tr>
+    <tr><td class="paramname">first_due</td><td>The relative time at which the first message pending is due for delivery. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if a message was found pending delivery.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="ga3a491ae8deeebdcb69fc57f3c6f4d1cd"></a>
 <div class="memitem">
 <div class="memproto">
@@ -865,6 +915,43 @@ A value of 0xFFFD, 0xFFFE and 0xFFFF MUST not be used for partition number since
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga04c5032d8f7be7ce07da6ee9f41244b3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint16 MessagesPendingForTask </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a>&#160;</td>
+          <td class="paramname"><em>task</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int32 *&#160;</td>
+          <td class="paramname"><em>first_due</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Search the message queue for all messages pending delivery to the specified task. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">task</td><td>The task whose messages will be searched. </td></tr>
+    <tr><td class="paramname">first_due</td><td>The relative time at which the first message pending is due for delivery. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The number of messages pending delivery.</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This trap may be called from a high-priority task handler </dd></dl>
 
 </div>

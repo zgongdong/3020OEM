@@ -173,6 +173,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a0fede515626ae660a7ac6429e7b3d214"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a0fede515626ae660a7ac6429e7b3d214">UpgradeHandleMsg</a> (Task task, MessageId id, Message message)</td></tr>
 <tr class="memdesc:a0fede515626ae660a7ac6429e7b3d214"><td class="mdescLeft">&#160;</td><td class="mdescRight">Main message handler for the upgrade library.  <a href="#a0fede515626ae660a7ac6429e7b3d214">More...</a><br /></td></tr>
 <tr class="separator:a0fede515626ae660a7ac6429e7b3d214"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ac138168286d6ea495353abcf8fe165"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a3ac138168286d6ea495353abcf8fe165">UpgradeHashAllSectionsUpdateStatus</a> (Message message)</td></tr>
+<tr class="memdesc:a3ac138168286d6ea495353abcf8fe165"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inform the Upgrade library of the result an attempt to calculate teh hash over all sections.  <a href="#a3ac138168286d6ea495353abcf8fe165">More...</a><br /></td></tr>
+<tr class="separator:a3ac138168286d6ea495353abcf8fe165"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5ccc0ccc77d79bfa0d06338889429388"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a5ccc0ccc77d79bfa0d06338889429388">UpgradeImageSwap</a> (void)</td></tr>
 <tr class="memdesc:a5ccc0ccc77d79bfa0d06338889429388"><td class="mdescLeft">&#160;</td><td class="mdescRight">To inform Upgrade library to reset the chip and swap to the Upgraded Image.  <a href="#a5ccc0ccc77d79bfa0d06338889429388">More...</a><br /></td></tr>
 <tr class="separator:a5ccc0ccc77d79bfa0d06338889429388"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -194,6 +197,9 @@ Functions</h2></td></tr>
 <tr class="memitem:aa5488f6db5bb885955cbb7ed83cd7b68"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#aa5488f6db5bb885955cbb7ed83cd7b68">UpgradePartialUpdateInterrupted</a> (void)</td></tr>
 <tr class="memdesc:aa5488f6db5bb885955cbb7ed83cd7b68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get an indication of whether a partial upgrade has been interrupted.  <a href="#aa5488f6db5bb885955cbb7ed83cd7b68">More...</a><br /></td></tr>
 <tr class="separator:aa5488f6db5bb885955cbb7ed83cd7b68"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acc2ecf55eb04a9f7fbfbb11ee79a8199"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#acc2ecf55eb04a9f7fbfbb11ee79a8199">UpgradePeer_IsPrimaryDevice</a> (void)</td></tr>
+<tr class="memdesc:acc2ecf55eb04a9f7fbfbb11ee79a8199"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if this device initiated the DFU .  <a href="#acc2ecf55eb04a9f7fbfbb11ee79a8199">More...</a><br /></td></tr>
+<tr class="separator:acc2ecf55eb04a9f7fbfbb11ee79a8199"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6102caca3d953af7bc44cddaa3356e25"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6102caca3d953af7bc44cddaa3356e25"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a6102caca3d953af7bc44cddaa3356e25">UpgradePeerDeInit</a> (void)</td></tr>
 <tr class="memdesc:a6102caca3d953af7bc44cddaa3356e25"><td class="mdescLeft">&#160;</td><td class="mdescRight">UnInitialise the Upgrade Peer library. Returns None. <br /></td></tr>
@@ -201,9 +207,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgr
 <tr class="memitem:a9e37d1b8435fe9fa9de6fb35fe88ee36"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a9e37d1b8435fe9fa9de6fb35fe88ee36">UpgradePeerInit</a> (Task appTask, uint16 dataPskey, uint16 dataPskeyStart)</td></tr>
 <tr class="memdesc:a9e37d1b8435fe9fa9de6fb35fe88ee36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise the Upgrade Peer library.  <a href="#a9e37d1b8435fe9fa9de6fb35fe88ee36">More...</a><br /></td></tr>
 <tr class="separator:a9e37d1b8435fe9fa9de6fb35fe88ee36"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7a3366bf53375ca20af5a785066237c8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a7a3366bf53375ca20af5a785066237c8">UpgradePeerIsPrimaryDevice</a> (void)</td></tr>
-<tr class="memdesc:a7a3366bf53375ca20af5a785066237c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if this device initiated the DFU .  <a href="#a7a3366bf53375ca20af5a785066237c8">More...</a><br /></td></tr>
-<tr class="separator:a7a3366bf53375ca20af5a785066237c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67920e947e99657a9e62b54e407b024b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a67920e947e99657a9e62b54e407b024b"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a67920e947e99657a9e62b54e407b024b">UpgradePeerIsSupported</a> (void)</td></tr>
 <tr class="memdesc:a67920e947e99657a9e62b54e407b024b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check in Upgrade Peer is initialized or not. Returns None. <br /></td></tr>
@@ -1108,6 +1111,30 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgr
 
 </div>
 </div>
+<a class="anchor" id="a3ac138168286d6ea495353abcf8fe165"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void UpgradeHashAllSectionsUpdateStatus </td>
+          <td>(</td>
+          <td class="paramtype">Message&#160;</td>
+          <td class="paramname"><em>message</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Inform the Upgrade library of the result an attempt to calculate teh hash over all sections. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">message</td><td>#MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS message containing status of the hash operation. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a class="anchor" id="a5ccc0ccc77d79bfa0d06338889429388"></a>
 <div class="memitem">
 <div class="memproto">
@@ -1317,6 +1344,25 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgr
 
 </div>
 </div>
+<a class="anchor" id="acc2ecf55eb04a9f7fbfbb11ee79a8199"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool UpgradePeer_IsPrimaryDevice </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if this device initiated the DFU . </p>
+<p>Returns None </p>
+
+</div>
+</div>
 <a class="anchor" id="a9e37d1b8435fe9fa9de6fb35fe88ee36"></a>
 <div class="memitem">
 <div class="memproto">
@@ -1357,25 +1403,6 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgr
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a class="anchor" id="a7a3366bf53375ca20af5a785066237c8"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool UpgradePeerIsPrimaryDevice </td>
-          <td>(</td>
-          <td class="paramtype">void&#160;</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Check if this device initiated the DFU . </p>
-<p>Returns None </p>
 
 </div>
 </div>

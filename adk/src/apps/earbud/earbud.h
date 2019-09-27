@@ -236,10 +236,10 @@ extern appTaskData globalApp;
 
 #if defined(INCLUDE_AV) && (INCLUDE_HFP)
 #define appHandleUnexpected(id) \
-    DEBUG_LOGF("appHandleUnexpected, id = x%x, sm = %d, av = %d", (id), SmGetTaskData()->state, AvGetTaskData()->state)
+    DEBUG_LOGF("appHandleUnexpected, id = x%x, sm = %d, av = %d", (id), SmGetTaskData()->state, AvGetTaskData()->bitfields.state)
 #elif defined(INCLUDE_AV)
 #define appHandleUnexpected(id) \
-    DEBUG_LOGF("appHandleUnexpected, ID = x%x, sm = %d, av = %d", (id),  SmGetTaskData()->state, AvGetTaskData()->state)
+    DEBUG_LOGF("appHandleUnexpected, ID = x%x, sm = %d, av = %d", (id),  SmGetTaskData()->state, AvGetTaskData()->bitfields.state)
 #elif defined(INCLUDE_HFP)
 #define appHandleUnexpected(id) \
     DEBUG_LOGF("appHandleUnexpected, id = x%x, sm = %d", (id),  SmGetTaskData()->sm.state)

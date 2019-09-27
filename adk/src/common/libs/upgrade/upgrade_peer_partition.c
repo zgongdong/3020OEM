@@ -27,7 +27,7 @@ DESCRIPTION
 
 /** Header image section. */
 /* NOTE: this image section is for internal use cannot be upgraded
- * using image upgrade traps. 
+ * using image upgrade traps.
  * This image section is used to store all headers of DFU file for peer
  * upgrade support.
  */
@@ -233,7 +233,7 @@ static bool getNextUpgradePskeyData(uint8 *peer_data, uint32 req_len)
          * least value of requested data length or available data.
          */
         available_bytes = key_length - peerPartitionCtx->read_offset;
-        
+
         read_len = MIN(available_bytes, MIN(req_len, key_length));
 
         DEBUG_LOG("UpgradePeerPartition: Read pskey and len %d",
@@ -564,8 +564,8 @@ static upgrade_peer_status_t read_request(uint8* data_ptr,
         break;
 
     case UPGRADE_PEER_PARTITION_DATA_STATE_DATA:
-        DEBUG_LOG("UpgradePeerPartition: DataHandleDataState len %d\n",
-                                                                    req_len);
+        PRINT(("UpgradePeerPartition: DataHandleDataState len %d\n",
+                                                                    req_len));
         ret = UpgradePeerPartitionDataHandleDataState(data_ptr,
                                                         req_len,
                                                         sentLength);
@@ -599,7 +599,7 @@ upgrade_peer_status_t UpgradePeerPartitionMoreData(uint8 *dataPtr,
 {
     upgrade_peer_status_t ret = UPGRADE_PEER_SUCCESS;
 
-    DEBUG_LOGF("UpgradePeerPartition: data size %x\n", mBytesReq);
+    PRINT(("UpgradePeerPartition: data size %x\n", mBytesReq));
 
     if(dataPtr == NULL)
     {
@@ -608,7 +608,7 @@ upgrade_peer_status_t UpgradePeerPartitionMoreData(uint8 *dataPtr,
 
     ret = read_request(dataPtr, mBytesReq, last_packet, mBytesSent);
 
-    DEBUG_LOGF("UpgradePeerPartition: Read status %x\n", ret);
+    PRINT(("UpgradePeerPartition: Read status %x\n", ret));
 
     return ret;
 }

@@ -416,9 +416,9 @@ static void appAvrcpHandleInternalAvrcpRemoteRequest(avInstanceTaskData *theInst
             appAvrcpSetLock(theInst, APP_AVRCP_LOCK_PASSTHROUGH_REQ);
 
             /* Store OPID so that we know what operation the AVRCP_PASSTHROUGH_CFM is for */
-            theInst->avrcp.op_id = req->op_id;
-            theInst->avrcp.op_state = req->state;
-            theInst->avrcp.op_repeat = from_repeat_message;
+            theInst->avrcp.bitfields.op_id = req->op_id;
+            theInst->avrcp.bitfields.op_state = req->state;
+            theInst->avrcp.bitfields.op_repeat = from_repeat_message;
 
             /* Send remote control */
             AvrcpPassthroughRequest(theInst->avrcp.avrcp, subunit_panel, 0, req->state, req->op_id, 0, 0);
@@ -464,11 +464,12 @@ static bool appAvrcpRemoveClient(avInstanceTaskData *theInst, Task client_task)
 
 static void appAvrcpHandleInternalAvrcpConnectRequest(avInstanceTaskData *theInst, AV_INTERNAL_AVRCP_CONNECT_REQ_T *req)
 {
-    DEBUG_LOGF("appAvrcpHandleInternalAvrcpConnectRequest(%p) %x,%x,%lx, clients %u, locks %u",
+    DEBUG_LOGF("appAvrcpHandleInternalAvrcpConnectRequest(%p) %x,%x,%lx, clients %u, locks %u state 0x%x",
                  (void *)theInst,
                  theInst->bd_addr.nap, theInst->bd_addr.uap, theInst->bd_addr.lap,
                  TaskList_Size(theInst->avrcp.client_list),
-                 theInst->avrcp.client_lock);
+                 theInst->avrcp.client_lock,
+                 appAvrcpGetState(theInst));
 
     switch (appAvrcpGetState(theInst))
     {
@@ -563,6 +564,12 @@ static void appAvrcpHandleInternalAvrcpConnectRequest(avInstanceTaskData *theIns
                          req->client_task,
                          TaskList_Size(theInst->avrcp.client_list),
                          theInst->avrcp.client_lock);
+
+            /* Need to release the ACL here to reduce the user count on it.
+               Note: The user count was increased when ConManagerCreateAcl
+                     was called when the original AV_INTERNAL_AVRCP_CONNECT_REQ
+                     was sent. */
+            ConManagerReleaseAcl(&theInst->bd_addr);
 
             /* Send confirm immediately */
             MAKE_AV_MESSAGE(AV_AVRCP_CONNECT_CFM);
@@ -918,7 +925,7 @@ static void appAvrcpHandleInternalAvrcpVendorPassthroughRequest(avInstanceTaskDa
             /* Store memory block, task and op_id for use later when confirm is received */
             theInst->avrcp.vendor_data = vendor_data;
             theInst->avrcp.vendor_task = req->client_task;
-            theInst->avrcp.op_id = opid_vendor_unique;
+            theInst->avrcp.bitfields.op_id = opid_vendor_unique;
             theInst->avrcp.vendor_opid = req->op_id;
         }
         return;
@@ -1198,17 +1205,39 @@ static void appAvrcpHandleAvrcpDisconnectIndication(avInstanceTaskData *theInst,
         {
             assert(theInst->avrcp.avrcp == ind->avrcp);
 
-            /* Send AV_AVRCP_DISCONNECT_IND to all clients */
-            MAKE_AV_MESSAGE(AV_AVRCP_DISCONNECT_IND);
-            message->av_instance = theInst;
-            message->status = ind->status;
-            TaskList_MessageSend(theInst->avrcp.client_list, AV_AVRCP_DISCONNECT_IND, message);
+            if(ind->status != avrcp_link_transferred)
+            {
+                /* Send AV_AVRCP_DISCONNECT_IND to all clients */
+                MAKE_AV_MESSAGE(AV_AVRCP_DISCONNECT_IND);
+                message->av_instance = theInst;
+                message->status = ind->status;
+                TaskList_MessageSend(theInst->avrcp.client_list, AV_AVRCP_DISCONNECT_IND, message);
 
-            /* We're not going to get confirmation for any passthrough request, so clear lock */
-            appAvrcpClearLock(theInst, APP_AVRCP_LOCK_PASSTHROUGH_REQ);
+                /* We're not going to get confirmation for any passthrough request, so clear lock */
+                appAvrcpClearLock(theInst, APP_AVRCP_LOCK_PASSTHROUGH_REQ);
 
-            /* Move to 'disconnected' state */
-            appAvrcpSetState(theInst, AVRCP_STATE_DISCONNECTED);
+                /* Move to 'disconnected' state */
+                appAvrcpSetState(theInst, AVRCP_STATE_DISCONNECTED);
+            }
+            else
+            {
+                /* Move to 'disconnected' state */
+                theInst->avrcp.state = AVRCP_STATE_DISCONNECTED;
+
+                /* Clear AVRCP pointer */
+                theInst->avrcp.avrcp = NULL;
+
+                /* Clear client list and any locks */
+                if (theInst->avrcp.client_list)
+                {
+                    TaskList_Destroy(theInst->avrcp.client_list);
+                    theInst->avrcp.client_list = NULL;
+                }
+                theInst->avrcp.client_lock = 0;
+
+                /* Destroy the AV isntance if both A2DP and AVRCP profiles are disconnected */
+                appAvInstanceDestroy(theInst);
+            }
         }
         return;
 
@@ -1376,7 +1405,7 @@ static void appAvrcpHandleAvrcpPassthroughConfirm(avInstanceTaskData *theInst, c
             }
 
             /* Play specific tone if required */
-            switch (theInst->avrcp.op_id)
+            switch (theInst->avrcp.bitfields.op_id)
             {
                 case opid_volume_up:
                 {
@@ -1384,7 +1413,7 @@ static void appAvrcpHandleAvrcpPassthroughConfirm(avInstanceTaskData *theInst, c
                     {
                         appAvSendUiMessageId(AV_VOLUME_LIMIT);
                     }
-                    else if (theInst->avrcp.op_state || !theInst->avrcp.op_repeat)
+                    else if (theInst->avrcp.bitfields.op_state || !theInst->avrcp.bitfields.op_repeat)
                     {
                         appAvSendUiMessageId(AV_VOLUME_UP);
                     }
@@ -1397,7 +1426,7 @@ static void appAvrcpHandleAvrcpPassthroughConfirm(avInstanceTaskData *theInst, c
                     {
                         appAvSendUiMessageId(AV_VOLUME_LIMIT);
                     }
-                    else if (theInst->avrcp.op_state || !theInst->avrcp.op_repeat)
+                    else if (theInst->avrcp.bitfields.op_state || !theInst->avrcp.bitfields.op_repeat)
                     {
                         appAvSendUiMessageId(AV_VOLUME_DOWN);
                     }
@@ -1413,7 +1442,7 @@ static void appAvrcpHandleAvrcpPassthroughConfirm(avInstanceTaskData *theInst, c
                 default:
                 {
                     /* Play standard AV error tone (only for button press, not for button release) */
-                    if ((theInst->avrcp.op_state == 0) && (cfm->status != avrcp_success))
+                    if ((theInst->avrcp.bitfields.op_state == 0) && (cfm->status != avrcp_success))
                     {
                         appAvSendUiMessageId(AV_ERROR);
                     }
@@ -1651,7 +1680,7 @@ static void appAvrcpHandleSetAbsoluteVolumeInd(avInstanceTaskData *theInst, AVRC
     theInst->avrcp.volume = ind->volume;
 
     /* Calculate time since last AVRCP_SET_ABSOLUTE_VOLUME_IND */
-    rtime_t delta = theInst->avrcp.volume_time_valid ? rtime_sub(VmGetClock(), theInst->avrcp.volume_time) : 0;
+    rtime_t delta = theInst->avrcp.bitfields.volume_time_valid ? rtime_sub(VmGetClock(), theInst->avrcp.volume_time) : 0;
     
     /* If time since last AVRCP_SET_ABSOLUTE_VOLUME_IND is less than 200ms, delay handling of message
      * by sending it back to ourselves with a delay */
@@ -1684,7 +1713,7 @@ static void appAvrcpHandleSetAbsoluteVolumeInd(avInstanceTaskData *theInst, AVRC
         /* Remember time AVRCP_SET_ABSOLUTE_VOLUME_IND was handled, so that we can check
          * timing of subsequent messages */
         theInst->avrcp.volume_time = VmGetClock();
-        theInst->avrcp.volume_time_valid = TRUE;    
+        theInst->avrcp.bitfields.volume_time_valid = TRUE;    
     }
 }
 
@@ -2142,18 +2171,19 @@ void appAvrcpInstanceInit(avInstanceTaskData *theInst)
     theInst->avrcp.lock = 0;
     theInst->avrcp.notification_lock = 0;
     theInst->avrcp.playback_lock = 0;
-    theInst->avrcp.supported_events = 0;
-    theInst->avrcp.changed_events = 0;
-    theInst->avrcp.registered_events = 0;
+    theInst->avrcp.bitfields.supported_events = 0;
+    theInst->avrcp.bitfields.changed_events = 0;
+    theInst->avrcp.bitfields.registered_events = 0;
     theInst->avrcp.vendor_task = NULL;
     theInst->avrcp.vendor_data = NULL;
     theInst->avrcp.vendor_opid = 0;
+    theInst->avrcp.remotely_initiated = FALSE;
     theInst->avrcp.client_list = NULL;
     theInst->avrcp.client_lock = 0;
     theInst->avrcp.play_status = avrcp_play_status_error;
     theInst->avrcp.play_hint = avrcp_play_status_error;
     theInst->avrcp.volume = VOLUME_UNSET;
-    theInst->avrcp.volume_time_valid = FALSE;
+    theInst->avrcp.bitfields.volume_time_valid = FALSE;
 	
     AudioSources_RegisterMediaControlInterface(audio_source_a2dp_1,
                                                AvrcpProfile_GetMediaControlInterface());

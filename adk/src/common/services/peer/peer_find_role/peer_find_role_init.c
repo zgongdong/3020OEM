@@ -8,7 +8,6 @@
 */
 
 #include <panic.h>
-#include <gatt_manager.h>
 
 #include <task_list.h>
 #include <logging.h>
@@ -22,6 +21,7 @@
 #include <connection_manager.h>
 #include <hfp_profile.h>
 #include <av.h>
+#include <gatt_connect.h>
 
 #include "peer_find_role.h"
 #include "peer_find_role_private.h"
@@ -30,45 +30,105 @@
 #include "peer_find_role_config.h"
 #include "telephony_messages.h"
 
+#include "timestamp_event.h"
+
 
 peerFindRoleTaskData peer_find_role = {0};
 
 
-void peer_find_role_activity_set(peerFindRoleActiveStatus_t flags_to_set)
+#include <gatt_role_selection_server_uuids.h>
+#include <uuid.h>
+#define NUMBER_OF_ADVERT_DATA_ITEMS     1
+#define SIZE_PEER_FIND_ROLE_ADVERT      4
+
+static unsigned int peer_find_role_NumberOfAdvItems(const le_adv_data_params_t * params);
+static le_adv_data_item_t peer_find_role_GetAdvDataItems(const le_adv_data_params_t * params, unsigned int id);
+static void peer_find_role_ReleaseAdvDataItems(const le_adv_data_params_t * params);
+static void peer_find_role_GattConnect(uint16 cid);
+static void peer_find_role_GattDisconnect(uint16 cid);
+
+static const gatt_connect_observer_callback_t peer_find_role_connect_callback =
 {
-    uint16 old_busy = PeerFindRoleGetBusy();
+    .OnConnection = peer_find_role_GattConnect,
+    .OnDisconnection = peer_find_role_GattDisconnect
+};
+
+static le_adv_data_callback_t peer_find_role_advert_callback =
+{
+    .GetNumberOfItems = peer_find_role_NumberOfAdvItems,
+    .GetItem = peer_find_role_GetAdvDataItems,
+    .ReleaseItems = peer_find_role_ReleaseAdvDataItems
+};
+
+static const uint8 peer_find_role_advert_data[SIZE_PEER_FIND_ROLE_ADVERT] = {
+    SIZE_PEER_FIND_ROLE_ADVERT - 1,
+    ble_ad_type_complete_uuid16,
+    UUID_ROLE_SELECTION_SERVICE & 0xFF,
+    UUID_ROLE_SELECTION_SERVICE >> 8
+};
+
+static le_adv_data_item_t peer_find_role_advert;
+
+
+void peer_find_role_scan_activity_set(peerFindRoleScanActiveStatus_t flags_to_set)
+{
+    uint16 old_busy = PeerFindRoleGetScanBusy();
     uint16 new_busy = old_busy | flags_to_set;
 
     if (new_busy != old_busy)
     {
-        PeerFindRoleSetBusy(new_busy);
-        DEBUG_LOG("peer_find_role_busy_set. Set 0x%x. Now 0x%x", flags_to_set, new_busy);
+        PeerFindRoleSetScanBusy(new_busy);
+        DEBUG_LOG("peer_find_role_scan_activity_set. Set 0x%x. Now 0x%x", flags_to_set, new_busy);
     }
 }
 
 
-void peer_find_role_activity_clear(peerFindRoleActiveStatus_t flags_to_clear)
+void peer_find_role_scan_activity_clear(peerFindRoleScanActiveStatus_t flags_to_clear)
 {
-    uint16 old_busy = PeerFindRoleGetBusy();
+    uint16 old_busy = PeerFindRoleGetScanBusy();
     uint16 new_busy = old_busy & ~flags_to_clear;
 
     if (new_busy != old_busy)
     {
-        PeerFindRoleSetBusy(new_busy);
-        DEBUG_LOG("peer_find_role_busy_clear. Cleared 0x%x. Now 0x%x", flags_to_clear, new_busy);
+        PeerFindRoleSetScanBusy(new_busy);
+        DEBUG_LOG("peer_find_role_scan_activity_clear. Cleared 0x%x. Now 0x%x", flags_to_clear, new_busy);
+    }
+}
+
+
+void peer_find_role_advertising_activity_set(void)
+{
+    uint16 old_busy = PeerFindRoleGetAdvertBusy();
+
+    if (!old_busy)
+    {
+        PeerFindRoleSetAdvertBusy(TRUE);
+        DEBUG_LOG("peer_find_role_advertising_activity_set.");
+    }
+}
+
+
+void peer_find_role_advertising_activity_clear(void)
+{
+    uint16 old_busy = PeerFindRoleGetAdvertBusy();
+
+    if (old_busy)
+    {
+        PeerFindRoleSetAdvertBusy(FALSE);
+        DEBUG_LOG("peer_find_role_advertising_activity_clear.");
     }
 }
 
 
 void peer_find_role_message_send_when_inactive(MessageId id, void *message)
 {
-    MessageSendConditionally(PeerFindRoleGetTask(), id, message, &PeerFindRoleGetBusy());
+    MessageSendConditionally(PeerFindRoleGetTask(), id, message, &PeerFindRoleGetScanBusy());
 }
 
 
 void peer_find_role_message_cancel_inactive(MessageId id)
 {
-    if (PeerFindRoleGetBusy())
+    if (PeerFindRoleGetScanBusy())
     {
         if (MessageCancelAll(PeerFindRoleGetTask(), id))
         {
@@ -87,6 +147,8 @@ void peer_find_role_cancel_initial_timeout(void)
 static void peer_find_role_notify_clients_immediately(peer_find_role_message_t role)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    
+    TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_NOTIFIED_ROLE);
 
     peer_find_role_cancel_initial_timeout();
     pfr->timeout_means_timeout = FALSE;
@@ -131,18 +193,23 @@ void peer_find_role_completed(peer_find_role_message_t role)
 
     if (peer_find_role_role_means_primary(role))
     {
-        DEBUG_LOG("peer_find_role_completed. Role is a primary one:%d", role);
+        DEBUG_LOG("peer_find_role_completed. Role is a primary one:0x%x", role);
 
         pfr->selected_role = (peer_find_role_message_t )0;
         peer_find_role_notify_clients_immediately(role);
     }
     else
     {
-        DEBUG_LOG("peer_find_role_completed. Role is not a primary one:%d. Wait for links to go.", role);
+        DEBUG_LOG("peer_find_role_completed. Role is not a primary one:0x%x. Wait for links to go.", role);
 
         pfr->selected_role = role;
         pfr->timeout_means_timeout = FALSE;
     }
+
+    /* When we report a primary role, find role will restart.
+       But we will want to block scanning while we wait for the
+       primary to be completed. Mark us as 'busy'. */
+    peer_find_role_update_media_flag(PEER_FIND_ROLE_PRIMARY == role, PEER_FIND_ROLE_CONFIRMING_PRIMARY);
 
     GattRoleSelectionClientDestroy(&pfr->role_selection_client);
 
@@ -155,11 +222,15 @@ void peer_find_role_completed(peer_find_role_message_t role)
         case PEER_FIND_ROLE_STATE_SERVER:
             /* If we disconnect the GATT link at this point, then the client
                 does not always receive a confirmation */
-            peer_find_role_set_state(PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT);
+            peer_find_role_set_state(PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER);
+            break;
+
+        case PEER_FIND_ROLE_STATE_COMPLETED:
+            /* Nothing more to do as we're already in the correct state */
             break;
 
         default:
-            peer_find_role_set_state(PEER_FIND_ROLE_STATE_INITIALISED);
+            peer_find_role_set_state(PEER_FIND_ROLE_STATE_COMPLETED);
             break;
     }
 }
@@ -178,103 +249,92 @@ void peer_find_role_notify_timeout(void)
 }
 
 
-/*! Handle response to setting advertising data
+bool peer_find_role_disconnect_link(void)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    uint16 cid = pfr->gatt_cid;
+
+    pfr->gatt_encrypted = FALSE;
+
+    if (cid)
+    {
+        tp_bdaddr tp_addr;
+
+        DEBUG_LOG("peer_find_role_disconnect_link. Disconnecting ACL");
+
+        tp_addr.transport = TRANSPORT_BLE_ACL;
+        tp_addr.taddr.type = TYPED_BDADDR_PUBLIC;
+        tp_addr.taddr.addr = pfr->primary_addr;
+
+        ConManagerReleaseTpAcl(&tp_addr);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+void peer_find_role_select_state_after_completion(void)
+{
+    if (peer_find_role_awaiting_primary_completion())
+    {
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVER);
+    }
+    else
+    {
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_INITIALISED);
+    }
+}
+
+
+void peer_find_role_request_prepare_for_role_selection(void)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+
+    DEBUG_LOG("peer_find_role_request_prepare_for_role_selection");
+
+    PanicFalse(peer_find_role_prepare_client_registered());
+    TaskList_MessageSendId(&pfr->prepare_tasks, PEER_FIND_ROLE_PREPARE_FOR_ROLE_SELECTION);
+}
+
+
+/*! Handle response to setting advertising dataset
 
     If successful start connectable advertising using the just configured
     advertising data.
 
     In case of failure, indicate that we are not advertising
 
-    \param cfm Confirmation for setting advertising data
+    \param cfm Confirmation for setting advertising dataset
 
     \todo Is clearing activity enough to kick any error handling off ?
  */
-static void peer_find_role_handle_advert_set_data_cfm(const APP_ADVMGR_ADVERT_SET_DATA_CFM_T *cfm)
+static void peer_find_role_handle_adv_mgr_select_dataset_cfm(const LE_ADV_MGR_SELECT_DATASET_CFM_T *cfm)
 {
-    if (success != cfm->status)
-    {
-        DEBUG_LOG("peer_find_role_handle_advert_set_data_cfm. FAILED.");
+    DEBUG_LOG("peer_find_role_handle_adv_mgr_select_dataset_cfm. sts:%d",
+                    cfm->status);
 
-        peer_find_role_activity_clear(PEER_FIND_ROLE_ACTIVE_ADVERTISING);
-    }
-    else
+    if (le_adv_mgr_status_success != cfm->status)
     {
-        DEBUG_LOG("peer_find_role_handle_advert_set_data_cfm: Wait for remoteClient");
-
-        GattManagerWaitForRemoteClient(PeerFindRoleGetTask(), NULL, gatt_connection_ble_slave_undirected);
+        peer_find_role_advertising_activity_clear();
     }
 }
 
 
-/*! handler GATT client connection
+/*! Handle response to releasing the advertising dataset
 
-    Update our status to indicate that we are no longer advertising.
-    If the connection was successful, and to the expected device,
-    change state to #PEER_FIND_ROLE_STATE_CLIENT.
+    In all cases indicate that we are not advertising
 
-    In case of error fall back to looking for devices by changing to 
-    state #PEER_FIND_ROLE_STATE_DISCOVER
+    \param cfm Confirmation for releasing advertising dataset
 
-    \param cfm GATT connection status
+    \todo Is clearing activity enough to kick any error handling off ?
  */
-static void peer_find_role_handle_client_connect_cfm(const GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM_T *cfm)
+static void peer_find_role_handle_adv_mgr_release_dataset_cfm(const LE_ADV_MGR_RELEASE_DATASET_CFM_T *cfm)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    DEBUG_LOG("peer_find_role_handle_adv_mgr_release_dataset_cfm. sts:%d",
+                    cfm->status);
 
-    DEBUG_LOG("peer_find_role_handle_client_connect_cfm. sts:%d addr:%06x", cfm->status, cfm->taddr.addr.lap);
-
-    peer_find_role_activity_clear(PEER_FIND_ROLE_ACTIVE_ADVERTISING);
-
-    if (gatt_status_success == cfm->status)
-    {
-        pfr->gatt_cid = cfm->cid;
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_CLIENT);
-    }
-    else
-    {
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVER);
-    }
-}
-
-
-/*! Handle GATT server connection
-
-    Update our status to indicate that we are no longer connecting.
-    If the connection was successful, and to the expected device,
-    change state to #PEER_FIND_ROLE_STATE_SERVER.
-
-    In case of error fall back to looking for devices by changing to 
-    state #PEER_FIND_ROLE_STATE_DISCOVER
-
-    \param cfm Server connect status
- */
-static void peer_find_role_handle_server_connect_cfm(const GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM_T *cfm)
-{
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-
-    DEBUG_LOG("peer_find_role_handle_server_connect_cfm. sts:%d", cfm->status);
-
-    peer_find_role_activity_clear(PEER_FIND_ROLE_ACTIVE_CONNECTING);
-
-    if (   gatt_status_success == cfm->status
-        /*&& BdaddrIsSame(&pfr->peer_addr, &cfm->taddr.addr)*/)
-    {
-        pfr->gatt_cid = cfm->cid;
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER);
-    }
-    else
-    {
-            /* We get a generic failure on timeout (at least).
-               You might expect gatt_status_connection_timeout.
-             */
-        if (gatt_status_failure != cfm->status)
-        {
-            DEBUG_LOG("peer_find_role_handle_server_connect_cfm. Unexpected gatt status:%d", cfm->status);
-            Panic();
-        }
-
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVER);
-    }
+    peer_find_role_advertising_activity_clear();
 }
 
 
@@ -296,6 +356,8 @@ static void peer_find_role_handle_primary_service_discovery(const GATT_DISCOVER_
 
     if (gatt_status_success == discovery->status)
     {
+        TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_DISCOVERED_PRIMARY_SERVICE);
+        
         GattRoleSelectionClientInit(&pfr->role_selection_client,
                                     PeerFindRoleGetTask(),
                                     discovery->cid, discovery->handle, discovery->end);
@@ -316,7 +378,7 @@ static void peer_find_role_handle_client_init(const GATT_ROLE_SELECTION_CLIENT_I
 
     if (gatt_role_selection_client_status_success == init->status)
     {
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_AWAITING_ENCRYPTION);
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION);
     }
     else
     {
@@ -376,20 +438,6 @@ static void peer_find_role_handle_command_cfm(const GATT_ROLE_SELECTION_CLIENT_C
 }
 
 
-/*! Send an internal message to update our score
-
-    Messages used to avoid updating the score consecutively as the
-    score may be passed to the peer.
-
-    Any pending messages are cancelled before a new message is sent
- */
-static void peer_find_role_request_score_update(void)
-{
-    MessageCancelAll(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_UPDATE_SCORE);
-    MessageSend(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_UPDATE_SCORE, NULL);
-}
-
-
 /*! Handler for physical state messages
 
    Update our information about the physical state and update the score 
@@ -404,8 +452,6 @@ static void peer_find_role_handle_phy_state(const PHY_STATE_CHANGED_IND_T *phy)
     DEBUG_LOG("peer_find_role_handle_phy_state. New physical state:%d", phy->new_state);
 
     pfr->scoring_info.phy_state = phy->new_state;
-
-    peer_find_role_request_score_update();
 }
 
 
@@ -422,8 +468,6 @@ static void peer_find_role_handle_charger_state(bool attached)
     DEBUG_LOG("peer_find_role_handle_charger_state. Attached:%d", attached);
 
     pfr->scoring_info.charger_present = attached;
-
-    peer_find_role_request_score_update();
 }
 
 
@@ -440,8 +484,6 @@ static void peer_find_role_handle_accelerometer_state(bool moving)
     DEBUG_LOG("peer_find_role_handle_accelerometer_state. Moving:%d", moving);
 
     pfr->scoring_info.accelerometer_moving = moving;
-
-    peer_find_role_request_score_update();
 }
 
 
@@ -458,16 +500,17 @@ static void peer_find_role_handle_battery_level(const MESSAGE_BATTERY_LEVEL_UPDA
     DEBUG_LOG("peer_find_role_handle_battery_level. Level:%d", battery->percent);
 
     pfr->scoring_info.battery_level_percent = battery->percent;
-
-    peer_find_role_request_score_update();
 }
 
 
 /*! Handler for the figure of merit from our peer
 
-    This is received when we are ready to make a decision on role. The
-    value is processed in relation to ours and we request our peer
-    to change to the best state.
+    This can be received for two reasons:
+    * We have requested a read of the figure of merit
+    * The peer has sent a notification of a new figure of merit value.
+
+    Decide which role the peer should be in by calculating its own figure of 
+    merit and comparing it to the value received from the peer.
 
     \param ind The merit message from our peer
  */
@@ -475,21 +518,32 @@ static void peer_find_role_handle_figure_of_merit(const GATT_ROLE_SELECTION_CLIE
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    peer_find_role_scoring_t *scoring = PeerFindRoleGetScoring();
-    grss_figure_of_merit_t theirs = ind->figure_of_merit;
-    grss_figure_of_merit_t mine = scoring->last_local_score;
-    pfr->remote_role = GrssOpcodeBecomeSecondary;
-
-    DEBUG_LOG("peer_find_role_handle_figure_of_merit. Mine:%x Theirs:%x", mine, theirs);
-
-    if (theirs > mine)
+    if (GRSS_FIGURE_OF_MERIT_INVALID == ind->figure_of_merit)
     {
-        pfr->remote_role = GrssOpcodeBecomePrimary;
+        DEBUG_LOG("peer_find_role_handle_figure_of_merit ignoring invalid fom 0x%x", ind->figure_of_merit);
     }
+    else
+    {
+        grss_figure_of_merit_t theirs = ind->figure_of_merit;
+        grss_figure_of_merit_t mine;
+        pfr->remote_role = GrssOpcodeBecomeSecondary;
 
-    GattRoleSelectionClientChangePeerRole(&pfr->role_selection_client,
-                                                pfr->remote_role);
-    peer_find_role_set_state(PEER_FIND_ROLE_STATE_AWAITING_CONFIRM);
+        TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_MERIT_RECEIVED);
+
+        peer_find_role_calculate_score();
+        mine = peer_find_role_score();
+
+        DEBUG_LOG("peer_find_role_handle_figure_of_merit. Mine:0x%x Theirs:0x%x", mine, theirs);
+
+        if (theirs > mine)
+        {
+            pfr->remote_role = GrssOpcodeBecomePrimary;
+        }
+
+        GattRoleSelectionClientChangePeerRole(&pfr->role_selection_client,
+                                                    pfr->remote_role);
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_AWAITING_CONFIRM);
+    }
 }
 
 
@@ -548,17 +602,10 @@ static void peer_find_role_handle_cancel_find_role(void)
 }
 
 
-/*! Helper function to update media status
-
-    When we set a media flag we queue a message to be sent when
-    we later go inactive.
-
-    \param busy Whether the mask is to be set or cleared
-    \param mask The bit mask to apply
- */
-static void peer_find_role_update_media_flag(bool busy, peerFindRoleMediaBusyStatus_t mask)
+void peer_find_role_update_media_flag(bool busy, peerFindRoleMediaBusyStatus_t mask)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    uint16 old_media_busy = pfr->media_busy;
 
     if (busy)
     {
@@ -575,7 +622,12 @@ static void peer_find_role_update_media_flag(bool busy, peerFindRoleMediaBusySta
         pfr->media_busy &= ~((uint16)mask);
     }
 
-    DEBUG_LOG("peer_find_role_update_media_flag. Now x%x. Scan:%p. State:%d", pfr->media_busy,pfr->scan, pfr->state);
+    if (   busy 
+        || (old_media_busy != pfr->media_busy))
+    {
+        DEBUG_LOG("peer_find_role_update_media_flag. Now 0x%x. Scan:%p. State:%d",
+                    pfr->media_busy, pfr->scan, pfr->state);
+    }
 
 }
 
@@ -621,8 +673,7 @@ static void peer_find_role_handle_connection_ind(const CON_MANAGER_CONNECTION_IN
     /* update score with handset connection status */
     if (!ind->ble && appDeviceIsHandset(&ind->bd_addr))
     {
-        pfr->scoring_info.handset_connected = ind->connected; 
-        peer_find_role_request_score_update();
+        pfr->scoring_info.handset_connected = ind->connected;
     }
 
     if (ind->ble && !ind->connected && BdaddrIsSame(&ind->bd_addr, &pfr->primary_addr))
@@ -630,7 +681,10 @@ static void peer_find_role_handle_connection_ind(const CON_MANAGER_CONNECTION_IN
         switch (peer_find_role_get_state())
         {
             case PEER_FIND_ROLE_STATE_CLIENT:
+            case PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION:
+            case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
             case PEER_FIND_ROLE_STATE_SERVER:
+            case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
             case PEER_FIND_ROLE_STATE_DECIDING:
             case PEER_FIND_ROLE_STATE_AWAITING_CONFIRM:
                 DEBUG_LOG("peer_find_role_handle_connection_ind. BLE disconnect");
@@ -655,9 +709,14 @@ static void peer_find_role_handle_connection_ind(const CON_MANAGER_CONNECTION_IN
                 }
                 break;
 
-            case PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT:
+            case PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER:
                 pfr->gatt_cid = 0;
-                peer_find_role_set_state(PEER_FIND_ROLE_STATE_INITIALISED);
+                peer_find_role_set_state(PEER_FIND_ROLE_STATE_COMPLETED);
+                break;
+
+            case PEER_FIND_ROLE_STATE_COMPLETED:
+                pfr->gatt_cid = 0;
+                peer_find_role_select_state_after_completion();
                 break;
 
             default:
@@ -701,7 +760,7 @@ static void peer_find_role_handle_telephony_event(MessageId id)
         case TELEPHONY_CALL_AUDIO_RENDERED_LOCAL:
         case APP_HFP_SCO_CONNECTED_IND:
         case APP_HFP_SCO_INCOMING_RING_IND:
-            DEBUG_LOG("peer_find_role_handle_telephony_event: %x(%d) setting flag", id, id&0xFF);
+            DEBUG_LOG("peer_find_role_handle_telephony_event: 0x%x(%d) setting flag", id, id&0xFF);
 
             peer_find_role_cancel_telephony_events();
             MessageSend(PeerFindRoleGetTask(), 
@@ -716,7 +775,7 @@ static void peer_find_role_handle_telephony_event(MessageId id)
         case TELEPHONY_DISCONNECTED:
         case TELEPHONY_CALL_AUDIO_RENDERED_REMOTE:
         case APP_HFP_SCO_INCOMING_ENDED_IND:
-            DEBUG_LOG("peer_find_role_handle_telephony_event: %x(%d) clearing flag", id, id&0xFF);
+            DEBUG_LOG("peer_find_role_handle_telephony_event: 0x%x(%d) clearing flag", id, id&0xFF);
 
             peer_find_role_cancel_telephony_events();
             MessageSendLater(PeerFindRoleGetTask(), 
@@ -766,7 +825,7 @@ static void peer_find_role_handle_streaming_event(MessageId id)
     {
         case AV_STREAMING_ACTIVE:
         case AV_STREAMING_ACTIVE_APTX:
-            DEBUG_LOG("peer_find_role_handle_streaming_event: %x(%d) setting flag", id, id&0xFF);
+            DEBUG_LOG("peer_find_role_handle_streaming_event: 0x%x(%d) setting flag", id, id&0xFF);
 
             peer_find_role_cancel_streaming_events();
             MessageSend(PeerFindRoleGetTask(), 
@@ -775,7 +834,7 @@ static void peer_find_role_handle_streaming_event(MessageId id)
 
         case AV_STREAMING_INACTIVE:
         case AV_DISCONNECTED:
-            DEBUG_LOG("peer_find_role_handle_streaming_event: %x(%d) clearing flag", id, id&0xFF);
+            DEBUG_LOG("peer_find_role_handle_streaming_event: 0x%x(%d) clearing flag", id, id&0xFF);
 
             peer_find_role_cancel_streaming_events();
             MessageSendLater(PeerFindRoleGetTask(), 
@@ -806,6 +865,7 @@ static void peer_find_role_handle_ble_security(const CL_DM_BLE_SECURITY_CFM_T *c
     else
     {
         DEBUG_LOG("peer_find_role_handle_ble_security. success");
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER);
     }
 }
 
@@ -867,9 +927,9 @@ static void peer_find_role_handle_advertising_backoff(void)
  */
 static void peer_find_role_handle_disconnect_timeout(void)
 {
-    if (PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT == peer_find_role_get_state())
+    if (PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER == peer_find_role_get_state())
     {
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_INITIALISED); 
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_COMPLETED);
     }
     else
     {
@@ -877,7 +937,84 @@ static void peer_find_role_handle_disconnect_timeout(void)
     }
 }
 
+static void peer_find_role_get_primary_as_tp_bdaddr(tp_bdaddr *primary)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+
+    primary->transport = TRANSPORT_BLE_ACL;
+    primary->taddr.type = TYPED_BDADDR_PUBLIC;
+    primary->taddr.addr = pfr->primary_addr;
+}
+
+static void peer_find_role_handle_con_manager_connection(const CON_MANAGER_TP_CONNECT_IND_T *conn)
+{
+    tp_bdaddr primary = {0};
+
+    DEBUG_LOG("peer_find_role_handle_con_manager_connection. 0x%06x Incoming:%d state:%d",
+                    conn->tpaddr.taddr.addr.lap, conn->incoming, peer_find_role_get_state());
+
+    if (conn->tpaddr.transport == TRANSPORT_BLE_ACL)
+    {
+        peer_find_role_get_primary_as_tp_bdaddr(&primary);
+
+        if (BdaddrTpIsSame(&conn->tpaddr,&primary))
+        {
+            /* Set the quality of service to use (effectively the speed 
+               of data exchange) */
+            ConManagerRequestDeviceQos(&conn->tpaddr, cm_qos_short_data_exchange);
+        }
+
+        if (   PEER_FIND_ROLE_STATE_CONNECTING_TO_DISCOVERED == peer_find_role_get_state()
+            && !conn->incoming)
+        {
+            peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION);
+
+            TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_CONNECTED_SERVER);
+        }
+    }
+}
+
+static void peer_find_role_handle_con_manager_disconnection(const CON_MANAGER_TP_DISCONNECT_IND_T *conn)
+{
+    UNUSED(conn);
+}
+
+static void peer_find_role_handle_le_scan_manager_start_cfm(const LE_SCAN_MANAGER_START_CFM_T* cfm)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    pfr->scan = NULL;
+    if(cfm->status == LE_SCAN_MANAGER_RESULT_SUCCESS)
+    {
+        pfr->scan = cfm->handle;
+        peer_find_role_scan_activity_set(PEER_FIND_ROLE_ACTIVE_SCANNING);
+    }    
+}
+
+static void peer_find_role_handle_prepared(void)
+{
+    PEER_FIND_ROLE_STATE state = peer_find_role_get_state();
+
+    DEBUG_LOG("peer_find_role_handle_prepared state 0x%x", state);
+
+    switch (state)
+    {
+    case PEER_FIND_ROLE_STATE_SERVER:
+        /* re-calculate the score and update the server characteristic */
+        peer_find_role_update_server_score();
+        break;
+
+    case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_DECIDING);
+        break;
+
+    default:
+        DEBUG_LOG("peer_find_role_handle_prepared unhandled");
+        break;
+    }
+}
+
 /*! @} */
+
 
 /*! The message handler for the \ref peer_find_role service
 
@@ -895,33 +1032,12 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
     switch (id)
     {
         /* ---- Advertising Manager messages ---- */
-        case APP_ADVMGR_ADVERT_SET_DATA_CFM:
-            peer_find_role_handle_advert_set_data_cfm((const APP_ADVMGR_ADVERT_SET_DATA_CFM_T *)message);
+        case LE_ADV_MGR_SELECT_DATASET_CFM:
+            peer_find_role_handle_adv_mgr_select_dataset_cfm((const LE_ADV_MGR_SELECT_DATASET_CFM_T *)message);
             break;
 
-        /* ---- GATT Manager messages ---- */
-        case GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM:
-            peer_find_role_handle_client_connect_cfm((const GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM_T *)message);
-            break;
-
-        case GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM:
-            peer_find_role_handle_server_connect_cfm((const GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM_T *)message);
-            break;
-
-        case GATT_MANAGER_CANCEL_REMOTE_CLIENT_CONNECT_CFM:
-            /* Don't really care about status, but we requested this - so report */
-            DEBUG_LOG("peer_find_role_handler. GATT_MANAGER_CANCEL_REMOTE_CLIENT_CONNECT_CFM sts:%d",
-                        ((GATT_MANAGER_CANCEL_REMOTE_CLIENT_CONNECT_CFM_T*)message)->status);
-
-            peer_find_role_activity_clear(PEER_FIND_ROLE_ACTIVE_ADVERTISING);
-            break;
-
-        case GATT_MANAGER_CANCEL_REMOTE_SERVER_CONNECT_CFM:
-            /* Don't really care about status, but we requested this - so report */
-            DEBUG_LOG("peer_find_role_handler. GATT_MANAGER_CANCEL_REMOTE_SERVER_CONNECT_CFM sts:%d",
-                        ((GATT_MANAGER_CANCEL_REMOTE_SERVER_CONNECT_CFM_T*)message)->status);
-
-            peer_find_role_activity_clear(PEER_FIND_ROLE_ACTIVE_CONNECTING);
+        case LE_ADV_MGR_RELEASE_DATASET_CFM:
+            peer_find_role_handle_adv_mgr_release_dataset_cfm((const LE_ADV_MGR_RELEASE_DATASET_CFM_T *)message);
             break;
 
         /* ---- GATT messages ---- */
@@ -981,6 +1097,14 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
         case CON_MANAGER_CONNECTION_IND:
             peer_find_role_handle_connection_ind((const CON_MANAGER_CONNECTION_IND_T *)message);
             break;
+        /* ---- Connection Manager messages ---- */
+        case CON_MANAGER_TP_CONNECT_IND:
+            peer_find_role_handle_con_manager_connection((const CON_MANAGER_TP_CONNECT_IND_T *)message);
+            break;
+            
+        case CON_MANAGER_TP_DISCONNECT_IND:
+            peer_find_role_handle_con_manager_disconnection((const CON_MANAGER_TP_DISCONNECT_IND_T *)message);
+            break;
 
         /* ---- HFP Profile messages ---- */
         case PAGING_START:
@@ -1019,7 +1143,7 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
 
         /* ---- Internal messages ---- */
         case PEER_FIND_ROLE_INTERNAL_UPDATE_SCORE:
-            peer_find_role_calculate_score();
+            peer_find_role_update_server_score();
             break;
 
         case PEER_FIND_ROLE_INTERNAL_CANCEL_FIND_ROLE:
@@ -1056,6 +1180,23 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
             peer_find_role_handle_disconnect_timeout();
             break;
 
+        case PEER_FIND_ROLE_INTERNAL_PREPARED:
+            peer_find_role_handle_prepared();
+            break;
+        
+         /* ---- LE SCAN Manager messages ---- */
+        case LE_SCAN_MANAGER_START_CFM:
+            DEBUG_LOG("peer_find_role_handler LE Scan Manager is Started!");
+            peer_find_role_handle_le_scan_manager_start_cfm((LE_SCAN_MANAGER_START_CFM_T*)message);
+            break;
+        
+        case LE_SCAN_MANAGER_STOP_CFM:
+            DEBUG_LOG("peer_find_role_handler LE Scan Manager is Stopped!");
+            break;
+
+        case LE_SCAN_MANAGER_ADV_REPORT_IND:
+            DEBUG_LOG("peer_find_role_handler Receiving LE Adverts!!!");
+            break;
         default:
             DEBUG_LOG("peer_find_role_handler. Unhandled message %d(0x%x)", id, id);
             break;
@@ -1078,6 +1219,107 @@ static void peer_find_role_gatt_role_selection_server_init(void)
     }
 }
 
+static unsigned int peer_find_role_NumberOfAdvItems(const le_adv_data_params_t * params)
+{
+    if((le_adv_data_set_peer == params->data_set) && \
+        (le_adv_data_completeness_full == params->completeness) && \
+        (le_adv_data_placement_advert == params->placement))
+        return NUMBER_OF_ADVERT_DATA_ITEMS;
+    else
+        return 0;
+}
+
+static le_adv_data_item_t peer_find_role_GetAdvDataItems(const le_adv_data_params_t * params, unsigned int id)
+{
+    UNUSED(id);
+
+    if((le_adv_data_set_peer == params->data_set) && \
+        (le_adv_data_completeness_full == params->completeness) && \
+        (le_adv_data_placement_advert == params->placement))
+        return peer_find_role_advert;
+    else
+    {
+        Panic();
+        return peer_find_role_advert;
+    };
+}
+
+static void peer_find_role_ReleaseAdvDataItems(const le_adv_data_params_t * params)
+{
+    UNUSED(params);
+
+    return;
+}
+
+static void peer_find_role_GattConnect(uint16 cid)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    PEER_FIND_ROLE_STATE state = peer_find_role_get_state();
+    tp_bdaddr tpaddr;
+
+    switch (state)
+    {
+        case PEER_FIND_ROLE_STATE_DISCOVER_CONNECTABLE:
+        case PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE:
+        case PEER_FIND_ROLE_STATE_CONNECTING_TO_DISCOVERED:
+            DEBUG_LOG("peer_find_role_GattConnect. client cid:0x%x state:%d", cid, state);
+
+            peer_find_role_advertising_activity_clear();
+
+            PanicFalse(VmGetBdAddrtFromCid(cid, &tpaddr));
+
+            if (BdaddrIsSame(&pfr->primary_addr, &tpaddr.taddr.addr))
+            {
+                pfr->gatt_cid = cid;
+                peer_find_role_set_state(PEER_FIND_ROLE_STATE_CLIENT);
+                
+                TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_CONNECTED_CLIENT);
+            }
+            else
+            {
+                peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVER);
+            }
+            break;
+
+        case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
+        case PEER_FIND_ROLE_STATE_SERVER:
+            DEBUG_LOG("peer_find_role_GattConnect. server cid:0x%x", cid);
+
+            PanicFalse(VmGetBdAddrtFromCid(cid, &tpaddr));
+
+            if (BdaddrIsSame(&pfr->primary_addr, &tpaddr.taddr.addr))
+            {
+                pfr->gatt_cid = cid;
+            }
+            break;
+
+        case PEER_FIND_ROLE_STATE_UNINITIALISED:
+        case PEER_FIND_ROLE_STATE_INITIALISED:
+            /* No point in debugging in these states.
+               Not able to unregister an observer */
+            break;
+
+        default:
+            DEBUG_LOG("peer_find_role_GattConnect. cid:0x%x. Not handled in state:%d", cid, state);
+            break;
+    }
+}
+
+static void peer_find_role_GattDisconnect(uint16 cid)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+
+    DEBUG_LOG("peer_find_role_GattDisconnect pfr->cid 0x%x cid 0x%x", pfr->gatt_cid, cid);
+
+    if (pfr)
+    {
+        if (pfr->gatt_cid == cid)
+        {
+            pfr->gatt_cid = 0;
+        }
+    }
+}
+
 bool PeerFindRole_Init(Task init_task)
 {
     UNUSED(init_task);
@@ -1089,14 +1331,24 @@ bool PeerFindRole_Init(Task init_task)
     
     peer_find_role_gatt_role_selection_server_init();
 
-    /* track disconnections */
+    /* track connections */
     ConManagerRegisterConnectionsClient(PeerFindRoleGetTask());
     ConManagerRequestDefaultQos(cm_transport_ble, cm_qos_low_latency);
+    ConManagerRegisterTpConnectionsObserver(cm_transport_ble, PeerFindRoleGetTask());
+    GattConnect_UpdateMinAcceptableMtu(PeerFindRoleConfigMtu());
+    GattConnect_RegisterObserver(&peer_find_role_connect_callback);
 
     /* track streaming activities */
     appAvStatusClientRegister(PeerFindRoleGetTask());
     appHfpStatusClientRegister(PeerFindRoleGetTask());
     Telephony_RegisterForMessages(PeerFindRoleGetTask());
+    
+        /* setup advertising */
+    peer_find_role_advert.size = SIZE_PEER_FIND_ROLE_ADVERT;
+    peer_find_role_advert.data = peer_find_role_advert_data;
+    LeAdvertisingManager_Register(NULL, &peer_find_role_advert_callback);
+
+    TaskList_Initialise(&peer_find_role.prepare_tasks);
 
     peer_find_role_set_state(PEER_FIND_ROLE_STATE_INITIALISED);
 
@@ -1106,4 +1358,3 @@ bool PeerFindRole_Init(Task init_task)
 
     return TRUE;
 }
-

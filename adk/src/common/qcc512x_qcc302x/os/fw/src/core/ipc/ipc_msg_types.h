@@ -33,6 +33,7 @@ typedef enum
     IPC_MSG_TYPE_NFC                   = 12,
     IPC_MSG_TYPE_AUDIO                 = 13,
     IPC_MSG_TYPE_BITSERIAL             = 14,
+    IPC_MSG_TYPE_SDM                   = 15,
     NUM_IPC_MSG_TYPES
 } IPC_MSG_TYPE;
 

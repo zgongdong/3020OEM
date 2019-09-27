@@ -110,9 +110,15 @@ Functions</h2></td></tr>
 <tr class="memitem:gaf8cd14866d9f0215eb1a9f5d617e1ddb"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__rfcomm.html#gaf8cd14866d9f0215eb1a9f5d617e1ddb">SinkGetRfcommConnId</a> (<a class="el" href="sink___8h.html#a250a23fcb6a29255bb2526a002d691b2">Sink</a> sink)</td></tr>
 <tr class="memdesc:gaf8cd14866d9f0215eb1a9f5d617e1ddb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the RFCOMM connection corresponding to a sink.  <a href="#gaf8cd14866d9f0215eb1a9f5d617e1ddb">More...</a><br /></td></tr>
 <tr class="separator:gaf8cd14866d9f0215eb1a9f5d617e1ddb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab0e0e6d795f2b6c7736a074d7d6a1a75"><td class="memItemLeft" align="right" valign="top">uint8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__rfcomm.html#gab0e0e6d795f2b6c7736a074d7d6a1a75">SinkGetRfcommServerChannel</a> (<a class="el" href="sink___8h.html#a250a23fcb6a29255bb2526a002d691b2">Sink</a> sink)</td></tr>
+<tr class="memdesc:gab0e0e6d795f2b6c7736a074d7d6a1a75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the RFCOMM server channel corresponding to a sink.  <a href="#gab0e0e6d795f2b6c7736a074d7d6a1a75">More...</a><br /></td></tr>
+<tr class="separator:gab0e0e6d795f2b6c7736a074d7d6a1a75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabcedc6d333993a8f002093a9d8db6a74"><td class="memItemLeft" align="right" valign="top"><a class="el" href="sink___8h.html#a250a23fcb6a29255bb2526a002d691b2">Sink</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__rfcomm.html#gabcedc6d333993a8f002093a9d8db6a74">StreamRfcommSink</a> (uint16 conn_id)</td></tr>
 <tr class="memdesc:gabcedc6d333993a8f002093a9d8db6a74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the Sink corresponding to an RFCOMM connection.  <a href="#gabcedc6d333993a8f002093a9d8db6a74">More...</a><br /></td></tr>
 <tr class="separator:gabcedc6d333993a8f002093a9d8db6a74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga33863fe695ee18e84eb41c3769d7f6a7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="sink___8h.html#a250a23fcb6a29255bb2526a002d691b2">Sink</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__rfcomm.html#ga33863fe695ee18e84eb41c3769d7f6a7">StreamRfcommSinkFromServerChannel</a> (const <a class="el" href="structtp__bdaddr.html">tp_bdaddr</a> *tpaddr, uint8 server_channel)</td></tr>
+<tr class="memdesc:ga33863fe695ee18e84eb41c3769d7f6a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the Sink corresponding to an RFCOMM server connection with remote device.  <a href="#ga33863fe695ee18e84eb41c3769d7f6a7">More...</a><br /></td></tr>
+<tr class="separator:ga33863fe695ee18e84eb41c3769d7f6a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6a1e8a83ba424fdb3b117c5fa6f13d21"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__rfcomm.html#ga6a1e8a83ba424fdb3b117c5fa6f13d21">VmSendRfcommPrim</a> (void *prim)</td></tr>
 <tr class="memdesc:ga6a1e8a83ba424fdb3b117c5fa6f13d21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sends an RFCOMM Bluestack primitive.  <a href="#ga6a1e8a83ba424fdb3b117c5fa6f13d21">More...</a><br /></td></tr>
 <tr class="separator:ga6a1e8a83ba424fdb3b117c5fa6f13d21"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -146,6 +152,31 @@ This trap may NOT be called from a high-priority task handler </dd></dl>
 
 </div>
 </div>
+<a class="anchor" id="gab0e0e6d795f2b6c7736a074d7d6a1a75"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8 SinkGetRfcommServerChannel </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="sink___8h.html#a250a23fcb6a29255bb2526a002d691b2">Sink</a>&#160;</td>
+          <td class="paramname"><em>sink</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Find the RFCOMM server channel corresponding to a sink. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">sink</td><td>The Sink to get the RFCOMM server channel for.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="gabcedc6d333993a8f002093a9d8db6a74"></a>
 <div class="memitem">
 <div class="memproto">
@@ -161,6 +192,42 @@ This trap may NOT be called from a high-priority task handler </dd></dl>
 </div><div class="memdoc">
 
 <p>Find the Sink corresponding to an RFCOMM connection. </p>
+<dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga33863fe695ee18e84eb41c3769d7f6a7"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="sink___8h.html#a250a23fcb6a29255bb2526a002d691b2">Sink</a> StreamRfcommSinkFromServerChannel </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="structtp__bdaddr.html">tp_bdaddr</a> *&#160;</td>
+          <td class="paramname"><em>tpaddr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8&#160;</td>
+          <td class="paramname"><em>server_channel</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Find the Sink corresponding to an RFCOMM server connection with remote device. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">tpaddr</td><td>Bluetooth address of remote device. </td></tr>
+    <tr><td class="paramname">server_channel</td><td>The RFCOMM server channel associated with remote device</td></tr>
+  </table>
+  </dd>
+</dl>
 <dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
 
 </div>

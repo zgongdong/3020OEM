@@ -43,12 +43,6 @@
                     state_proxy_event_type_handset_linkloss)
 
 /*! Optional state proxy events to register, feature specific */
-#ifdef INCLUDE_SHADOWING
-#define appConfigStateProxyRegisteredEventsOptional()           \
-                   (state_proxy_event_type_link_quality |       \
-                    state_proxy_event_type_mic_quality)
-#else
 #define appConfigStateProxyRegisteredEventsOptional() 0
-#endif
 
 #endif /* EARBUD_CONFIG_H_ */

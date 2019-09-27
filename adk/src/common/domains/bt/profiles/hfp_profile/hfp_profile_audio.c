@@ -155,7 +155,7 @@ static void hfpProfile_FreeDisconnectParameters(voice_source_t source, source_de
 static bool hfpProfile_IsAudioActive(voice_source_t source)
 {
     bool is_active = FALSE;
-    if(source == voice_source_hfp_1 && (appHfpIsScoActive() || ScoFwdIsStreaming() || ShadowProfile_IsEscoActive()))
+    if(source == voice_source_hfp_1 && (appHfpIsScoActive() || ScoFwdIsStreaming()))
     {
         is_active = TRUE;
     }

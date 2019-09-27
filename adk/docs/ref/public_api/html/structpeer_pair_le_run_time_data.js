@@ -1,6 +1,6 @@
 var structpeer_pair_le_run_time_data =
 [
-    [ "advert", "structpeer_pair_le_run_time_data.html#ae5502eee54a6319dfeeb8f03d2f93599", null ],
+    [ "advert_handle", "structpeer_pair_le_run_time_data.html#ae473d4794d7c5cd63e1c40f17fe9a3d2", null ],
     [ "client", "structpeer_pair_le_run_time_data.html#a937b1793b3c1d1048e866e777bb1bb6b", null ],
     [ "find_pending", "structpeer_pair_le_run_time_data.html#afa741c8c676841c7ec436fd7b4f07d5b", null ],
     [ "gatt_cid", "structpeer_pair_le_run_time_data.html#ad40fb82df18edf3d431ca805513ceb20", null ],

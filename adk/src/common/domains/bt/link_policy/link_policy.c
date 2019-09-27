@@ -21,7 +21,7 @@
 #include <sink.h>
 
 #include "link_policy_config.h"
-#include "av_types.h"
+#include "av_typedef.h"
 #include "av.h"
 
 #include <app/bluestack/dm_prim.h>
@@ -120,7 +120,7 @@ static const lp_power_table powertable_twsplus_peer_streaming[]=
 static const lp_power_table powertable_peer_shadowing[]=
 {
     /* mode,        min_interval, max_interval, attempt, timeout, duration */
-    {lp_sniff,      48,           64,           2,       4,       0}   /* Enter sniff mode*/
+    {lp_sniff,      50,           50,           3,       2,       0}   /* Enter sniff mode*/
 };
 
 /*! \cond helper */
@@ -231,13 +231,6 @@ void appLinkPolicyUpdatePowerTable(const bdaddr *bd_addr)
         sink = appHfpGetSink();
     }
 #endif
-#ifdef INCLUDE_SHADOWING
-    if (is_peer)
-    {
-        pt_index = POWERTABLE_PEER_SHADOWING;
-        sink = appPeerSigGetSink();
-    }
-#endif
 #ifdef INCLUDE_AV
     if (pt_index == POWERTABLE_UNASSIGNED)
     {
@@ -337,6 +330,29 @@ void appLinkPolicyAlwaysMaster(const bdaddr *bd_addr)
     prim->operation = DM_LP_WRITE_ALWAYS_MASTER_DEVICES_ADD;
     VmSendDmPrim(prim);
     DEBUG_LOG("appLinkPolicyAlwaysMaster");
+}
+
+void appLinkPolicyHandleAddressSwap(void)
+{
+    typed_bdaddr bd_addr_primary = {.type = TYPED_BDADDR_PUBLIC, .addr = {0}};
+    typed_bdaddr bd_addr_secondary = {.type = TYPED_BDADDR_PUBLIC, .addr= {0}};
+
+    PanicFalse(appDeviceGetPrimaryBdAddr(&bd_addr_primary.addr));
+    PanicFalse(appDeviceGetSecondaryBdAddr(&bd_addr_secondary.addr));
+    PanicFalse(!BdaddrIsSame(&bd_addr_primary.addr, &bd_addr_secondary.addr));
+
+#ifdef INCLUDE_SM_PRIVACY_1P2
+    ConnectionDmUlpSetPrivacyModeReq(&bd_addr_primary, privacy_mode_device);
+    ConnectionDmUlpSetPrivacyModeReq(&bd_addr_secondary, privacy_mode_device);
+#endif
+
+    appLinkPolicyAlwaysMaster(&bd_addr_secondary.addr);
+
+    /* By default, BR/EDR secure connections is disabled. TWS Shadowing
+    requires the link between the two earbuds to have BR/EDR secure connections
+    enabled, so selectively enable SC for connections to the other earbud */
+    appLinkPolicyBredrSecureConnectionHostSupportOverrideEnable(&bd_addr_primary.addr);
+    appLinkPolicyBredrSecureConnectionHostSupportOverrideEnable(&bd_addr_secondary.addr);
 }
 
 /*! \brief Initialise link policy manager

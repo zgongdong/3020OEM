@@ -14,6 +14,7 @@
 #include <app/bluestack/dm_prim.h>
 
 #include <bt_device.h>
+#include <connection_manager.h>
 #include <gatt_role_selection_server_uuids.h>
 
 #include "peer_find_role_sm.h"
@@ -21,7 +22,49 @@
 #include "peer_find_role_config.h"
 #include "peer_find_role_init.h"
 
+#include "timestamp_event.h"
+
 #define MAKE_PRIM_C(TYPE) MESSAGE_MAKE(prim,TYPE##_T); prim->common.op_code = TYPE; prim->common.length = sizeof(TYPE##_T);
+
+/*! Indicate whether advertising can be running in a state
+
+    \param state The state to check for advertising mode
+
+    \return TRUE if advertising can take place in the state, FALSE otherwise */
+static bool peer_find_role_advertising_state(PEER_FIND_ROLE_STATE state)
+{
+    switch (state)
+    {
+        case PEER_FIND_ROLE_STATE_DISCOVER_CONNECTABLE:
+        case PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE:
+        case PEER_FIND_ROLE_STATE_CONNECTING_TO_DISCOVERED:
+            return TRUE;
+
+            /* Cover all cases so we can have a panic should
+               states be updated later */
+        case PEER_FIND_ROLE_STATE_UNINITIALISED:
+        case PEER_FIND_ROLE_STATE_INITIALISED:
+        case PEER_FIND_ROLE_STATE_CHECKING_PEER:
+        case PEER_FIND_ROLE_STATE_DISCOVER:
+        case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
+        case PEER_FIND_ROLE_STATE_CLIENT:
+        case PEER_FIND_ROLE_STATE_SERVER:
+        case PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION:
+        case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
+        case PEER_FIND_ROLE_STATE_DECIDING:
+        case PEER_FIND_ROLE_STATE_AWAITING_CONFIRM:
+        case PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER:
+        case PEER_FIND_ROLE_STATE_COMPLETED:
+            break;
+
+        default:
+            DEBUG_LOG("peer_find_role_advertising_state. Unhandled state %d",state);
+            Panic();
+            break;
+    }
+    return FALSE;
+}
+
 
 /*! Internal function for entering the state #PEER_FIND_ROLE_STATE_INITIALISED
 
@@ -34,26 +77,29 @@ static void peer_find_role_enter_initialised(void)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    uint16 cid = pfr->gatt_cid;
-    pfr->gatt_cid = 0;
-    pfr->gatt_encrypted = FALSE;
+    bool disconnected = peer_find_role_disconnect_link();
+    bool keep_going = peer_find_role_awaiting_primary_completion();
 
-    if (cid)
-    {
-        DEBUG_LOG("peer_find_role_enter_initialised. Disconnecting cid:%d", cid);
+    peer_find_role_update_media_flag(FALSE, PEER_FIND_ROLE_CONFIRMING_PRIMARY);
 
-        /*! \todo We don't get an explicit disconnect ind. Goes to gatt handler
-                Connection Manager changes may now give us something better */
-        GattManagerDisconnectRequest(cid);
-    }
-    else if (pfr->timeout_means_timeout)
+    if (!disconnected)
     {
-        peer_find_role_notify_timeout();
+        if (pfr->timeout_means_timeout)
+        {
+            peer_find_role_notify_timeout();
+        }
+        else
+        {
+            peer_find_role_notify_clients_if_pending();
+        }
+
+        if (keep_going)
+        {
+            peer_find_role_update_media_flag(TRUE, PEER_FIND_ROLE_CONFIRMING_PRIMARY);
+            peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVER);
+        }
     }
-    else
-    {
-        peer_find_role_notify_clients_if_pending();
-    }
+
 }
 
 
@@ -81,17 +127,6 @@ static void peer_find_role_enter_checking_peer(void)
     {
         if (appDeviceGetMyBdAddr(&pfr->my_addr))
         {
-#ifdef INCLUDE_SM_PRIVACY_1P2
-                /* See BT spec documentation of the LE set privacy mode command.
-                Setting device privacy mode means the local controller will accept
-                both RPA and identity addresses from the remote controller. This
-                is opposed to network privacy mode, where only RPA will be accepted. */
-                MAKE_PRIM_C(DM_HCI_ULP_SET_PRIVACY_MODE_REQ);
-                prim->peer_identity_address_type = TYPED_BDADDR_PUBLIC;
-                BdaddrConvertVmToBluestack(&prim->peer_identity_address, &pfr->primary_addr);
-                prim->privacy_mode = 1; /* Device privacy mode */
-                VmSendDmPrim(prim);
-#endif
             peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVER);
             return;
         }
@@ -174,16 +209,10 @@ static void peer_find_role_start_scanning_if_inactive(void)
         filter.interval = filter.size_pattern = sizeof(uuid);
         filter.pattern = (uint8*)&uuid;
 
-        peer_find_role_activity_set(PEER_FIND_ROLE_ACTIVE_SCANNING);
+        peer_find_role_scan_activity_set(PEER_FIND_ROLE_ACTIVE_SCANNING);
 
         /*! \todo Try filtering */
-        pfr->scan = LeScanManager_Start(le_scan_interval_fast, &filter);
-        if (NULL == pfr->scan)
-        {
-            DEBUG_LOG("peer_find_role_enter_discover. Unable to acquire scan");
-            /*! \todo Panic during development only */
-            Panic();
-        }
+        LeScanManager_Start(PeerFindRoleGetTask(),le_scan_interval_fast, &filter);
     }
 }
 
@@ -232,37 +261,19 @@ static void peer_find_role_enter_discover(PEER_FIND_ROLE_STATE old_state)
 static void peer_find_role_enter_discover_connectable(void)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-    uint16 uuid = UUID_ROLE_SELECTION_SERVICE;
-    ble_adv_params_t    adv_params;
+    const le_adv_select_params_t adv_select_params = {.set = le_adv_data_set_peer};
 
     DEBUG_LOG("peer_find_role_enter_discover_connectable");
+    
+    TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_DISCOVERING_CONNECTABLE);
 
     /* This is necessary as media may have stopped between entering
         discover state and arriving here */
     peer_find_role_start_scanning_if_inactive();
 
-    pfr->advert = AdvertisingManager_NewAdvert();
-    if (NULL == pfr->advert)
-    {
-        DEBUG_LOG("peer_find_role_enter_discover_connectable. Unable to acquire advert");
-        /*! \todo Panic during development only */
-        Panic();
-    }
+    pfr->advert_handle = LeAdvertisingManager_SelectAdvertisingDataSet(PeerFindRoleGetTask(), &adv_select_params);
 
-    peer_find_role_activity_set(PEER_FIND_ROLE_ACTIVE_ADVERTISING);
-
-    AdvertisingManager_SetService(pfr->advert, uuid);
-    AdvertisingManager_SetAdvertisingType(pfr->advert, ble_adv_ind);
-    
-    adv_params.undirect_adv.filter_policy = ble_filter_none;
-    adv_params.undirect_adv.adv_interval_min = PeerFindRoleConfigMinimumAdvertisingInterval();
-    adv_params.undirect_adv.adv_interval_max = PeerFindRoleConfigMaximumAdvertisingInterval();
-
-    AdvertisingManager_SetAdvertParams(pfr->advert, &adv_params);
-
-        /* Want to use connectable advertising, so just set data 
-           And we get a message back */
-    AdvertisingManager_SetAdvertData(pfr->advert, PeerFindRoleGetTask());
+    peer_find_role_advertising_activity_set();
 }
 
 
@@ -274,20 +285,16 @@ static void peer_find_role_enter_discover_connectable(void)
  */
 static void peer_find_role_enter_connecting_to_discovered(void)
 {
-    typed_bdaddr tb;
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-
+    tp_bdaddr tp_addr;
+    
     DEBUG_LOG("peer_find_role_enter_connecting_to_discovered");
 
-    tb.type = TYPED_BDADDR_PUBLIC;
-    tb.addr = pfr->primary_addr;
+    tp_addr.transport = TRANSPORT_BLE_ACL;
+    tp_addr.taddr.type = TYPED_BDADDR_PUBLIC;
+    tp_addr.taddr.addr = pfr->primary_addr;
 
-    GattManagerConnectAsCentral(PeerFindRoleGetTask(),
-                                &tb,
-                                gatt_connection_ble_master_directed,
-                                TRUE);
-
-    peer_find_role_activity_set(PEER_FIND_ROLE_ACTIVE_CONNECTING);
+    ConManagerCreateTpAcl(&tp_addr);
 }
 
 
@@ -297,9 +304,9 @@ void peer_find_role_stop_scan_if_active(void)
 
     if (pfr->scan)
     {
-        LeScanManager_Stop(pfr->scan);
+        LeScanManager_Stop(PeerFindRoleGetTask(),pfr->scan);
         pfr->scan = NULL;
-        peer_find_role_activity_clear(PEER_FIND_ROLE_ACTIVE_SCANNING);
+        peer_find_role_scan_activity_clear(PEER_FIND_ROLE_ACTIVE_SCANNING);
     }
 }
 
@@ -345,6 +352,24 @@ static void peer_find_role_exit_discover(PEER_FIND_ROLE_STATE new_state)
 }
 
 
+/*! Internal function for exiting advertising states
+
+    This function terminates advertising (if active)
+ */
+static void peer_find_role_exit_advertising_state(void)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+
+    DEBUG_LOG("peer_find_role_exit_advertising_state");
+
+    if (pfr->advert_handle)
+    {
+        LeAdvertisingManager_ReleaseAdvertisingDataSet(pfr->advert_handle);
+        pfr->advert_handle = NULL;
+    }
+}
+
+
 /*! Internal function for exiting the state #PEER_FIND_ROLE_STATE_DISCOVER_CONNECTABLE
 
     In this state we may have been scanning and will have been advertising.
@@ -354,31 +379,9 @@ static void peer_find_role_exit_discover(PEER_FIND_ROLE_STATE new_state)
  */
 static void peer_find_role_exit_discover_connectable(PEER_FIND_ROLE_STATE new_state)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-
     DEBUG_LOG("peer_find_role_exit_discover_connectable - next state:%d",new_state);
 
     peer_find_role_stop_scan_if_active();
-
-    switch (new_state)
-    {
-        case PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE:
-            DEBUG_LOG("peer_find_role_exit_discover_connectable - next state:PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE");
-            break;
-
-        case PEER_FIND_ROLE_STATE_CLIENT:
-            break;
-
-        default:
-            break;
-    }
-
-    GattManagerCancelWaitForRemoteClient();
-    if (pfr->advert)
-    {
-        AdvertisingManager_DeleteAdvert(pfr->advert);
-        pfr->advert = FALSE;
-    }
 }
 
 
@@ -394,6 +397,8 @@ static void peer_find_role_exit_discover_connectable(PEER_FIND_ROLE_STATE new_st
 static void peer_find_role_enter_discovered_device(void)
 {
     DEBUG_LOG("peer_find_role_enter_discovered_device");
+
+    TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_DISCOVERED_DEVICE);
 
     /* cancel the timeout, now that peer has been seen */
     peer_find_role_cancel_initial_timeout();
@@ -427,23 +432,40 @@ static void peer_find_role_exit_discovered_device(void)
  */
 static void peer_find_role_exit_connecting_to_discovered(PEER_FIND_ROLE_STATE new_state)
 {
-    if (new_state != PEER_FIND_ROLE_STATE_SERVER)
-    {
-        DEBUG_LOG("peer_find_role_exit_connecting_to_discovered. Cancelling server connection");
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    tp_bdaddr tp_addr;
 
-        GattManagerCancelConnectToRemoteServer(PeerFindRoleGetTask());
+    switch (new_state)
+    {
+            /* Normal case as server */
+        case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
+            /* Client case. Connection established when we were trying to make */ 
+        case PEER_FIND_ROLE_STATE_CLIENT:
+            break;
+
+        default:
+            {
+                DEBUG_LOG("peer_find_role_exit_connecting_to_discovered. Cancelling server connection");
+
+                tp_addr.transport = TRANSPORT_BLE_ACL;
+                tp_addr.taddr.type = TYPED_BDADDR_PUBLIC;
+                tp_addr.taddr.addr = pfr->primary_addr;
+                
+                ConManagerReleaseTpAcl(&tp_addr);
+            }
+            break;
     }
 }
 
 
-/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT
+/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER
 
     On entering the state we start a timer #PEER_FIND_ROLE_INTERNAL_TIMEOUT_NOT_DISCONNECTED
     is started. Expiry of this would force a disconnection.
  */
-static void peer_find_role_enter_awaiting_disconnect(void)
+static void peer_find_role_enter_awaiting_completion_server(void)
 {
-    DEBUG_LOG("peer_find_role_enter_awaiting_disconnect");
+    DEBUG_LOG("peer_find_role_enter_awaiting_completion_server");
 
     MessageSendLater(PeerFindRoleGetTask(), 
                      PEER_FIND_ROLE_INTERNAL_TIMEOUT_NOT_DISCONNECTED, NULL,
@@ -451,15 +473,15 @@ static void peer_find_role_enter_awaiting_disconnect(void)
 }
 
 
-/*! Internal function for exiting the state #PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT
+/*! Internal function for exiting the state #PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER
 
     As we have now left the state we cancel the message that 
     forces a disconnect if the connection has not already been 
     dropped 
  */
-static void peer_find_role_exit_awaiting_disconnect(void)
+static void peer_find_role_exit_awaiting_completion_server(void)
 {
-    DEBUG_LOG("peer_find_role_exit_awaiting_disconnect");
+    DEBUG_LOG("peer_find_role_exit_awaiting_completion_server");
 
     MessageCancelAll(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_TIMEOUT_NOT_DISCONNECTED);
 }
@@ -487,6 +509,25 @@ static void peer_find_role_enter_client(void)
                                       gatt_uuid16, &uuid);
 }
 
+/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION
+
+    On entering the state we request security.
+ */
+static void peer_find_role_enter_server_awaiting_encryption(void)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    typed_bdaddr tb;
+    
+    tb.addr = pfr->primary_addr;
+    tb.type = TYPED_BDADDR_PUBLIC;
+
+    DEBUG_LOG("peer_find_role_enter_server_awaiting_encryption 0x%06x", tb.addr.lap);
+
+    ConnectionDmBleSecurityReq(PeerFindRoleGetTask(), &tb,
+                               ble_security_encrypted_bonded, 
+                               ble_connection_master_directed);
+}
+
 
 /*! Internal function for entering the state #PEER_FIND_ROLE_STATE_SERVER
 
@@ -494,18 +535,20 @@ static void peer_find_role_enter_client(void)
  */
 static void peer_find_role_enter_server(void)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-    tp_bdaddr tb;
+    DEBUG_LOG("peer_find_role_enter_server");
 
-    PanicFalse(VmGetBdAddrtFromCid(pfr->gatt_cid, &tb));
-
-    DEBUG_LOG("peer_find_role_enter_server 0x%06x Transp:LE%d Type:Public:%d", tb.taddr.addr.lap,
-                                        tb.transport == TRANSPORT_BLE_ACL,
-                                        tb.taddr.type == TYPED_BDADDR_PUBLIC);
-
-    ConnectionDmBleSecurityReq(PeerFindRoleGetTask(), &tb.taddr, 
-                               ble_security_encrypted_bonded, 
-                               ble_connection_master_directed);
+    if (peer_find_role_prepare_client_registered())
+    {
+        /* Set the server score to "invalid" until this device is prepared
+            and ready to calculate its score. */
+        peer_find_role_reset_server_score();
+        peer_find_role_request_prepare_for_role_selection();
+    }
+    else
+    {
+        /* No PREPARE client registered so immediately calculate the score. */
+        peer_find_role_update_server_score();
+    }
 }
 
 
@@ -520,6 +563,27 @@ static void peer_find_role_enter_awaiting_encryption(void)
     DEBUG_LOG("peer_find_role_enter_awaiting_encryption");
 
     if (pfr->gatt_encrypted)
+    {
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_CLIENT_PREPARING);
+    }
+}
+
+
+/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_CLIENT_PREPARING
+
+    On entering the state we check if there is a client registered for 
+    PEER_FIND_ROLE_PREPARE_FOR_ROLE_SELECTION indication. If not, go
+    straight to DECIDING state.
+ */
+static void peer_find_role_enter_client_preparing(void)
+{
+    DEBUG_LOG("peer_find_role_enter_client_preparing client %d", peer_find_role_prepare_client_registered());
+
+    if (peer_find_role_prepare_client_registered())
+    {
+        peer_find_role_request_prepare_for_role_selection();
+    }
+    else
     {
         peer_find_role_set_state(PEER_FIND_ROLE_STATE_DECIDING);
     }
@@ -537,7 +601,20 @@ static void peer_find_role_enter_deciding(void)
 
     DEBUG_LOG("peer_find_role_enter_deciding");
 
-    GattRoleSelectionClientReadFigureOfMerit(&pfr->role_selection_client);
+    TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_DECIDING_ROLES);
+
+    /* No PREPARE client registered so immediately register for server notifications. */
+    PanicFalse(GattRoleSelectionClientEnablePeerFigureOfMeritNotifications(&pfr->role_selection_client));
+}
+
+
+static void peer_find_role_enter_completed(void)
+{
+    /* If link disconnection not initiated jump to next state */
+    if (!peer_find_role_disconnect_link())
+    {
+        peer_find_role_select_state_after_completion();
+    }
 }
 
 
@@ -557,7 +634,7 @@ void peer_find_role_set_state(PEER_FIND_ROLE_STATE new_state)
 
     DEBUG_LOG("peer_find_role_set_state. Transition %d->%d. Busy flags were:0x%x",
                 old_state, new_state,
-                PeerFindRoleGetBusy());
+                PeerFindRoleGetScanBusy());
 
     /* Pattern is to run functions for exiting state first */
     switch (old_state)
@@ -578,12 +655,19 @@ void peer_find_role_set_state(PEER_FIND_ROLE_STATE new_state)
             peer_find_role_exit_connecting_to_discovered(new_state);
             break;
 
-        case PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT:
-            peer_find_role_exit_awaiting_disconnect();
+        case PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER:
+            peer_find_role_exit_awaiting_completion_server();
             break;
 
         default:
             break;
+    }
+
+    /* Check for any transitions between "super states" */
+    if (    peer_find_role_advertising_state(old_state)
+        && !peer_find_role_advertising_state(new_state))
+    {
+        peer_find_role_exit_advertising_state();
     }
 
     pfr->state = new_state;
@@ -622,20 +706,31 @@ void peer_find_role_set_state(PEER_FIND_ROLE_STATE new_state)
             peer_find_role_enter_server();
             break;
 
-        case PEER_FIND_ROLE_STATE_AWAITING_ENCRYPTION:
+        case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
+            peer_find_role_enter_server_awaiting_encryption();
+            break;
+
+        case PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION:
             peer_find_role_enter_awaiting_encryption();
+            break;
+
+        case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
+            peer_find_role_enter_client_preparing();
             break;
 
         case PEER_FIND_ROLE_STATE_DECIDING:
             peer_find_role_enter_deciding();
             break;
 
-        case PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT:
-            peer_find_role_enter_awaiting_disconnect();
+        case PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER:
+            peer_find_role_enter_awaiting_completion_server();
+            break;
+
+        case PEER_FIND_ROLE_STATE_COMPLETED:
+            peer_find_role_enter_completed();
             break;
 
         default:
             break;
     }
 }
-

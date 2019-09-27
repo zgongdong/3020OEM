@@ -27,9 +27,19 @@ void ShadowProfile_SendHfpVolumeToSecondary(uint8 volume);
     This is called by the Primary to forward the local HFP codec_mode
     to the Secondary.
 
-    \param volume HFP codec_mode to forward on.
+    \param codec_code HFP codec_mode to forward on.
+    \param volume HFP volume to forward on.
 */
-void ShadowProfile_SendHfpCodecToSecondary(hfp_codec_mode_t codec_mode);
+void ShadowProfile_SendHfpCodecAndVolumeToSecondary(hfp_codec_mode_t codec_mode, uint8 volume);
+
+/*! \brief Send current A2DP volume to the Secondary.
+
+    This is called by the Primary to forward on any change to the local A2DP
+    volume to the Secondary.
+
+    \param volume A2DP volume to forward on.
+*/
+void ShadowProfile_SendA2dpVolumeToSecondary(uint8 volume);
 
 /*! \brief Send stored A2DP media stream context to the Secondary.
 

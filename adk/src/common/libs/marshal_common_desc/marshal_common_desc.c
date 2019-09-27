@@ -82,7 +82,7 @@ const marshal_type_descriptor_t mtd_tp_bdaddr = MAKE_MARSHAL_TYPE_DEFINITION(tp_
                                                                              mmd_tp_bdaddr);
 
 /* Read/Write callbacks for marshalling L2CAP Sink */
-static const marshal_readwrite_cb read_write_cb_L2capSink[2] =
+static const marshal_custom_copy_cbs read_write_cb_L2capSink =
 {
     convertL2capCidToSink,
     convertSinkToL2capCid
@@ -90,7 +90,7 @@ static const marshal_readwrite_cb read_write_cb_L2capSink[2] =
 
 const marshal_type_descriptor_t mtd_L2capSink =
 {
-    {.read_write_cb = &read_write_cb_L2capSink},            /* Callbacks */
+    {.custom_copy_cbs = &read_write_cb_L2capSink},          /* Callbacks */
     sizeof(Sink),                                           /* Although CID (uint16) would be marshalled,
                                                                allocation at the unmarshaller needs to be
                                                                able to hold Sink */

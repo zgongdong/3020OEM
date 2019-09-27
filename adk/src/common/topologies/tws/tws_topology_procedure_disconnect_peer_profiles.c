@@ -14,6 +14,7 @@
 
 #include <bt_device.h>
 #include <peer_signalling.h>
+#include <handover_profile.h>
 #include <scofwd_profile.h>
 #include <av.h>
 #include <connection_manager.h>
@@ -89,6 +90,11 @@ static void twsTopology_ProcedureDisconnectPeerProfilesStopProfile(uint8 profile
     {
         DEBUG_LOG("twsTopology_ProcedureDisconnectPeerProfilesStopProfile PEERSIG");
         appPeerSigDisconnect(TwsTopProcDisconnectPeerProfilesGetTask());
+    }
+    if (profiles & DEVICE_PROFILE_HANDOVER)
+    {
+        DEBUG_LOG("twsTopology_ProcedureDisconnectPeerProfilesStopProfile HANDPVER");
+        HandoverProfile_Disconnect(TwsTopProcDisconnectPeerProfilesGetTask());
     }
 }
 

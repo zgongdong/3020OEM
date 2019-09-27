@@ -15,6 +15,7 @@ var searchData=
   ['codec_5f_2eh',['codec_.h',['../codec___8h.html',1,'']]],
   ['codecsetiirfilter',['CodecSetIirFilter',['../group__trapset__iir.html#ga3d4189fa50d2ce0d7456cf3c09cffa8c',1,'codec_.h']]],
   ['codecsetiirfilter16bit',['CodecSetIirFilter16Bit',['../group__trapset__iir16bit.html#gaaa519800a3e1f9afa132912ad80a530b',1,'codec_.h']]],
+  ['conn_5fcontext_5ft',['conn_context_t',['../vm___8h.html#af7048ed13446de52e9012e19b10aebd0',1,'vm_.h']]],
   ['crypto_2eh',['crypto.h',['../crypto_8h.html',1,'']]],
   ['cryptoaes128cbc',['CryptoAes128Cbc',['../group__trapset__crypto.html#ga35db3b288bcda804431bf54905ba68c6',1,'crypto.h']]],
   ['cryptoaes128ctr',['CryptoAes128Ctr',['../group__trapset__crypto.html#ga30964b9602684190cc9d903a7b58bff2',1,'crypto.h']]],

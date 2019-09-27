@@ -14,8 +14,8 @@
 #include <task_list.h>
 
 #include <profile_manager.h>
-
-#include "handset_service_protected.h"
+#include <connection_manager.h>
+#include "handset_service.h"
 
 /*@{*/
 
@@ -43,6 +43,7 @@ state CONNECTING {
     state CONNECTING_PROFILES : Handset profile(s) connecting
 
     CONNECTING_ACL --> CONNECTING_PROFILES : ACL connected
+    CONNECTING_ACL --> DISCONNECTED : CONNECT_STOP_REQ
 }
 
 CONNECTING --> CONNECTING : HandsetConnect REQ
@@ -94,6 +95,9 @@ typedef struct
 
     /*! Client list for disconnect requests */
     task_list_t disconnect_list;
+
+    /*! Client for connect-stop request. */
+    Task connect_stop_task;
 
 } handset_service_state_machine_t;
 
@@ -153,6 +157,16 @@ void HandsetServiceSm_CompleteConnectRequests(
     \param status Status code to complete the requests with.
  */
 void HandsetServiceSm_CompleteDisconnectRequests(
+    handset_service_state_machine_t *sm, handset_service_status_t status);
+
+/*! \brief Complete any queued Connect-Stop request.
+
+    Complete any queued connect stop requests with the given status.
+
+    \param sm State machine to complete the requests for.
+    \param status Status code to complete the requests with.
+ */
+void HandsetServiceSm_CompleteConnectStopRequests(
     handset_service_state_machine_t *sm, handset_service_status_t status);
 
 /*! \brief Handle a CONNECTED_PROFILE_IND.

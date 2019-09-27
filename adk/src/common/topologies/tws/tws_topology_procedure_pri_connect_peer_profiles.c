@@ -15,6 +15,7 @@
 #include <peer_signalling.h>
 #include <scofwd_profile.h>
 #include <av.h>
+#include <handover_profile.h>
 #include <connection_manager.h>
 
 #include <logging.h>
@@ -82,6 +83,11 @@ static void twsTopology_ProcedurePriConnectPeerProfilesStartProfile(uint8 profil
         appAvConnectPeer(&secondary_addr);
         /*! \todo temporary fix as AV does not yet support CFMs */
         td->profiles_status &= ~DEVICE_PROFILE_A2DP;
+    }
+    if(profiles & DEVICE_PROFILE_HANDOVER)
+    {
+        DEBUG_LOG("twsTopology_ProcedurePriConnectPeerProfilesStartProfile HANDOVER");
+        HandoverProfile_Connect(TwsTopProcPriConnectPeerProfilesGetTask(), &secondary_addr);
     }
 }
 
@@ -174,7 +180,6 @@ static void twsTopology_ProcPriConnectPeerProfilesHandleMessage(Task task, Messa
             twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_SCOFWD);
         }
         break;
-
         /*! \todo handle AV connect CFM */
 
         default:

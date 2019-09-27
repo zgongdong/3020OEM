@@ -11,6 +11,8 @@
 \brief  This file contains the Bluetooth specific type definitions.
 */
 
+#include "bluestack/types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -61,6 +63,8 @@ Public Defines
 #define FB_PRIM         16
 #define BCSP_VM_PRIM    17
 #define ATT_PRIM        18
+#define STACK_PRIM      19
+#define SDM_PRIM        22
 /*! \} */
 
 
@@ -80,6 +84,7 @@ Public Defines
 #define SDS_PRIM_BASE    0x0800
 #define ATT_PRIM_BASE    0x0900
 #define GATT_PRIM_BASE   0x0A00     /*!< Not used with BlueCore. Reserved for CSR1000. */ 
+#define SDM_PRIM_BASE    0x0D00     /* Reserved for Bluestack Shadow Manager */
 /*! \} */
 
 /*! \name  Segmentation of Bluestack Error codes
@@ -91,6 +96,7 @@ Public Defines
 #define SDC_ERRORCODE_BASE          (BLUESTACK_ERRORCODE_BLOCK * 3)
 #define SDS_ERRORCODE_BASE          (BLUESTACK_ERRORCODE_BLOCK * 4)
 #define ATT_ERRORCODE_BASE          (BLUESTACK_ERRORCODE_BLOCK * 5)
+#define SDM_ERRORCODE_BASE          (BLUESTACK_ERRORCODE_BLOCK * 7)
 /*! \} */
 
 

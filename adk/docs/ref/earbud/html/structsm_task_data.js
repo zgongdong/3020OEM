@@ -1,5 +1,6 @@
 var structsm_task_data =
 [
+    [ "dfu_has_been_restarted", "structsm_task_data.html#a40e8dc36a37b3af242dfe628e2faf3b1", null ],
     [ "disconnect_lock", "structsm_task_data.html#aa2ff1cd9c9b88143e89ea6e53850b24f", null ],
     [ "enter_dfu_in_case", "structsm_task_data.html#ad45abfff7f503def6f7f4821c303109b", null ],
     [ "phy_state", "structsm_task_data.html#a6f81f80950680c04d6bfa4ddaee19a4c", null ],

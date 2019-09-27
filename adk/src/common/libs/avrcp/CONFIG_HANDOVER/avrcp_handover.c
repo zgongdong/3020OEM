@@ -23,6 +23,8 @@ NOTES
 #include "avrcp_profile_handler.h"
 
 #include "marshal.h"
+#include <sink.h>
+#include <stream.h>
 #include <panic.h>
 #include <stdlib.h>
 
@@ -108,6 +110,7 @@ RETURNS
 static void stitchAvrcp(AVRCP *unmarshalled_avrcp)
 {
     avrcpList *newList;
+    uint16 cid;
 
     unmarshalled_avrcp->task.handler = avrcpProfileHandler;
     unmarshalled_avrcp->dataFreeTask.cleanUpTask.handler = avrcpDataCleanUp;
@@ -126,6 +129,15 @@ static void stitchAvrcp(AVRCP *unmarshalled_avrcp)
     newList->avrcp = unmarshalled_avrcp;
     newList->next = avrcp_marshal_inst->avrcp_node;
     avrcp_marshal_inst->avrcp_node = newList;
+
+    /* Initialize the connection context for the relevant connection id */
+    cid = SinkGetL2capCid(unmarshalled_avrcp->sink);
+    PanicZero(cid);   /* Invalid Connection ID */
+    VmOverrideL2capConnContext(cid, (conn_context_t)&newList->avrcp->task);
+    /* Stitch the sink and the task */
+    MessageStreamTaskFromSink(unmarshalled_avrcp->sink, &newList->avrcp->task);
+    /* Configure sink messages */
+    SinkConfigure(unmarshalled_avrcp->sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
 }
 
 /****************************************************************************

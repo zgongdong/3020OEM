@@ -38,6 +38,7 @@ typedef enum {
     UPGRADE_STATE_DATA_READY,
     UPGRADE_STATE_DATA_TRANSFER,
     UPGRADE_STATE_DATA_TRANSFER_SUSPENDED,
+    UPGRADE_STATE_DATA_HASH_CHECKING,
     UPGRADE_STATE_VALIDATING,
     UPGRADE_STATE_WAIT_FOR_VALIDATE,
     UPGRADE_STATE_VALIDATED,
@@ -208,6 +209,12 @@ void UpgradeSMCopyStatus(Message message);
     @return Nothing
 */
 void UpgradeSMCopyAudioStatus(Message message);
+/*!
+    @brief Notification that the hash all sections has finished.
+    @param message message
+    @return Nothing
+*/
+void UpgradeSMHashAllSectionsUpdateStatus(Message message);
 /*!
     @brief Perform action on validated.
     @return Nothing

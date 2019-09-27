@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project path="">
     <file path="../../QCC3026-AA_DEV-BRD_R2-AA/filesystems/subsys0_config2.htf"/>
     <file path="../../../../../../bin/qcc512x_qcc302x/system/patches/config/subsys0_config1.hcf"/>
@@ -7,25 +7,11 @@
     <configurations>
         <configuration name="filesystem" options="build|deploy">
             <devkitConfiguration>filesystem</devkitConfiguration>
-            <devkitGroup>kitres://{BBAC163C-41BE-4ce7-B236-236F15FF18CA}</devkitGroup>
+            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
             <deployProject>deploy</deployProject>
-            <property name="BUILD_TYPE"></property>
-            <property name="DBG_CORE"></property>
-            <property name="DEFS"></property>
-            <property name="FS_ROOT"></property>
-            <property name="INCPATHS"></property>
-            <property name="LIBPATHS"></property>
-            <property name="LIBS"></property>
-            <property name="OUTPUT"></property>
-            <property name="OUTPUT_TYPE"></property>
-            <property name="PRESERVED_LIBS"></property>
-            <property name="STRIP_SYMBOLS"></property>
             <property name="TYPE">curator_config</property>
-            <property name="argument"></property>
-            <property name="default"></property>
-            <property name="description"></property>
-            <property name="permission"></property>
             <property name="system_label">QCC512X_CONFIG</property>
+            <property name="CHIP_TYPE">qcc512x_qcc302x</property>
         </configuration>
     </configurations>
 </project>

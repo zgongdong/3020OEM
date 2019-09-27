@@ -12,7 +12,7 @@
 
 
 #include "audio_sync.h"
-#include "av_types.h"
+#include "av_typedef.h"
 
 
 /*! \brief Initialise the audio_sync_t interface instance for an AV instance.

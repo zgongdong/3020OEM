@@ -57,8 +57,9 @@ typedef enum pairing_states
 enum pairing_internal_message_ids
 {
     PAIRING_INTERNAL_PAIR_REQ,                  /*!< Pair with handset/phone/AV source */
+    PAIRING_INTERNAL_LE_PEER_PAIR_REQ,          /*!< Pair with le peer */
     PAIRING_INTERNAL_TIMEOUT_IND,               /*!< Pairing has timed out */
-    PAIRING_INTERNAL_PAIR_CANCEL,               /*!< Cancel in progress pairing */
+    PAIRING_INTERNAL_PAIR_STOP_REQ,             /*!< Stop in progress pairing */
     PAIRING_INTERNAL_DISABLE_SCAN               /*!< Delayed message to disable page and inquiry scan */
 };
 
@@ -73,6 +74,23 @@ typedef struct
     bool is_user_initiated;
 } PAIR_REQ_T;
 
+/*! \brief Definition of the #PAIRING_INTERNAL_LE_PEER_PAIR_REQ message content */
+typedef struct
+{
+    /*! The requester's task */
+    Task client_task;
+    /*! Address to pair */
+    typed_bdaddr typed_addr;
+    /*! le peer pairing works differently if it's a client or server */
+    bool le_peer_server;
+} PAIR_LE_PEER_REQ_T;
+
+/*! \brief Definition of the #PAIRING_INTERNAL_PAIR_STOP_REQ_T message content */
+typedef struct
+{
+    /*! The requester's task */
+    Task client_task;
+}PAIRING_INTERNAL_PAIR_STOP_REQ_T;
 
 /*! Handling of pairing requests for a BLE device */
 typedef enum
@@ -106,6 +124,8 @@ typedef struct
     TaskData task;
     /*! The pairing module client's task */
     Task     client_task;
+    /*! The pairing stop request task */
+    Task     stop_task;
     /*! client list that the pairing module shall send indication messages to */
     task_list_t * client_list;
     /*! The current pairing state */
@@ -135,7 +155,8 @@ typedef enum pairing_status
     pairingtNoLinkKey,
     pairingTimeout,
     pairingUnknown,
-    pairingCancelled,
+    pairingStopped,
+    pairingFailed,
 
     /* Activity statuses */
     pairingInProgress,
@@ -151,6 +172,7 @@ enum pairing_messages
     PAIRING_INIT_CFM = PAIRING_MESSAGE_BASE,
     /*! Message confirming pairing is complete. */
     PAIRING_PAIR_CFM,
+    PAIRING_STOP_CFM,
     PAIRING_ACTIVITY,
     PAIRING_ACTIVE_USER_INITIATED,
     PAIRING_ACTIVE,
@@ -209,17 +231,24 @@ extern void Pairing_Pair(Task client_task, bool is_user_initiated);
  */
 extern void Pairing_PairAddress(Task client_task, bdaddr* device_addr);
 
-/*! \brief Cancel a pairing.
+/*! \brief Stop a pairing.
 
-    If successfully cancelled the client will receive a PAIRING_PAIR_CFM
-    message with a status code of pairingCancelled.
+    If successfully stopped the client_task passed when initiating pairing
+    will receive a PAIRING_PAIR_CFM message with a status code of pairingStopped.
 
-    Note that it may be too late to cancel the pairing, if it already in the
-    latter stages of completion. In such circumstances the client may receive
-    a PAIRING_PAIR_CFM message with a status code indicating the result
-    of the pairing operation.
+    The client_task passed to this function will receive the message 
+    PAIRING_STOPPED_CFM once pairing has stopped. Note that if it is too
+    late to stop the pairing then PAIRING_STOPPED_CFM will be sent when the pairing
+    is complete. In such circumstances the client passed to the pairing function will receive
+    a PAIRING_PAIR_CFM message with a status code indicating the result of the
+    pairing operation.
+
+    Calling this function a second time, before receiving PAIRING_STOP_CFM will
+    result in a panic.
+
+    \param[in] client_task  Task to send #PAIRING_STOP_CFM response message to.
  */
-extern void Pairing_PairCancel(void);
+extern void Pairing_PairStop(Task client_task);
 
 
 /*! Determine how BLE connections may pair
@@ -274,6 +303,10 @@ void Pairing_ActivityClientRegister(Task task);
  */
 void Pairing_AddAuthDevice(const bdaddr* address, const uint16 key_length, const uint16* link_key);
 
+/*! \brief Pair with le peer device. This is a temporary function until
+           discovery is removed from the pairing module.
+ */
+void Pairing_PairLePeer(Task client_task, typed_bdaddr* device_addr, bool server);
 
 /*! \brief TEST FUNCTION to force link key TX to peer on reboot. */
 void Pairing_SetLinkTxReqd(void);

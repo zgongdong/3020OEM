@@ -36,6 +36,9 @@ typedef enum
     PEER_FIND_ROLE_PRIMARY,
         /*! Negotiation with peer has selected the secondary role for this device */
     PEER_FIND_ROLE_SECONDARY,
+
+        /*! Request for the application to prepare for role selection. */
+    PEER_FIND_ROLE_PREPARE_FOR_ROLE_SELECTION,
 } peer_find_role_message_t;
 
 
@@ -96,11 +99,32 @@ void PeerFindRole_FindRole(int32 high_speed_time_ms);
 void PeerFindRole_FindRoleCancel(void);
 
 
+/*! Stop find role from performing LE scans
+
+    This function will stop the find role service using LE scan.
+
+    A call with disable TRUE must be matched with a call with 
+    disable FALSE. The function may be called with disable FALSE
+    multiple times.
+
+    \deprecated The use of this function should not be needed.
+        Instead the Topology functionality should be disabling
+        LE scan around any activities that may have contention.
+ */
+void PeerFindRole_DisableScanning(bool disable);
+
+
 /*! Register a task to receive messages related to the role 
 
     \param t The task being registered
 */
 void PeerFindRole_RegisterTask(Task t);
+
+/*! Un-register a task to receive messages related to the role
+
+    \param t The task being un-registered
+*/
+void PeerFindRole_UnregisterTask(Task t);
 
 
 /*! Handler for connection library messages
@@ -126,6 +150,35 @@ bool PeerFindRole_HandleConnectionLibraryMessages(MessageId id, Message message,
         calculations.
 */
 peer_find_role_score_t PeerFindRole_CurrentScore(void);
+
+
+/*! \brief Register a client task to receive PREPARE_FOR_ROLE_SELECTION indications
+
+    Currently only one PREPARE_FOR_ROLE_SELECTION client is supported.
+
+    \param task Client task to register.
+*/
+void PeerFindRole_RegisterPrepareClient(Task task);
+
+
+/*! \brief Un-register a client task to receive PREPARE_FOR_ROLE_SELECTION indications.
+
+    \param task Client task to un-register.
+*/
+void PeerFindRole_UnregisterPrepareClient(Task task);
+
+
+/*! \brief Respond to a PREPARE request.
+
+    Called by the application in response to a PREPARE_FOR_ROLE_SELECTION
+    request when it is in a state that will allow reliable role
+    selection.
+
+    For example the application must not be discoverable, pairing or connecting
+    to a handset.
+*/
+void PeerFindRole_PrepareResponse(void);
+
 
 /*\}*/
 
@@ -161,7 +214,12 @@ peer_find_role_score_t PeerFindRole_CurrentScore(void);
     #PEER_FIND_ROLE_PRIMARY, while the other will be told
     #PEER_FIND_ROLE_SECONDARY.
 
-    For more comprehensive details of the implemetation look at the state 
+    \note After sending a #PEER_FIND_ROLE_PRIMARY message, the find role
+    procedure will continue, advertising only. This will be stopped by
+    either a call to PeerFindRole_FindRoleCancel() or 
+    PeerFindRole_FindRole().
+
+    For more comprehensive details of the implementation look at the state 
     machine documentation below (state transitions).
 
     As part of the implementation internal messages are sometimes sent

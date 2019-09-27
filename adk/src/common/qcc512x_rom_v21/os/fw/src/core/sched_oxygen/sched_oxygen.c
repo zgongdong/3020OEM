@@ -2592,3 +2592,44 @@ bool sched_get_sleep_deadline(TIME *earliest, TIME *latest)
     *earliest = *latest;
     return TRUE;
 }
+
+uint16 scan_queue(qid queueId,
+                  uint16 (*scan_func)(uint16 mi, void *mv, void *data),
+                  void *data)
+{
+    taskid task_id = QID_TO_TASKID(queueId);
+    uint16f queueIndex = QID_TO_QINDEX(queueId);
+    MSG *m;
+    const TASK *t;
+    uint16 res;
+
+    t = sched_find_task(task_id);
+
+    /* Cannot scan remote tasks or non-existing tasks */
+    if (QID_IS_REMOTE(queueId) || t == NULL)
+    {
+        panic_diatribe(PANIC_OXYGOS_INVALID_TASK_ID, queueId);
+    }
+
+    /* Check if the task actually has the queue that we want to scan */
+    if (queueIndex >= t->nqueues)
+    {
+        panic_diatribe(PANIC_OXYGOS_INVALID_QUEUE_NUMBER, queueId);
+    }
+
+    block_interrupts();
+
+    /* Traverse from first message pending in the queue */   
+    for(m = t->mqueues[queueIndex].first; m != NULL; m = m->next)
+    {
+        if ((res = scan_func(m->mi, m->mv, data)) != 0)
+        {
+            unblock_interrupts();
+            return res;
+        }
+    }
+
+    unblock_interrupts();
+
+    return 0;
+}

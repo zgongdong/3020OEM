@@ -107,12 +107,16 @@ typedef enum
     existing active goals. */
 typedef enum
 {
-    /*! Queue the goal to be run when current active goal complete. */
-    goal_contention_queue_run,
+    /*! Queue the goal to be run when current active goals complete. */
+    goal_contention_wait,
 
     /*! Queue the goal to be run once no goals are active and cancel
-        any active goals. */
-    goal_contention_queue_cancel_run,
+        any active goals. Will also cancel queued goals. */
+    goal_contention_cancel,
+
+    /*! Queue the current goal to be run once only goals with which it
+        can conncurrently run are active. */
+    goal_contention_concurrent,
 } goal_contention_t;
 
 /*! Definition of a goal and corresponding procedure to achieve the goal. */
@@ -152,45 +156,63 @@ typedef struct
         completion of this goal. */
     rule_events_t           failed_event;
 
+    /*! Bitmask of goals which this goal can run concurrently with. */
+    tws_topology_goal       concurrent_goals_mask;
 } tws_topology_goal_entry_t;
 
 /*! Macro to add goal to the goals table. */
 #define GOAL(goal_name, proc_name, fns, exclusive_goal) \
-    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_queue_run, 0, 0, 0}
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_wait, 0, 0, 0, tws_topology_goal_none}
+
+/*! Macro to add goal to the goals table, which can run concurrently with other goals. */
+#define GOAL_WITH_CONCURRENCY(goal_name, proc_name, fns, exclusive_goal, concurrent_goals_mask) \
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_concurrent, 0, 0, 0, concurrent_goals_mask}
 
 /*! Macro to add goal to the goals table and define an event to generate
     on timeout failure completion. */
 #define GOAL_TIMEOUT(goal_name, proc_name, fns, exclusive_goal, timeout_event) \
-    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_queue_run, 0, timeout_event, 0}
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_wait, 0, timeout_event, 0, tws_topology_goal_none}
+
+/*! Macro to add goal to the goals table, which can run concurrently with other goals
+    and which will generate an event on timeout failure completion. */
+#define GOAL_WITH_CONCURRENCY_TIMEOUT(goal_name, proc_name, fns, exclusive_goal, timeout_event, concurrent_goals_mask) \
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_concurrent, 0, timeout_event, 0, concurrent_goals_mask}
 
 /*! Macro to add goal to the goals table and define an event to generate
     on successful completion. */
 #define GOAL_SUCCESS(goal_name, proc_name, fns, exclusive_goal, success_event) \
-    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_queue_run, success_event, 0, 0}
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_wait, success_event, 0, 0, tws_topology_goal_none}
 
 /*! Macro to add goal to the goals table, which when set will cancel
     any actives goals. */
 #define GOAL_CANCEL(goal_name, proc_name, fns, exclusive_goal) \
-    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_queue_cancel_run, 0, 0, 0}
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_cancel, 0, 0, 0, tws_topology_goal_none}
 
 /*! Macro to add scripted goal to the goals table. */
 #define SCRIPT_GOAL(goal_name, proc_name, script, exclusive_goal) \
-    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_queue_run, 0, 0, 0}
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_wait, 0, 0, 0, tws_topology_goal_none}
 
 /*! Macro to add scripted goal to the goals table and define an event to
     generate on successful completion. */
 #define SCRIPT_GOAL_SUCCESS(goal_name, proc_name, script, exclusive_goal, success_event) \
-    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_queue_run, success_event, 0, 0}
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_wait, success_event, 0, 0, tws_topology_goal_none}
+
+/*! Macro to add a scripted goal to the goals table.
+    If there are any goals active when this goal is added, they will be cancelled and the
+    new goal executed when the cancel has completed..
+    The goal also defines an event to generate on successful completion. */
+#define SCRIPT_GOAL_CANCEL_SUCCESS(goal_name, proc_name, script, exclusive_goal, success_event) \
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_cancel, success_event, 0, 0, tws_topology_goal_none}
 
 /*! Macro to add scripted goal to the goals table and define an event to
     generate on timeout failure completion. */
 #define SCRIPT_GOAL_TIMEOUT(goal_name, proc_name, script, exclusive_goal, timeout_event) \
-    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_queue_run, 0, timeout_event, 0}
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_wait, 0, timeout_event, 0, tws_topology_goal_none}
 
 /*! Macro to add scripted goal to the goals table, which when set will cancel
     any active goals. */
 #define SCRIPT_GOAL_CANCEL(goal_name, proc_name, script, exclusive_goal) \
-    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_queue_cancel_run, 0, 0, 0}
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_cancel, 0, 0, 0, tws_topology_goal_none}
 
 /*! \brief Query if a goal is currently active.
     \param goal Type of goal being queried for status.

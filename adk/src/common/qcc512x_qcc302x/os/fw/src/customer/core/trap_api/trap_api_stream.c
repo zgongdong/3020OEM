@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 - 2018 Qualcomm Technologies International, Ltd. */
+/* Copyright (c) 2016 - 2019 Qualcomm Technologies International, Ltd. */
 /*    */
 /**
  * \file
@@ -7,6 +7,7 @@
 
 #include "trap_api/trap_api_private.h"
 #include <sink.h>
+#include "assert.h"
 
 #if TRAPSET_STREAM
 
@@ -116,3 +117,71 @@ bool StreamPipePair(Sink * sink_a, Sink * sink_b, uint16 size_a_to_b, uint16 siz
 }
 
 #endif /* TRAPSET_STREAM */
+
+#if TRAPSET_SHADOWING
+Source StreamAclMarshalSource(const tp_bdaddr * tpaddr)
+{
+    IPC_STREAM_ACL_MARSHAL_SOURCE ipc_send_prim;
+    IPC_SOURCE_RSP ipc_recv_prim;
+    TP_BD_ADDR_T tpaddr_fw;
+
+    /* Copy the supplied App-space structure into a temporary fw-space
+     * structure that's the right shape to go to the streams module */
+    tpaddr_fw.tp_type = (PHYSICAL_TRANSPORT_T)tpaddr->transport;
+    tpaddr_fw.addrt.type = tpaddr->taddr.type;
+    tpaddr_fw.addrt.addr.lap = tpaddr->taddr.addr.lap;
+    tpaddr_fw.addrt.addr.uap = tpaddr->taddr.addr.uap;
+    tpaddr_fw.addrt.addr.nap = tpaddr->taddr.addr.nap;
+    ipc_send_prim.tpaddr = &tpaddr_fw;
+
+    ipc_send(IPC_SIGNAL_ID_STREAM_ACL_MARSHAL_SOURCE, &ipc_send_prim, sizeof(ipc_send_prim));
+    (void)ipc_recv(IPC_SIGNAL_ID_STREAM_ACL_MARSHAL_SOURCE_RSP, &ipc_recv_prim);
+    return SOURCE_FROM_ID(ipc_recv_prim.ret);
+}
+
+Sink StreamAclMarshalSink(const tp_bdaddr * tpaddr)
+{
+    IPC_STREAM_ACL_MARSHAL_SINK ipc_send_prim;
+    IPC_SINK_RSP ipc_recv_prim;
+    TP_BD_ADDR_T tpaddr_fw;
+
+    /* Copy the supplied App-space structure into a temporary fw-space
+     * structure that's the right shape to go to the streams module */
+    tpaddr_fw.tp_type = (PHYSICAL_TRANSPORT_T)tpaddr->transport;
+    tpaddr_fw.addrt.type = tpaddr->taddr.type;
+    tpaddr_fw.addrt.addr.lap = tpaddr->taddr.addr.lap;
+    tpaddr_fw.addrt.addr.uap = tpaddr->taddr.addr.uap;
+    tpaddr_fw.addrt.addr.nap = tpaddr->taddr.addr.nap;
+    ipc_send_prim.tpaddr = &tpaddr_fw;
+
+    ipc_send(IPC_SIGNAL_ID_STREAM_ACL_MARSHAL_SINK, &ipc_send_prim, sizeof(ipc_send_prim));
+    (void)ipc_recv(IPC_SIGNAL_ID_STREAM_ACL_MARSHAL_SINK_RSP, &ipc_recv_prim);
+    return SINK_FROM_ID(ipc_recv_prim.ret);
+}
+
+#endif
+
+#ifdef TRAPSET_RFCOMM
+Sink StreamRfcommSinkFromServerChannel(const tp_bdaddr * tpaddr, uint8 server_channel)
+{
+    IPC_STREAM_RFCOMM_SINK_FROM_SERVER_CHANNEL ipc_send_prim;
+    IPC_SINK_RSP ipc_recv_prim;
+    TP_BD_ADDR_T tpaddr_fw;
+
+    /* Copy the supplied App-space structure into a temporary fw-space
+     * structure that's the right shape to go to the streams module */
+    tpaddr_fw.tp_type = (PHYSICAL_TRANSPORT_T)tpaddr->transport;
+    tpaddr_fw.addrt.type = tpaddr->taddr.type;
+    tpaddr_fw.addrt.addr.lap = tpaddr->taddr.addr.lap;
+    tpaddr_fw.addrt.addr.uap = tpaddr->taddr.addr.uap;
+    tpaddr_fw.addrt.addr.nap = tpaddr->taddr.addr.nap;
+    ipc_send_prim.tpaddr = &tpaddr_fw;
+
+    ipc_send_prim.server_channel = server_channel;
+    ipc_send(IPC_SIGNAL_ID_STREAM_RFCOMM_SINK_FROM_SERVER_CHANNEL, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_STREAM_RFCOMM_SINK_FROM_SERVER_CHANNEL_RSP, &ipc_recv_prim);
+    return SINK_FROM_ID(ipc_recv_prim.ret);
+}
+
+#endif

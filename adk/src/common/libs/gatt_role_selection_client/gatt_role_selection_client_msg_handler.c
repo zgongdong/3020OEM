@@ -59,13 +59,31 @@ static void handleGattMsg(MessageId id)
 }
 
 
-/****************************************************************************/
-static void handleInternalRoleSelectionMsg(Task task, MessageId id, Message payload)
+static void handleRoleSelectionClientInternalChangeRole(Task task,
+                                    const ROLE_SELECTION_CLIENT_INTERNAL_CHANGE_ROLE_T *role)
 {
-    UNUSED(task);
-    UNUSED(payload);
+    GATT_ROLE_SELECTION_CLIENT *instance = (GATT_ROLE_SELECTION_CLIENT *)task;
 
-    GATT_ROLE_SELECTION_CLIENT_DEBUG("handleInternalRoleSelectionMsg: Unhandled [0x%x]\n", id);
+    GATT_ROLE_SELECTION_CLIENT_DEBUG("handleRoleSelectionClientInternalChangeRole");
+
+    GattRoleSelectionClientChangePeerRoleImpl(instance, role->role, TRUE);
+}
+
+
+/****************************************************************************/
+static void handleInternalRoleSelectionMsg(Task task, MessageId id, Message message)
+{
+    switch(id)
+    {
+        case ROLE_SELECTION_CLIENT_INTERNAL_CHANGE_ROLE:
+            handleRoleSelectionClientInternalChangeRole(task, 
+                                    (const ROLE_SELECTION_CLIENT_INTERNAL_CHANGE_ROLE_T*)message);
+            break;
+
+        default:
+            GATT_ROLE_SELECTION_CLIENT_DEBUG("handleInternalRoleSelectionMsg: Unhandled [0x%x]\n", id);
+            break;
+    }
 }
 
 /****************************************************************************/

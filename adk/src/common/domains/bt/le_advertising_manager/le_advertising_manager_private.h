@@ -150,6 +150,10 @@ length of advertising data.
                                                     (*space)--; \
                                                 } while(0)
 
+typedef struct
+{
+    bool   action;
+} LE_ADV_INTERNAL_MSG_ENABLE_ADVERTISING_T;
 
 /*! Structure to hold a 128 bit UUID as not convinced by uuid library
     which doesn't seem to be used anyway */
@@ -166,6 +170,9 @@ enum adv_mgr_internal_messages_t
     ADV_MANAGER_START_ADVERT = 1,
         /*! Set advertising data using this advert. Used for connections (from Gatt) */
     ADV_MANAGER_SETUP_ADVERT,
+    LE_ADV_INTERNAL_MSG_ENABLE_ADVERTISING,
+    LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE,
+    LE_ADV_MGR_INTERNAL_START
 };
 
 /*! Implementation of the anonymous structure for advertisements.
@@ -217,7 +224,7 @@ struct _adv_mgr_advert_t
     le_advertising_manager_uuid128 services_uuid128[MAX_SERVICES_UUID128];
             /*! Flag indicating whether we want to use a random address in our
                 advertisements. This will actually be a resolvable private address (RPA) */
-    bool                use_own_random;
+    uint8                use_own_random;
             /*! Advertising settings that affect the filter and advertising rate */
     ble_adv_params_t    interval_and_filter;
             /*! The type of advertising to use, when advertising is started */
@@ -265,7 +272,8 @@ struct _le_adv_mgr_packet_t
 
 struct _le_adv_data_set
 {
-    Task task;    
+    Task task;
+    le_adv_data_set_t set;
 };
 
 struct _le_adv_params_set
@@ -289,6 +297,12 @@ typedef struct {
     Task                requester;      /*!< The task that requested the operation (can be NULL) */
 } ADV_MANAGER_ADVERT_INTERNAL_T;
 
+typedef struct
+{
+    le_adv_data_set_t set;
+}
+LE_ADV_MGR_INTERNAL_START_T;
+
 
 /*! Enumerated type used to note reason for blocking
 
@@ -298,7 +312,10 @@ typedef enum {
     ADV_SETUP_BLOCK_NONE,               /*!< No blocking operation at present */
     ADV_SETUP_BLOCK_ADV_DATA_CFM = 1,   /*!< Blocked pending appAdvManagerSetAdvertisingData() completing */
     ADV_SETUP_BLOCK_ADV_PARAMS_CFM = 2, /*!< Blocked pending appAdvManagerHandleSetAdvertisingDataCfm completing */
-    ADV_SETUP_BLOCK_ADV_SCAN_RESPONSE_DATA_CFM = 3
+    ADV_SETUP_BLOCK_ADV_SCAN_RESPONSE_DATA_CFM = 3,
+    ADV_SETUP_BLOCK_ADV_ENABLE_CFM = 4,
+    ADV_SETUP_BLOCK_ADV_LOCAL_ADDRESS_CFM = 5,
+    ADV_SETUP_BLOCK_INVALID = 0xFF
 } adv_mgr_blocking_state_t;
 
 /*! Structure used for internal message #ADV_MANAGER_START_ADVERT */

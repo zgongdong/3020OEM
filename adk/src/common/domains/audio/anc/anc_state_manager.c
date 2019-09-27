@@ -12,6 +12,7 @@
 #include "anc_state_manager.h"
 #include "anc_config.h"
 #include "kymera.h"
+#include "microphones.h"
 #include <panic.h>
 #include <task_list.h>
 #include <logging.h>
@@ -293,42 +294,6 @@ static bool getSessionData(void)
 
 /******************************************************************************
 DESCRIPTION
-    Get microphone parameters configured.
-*/
-static audio_mic_params getMicParams(mic_selection mic)
-{
-    audio_mic_params mic_params;
-
-    switch(mic)
-    {
-        case microphone_1:
-            mic_params = ancAudioGetMic1Params();
-            break;
-        case microphone_2:
-            mic_params = ancAudioGetMic2Params();
-            break;
-        case microphone_3:
-            mic_params = ancAudioGetMic3Params();
-            break;
-        case microphone_4:
-            mic_params = ancAudioGetMic4Params();
-            break;
-        case microphone_5:
-            mic_params = ancAudioGetMic5Params();
-            break;
-        case microphone_6:
-            mic_params = ancAudioGetMic6Params();
-            break;
-        default:
-            mic_params = ancAudioGetMic1Params();
-            break;
-    }
-
-    return mic_params;
-}
-
-/******************************************************************************
-DESCRIPTION
     Read the configuration from the ANC Mic params.
 */
 static bool readMicConfigParams(anc_mic_params_t *anc_mic_params)
@@ -337,35 +302,35 @@ static bool readMicConfigParams(anc_mic_params_t *anc_mic_params)
 
     if (ancConfigManagerGetReadOnlyConfig(ANC_READONLY_CONFIG_BLK_ID, (const void **)&read_data))
     {
-        mic_selection feedForwardLeftMic = read_data->anc_mic_params_r_config.feed_forward_left_mic;
-        mic_selection feedForwardRightMic = read_data->anc_mic_params_r_config.feed_forward_right_mic;
-        mic_selection feedBackLeftMic = read_data->anc_mic_params_r_config.feed_back_left_mic;
-        mic_selection feedBackRightMic = read_data->anc_mic_params_r_config.feed_back_right_mic;
+        microphone_number_t feedForwardLeftMic = read_data->anc_mic_params_r_config.feed_forward_left_mic;
+        microphone_number_t feedForwardRightMic = read_data->anc_mic_params_r_config.feed_forward_right_mic;
+        microphone_number_t feedBackLeftMic = read_data->anc_mic_params_r_config.feed_back_left_mic;
+        microphone_number_t feedBackRightMic = read_data->anc_mic_params_r_config.feed_back_right_mic;
 
         memset(anc_mic_params, 0, sizeof(anc_mic_params_t));
 
         if (feedForwardLeftMic)
         {
             anc_mic_params->enabled_mics |= feed_forward_left;
-            anc_mic_params->feed_forward_left = getMicParams(feedForwardLeftMic);
+            anc_mic_params->feed_forward_left = *Microphones_GetMicrophoneConfig(feedForwardLeftMic);
         }
 
         if (feedForwardRightMic)
         {
             anc_mic_params->enabled_mics |= feed_forward_right;
-            anc_mic_params->feed_forward_right = getMicParams(feedForwardRightMic);
+            anc_mic_params->feed_forward_right = *Microphones_GetMicrophoneConfig(feedForwardRightMic);
         }
 
         if (feedBackLeftMic)
         {
             anc_mic_params->enabled_mics |= feed_back_left;
-            anc_mic_params->feed_back_left = getMicParams(feedBackLeftMic);
+            anc_mic_params->feed_back_left = *Microphones_GetMicrophoneConfig(feedBackLeftMic);
         }
 
         if (feedBackRightMic)
         {
             anc_mic_params->enabled_mics |= feed_back_right;
-            anc_mic_params->feed_back_right = getMicParams(feedBackRightMic);
+            anc_mic_params->feed_back_right = *Microphones_GetMicrophoneConfig(feedBackRightMic);
         }
 
         ancConfigManagerReleaseConfig(ANC_READONLY_CONFIG_BLK_ID);
@@ -739,10 +704,12 @@ static bool ancStateManager_HandleEvent(anc_state_manager_event_id_t event)
 bool AncStateManager_Init(Task init_task)
 {
     UNUSED(init_task);
+
     /* Initialise the ANC VM Lib */
-    if (!ancStateManager_HandleEvent(anc_state_manager_event_initialise))
+    if(ancStateManager_HandleEvent(anc_state_manager_event_initialise))
     {
-        DEBUG_LOGF("AncStateManager_Init: Initialisation failure of ANC VM lib\n");
+        /* Initialisation successful, go ahead with ANC power ON*/
+        AncStateManager_PowerOn();
     }
     return TRUE;
 }
@@ -750,7 +717,7 @@ bool AncStateManager_Init(Task init_task)
 void AncStateManager_PowerOn(void)
 {
     /* Power On ANC */
-    if (!ancStateManager_HandleEvent(anc_state_manager_event_power_on))
+    if(!ancStateManager_HandleEvent(anc_state_manager_event_power_on))
     {
         DEBUG_LOGF("AncStateManager_PowerOn: Power On ANC failed\n");
     }

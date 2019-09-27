@@ -1,7 +1,7 @@
 /*!
 
-        %%fullcopyright(2001)
-        (C) COPYRIGHT Cambridge Consultants Ltd 1998
+Copyright (c) 2001 - 2016 Qualcomm Technologies International, Ltd.
+  
 
 \file   sdc_prim.h
 

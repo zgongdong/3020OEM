@@ -149,7 +149,6 @@ typedef struct
     Source prompt_source;
 
     anc_mic_params_t anc_mic_params;
-    audio_mic_params mic_params[MAX_NUMBER_SUPPORTED_MICS];
     uint8 dac_amp_usage;
 
     /*! ANC tuning state */
@@ -160,6 +159,10 @@ typedef struct
     BundleID usb_audio_bundle_id;
 #endif
     Operator usb_rx, anc_tuning, usb_tx;
+
+    /* If TRUE, a mono mix of the left/right audio channels will be rendered.
+       If FALSE, either the left or right audio channel will be rendered. */
+    unsigned enable_left_right_mix : 1;
 
 } kymeraTaskData;
 
@@ -342,9 +345,13 @@ void appKymeraPromptPlay(FILE_INDEX prompt, promptFormat format,
 /*! \brief Initialise the kymera module. */
 bool appKymeraInit(Task init_task);
 
-void appKymeraMicInit(void);
-void appKymeraMicSetup(uint8 mic1a, Source *p_mic_src_1a, uint8 mic_1b, Source *p_mic_src_1b, uint16 rate);
-void appKymeraMicCleanup(uint8 mic1a, uint8 mic1b);
+
+/*! \brief Set the left/right mixer mode
+    \param stereo_lr_mix If TRUE, a 50/50 mix of the left and right stereo channels
+    will be output by the mixer to the local device, otherwise, the left/right-ness
+    of the earbud will be used to output 100% l/r.
+*/
+void appKymeraSetStereoLeftRightMix(bool stereo_lr_mix);
 
 /*! \brief Enter ANC tuning.
     \param void
@@ -357,8 +364,6 @@ void KymeraAnc_EnterTuning(void);
     \return void
 */
 void KymeraAnc_ExitTuning(void);
-
-
 
 #define appKymeraIsTonePlaying() (KymeraGetTaskData()->tone_count > 0)
 

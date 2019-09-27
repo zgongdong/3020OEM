@@ -134,6 +134,9 @@ var group__connection =
       [ "tpaddr", "struct_c_l___d_m___u_l_p___s_e_t___p_h_y___c_f_m___t.html#ace03b1a8ebc6175757dce86ff87dec7a", null ],
       [ "tx_phy_type", "struct_c_l___d_m___u_l_p___s_e_t___p_h_y___c_f_m___t.html#acab49bfb4a01685b4712de53f87e6234", null ]
     ] ],
+    [ "CL_DM_ULP_SET_PRIVACY_MODE_CFM_T", "struct_c_l___d_m___u_l_p___s_e_t___p_r_i_v_a_c_y___m_o_d_e___c_f_m___t.html", [
+      [ "status", "struct_c_l___d_m___u_l_p___s_e_t___p_r_i_v_a_c_y___m_o_d_e___c_f_m___t.html#a194fc2556a199c206484cbcb85ef14af", null ]
+    ] ],
     [ "CL_SM_BLE_READ_RANDOM_ADDRESS_CFM_T", "struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html", [
       [ "flags", "struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html#a0061f679f8bde483705a368eabf3bfc0", null ],
       [ "peer_tpaddr", "struct_c_l___s_m___b_l_e___r_e_a_d___r_a_n_d_o_m___a_d_d_r_e_s_s___c_f_m___t.html#aa28893b4e6d0469b127b452ec10ea914", null ],
@@ -247,6 +250,9 @@ var group__connection =
     ] ],
     [ "phy_rate", "group__connection.html#ga68e1ffa1927443b4cb200c8fb01c1e55", null ],
     [ "phy_type", "group__connection.html#ga0e48423b6eb18e7e35fa66f59bc96c88", null ],
+    [ "privacy_mode", "group__connection.html#ga8baabe5f17f04e1a22d079350757fdd8", [
+      [ "privacy_mode_last", "group__connection.html#gga8baabe5f17f04e1a22d079350757fdd8a066b5509c3e92f403fac75c95b9cc116", null ]
+    ] ],
     [ "ConnectionBleAddAdvertisingReportFilter", "group__connection.html#gaca9febff8a04438da583822490877c0e", null ],
     [ "ConnectionBleClearAdvertisingReportFilter", "group__connection.html#gabe3c8061380aa051635aaa1fe3141641", null ],
     [ "ConnectionBondedToPrivacyEnabledDevice", "group__connection.html#ga69dd72cda9d0d1fdfe7521a5b6b69c95", null ],
@@ -273,5 +279,7 @@ var group__connection =
     [ "ConnectionDmUlpEnableZeroSlaveLatency", "group__connection.html#ga7f6daa3246f1fb1e1d67d4c7e6efa636", null ],
     [ "ConnectionDmUlpSetDefaultPhy", "group__connection.html#ga615e10457d0c7ff91967d251a9a53b41", null ],
     [ "ConnectionDmUlpSetPhy", "group__connection.html#ga886275ea9ae25a23ac7e5ee50776963d", null ],
-    [ "ConnectionSmBleReadRandomAddressReq", "group__connection.html#ga5e79c5f8703f7000f37541f719200b43", null ]
+    [ "ConnectionDmUlpSetPrivacyModeReq", "group__connection.html#ga524563123ebcc1fae0175d960ccfd975", null ],
+    [ "ConnectionSmBleReadRandomAddressReq", "group__connection.html#ga5e79c5f8703f7000f37541f719200b43", null ],
+    [ "ConnectionSmBleReadRandomAddressTaskReq", "group__connection.html#ga9f9976af1233a4d5a0282d2d88f41fd0", null ]
 ];

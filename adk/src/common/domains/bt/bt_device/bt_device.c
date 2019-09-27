@@ -112,13 +112,6 @@ static void btDevice_PrintDeviceInfo(device_t device, void *data)
     {
         DEBUG_LOG("has flag DEVICE_FLAGS_SHADOWING_C_ROLE");
     }
-
-    if(flags & DEVICE_FLAGS_IS_CONNECTED)
-    {
-        DEBUG_LOG("has flag DEVICE_FLAGS_IS_CONNECTED");
-    }
-
-
 }
 
 static device_t btDevice_CreateDevice(const bdaddr *bd_addr, deviceType type)
@@ -310,25 +303,6 @@ void BtDevice_DeleteAllHandsetDevices(void)
     }
 }
 
-static void btDevice_SetConnected(CON_MANAGER_CONNECTION_IND_T* ind)
-{
-    device_t device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_bdaddr, &ind->bd_addr, sizeof(ind->bd_addr));
-    if (device)
-    {
-        uint16 flags = 0;
-        Device_GetPropertyU16(device, device_property_flags, &flags);
-        if (ind->connected)
-        {
-            flags |= DEVICE_FLAGS_IS_CONNECTED;
-        }
-        else
-        {
-            flags &= ~DEVICE_FLAGS_IS_CONNECTED;
-        }
-        Device_SetPropertyU16(device, device_property_flags, flags);
-    }
-}
-
 /*! @brief Update connectivity state for a device. */
 static void appDeviceHandleConManagerConnectionInd(CON_MANAGER_CONNECTION_IND_T* ind)
 {
@@ -338,13 +312,11 @@ static void appDeviceHandleConManagerConnectionInd(CON_MANAGER_CONNECTION_IND_T*
         {
             DEBUG_LOGF("appDeviceHandleConManagerConnectionInd HANDSET CONN:%d Status:%d",
                                                         ind->connected, ind->reason);
-            btDevice_SetConnected(ind);
         }
         else if (appDeviceIsPeer(&ind->bd_addr))
         {
             DEBUG_LOGF("appDeviceHandleConManagerConnectionInd PEER CONN:%d Status:%d",
                                                         ind->connected, ind->reason);
-            btDevice_SetConnected(ind);
         }
         else
         {
@@ -745,9 +717,8 @@ bool appDeviceIsHandsetConnected(void)
     {
         for (int i=0; i< num_devices; i++)
         {
-            uint16 flags = 0;
-            Device_GetPropertyU16(devices[i], device_property_flags, &flags);
-            is_handset_connected = !!(flags & DEVICE_FLAGS_IS_CONNECTED);
+            bdaddr handset_addr = DeviceProperties_GetBdAddr(devices[i]);
+            is_handset_connected = ConManagerIsConnected(&handset_addr);
             if (is_handset_connected)
                 break;
         }
@@ -856,13 +827,10 @@ bool appDeviceIsHandsetScoActive(void)
 bool appDeviceIsPeerConnected(void)
 {
     bool is_peer_connected = FALSE;
-    deviceType type = DEVICE_TYPE_EARBUD;
-    device_t peer_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_type, &type, sizeof(deviceType));
-    if (peer_device)
+    bdaddr peer_addr;
+    if (appDeviceGetPeerBdAddr(&peer_addr))
     {
-        uint16 flags = 0;
-        Device_GetPropertyU16(peer_device, device_property_flags, &flags);
-        is_peer_connected = !!(flags & DEVICE_FLAGS_IS_CONNECTED);
+        is_peer_connected = ConManagerIsConnected(&peer_addr);
     }
     return is_peer_connected;
 }
@@ -1066,6 +1034,20 @@ bool appDeviceGetPrimaryBdAddr(bdaddr* bd_addr)
 bool appDeviceGetSecondaryBdAddr(bdaddr* bd_addr)
 {
     return appDeviceGetBdAddrByFlag(bd_addr, DEVICE_FLAGS_SECONDARY_ADDR);
+}
+
+bool appDeviceIsPrimary(const bdaddr* bd_addr)
+{
+    bdaddr primary_addr;
+    return (appDeviceGetBdAddrByFlag(&primary_addr, DEVICE_FLAGS_PRIMARY_ADDR)
+            && BdaddrIsSame(bd_addr, &primary_addr));
+}
+
+bool appDeviceIsSecondary(const bdaddr* bd_addr)
+{
+    bdaddr secondary_addr;
+    return (appDeviceGetBdAddrByFlag(&secondary_addr, DEVICE_FLAGS_SECONDARY_ADDR)
+            && BdaddrIsSame(bd_addr, &secondary_addr));
 }
 
 bool BtDevice_IsMyAddressPrimary(void)

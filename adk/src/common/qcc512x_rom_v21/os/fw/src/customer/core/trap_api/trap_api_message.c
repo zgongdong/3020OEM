@@ -1051,3 +1051,40 @@ Task MessageNfcTask(Task task)
 }
 #endif /* TRAPSET_NFC */
 
+uint16 MessagesPendingForTask(Task task, int32 *first_due)
+{
+    AppMessage *p;
+    uint16 count = 0;
+    for (p = vm_message_queue; p; p = p->next)
+    {
+        if (p->task == task)
+        {
+            if (!count && first_due)
+            {
+                uint32 now  = get_milli_time();
+                *first_due = VM_DIFF(p->due, now);
+            }
+            ++count;
+        }
+    }
+    return count;
+}
+
+bool MessagePendingFirst(Task task, MessageId id, int32 *first_due)
+{
+    AppMessage *p;
+    for (p = vm_message_queue; p; p = p->next)
+    {
+        if (p->task == task && p->id == id)
+        {
+            if (first_due)
+            {
+                uint32 now  = get_milli_time();
+                *first_due = VM_DIFF(p->due, now);
+            }
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+

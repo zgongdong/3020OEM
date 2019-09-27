@@ -24,13 +24,13 @@
 
 void PeerFindRole_OverrideScore(grss_figure_of_merit_t score)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    peer_find_role_scoring_t *scoring = PeerFindRoleGetScoring();
 
     DEBUG_LOG("PeerFindRole_OverrideScore override 0x%x", score); 
 
     /* set the override and call recalc, which will update the service. */
-    pfr->score_override = score;
-    peer_find_role_calculate_score();
+    scoring->score_override = score;
+    peer_find_role_update_server_score();
 }
 
 void peer_find_role_scoring_setup(void)
@@ -54,13 +54,10 @@ static void peer_find_role_request_score_update_later(void)
     MessageSendLater(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_UPDATE_SCORE, NULL, 10);
 }
 
-
 void peer_find_role_calculate_score(void)
 {
     peer_find_role_scoring_t *scoring = PeerFindRoleGetScoring();
     grss_figure_of_merit_t score = PEER_FIND_ROLE_SCORE_LOWEST;
-    bool server_score_set;
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
     score += PEER_FIND_ROLE_SCORE(PHY_STATE, (uint16)scoring->phy_state);
     score += PEER_FIND_ROLE_SCORE(POWERED, scoring->charger_present);
@@ -70,24 +67,46 @@ void peer_find_role_calculate_score(void)
 
     scoring->last_local_score = score;
 
-    if (!pfr->score_override)
+    DEBUG_LOG("peer_find_role_calculate_score. Score 0x%x (%d)", score, score);
+}
+
+grss_figure_of_merit_t peer_find_role_score(void)
+{
+    peer_find_role_scoring_t *scoring = PeerFindRoleGetScoring();
+
+    if (scoring->score_override)
     {
-        DEBUG_LOG("peer_find_role_calculate_score. Score 0x%x (%d)", score, score);
-    }
-    else
-    {
-        DEBUG_LOG("peer_find_role_calculate_score. Score overriden 0x%x (%d)",
-                                            pfr->score_override, pfr->score_override);
+        DEBUG_LOG("peer_find_role_score. Overriden:x%x (%d)",
+                    scoring->score_override, scoring->score_override);
+        return scoring->score_override;
     }
 
+    return scoring->last_local_score;
+}
+
+void peer_find_role_update_server_score(void)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    bool server_score_set;
+    grss_figure_of_merit_t score;
+
+    peer_find_role_calculate_score();
+    score = peer_find_role_score();
+
     server_score_set = GattRoleSelectionServerSetFigureOfMerit(&pfr->role_selection_server,
-                                                               GattGetInstance(0)->conn_id,
-                                                               pfr->score_override ? pfr->score_override : score);
+                                                               pfr->gatt_cid,
+                                                               score);
 
     if (!server_score_set)
     {
-        DEBUG_LOG("peer_find_role_calculate_score. Unable to set. Try again");
+        DEBUG_LOG("peer_find_role_update_score. Unable to set. Try again");
         peer_find_role_request_score_update_later();
     }
 }
 
+void peer_find_role_reset_server_score(void)
+{
+    peer_find_role_scoring_t *scoring = PeerFindRoleGetScoring();
+    scoring->last_local_score = GRSS_FIGURE_OF_MERIT_INVALID;
+    peer_find_role_update_server_score();
+}

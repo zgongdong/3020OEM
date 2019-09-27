@@ -302,11 +302,11 @@ static void appHfpEnterConnectingLocal(void)
     /* Set operation lock */
     appHfpSetLock(TRUE);
 
-    if (!appGetHfp()->flags & HFP_CONNECT_NO_UI)
+    if (!appGetHfp()->bitfields.flags & HFP_CONNECT_NO_UI)
         TaskList_MessageSendId(appGetHfp()->status_notify_list, PAGING_START);
 
     /* Clear detach pending flag */
-    appGetHfp()->detach_pending = FALSE;
+    appGetHfp()->bitfields.detach_pending = FALSE;
 
     /* Start HFP connection */
     if (appGetHfp()->profile == hfp_handsfree_107_profile)
@@ -334,7 +334,7 @@ static void appHfpExitConnectingLocal(void)
     /* Clear operation lock */
     appHfpSetLock(FALSE);
 
-    if (!appGetHfp()->flags & HFP_CONNECT_NO_UI)
+    if (!appGetHfp()->bitfields.flags & HFP_CONNECT_NO_UI)
         TaskList_MessageSendId(appGetHfp()->status_notify_list, PAGING_STOP);
 
     /* We have finished (successfully or not) attempting to connect, so
@@ -357,7 +357,7 @@ static void appHfpEnterConnectingRemote(void)
     appHfpSetLock(TRUE);
 
     /* Clear detach pending flag */
-    appGetHfp()->detach_pending = FALSE;
+    appGetHfp()->bitfields.detach_pending = FALSE;
 }
 
 /*! \brief Exit 'connecting remote' state
@@ -469,7 +469,7 @@ static void appHfpEnterConnected(void)
     Telephony_NotifyConnected(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 
     /* Clear silent flags */
-    appGetHfp()->flags &= ~(HFP_CONNECT_NO_UI | HFP_CONNECT_NO_ERROR_UI | HFP_DISCONNECT_NO_UI);
+    appGetHfp()->bitfields.flags &= ~(HFP_CONNECT_NO_UI | HFP_CONNECT_NO_ERROR_UI | HFP_DISCONNECT_NO_UI);
 
     /* Tell clients we have connected */
     MAKE_HFP_MESSAGE(APP_HFP_CONNECTED_IND);
@@ -608,7 +608,7 @@ static void appHfpExitConnectedIncoming(void)
     DEBUG_LOG("appHfpExitConnectedIncoming");
 
     /* Clear call accepted flag */
-    appGetHfp()->call_accepted = FALSE;
+    appGetHfp()->bitfields.call_accepted = FALSE;
 
     /* TODO: Cancel any ring-tones */
     /* AudioStopTone();*/
@@ -653,7 +653,7 @@ static void appHfpExitConnectedActive(void)
     DEBUG_LOG("appHfpExitConnectedActive");
 
     Telephony_NotifyMicrophoneUnmuted(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
-    appGetHfp()->mute_active = FALSE;
+    appGetHfp()->bitfields.mute_active = FALSE;
 
     Telephony_NotifyCallEnded(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 }
@@ -703,7 +703,7 @@ static void appHfpEnterDisconnected(void)
 
     if (TaskList_Size(TaskList_GetBaseTaskList(&appGetHfp()->connect_request_clients)) != 0)
     {
-        if (appGetHfp()->disconnect_reason == APP_HFP_CONNECT_FAILED)
+        if (appGetHfp()->bitfields.disconnect_reason == APP_HFP_CONNECT_FAILED)
         {
             /* If this is due to an unsuccessful connect request, send confirmation for this device */
             ProfileManager_SendConnectCfmToTaskList(TaskList_GetBaseTaskList(&appGetHfp()->connect_request_clients),
@@ -712,7 +712,7 @@ static void appHfpEnterDisconnected(void)
     }
     if (TaskList_Size(TaskList_GetBaseTaskList(&appGetHfp()->disconnect_request_clients)) != 0)
     {
-        if (appGetHfp()->disconnect_reason == APP_HFP_DISCONNECT_NORMAL)
+        if (appGetHfp()->bitfields.disconnect_reason == APP_HFP_DISCONNECT_NORMAL)
         {
             ProfileManager_SendConnectCfmToTaskList(TaskList_GetBaseTaskList(&appGetHfp()->disconnect_request_clients),
                                                     &appGetHfp()->ag_bd_addr,
@@ -724,7 +724,7 @@ static void appHfpEnterDisconnected(void)
     /* Tell clients we have disconnected */
     MAKE_HFP_MESSAGE(APP_HFP_DISCONNECTED_IND);
     message->bd_addr = appGetHfp()->ag_bd_addr;
-    message->reason =  appGetHfp()->disconnect_reason;
+    message->reason =  appGetHfp()->bitfields.disconnect_reason;
     TaskList_MessageSend(appGetHfp()->status_notify_list, APP_HFP_DISCONNECTED_IND, message);
 
 #ifdef INCLUDE_AV
@@ -733,21 +733,21 @@ static void appHfpEnterDisconnected(void)
 #endif
 
     /* Clear status flags */
-    appGetHfp()->caller_id_active = FALSE;
-    appGetHfp()->voice_recognition_active = FALSE;
-    appGetHfp()->voice_recognition_request = FALSE;
-    appGetHfp()->mute_active = FALSE;
-    appGetHfp()->in_band_ring = FALSE;
-    appGetHfp()->call_accepted = FALSE;
+    appGetHfp()->bitfields.caller_id_active = FALSE;
+    appGetHfp()->bitfields.voice_recognition_active = FALSE;
+    appGetHfp()->bitfields.voice_recognition_request = FALSE;
+    appGetHfp()->bitfields.mute_active = FALSE;
+    appGetHfp()->bitfields.in_band_ring = FALSE;
+    appGetHfp()->bitfields.call_accepted = FALSE;
 
     /* Clear call state indication */
-    appGetHfp()->call_state = 0;
+    appGetHfp()->bitfields.call_state = 0;
 }
 
 static void appHfpExitDisconnected(void)
 {
     /* Reset disconnect reason */
-    appGetHfp()->disconnect_reason = APP_HFP_CONNECT_FAILED;
+    appGetHfp()->bitfields.disconnect_reason = APP_HFP_CONNECT_FAILED;
 }
 
 /*! \brief Set HFP state
@@ -880,7 +880,7 @@ void appHfpError(MessageId id, Message message)
 */
 static void appHfpCheckEncryptedSco(void)
 {
-    DEBUG_LOGF("appHfpCheckEncryptedSco(%d, %x)", appGetHfp()->encrypted, appGetHfp()->sco_sink);
+    DEBUG_LOGF("appHfpCheckEncryptedSco(%d, %x)", appGetHfp()->bitfields.encrypted, appGetHfp()->sco_sink);
 
     /* Check SCO is active */
     if (appHfpIsScoActive() && appHfpIsCall())
@@ -1034,7 +1034,7 @@ static void appHfpHandleHfpSlcConnectConfirm(const HFP_SLC_CONNECT_CFM_T *cfm)
                 ConnectionSmEncrypt(appGetHfpTask(), appGetHfp()->slc_sink, TRUE);
 
                 /* Move to new connected state */
-                appHfpSetState(hfp_call_state_table[appGetHfp()->call_state]);
+                appHfpSetState(hfp_call_state_table[appGetHfp()->bitfields.call_state]);
 
                 /* inform clients */
                 appHfpSendSlcStatus(TRUE, cfm->priority, &cfm->bd_addr);
@@ -1045,7 +1045,7 @@ static void appHfpHandleHfpSlcConnectConfirm(const HFP_SLC_CONNECT_CFM_T *cfm)
             Telephony_NotifyCallConnectFailure(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(cfm->priority));
 
             /* Set disconnect reason */
-            appGetHfp()->disconnect_reason = APP_HFP_CONNECT_FAILED;
+            appGetHfp()->bitfields.disconnect_reason = APP_HFP_CONNECT_FAILED;
 
             /* Move to disconnected state */
             appHfpSetState(HFP_STATE_DISCONNECTED);
@@ -1081,19 +1081,19 @@ static void appHfpHandleHfpSlcDisconnectIndication(const HFP_SLC_DISCONNECT_IND_
             }
 
             /* Reconnect on link loss */
-            if (ind->status == hfp_disconnect_link_loss && !appGetHfp()->detach_pending)
+            if (ind->status == hfp_disconnect_link_loss && !appGetHfp()->bitfields.detach_pending)
             {
                 Telephony_NotifyDisconnectedDueToLinkloss(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 
                  /* Set disconnect reason */
-                 appGetHfp()->disconnect_reason = APP_HFP_DISCONNECT_LINKLOSS;
+                 appGetHfp()->bitfields.disconnect_reason = APP_HFP_DISCONNECT_LINKLOSS;
             }
             else
             {
                 Telephony_NotifyDisconnected(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 
                 /* Set disconnect reason */
-                appGetHfp()->disconnect_reason = APP_HFP_DISCONNECT_NORMAL;
+                appGetHfp()->bitfields.disconnect_reason = APP_HFP_DISCONNECT_NORMAL;
             }
 
             /* inform clients */
@@ -1107,13 +1107,17 @@ static void appHfpHandleHfpSlcDisconnectIndication(const HFP_SLC_DISCONNECT_IND_
         case HFP_STATE_DISCONNECTING:
         case HFP_STATE_DISCONNECTED:
         {
-            Telephony_NotifyDisconnected(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
+            /* Ignore disconnect indication with status link-transferred */
+            if(ind->status != hfp_disconnect_transferred)
+            {
+                Telephony_NotifyDisconnected(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 
-            /* Set disconnect reason */
-            appGetHfp()->disconnect_reason = APP_HFP_DISCONNECT_NORMAL;
+                /* Set disconnect reason */
+                appGetHfp()->bitfields.disconnect_reason = APP_HFP_DISCONNECT_NORMAL;
 
-            /* Move to disconnected state */
-            appHfpSetState(HFP_STATE_DISCONNECTED);
+                /* Move to disconnected state */
+                appHfpSetState(HFP_STATE_DISCONNECTED);
+            }
         }
         break;
 
@@ -1223,12 +1227,12 @@ static void appHfpHandleHfpAudioConnectConfirmation(const HFP_AUDIO_CONNECT_CFM_
                     appAvDisconnectHandset();
 
                     /* Set flag for AV re-connect */
-                    appGetHfp()->sco_av_reconnect = TRUE;
+                    appGetHfp()->bitfields.sco_av_reconnect = TRUE;
                 }
                 else
                 {
                     /* Clear flag for AV re-connect */
-                    appGetHfp()->sco_av_reconnect = FALSE;
+                    appGetHfp()->bitfields.sco_av_reconnect = FALSE;
                 }
 #endif
 
@@ -1246,14 +1250,14 @@ static void appHfpHandleHfpAudioConnectConfirmation(const HFP_AUDIO_CONNECT_CFM_
                 if (appHfpIsCall() && !appHfpIsVoiceRecognitionActive())
                 {
                     /* Set flag indicating we need UI tone when SCO disconnects */
-                    appGetHfp()->sco_ui_indication = TRUE;
+                    appGetHfp()->bitfields.sco_ui_indication = TRUE;
 
                     Telephony_NotifyCallAudioRenderedLocal(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(cfm->priority));
                 }
                 else
                 {
                     /* Clear flag indicating we don't need UI tone when SCO disconnects */
-                    appGetHfp()->sco_ui_indication = FALSE;
+                    appGetHfp()->bitfields.sco_ui_indication = FALSE;
                 }
             }
             else
@@ -1295,7 +1299,7 @@ static void appHfpHandleHfpAudioDisconnectIndication(const HFP_AUDIO_DISCONNECT_
             {
 #ifdef INCLUDE_AV
                 /* Check if we need to reconnect AV */
-                if (appGetHfp()->sco_av_reconnect)
+                if (appGetHfp()->bitfields.sco_av_reconnect)
                     appAvConnectHandset(FALSE);
 #endif
                 Telephony_NotifyCallAudioRenderedLocal(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(ind->priority));
@@ -1392,7 +1396,7 @@ static void appHfpHandleHfpRingIndication(const HFP_RING_IND_T *ind)
             }
 
             /* Play ring tone if AG doesn't support in band ringing */
-            if (!ind->in_band && !appGetHfp()->call_accepted)
+            if (!ind->in_band && !appGetHfp()->bitfields.call_accepted)
             {
                 if (ring_fwd)
                 {
@@ -1425,7 +1429,7 @@ static void appHfpHandleHfpRingIndication(const HFP_RING_IND_T *ind)
         case HFP_STATE_CONNECTED_ACTIVE:
         {
             /* Play ring tone if AG doesn't support in band ringing */
-            if (!ind->in_band && !appGetHfp()->call_accepted)
+            if (!ind->in_band && !appGetHfp()->bitfields.call_accepted)
             {
                 if (ring_fwd)
                 {
@@ -1492,7 +1496,7 @@ static void appHfpHandleHfpCallStateIndication(const HFP_CALL_STATE_IND_T *ind)
         case HFP_STATE_DISCONNECTING:
         {
             /* Store call setup indication */
-            appGetHfp()->call_state = ind->call_state;
+            appGetHfp()->bitfields.call_state = ind->call_state;
         }
         return;
 
@@ -1504,10 +1508,10 @@ static void appHfpHandleHfpCallStateIndication(const HFP_CALL_STATE_IND_T *ind)
             hfpState state;
 
             /* Store call setup indication */
-            appGetHfp()->call_state = ind->call_state;
+            appGetHfp()->bitfields.call_state = ind->call_state;
 
             /* Move to new state, depending on call state */
-            state = hfp_call_state_table[appGetHfp()->call_state];
+            state = hfp_call_state_table[appGetHfp()->bitfields.call_state];
             if (appHfpGetState() != state)
                 appHfpSetState(state);
         }
@@ -1535,7 +1539,7 @@ static void appHfpHandleHfpVoiceRecognitionIndication(const HFP_VOICE_RECOGNITIO
         case HFP_STATE_CONNECTED_ACTIVE:
         case HFP_STATE_DISCONNECTING:
         {
-            appGetHfp()->voice_recognition_active = ind->enable;
+            appGetHfp()->bitfields.voice_recognition_active = ind->enable;
 
 #ifdef INCLUDE_AV
             if (appHfpIsVoiceRecognitionActive())
@@ -1567,9 +1571,9 @@ static void appHfpHandleHfpVoiceRecognitionEnableConfirmation(const HFP_VOICE_RE
         case HFP_STATE_DISCONNECTING:
         {
             if (cfm->status == hfp_success)
-                appGetHfp()->voice_recognition_active = appGetHfp()->voice_recognition_request;
+                appGetHfp()->bitfields.voice_recognition_active = appGetHfp()->bitfields.voice_recognition_request;
             else
-                appGetHfp()->voice_recognition_request = appGetHfp()->voice_recognition_active;
+                appGetHfp()->bitfields.voice_recognition_request = appGetHfp()->bitfields.voice_recognition_active;
 
 #ifdef INCLUDE_AV
             if (appHfpIsVoiceRecognitionActive())
@@ -1597,7 +1601,7 @@ static void appHfpHandleHfpCallerIdIndication(const HFP_CALLER_ID_IND_T *ind)
         case HFP_STATE_CONNECTED_INCOMING:
         {
             /* Check we haven't already accepted the call */
-            if (!appGetHfp()->call_accepted)
+            if (!appGetHfp()->bitfields.call_accepted)
             {
                 /* Queue prompt & number
                  * This was a todo on playing voice prompts to announce the caller id from text to speech */
@@ -1629,7 +1633,7 @@ static void appHfpHandleHfpCallerIdEnableConfirmation(const HFP_CALLER_ID_ENABLE
         case HFP_STATE_DISCONNECTING:
         {
             if (cfm->status == hfp_success)
-                appGetHfp()->caller_id_active = TRUE;
+                appGetHfp()->bitfields.caller_id_active = TRUE;
         }
         return;
 
@@ -1720,7 +1724,7 @@ static void appHfpHandleHfpCallAnswerConfirmation(const HFP_CALL_ANSWER_CFM_T *c
                 appAvStreamingSuspend(AV_SUSPEND_REASON_HFP);
 #endif
                 /* Flag call as accepted, so we ignore any ring indications or caller ID */
-                appGetHfp()->call_accepted = TRUE;
+                appGetHfp()->bitfields.call_accepted = TRUE;
 
                 /* TODO: Cancel any ring-tones */
                 /* AudioStopTone();*/
@@ -1959,7 +1963,7 @@ static void appHfpHandleClDmEncryptConfirmation(const CL_SM_ENCRYPT_CFM_T *cfm)
         case HFP_STATE_DISCONNECTING:
         {
             /* Store encrypted status */
-            appGetHfp()->encrypted = cfm->encrypted;
+            appGetHfp()->bitfields.encrypted = cfm->encrypted;
 
             /* Check if SCO is now encrypted (or not) */
             appHfpCheckEncryptedSco();
@@ -1987,7 +1991,7 @@ static void appHfpHandleInternalHfpConnectRequest(const HFP_INTERNAL_HFP_CONNECT
             if (ConManagerIsConnected(&req->addr))
             {
                 /* Store connection flags */
-                appGetHfp()->flags = req->flags;
+                appGetHfp()->bitfields.flags = req->flags;
 
                 /* Store AG Bluetooth Address and profile type */
                 appGetHfp()->ag_bd_addr = req->addr;
@@ -2002,7 +2006,7 @@ static void appHfpHandleInternalHfpConnectRequest(const HFP_INTERNAL_HFP_CONNECT
                            req->addr.nap, req->addr.uap, req->addr.lap);
 
                 /* Set disconnect reason */
-                appGetHfp()->disconnect_reason = APP_HFP_CONNECT_FAILED;
+                appGetHfp()->bitfields.disconnect_reason = APP_HFP_CONNECT_FAILED;
 
                 /* Move to 'disconnected' state */
                 appHfpSetState(HFP_STATE_DISCONNECTED);
@@ -2119,7 +2123,7 @@ static void appHfpHandleInternalHfpVoiceDialRequest(void)
             {
                 /* Send the CMD to the AG */
                 /* TODO: Support Multipoint */
-                HfpVoiceRecognitionEnableRequest(hfp_primary_link, appGetHfp()->voice_recognition_request = TRUE);
+                HfpVoiceRecognitionEnableRequest(hfp_primary_link, appGetHfp()->bitfields.voice_recognition_request = TRUE);
             }
         }
         return;
@@ -2157,7 +2161,7 @@ static void appHfpHandleInternalHfpVoiceDialDisableRequest(void)
             {
                 /* Send the CMD to the AG */
                 /* TODO: Support Multipoint */
-                HfpVoiceRecognitionEnableRequest(hfp_primary_link, appGetHfp()->voice_recognition_request = FALSE);
+                HfpVoiceRecognitionEnableRequest(hfp_primary_link, appGetHfp()->bitfields.voice_recognition_request = FALSE);
             }
         }
         return;
@@ -2341,7 +2345,7 @@ static void appHfpHandleInternalHfpMuteRequest(const HFP_INTERNAL_HFP_MUTE_REQ_T
             }
 
             /* Set mute flag */
-            appGetHfp()->mute_active = req->mute;
+            appGetHfp()->bitfields.mute_active = req->mute;
 
             /* Re-configure audio chain */
             appKymeraScoMicMute(req->mute);
@@ -2455,7 +2459,7 @@ static void appHfpHandleConManagerConnectionInd(CON_MANAGER_CONNECTION_IND_T *in
         if (!appHfpIsDisconnected() && BdaddrIsSame(&ind->bd_addr, &appGetHfp()->ag_bd_addr))
         {
             DEBUG_LOG("appHfpHandleConManagerConnectionInd, detach pending");
-            appGetHfp()->detach_pending = TRUE;
+            appGetHfp()->bitfields.detach_pending = TRUE;
         }
     }
 }
@@ -2513,7 +2517,7 @@ bool appHfpInit(Task init_task)
     appGetHfp()->state = HFP_STATE_NULL;
     appGetHfp()->sco_sink = 0;
     appGetHfp()->hfp_lock = 0;
-    appGetHfp()->disconnect_reason = APP_HFP_CONNECT_FAILED;
+    appGetHfp()->bitfields.disconnect_reason = APP_HFP_CONNECT_FAILED;
     appHfpSetState(HFP_STATE_INITIALISING_HFP);
 
     /* Register to receive notifications of (dis)connections */
@@ -2854,7 +2858,7 @@ static bool appHfpVolumeRepeat(int16 step)
         {
             /* Send repeat message later */
             MessageSendLater(appGetHfpTask(), step > 0 ? HFP_INTERNAL_VOLUME_UP : HFP_INTERNAL_VOLUME_DOWN, NULL, 300);
-            appGetHfp()->volume_repeat = 1;
+            appGetHfp()->bitfields.volume_repeat = 1;
 
             /* Return indicating volume changed */
             return TRUE;
@@ -2877,7 +2881,7 @@ void appHfpVolumeStart(int16 step)
 
     if (appHfpVolumeRepeat(step))
     {
-        appGetHfp()->volume_repeat = 0;
+        appGetHfp()->bitfields.volume_repeat = 0;
     }
 }
 
@@ -3213,6 +3217,18 @@ void hfpProfile_RegisterSystemMessageGroup(Task task, message_group_t group)
 {
     PanicFalse(group == SYSTEM_MESSAGE_GROUP);
     appHfpStatusClientRegister(task);
+}
+
+/* \brief Inform hfp profile of current device Primary/Secondary role.
+ */
+void HfpProfile_SetRole(bool primary)
+{
+    if (primary)
+    {
+        /* Register voice source interface for hfp profile */
+        VoiceSources_RegisterAudioInterface(voice_source_hfp_1, HfpProfile_GetAudioInterface());
+    }
+
 }
 
 MESSAGE_BROKER_GROUP_REGISTRATION_MAKE(APP_HFP, hfpProfile_RegisterHfpMessageGroup, NULL);

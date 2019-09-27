@@ -11,8 +11,13 @@
         <member marshal="true" doc="HFP volume">uint8 volume</member>
     </typedef_struct>
 
-    <typedef_struct name="shadow_profile_hfp_codec_ind_t" basic="true" doc="HFP codec type sent from Primary to Secondary">
+    <typedef_struct name="shadow_profile_hfp_codec_and_volume_ind_t" basic="true" doc="HFP codec type and volume sent from Primary to Secondary">
         <member marshal="true" doc="HFP codec">hfp_codec_mode_t codec_mode</member>
+        <member marshal="true" doc="HFP volume">uint8 volume</member>
+    </typedef_struct>
+
+    <typedef_struct name="shadow_profile_a2dp_volume_ind_t" basic="true" doc="A2DP volume update sent from Primary to Secondary">
+        <member marshal="true" doc="A2DP volume">uint8 volume</member>
     </typedef_struct>
 
     <typedef_struct name="shadow_profile_stream_context_t" doc="A2DP media stream context sent from Primary to Secondary">

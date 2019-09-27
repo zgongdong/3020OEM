@@ -24,6 +24,7 @@
 #include "power_manager.h"
 #include "earbud_ui.h"
 #include "earbud_sm.h"
+#include "earbud_handover.h"
 #include "gaia_handler.h"
 #include "gatt_handler.h"
 #include "gatt_connect.h"
@@ -37,8 +38,10 @@
 #include "connection_manager_config.h"
 #include "bt_device_class.h"
 #include "le_advertising_manager.h"
+#include "le_scan_manager.h"
 #include "link_policy.h"
 #include "logical_input_switch.h"
+#include "local_name.h"
 #include "connection_message_dispatcher.h"
 #include "ui.h"
 #include "volume_messages.h"
@@ -48,6 +51,7 @@
 #include "audio_sources.h"
 #include "voice_sources.h"
 #include "peer_link_keys.h"
+#include "peer_ui.h"
 #include "telephony_messages.h"
 #include "anc_state_manager.h"
 #include "audio_curation.h"
@@ -66,6 +70,7 @@
 #include <connection_manager.h>
 #include <hfp_profile.h>
 #include <scofwd_profile.h>
+#include <handover_profile.h>
 #include <shadow_profile.h>
 #include <charger_monitor.h>
 #include <message_broker.h>
@@ -76,6 +81,7 @@
 #include <peer_find_role.h>
 #include <peer_pair_le.h>
 #include <key_sync.h>
+#include <ui_prompts.h>
 
 #include <panic.h>
 #include <pio.h>
@@ -133,21 +139,6 @@ static bool appLicenseCheck(Task init_task)
     return TRUE;
 }
 
-#ifdef LOCAL_NAME_CONFIGURATION_UNSUPPORTED
-/*************************************************************************
-NAME
-    writeLocalName
-
-DESCRIPTION
-    Write a default local device name when there is no other configuration mechanism supported.
-*/
-static void writeLocalName(void)
-{
-    char new_name[] = "@@@QTIL_earbudApp@@@";
-
-    ConnectionChangeLocalName(strlen(new_name), (uint8 *)new_name);
-}
-#endif
 /*! \brief Forward CL_INIT_CFM message to the init task handler. */
 static void appInitFwdClInitCfm(const CL_INIT_CFM_T * cfm)
 {
@@ -173,10 +164,6 @@ static void appInitHandleClInitCfm(const CL_INIT_CFM_T *cfm)
     /* Reset security mode config - always turn off debug keys on power on */
     ConnectionSmSecModeConfig(appGetAppTask(), cl_sm_wae_acl_owner_none, FALSE, TRUE);
 
-#ifdef LOCAL_NAME_CONFIGURATION_UNSUPPORTED
-    writeLocalName();
-#endif
-
     appInitFwdClInitCfm(cfm);
 }
 
@@ -192,7 +179,7 @@ static void appHandleClMessage(Task task, MessageId id, Message message)
 {
     UNUSED(task);
 
-    DEBUG_LOG("appHandleClMessage called, message id = 0x%x", id);
+    //DEBUG_LOG("appHandleClMessage called, message id = 0x%x", id);
     /* Handle Connection Library messages that are not sent directly to
        the requestor */
     if (CL_MESSAGE_BASE <= id && id < CL_MESSAGE_TOP)
@@ -208,14 +195,16 @@ static void appHandleClMessage(Task task, MessageId id, Message message)
         /* Pass connection library messages in turn to the modules that
            are interested in them.
          */
+        handled |= LeScanManager_HandleConnectionLibraryMessages(id, message, handled);
         handled |= PeerPairLe_HandleConnectionLibraryMessages(id, message, handled);
         handled |= Pairing_HandleConnectionLibraryMessages(id, message, handled);
         handled |= ConManagerHandleConnectionLibraryMessages(id, message, handled);
         handled |= appLinkPolicyHandleConnectionLibraryMessages(id, message, handled);
         handled |= appAuthHandleConnectionLibraryMessages(id, message, handled);
-        handled |= AdvertisingManager_HandleConnectionLibraryMessages(id, message, handled);
+        handled |= LeAdvertisingManager_HandleConnectionLibraryMessages(id, message, handled);
         handled |= appTestHandleConnectionLibraryMessages(id, message, handled);
         handled |= PeerFindRole_HandleConnectionLibraryMessages(id, message, handled);
+        handled |= HandoverProfile_HandleConnectionLibraryMessages(id, message, handled);
 
         if (handled)
         {
@@ -350,7 +339,9 @@ static const init_table_entry_t appInitTable[] =
     {SecondaryRules_Init,   0, NULL},
     {appDeviceInit,         CL_DM_LOCAL_BD_ADDR_CFM, appDeviceHandleClDmLocalBdAddrCfm},
     {BredrScanManager_Init, BREDR_SCAN_MANAGER_INIT_CFM, NULL},
+    {LocalName_Init, LOCAL_NAME_INIT_CFM, NULL},
     {LeAdvertisingManager_Init,     0, NULL},
+    {LeScanManager_Init,     0, NULL},
     {AudioSources_Init,      0, NULL},
     {VoiceSources_Init,      0, NULL},
     {Volume_InitMessages,   0, NULL},
@@ -365,9 +356,6 @@ static const init_table_entry_t appInitTable[] =
     {appKymeraInit,         0, NULL},
 #ifdef INCLUDE_SCOFWD
     {ScoFwdInit,            SFWD_INIT_CFM, NULL},
-#endif
-#ifdef INCLUDE_SHADOWING
-	{ShadowProfile_Init,    SHADOW_PROFILE_INIT_CFM, NULL},
 #endif
     {StateProxy_Init,       0, NULL},
     {MediaPlayer_Init,       0, NULL},
@@ -407,6 +395,8 @@ static const init_table_entry_t appInitTable[] =
     {AncStateManager_Init, 0, NULL},
 #endif
     {AudioCuration_Init, 0, NULL},
+    {UiPrompts_Init,     0, NULL},
+    {PeerUi_Init,        0, NULL},
 };
 
 void appInit(void)

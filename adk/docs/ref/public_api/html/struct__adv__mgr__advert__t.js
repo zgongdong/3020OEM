@@ -20,5 +20,5 @@ var struct__adv__mgr__advert__t =
     [ "services_uuid128", "struct__adv__mgr__advert__t.html#a27f6855242218e536e8e92eb956f3854", null ],
     [ "services_uuid16", "struct__adv__mgr__advert__t.html#abcb139b3afb6c167d14a735d17e6672c", null ],
     [ "services_uuid32", "struct__adv__mgr__advert__t.html#a5243b84624ee9ea63d8bce40ff72a982", null ],
-    [ "use_own_random", "struct__adv__mgr__advert__t.html#a21289dea4118783b5e68dee845046fc1", null ]
+    [ "use_own_random", "struct__adv__mgr__advert__t.html#a24b0fc2d7cca2284117162b3918e12ed", null ]
 ];

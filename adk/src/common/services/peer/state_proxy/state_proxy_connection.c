@@ -124,10 +124,10 @@ state_proxy_connection_t* stateProxy_GetConnection(state_proxy_data_t *data, con
     {
         if (BdaddrTpIsSame(&conn->device, bd_addr))
         {
-            break;
+            return conn;
         }
     }
-    return conn;
+    return NULL;
 }
 
 state_proxy_connection_t* stateProxy_GetEmptyConnection(state_proxy_data_t *data)
@@ -137,25 +137,23 @@ state_proxy_connection_t* stateProxy_GetEmptyConnection(state_proxy_data_t *data
     {
         if (BdaddrTpIsEmpty(&conn->device))
         {
-            break;
+            return conn;
         }
     }
-    return conn;
+    return NULL;
 }
 
 static bool stateProxy_AnyConnections(state_proxy_data_t *data)
 {
-    bool connections = FALSE;
     state_proxy_connection_t *conn = NULL;
     ARRAY_FOREACH(conn, data->connection)
     {
         if (!BdaddrTpIsEmpty(&conn->device))
         {
-            connections = TRUE;
-            break;
+            return TRUE;
         }
     }
-    return connections;
+    return FALSE;
 }
 
 bool stateProxy_AnyLocalConnections(void)
@@ -204,7 +202,9 @@ static void stateProxy_ConnectionUpdateState(state_proxy_data_t* data, const CON
 static void stateProxy_DisconnectionUpdateState(state_proxy_data_t* data, const CON_MANAGER_TP_DISCONNECT_IND_T* ind)
 {
     state_proxy_connection_t *conn = stateProxy_GetConnection(data, &ind->tpaddr);
-    PanicNull(conn);
-    memset(conn, 0, sizeof(*conn));
-    BdaddrTpSetEmpty(&conn->device);
+    if (conn)
+    {
+        memset(conn, 0, sizeof(*conn));
+        BdaddrTpSetEmpty(&conn->device);
+    }
 }

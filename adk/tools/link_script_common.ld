@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Qualcomm Technologies International, Ltd. */
+/* Copyright (c) 2019 Qualcomm Technologies International, Ltd. */
 /* Link script for P1 */
 
 ENTRY($reset)
@@ -147,6 +147,12 @@ SECTIONS
         $_message_broker_group_registrations_begin = ABSOLUTE(.) ;
         KEEP(*(message_broker_group_registrations\?*))
         $_message_broker_group_registrations_end = ABSOLUTE(.) ;
+        $_handover_interface_registrations_begin = ABSOLUTE(.) ;
+        KEEP(*(handover_interface_registrations\?*))
+        $_handover_interface_registrations_end = ABSOLUTE(.) ;
+        $_gatt_client_const_section_begin = ABSOLUTE(.) ;
+        KEEP(*(gatt_client_const_section\?*))
+        $_gatt_client_const_section_end = ABSOLUTE(.) ;        
         *.o(dmconst\?*)
     }
 

@@ -45,6 +45,42 @@ void peer_find_role_notify_timeout(void);
     stopped */
 void peer_find_role_notify_clients_if_pending(void);
 
+/*! Send a "prepare for role selection" request to the registered client */
+void peer_find_role_request_prepare_for_role_selection(void);
+
+/*! Initiate disconnection of the peer link - if active
+
+    \note This does not check whether the link is still in the process
+        of disconnection.
+    
+    \return TRUE If disconnection was required
+ */
+bool peer_find_role_disconnect_link(void);
+
+
+/*! Update the media status
+
+    Update activities that might affect operation of find role.
+    These are normally media activities, such as music or voice
+    calls.
+
+    \note When we set a media flag we queue a message to be sent when
+    we later go inactive.
+
+    \param busy Whether the mask is to be set or cleared
+    \param mask The bit mask to apply
+ */
+void peer_find_role_update_media_flag(bool busy, peerFindRoleMediaBusyStatus_t mask);
+
+
+/*! Transition to next state after link has disconnected
+
+    We may want to restart device discovery in case the selected
+    roles were not established correctly, in which case we will
+    transition to #PEER_FIND_ROLE_STATE_DISCOVERY, otherwise
+    #PEER_FIND_ROLE_STATE_INITIALISED.
+ */
+void peer_find_role_select_state_after_completion(void);
 
 
 #endif /* PEER_FIND_ROLE_INIT_H_ */

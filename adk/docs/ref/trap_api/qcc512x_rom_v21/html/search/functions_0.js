@@ -1,5 +1,12 @@
 var searchData=
 [
+  ['aclhandovercancel',['AclHandoverCancel',['../group__trapset__shadowing.html#ga63b42a026722c8ba6d58e044f36ad1ac',1,'acl.h']]],
+  ['aclhandovercommit',['AclHandoverCommit',['../group__trapset__shadowing.html#ga1fe68ad83bd05918d21fbbbba17bff94',1,'acl.h']]],
+  ['aclhandoverprepare',['AclHandoverPrepare',['../group__trapset__shadowing.html#gaab0d70189633625fc907b0b079c5d4c1',1,'acl.h']]],
+  ['aclhandoverprepared',['AclHandoverPrepared',['../group__trapset__shadowing.html#gaed788b0415211275e525e52610b7f4ec',1,'acl.h']]],
+  ['aclreceiveddataprocessed',['AclReceivedDataProcessed',['../group__trapset__acl__control.html#ga141e2c6b2f7239ae4e951624a6c83453',1,'acl.h']]],
+  ['aclreceiveenable',['AclReceiveEnable',['../group__trapset__acl__control.html#ga023ab77fc7a5e62bbf072ae4677b55f4',1,'acl.h']]],
+  ['acltransmitdatapending',['AclTransmitDataPending',['../group__trapset__acl__control.html#gae18b1b0d4bd923b82cb001e04781d0cf',1,'acl.h']]],
   ['adcreadrequest',['AdcReadRequest',['../group__trapset__core.html#gafb642634557cf5ffb084d67405fb436b',1,'adc.h']]],
   ['audioancfilteriirset',['AudioAncFilterIirSet',['../group__trapset__audio__anc.html#gaeea014dd02b9ebdbb3ef1a60635643c2',1,'audio_anc.h']]],
   ['audioancfilterlpfset',['AudioAncFilterLpfSet',['../group__trapset__audio__anc.html#ga6c3837aee0a574f4b007b655ca0feaee',1,'audio_anc.h']]],

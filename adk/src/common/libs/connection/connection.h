@@ -1278,8 +1278,34 @@ typedef enum {
     \param peer_tpaddr Transport typed Bluetooth Device Address of the Peer 
     device. If the request is to read the Local device's Random address, this 
     will be ignored.
+
+    \return A message of type #CL_SM_BLE_READ_RANDOM_ADDRESS_CFM_T
+    is sent to the  task that initialised the Connection library when operation
+    has completed.
+
 */
 void ConnectionSmBleReadRandomAddressReq(
+    ble_read_random_address_flags   flags,
+    const tp_bdaddr                 *peer_tpaddr
+    );
+
+/*!
+    \brief Read Random Address of either the local device or a peer device.
+
+    \param theAppTask The client task.
+
+    \param flags Indicate whether it is the local device or a peer device,
+    that the Read request is for. See #ble_read_random_address_flags.
+
+    \param peer_tpaddr Transport typed Bluetooth Device Address of the Peer
+    device. If the request is to read the Local device's Random address, this
+    will be ignored.
+
+    \return A message of type #CL_SM_BLE_READ_RANDOM_ADDRESS_CFM_T
+    is sent to the specified client task.
+*/
+void ConnectionSmBleReadRandomAddressTaskReq(
+    Task                            theAppTask,
     ble_read_random_address_flags   flags,
     const tp_bdaddr                 *peer_tpaddr
     );
@@ -1595,6 +1621,43 @@ typedef struct
     /*! hci status, non zero is failure */
     hci_status      status;
 } CL_DM_ULP_SET_DEFAULT_PHY_CFM_T;
+
+/*! \brief Privacy mode type values that are used to indicate
+    privacy mode type of a link.
+ */
+typedef enum
+{
+    /* Network Privacy Mode - default */
+    privacy_mode_network = 0x00,
+    /* Device Privacy Mode */
+    privacy_mode_device = 0x01,
+    /*! Privacy Mode last - should not be used. */
+    privacy_mode_last
+} privacy_mode;
+
+/*!
+    \brief Set privacy mode for a given LE connection.
+
+    \param peer_taddr The remote device address.
+    \param mode Selected Privacy Mode
+
+    A #CL_DM_ULP_SET_PRIVACY_MODE_CFM_T message will be sent
+    in response.
+*/
+void ConnectionDmUlpSetPrivacyModeReq(
+        const typed_bdaddr  *peer_taddr,
+        const privacy_mode mode
+        );
+
+/*!
+    \brief Indicates a confirmation of a privacy
+    mode change
+*/
+typedef struct
+{
+    /*! hci status, non zero is failure */
+    hci_status  status;
+} CL_DM_ULP_SET_PRIVACY_MODE_CFM_T;
 
 /*!
     \brief Request to read the BLE Advertising channel transmit power

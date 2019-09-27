@@ -33,15 +33,8 @@ RETURNS
 */
 void ConnectionDmBleReadWhiteListSizeReq(void)
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_PRIM_C(DM_HCI_ULP_READ_WHITE_LIST_SIZE_REQ);
-        VmSendDmPrim(prim);
-    }
+    MAKE_PRIM_C(DM_HCI_ULP_READ_WHITE_LIST_SIZE_REQ);
+    VmSendDmPrim(prim);
 }
 
 /****************************************************************************
@@ -56,15 +49,8 @@ RETURNS
 */
 void ConnectionDmBleClearWhiteListReq(void)
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_PRIM_C(DM_HCI_ULP_CLEAR_WHITE_LIST_REQ);
-        VmSendDmPrim(prim);
-    }
+    MAKE_PRIM_C(DM_HCI_ULP_CLEAR_WHITE_LIST_REQ);
+    VmSendDmPrim(prim);
 }
 
 /****************************************************************************
@@ -92,11 +78,6 @@ void ConnectionDmBleAddDeviceToWhiteListReq(
         CL_DEBUG(("'addr' cannot be NULL\n"));
     }
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
     {
         MAKE_PRIM_C(DM_HCI_ULP_ADD_DEVICE_TO_WHITE_LIST_REQ);
         prim->address_type = bd_addr_type;
@@ -131,11 +112,6 @@ void ConnectionDmBleRemoveDeviceFromWhiteListReq(
         CL_DEBUG(("'addr' cannot be NULL\n"));
     }
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
     {
         MAKE_PRIM_C(DM_HCI_ULP_REMOVE_DEVICE_FROM_WHITE_LIST_REQ);
         prim->address_type = bd_addr_type;

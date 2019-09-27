@@ -45,7 +45,7 @@
 #include<device_properties.h>
 #include <profile_manager.h>
 #include <tws_topology.h>
-#include <hdma.h>
+#include <peer_find_role.h>
 
 /* system includes */
 #include <panic.h>
@@ -75,13 +75,21 @@ static void appSmStartDfuTimer(void);
 /*****************************************************************************
  * SM utility functions
  *****************************************************************************/
-static void earbudSm_SendCommandToPeer(earbud_sm_msg_type type)
+static void earbudSm_SendCommandToPeer(marshal_type_t type)
 {
     earbud_sm_msg_empty_payload_t* msg = PanicUnlessMalloc(sizeof(earbud_sm_msg_empty_payload_t));
-    msg->type = type;
     appPeerSigMarshalledMsgChannelTx(SmGetTask(),
                                      PEER_SIG_MSG_CHANNEL_APPLICATION,
-                                     msg, MARSHAL_TYPE_earbud_sm_msg_empty_payload_t);
+                                     msg, type);
+}
+
+static void earbudSm_CancelAndSendCommandToPeer(marshal_type_t type)
+{
+    appPeerSigMarshalledMsgChannelTxCancelAll(SmGetTask(),
+                                              PEER_SIG_MSG_CHANNEL_APPLICATION,
+                                              type);
+    earbudSm_SendCommandToPeer(type);
+
 }
 
 /*! \brief Set event on active rule set */
@@ -409,21 +417,6 @@ static void appEnterStartup(void)
     DEBUG_LOG("appEnterStartup");
 
     TwsTopology_Start(SmGetTask());
-
-    /* Basically disable DFU for now */
-#if 0
-    /* As we have entered startup state we know there is no upgrade in
-       progress. If needed block upgrades until we know we are in an
-       appropriate state */
-#ifdef INCLUDE_DFU
-    if (   (   !appConfigDfuAllowBleUpgradeOutOfCase()
-            && !appConfigDfuAllowBredrUpgradeOutOfCase())
-        || appConfigDfuOnlyFromUiInCase())
-    {
-        appUpgradeAllowUpgrades(FALSE);
-    }
-#endif
-#endif
 }
 
 static void appExitStartup(void)
@@ -452,6 +445,9 @@ static void appEnterHandsetPairing(void)
 {
     DEBUG_LOG("appEnterHandsetPairing");
 
+    smTaskData *sm = SmGetTaskData();
+
+    PeerFindRole_RegisterPrepareClient(&sm->task);
     appSmInitiateLinkDisconnection(SM_DISCONNECT_HANDSET,
                                    appConfigLinkDisconnectionTimeoutTerminatingMs(),
                                    POST_DISCONNECT_ACTION_HANDSET_PAIRING);
@@ -461,10 +457,13 @@ static void appEnterHandsetPairing(void)
  */
 static void appExitHandsetPairing(void)
 {
+    smTaskData *sm = SmGetTaskData();
+
     DEBUG_LOG("appExitHandsetPairing");
 
+    PeerFindRole_UnregisterPrepareClient(&sm->task);
     appSmRulesSetRuleComplete(CONN_RULES_HANDSET_PAIR);
-    Pairing_PairCancel();
+    Pairing_PairStop(NULL);
 }
 
 /*! \brief Enter
@@ -521,7 +520,9 @@ static void appEnterInCaseDfu(void)
 static void appExitInCaseDfu(void)
 {
     DEBUG_LOG("appExitInCaseDfu");
+
     appSmCancelDfuTimers();
+    SmGetTaskData()->dfu_has_been_restarted = FALSE;
     TwsTopology_EndDfuRole();
 }
 
@@ -1318,7 +1319,7 @@ static void EarbudSm_HandleDfuNotifyPrimary(void)
 {
     DEBUG_LOG("EarbudSm_HandleDfuNotifyPrimary");
 
-    earbudSm_SendCommandToPeer(earbud_sm_ind_dfu_ready);
+    earbudSm_SendCommandToPeer(MARSHAL_TYPE(earbud_sm_ind_dfu_ready_t));
 }
 
 static void appSmHandleConnRulesForwardLinkKeys(void)
@@ -1331,149 +1332,11 @@ static void appSmHandleConnRulesForwardLinkKeys(void)
     if (appDeviceGetPeerBdAddr(&peer_addr))
     {
         /* Attempt to send handset link keys to peer device */
-//        appPairingTransmitHandsetLinkKeysReq();
         KeySync_Sync();
     }
 
     /* In all cases mark rule as done */
     appSmRulesSetRuleComplete(CONN_RULES_PEER_SEND_LINK_KEYS);
-}
-
-extern uint8 profile_list[4];
-
-/*! \brief Connect HFP, A2DP and AVRCP to last connected handset. */
-static void appSmHandleConnRulesConnectHandset(CONN_RULES_CONNECT_HANDSET_T* crch)
-{
-    DEBUG_LOGF("appSmHandleConnRulesConnectHandset profiles %u", crch->profiles);
-
-    bool is_mru_handset = TRUE;
-    device_t handset_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_mru, &is_mru_handset, sizeof(uint8));
-    if (handset_device)
-    {
-        Device_SetProperty(handset_device, device_property_profiles_connect_order, profile_list, sizeof(profile_list));
-        ProfileManager_ConnectProfilesRequest(&SmGetTaskData()->task, handset_device);
-    }
-    else
-    {
-        bdaddr handset_address = {0,0,0};
-        if (appDeviceGetHandsetBdAddr(&handset_address))
-        {
-            handset_device = BtDevice_GetDeviceForBdAddr(&handset_address);
-            Device_SetProperty(handset_device, device_property_profiles_connect_order, profile_list, sizeof(profile_list));
-            ProfileManager_ConnectProfilesRequest(&SmGetTaskData()->task, handset_device);
-        }
-    }
-}
-
-
-/*! \brief Connect Peer Signalling to peer. */
-static void appSmHandleConnRulesConnectPeerSignalling(void)
-{
-    bdaddr peer_addr = {0};
-
-    if (appDeviceGetPeerBdAddr(&peer_addr))
-    {
-        DEBUG_LOG("appSmHandleConnRulesConnectPeerSignalling - connecting peer");
-        appPeerSigConnect(SmGetTask(), &peer_addr);
-    }
-    else
-    {
-        DEBUG_LOG("appSmHandleConnRulesConnectPeerSignalling - no peer_addr");
-    }
-	
-    /* Mark rule as done */
-    appSmRulesSetRuleComplete(CONN_RULES_CONNECT_PEER_SIGNALLING);
-}
-
-/*! \brief Connect A2DP and AVRCP to peer. */
-static void appSmHandleConnRulesConnectPeer(const CONN_RULES_CONNECT_PEER_T* crcp)
-{
-    DEBUG_LOGF("appSmHandleConnRulesConnectPeer profiles %u", crcp->profiles);
-
-    if ((crcp->profiles & DEVICE_PROFILE_PEERSIG))
-    {
-        bdaddr peer_addr;
-        appDeviceGetPeerBdAddr(&peer_addr);
-        appPeerSigConnect(SmGetTask(), &peer_addr);
-    }
-#ifdef INCLUDE_SCOFWD
-    if ((crcp->profiles & DEVICE_PROFILE_SCOFWD))
-    {
-        /* Connect SCO Forwarding link to peer */
-        ScoFwdConnectPeer(SmGetTask());
-    }
-#endif /* INCLUDE_SCOFWD */
-
-    if (crcp->profiles & DEVICE_PROFILE_A2DP)
-    {
-        /* Connect AVRCP and A2DP to peer */
-//        appAvConnectPeer();
-    }
-
-    /* Only connect shadow profile if there is an active HFP call in progress.
-       When shadow_profile supports A2DP also start if A2DP is streaming. */
-    if (appHfpIsCall())
-    {
-        ShadowProfile_Connect();
-    }
-
-    /* Mark rule as done */
-    appSmRulesSetRuleComplete(CONN_RULES_CONNECT_PEER);
-}
-
-
-/*! \brief Connect HFP, A2DP and AVRCP to peer's connected handset. */
-static void appSmHandleConnRulesConnectPeerHandset(CONN_RULES_CONNECT_PEER_HANDSET_T* crcph)
-{
-    bdaddr peer_handset_addr;
-
-    DEBUG_LOGF("appSmHandleConnRulesConnectPeerHandset profiles:%u", crcph->profiles);
-
-    if (crcph->profiles & DEVICE_PROFILE_A2DP)
-    {
-        /* Connect to peer's handset for A2DP (and AVRCP) */
-        StateProxy_GetPeerHandsetAddr(&peer_handset_addr);
-        appAvConnectWithBdAddr(&peer_handset_addr);
-    }
-    if (crcph->profiles & DEVICE_PROFILE_HFP)
-    {
-        /* connecto to peer's handset for HFP */
-        StateProxy_GetPeerHandsetAddr(&peer_handset_addr);
-        appHfpConnectWithBdAddr(&peer_handset_addr, hfp_handsfree_107_profile);
-    }
-
-    /* Mark rule as done */
-    appSmRulesSetRuleComplete(CONN_RULES_CONNECT_PEER_HANDSET);
-}
-
-/*! \brief Connect HFP, A2DP and AVRCP to peer's connected handset. */
-static void appSmHandleConnRulesUpdateMruPeerHandset(void)
-{
-    bdaddr peer_handset_addr;
-    DEBUG_LOG("appSmHandleConnRulesUpdateMruPeerHandset");
-
-    /* Update most recent connected device */
-    StateProxy_GetPeerHandsetAddr(&peer_handset_addr);
-    appDeviceUpdateMruDevice(&peer_handset_addr);
-
-    /* Mark rule as done */
-    appSmRulesSetRuleComplete(CONN_RULES_UPDATE_MRU_PEER_HANDSET);
-
-}
-
-/*! \brief Send Earbud state and role messages to handset. */
-static void appSmHandleConnRulesSendStatusToHandset(void)
-{
-    DEBUG_LOG("appSmHandleConnRulesSendStatusToHandset");
-
-    /* request handset signalling module send current state to handset. */
-    appHandsetSigSendEarbudStateReq(appSmGetPhyState());
-
-    /* request handset signalling module sends current role to handset. */
-    appHandsetSigSendEarbudRoleReq(appConfigIsLeft() ? EARBUD_ROLE_LEFT : EARBUD_ROLE_RIGHT);
-
-    /* Mark rule as done */
-    appSmRulesSetRuleComplete(CONN_RULES_SEND_STATE_TO_HANDSET);
 }
 
 /*! \brief Start timer to stop A2DP if earbud stays out of the ear. */
@@ -1615,78 +1478,6 @@ static void appSmHandleInternalTimeoutOutOfEarSco(void)
     }
 }
 
-
-/*! \brief Earbud put in case disconnect link to handset */
-static void appSmHandleConnRulesHandsetDisconnect(CONN_RULES_DISCONNECT_HANDSET_T *action)
-{
-    DEBUG_LOG("appSmHandleConnRulesHandsetDisconnect");
-
-    smPostDisconnectAction post_disconnect_action = POST_DISCONNECT_ACTION_NONE;
-    if (action && action->handover)
-    {
-        bool play_media;
-        switch (appAvPlayStatus())
-        {
-            case avrcp_play_status_playing:
-            case avrcp_play_status_fwd_seek:
-            case avrcp_play_status_rev_seek:
-                play_media = TRUE;
-                break;
-            default:
-                play_media = FALSE;
-                break;
-        }
-        post_disconnect_action = play_media ? POST_DISCONNECT_ACTION_HANDOVER_AND_PLAY_MEDIA
-                                            : POST_DISCONNECT_ACTION_HANDOVER;
-    }
-    appSmInitiateLinkDisconnection(SM_DISCONNECT_HANDSET,
-                                   appConfigLinkDisconnectionTimeoutTerminatingMs(),
-                                   post_disconnect_action);
-    appSetState(appSetSubState(APP_SUBSTATE_DISCONNECTING));
-    appSmRulesSetRuleComplete(CONN_RULES_DISCONNECT_HANDSET);
-}
-
-
-/*! \brief Earbud put in case disconnect link to peer */
-static void appSmHandleConnRulesPeerDisconnect(void)
-{
-    DEBUG_LOG("appSmHandleConnRulesPeerDisconnect");
-
-#ifdef INCLUDE_SCOFWD
-    ScoFwdDisconnectPeer(SmGetTask());
-#endif /* INCLUDE_SCOFWD */
-//    appAvDisconnectPeer();
-    appPeerSigDisconnect(SmGetTask());
-
-    ShadowProfile_Disconnect();
-
-    appSmRulesSetRuleComplete(CONN_RULES_DISCONNECT_PEER);
-}
-
-#ifdef INCLUDE_SCOFWD
-/*! \brief Let the SCO forwarding module know that we want to bring
-        up the SCO forwarding link. */
-static void appSmHandleConnRulesSendPeerScofwdConnect(void)
-{
-    bdaddr peer;
-
-    DEBUG_LOG("appSmHandleConnRulesSendPeerScofwdConnect");
-
-    if (appDeviceGetPeerBdAddr(&peer) && appDeviceIsHandsetHfpConnected() &&
-        !appDeviceIsTwsPlusHandset(appHfpGetAgBdAddr()))
-    {
-        ScoFwdConnectPeer(SmGetTask());
-        /*! \todo Decide whether to mark the rule complete when we
-            don't know if the link is up yet.
-            Yes and move completion out of the else like other rule action handlers */
-    }
-    else
-    {
-        appSmRulesSetRuleComplete(CONN_RULES_SEND_PEER_SCOFWD_CONNECT);
-    }
-}
-#endif
-
 /*! \brief Switch which microphone is used during MIC forwarding. */
 static void appSmHandleConnRulesSelectMic(CONN_RULES_SELECT_MIC_T* crsm)
 {
@@ -1728,22 +1519,14 @@ static void appSmHandleConnRulesScoForwardingControl(CONN_RULES_SCO_FORWARDING_C
 /*! \brief Handle confirmation of SM marhsalled msg TX, free the message memory. */
 static void appSm_HandleMarshalledMsgChannelTxCfm(const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T* cfm)
 {
-//    DEBUG_LOG("appSm_HandleMarshalledMsgChannelTxCfm channel %u status %u", cfm->channel, cfm->status);
-    if (cfm->msg_ptr)
+    if (cfm->type == MARSHAL_TYPE(earbud_sm_req_factory_reset_t))
     {
-        earbud_sm_msg_empty_payload_t *req = (earbud_sm_msg_empty_payload_t *)cfm->msg_ptr;
-        if (req->type == earbud_sm_req_factory_reset)
+        if (cfm->status != peerSigStatusSuccess)
         {
-            if (cfm->status != peerSigStatusSuccess)
-            {
-                DEBUG_LOG("Failed to send earbud_sm_cmd_factory_reset_request to peer, applying locally.");
-            }
-            appSmFactoryReset();
+            DEBUG_LOG("Failed to send earbud_sm_cmd_factory_reset_request to peer, applying locally.");
         }
+        appSmFactoryReset();
     }
-
-    /* free the memory for the marshalled message now confirmed sent */
-    free(cfm->msg_ptr);
 }
 
 static void appSm_DisconnectAndSwitchRole(bool become_primary)
@@ -1759,183 +1542,6 @@ static void appSm_DisconnectAndSwitchRole(bool become_primary)
     appSetState(appSetSubState(APP_SUBSTATE_DISCONNECTING));
 }
 
-#if 0
-static void appSm_SwitchAddress(bool primary)
-{
-    if (!TwsTopology_SwitchAddress(primary))
-    {
-        int delay = 500;
-        MESSAGE_MAKE(message, SM_INTERNAL_ADDR_SWITCH_DELAY_T);
-        message->primary = primary;
-        DEBUG_LOG("appSm_SwitchAddress failed to override bdaddr delaying for %ums", delay);
-        MessageSendLater(SmGetTask(), SM_INTERNAL_TIMEOUT_ADDR_SWITCH_RETRY, message, delay); 
-    }
-    else
-    {
-        DEBUG_LOG("appSm_SwitchAddress success");
-
-        if (primary)
-        {
-            /* record new role */
-            SmGetTaskData()->role = tws_topology_role_primary;
-
-            /* \todo remove this once LE role selection is available and the state proxy
-             * will be able to listen to role selection events instead */
-            StateProxy_SetRole(TRUE);
-
-#ifdef INCLUDE_SHADOWING
-            ShadowProfile_SetRole(TRUE);
-#endif
-
-            /*! \todo TEMP until connection rules migrate to TWS topology */
-//            TwsTopology_RoleSwitchCompleted();
-
-            /* kick the rules engines with a role switch event */
-            PrimaryRules_SetEvent(SmGetTask(), RULE_EVENT_ROLE_SWITCH);
-            if (appPhyStateGetState() != PHY_STATE_IN_CASE)
-            {
-                PrimaryRules_SetEvent(SmGetTask(), RULE_EVENT_OUT_CASE);
-            }
-        }
-        else
-        {
-            /* record new role */
-            SmGetTaskData()->role = tws_topology_role_secondary;
-
-            /* \todo remove this once LE role selection is available and the state proxy
-             * will be able to listen to role selection events instead */
-            StateProxy_SetRole(FALSE);
-
-#ifdef INCLUDE_SHADOWING
-            ShadowProfile_SetRole(FALSE);
-#endif
-
-            /*! \todo TEMP eventually TWS topology will have the secondary paging the
-             * primary */
-            //        ScanManagerEnablePageScan(SCAN_MAN_USER_SM, SCAN_MAN_PARAMS_TYPE_FAST);
-
-            /*! \todo TEMP until connection rules migrate to TWS topology */
-//            TwsTopology_RoleSwitchCompleted();
-
-            /* kick the rules engines with a role switch event */
-            SecondaryRules_SetEvent(SmGetTask(), RULE_EVENT_ROLE_SWITCH);
-            if (appPhyStateGetState() != PHY_STATE_IN_CASE)
-            {
-                SecondaryRules_SetEvent(SmGetTask(), RULE_EVENT_OUT_CASE);
-            }
-
-        }
-    }
-}
-#endif
-
-#if 0
-/* Actually perform the role switch.
- * Will migrate to TWS topology
- * Assumption here is that BTSS is now idle or address swap will fail
- * If you're seeing failures the most likely things are:-
- *   - still have a link up, most likely due to peer signalling
- *   - BREDR scanning is active
- */
-static void appSm_CompleteSwitchRole(bool become_primary)
-{
-    DEBUG_LOG("appSm_CompleteSwitchRole %u", become_primary);
-
-    if (become_primary)
-    {
-        /* handover current Secondary rule set events to Primary rule set */
-        rule_events_t current_events = SecondaryRules_GetEvents();
-        DEBUG_LOG("appSm_CompleteSwitchRole switch rule sets to PRIMARY %lx", current_events);
-        PrimaryRules_SetEvent(SmGetTask(), current_events);
-        SecondaryRules_ResetEvent(RULE_EVENT_ALL_EVENTS_MASK);
-
-        /* Setup Primary BT address */
-        appSm_SwitchAddress(TRUE);
-    }
-    else
-    {
-        /* handover current Primary rule set event to Secondary rule set */
-        rule_events_t current_events = PrimaryRules_GetEvents();
-        DEBUG_LOG("appSm_CompleteSwitchRole switch rule sets to SECONDARY %lx", current_events);
-        SecondaryRules_SetEvent(SmGetTask(), current_events);
-        PrimaryRules_ResetEvent(RULE_EVENT_ALL_EVENTS_MASK);
-
-        /* Setup Secondary BT address */
-        appSm_SwitchAddress(FALSE);
-    }
-
-    BredrScanManager_ScanResume();
-}
-
-/*! \brief Switch Primary/Secondary Role.
-    
-    May not be required if already in the correct role, the recipient of
-    an earbud_sm_role_decision_req_t message can have already decided before
-    an earbud_sm_role_decision_cfm_t is received.
-
-    Temporary contents in here (and perhaps the whole function) this is a
-    coarse BREDR-based role switch that only decides which Primary/Secondary
-    rule set to use. Most logic will move into TWS topology.
-*/
-static void appSm_SwitchRole(bool become_primary)
-{
-    if (become_primary)
-    {
-        /* want primary role and currently a secondary */
-        if (SmGetTaskData()->role != tws_topology_role_primary)
-        {
-            /* \todo
-             * At the moment a page scan is the only thing going on,
-             * we're the secondary so it shouldn't be, fix that! */
-            StateProxy_Stop();
-            ConManagerAllowConnection(cm_transport_ble, FALSE);
-            BredrScanManager_ScanPause(SmGetTask());
-            appSm_DisconnectAndSwitchRole(become_primary);
-        }
-        /*! \todo this should probably move with the delayed switch... */
-        LogicalInputSwitch_SetRerouteToPeer(FALSE);
-    }
-    else
-    {
-        if (SmGetTaskData()->role != tws_topology_role_secondary)
-        {
-            /* want secondary role, must always do the switch as may be using
-             * incorrect address for secondary role */
-            StateProxy_Stop();
-            ConManagerAllowConnection(cm_transport_ble, FALSE);
-            BredrScanManager_ScanPause(SmGetTask());
-            appSm_DisconnectAndSwitchRole(become_primary);
-        }
-
-        /*! \todo this should probably move with the delayed switch... */
-        LogicalInputSwitch_SetRerouteToPeer(TRUE);
-    }
-}
-#endif
-
-static void earbudSm_HandleMarshalledEmptyPayloadMsg(const earbud_sm_msg_empty_payload_t* msg)
-{
-    PanicNull((void *)msg);
-    switch(msg->type)
-    {
-        case earbud_sm_req_dfu_active_when_in_case:
-            appSmEnterDfuModeInCase(TRUE);
-            break;
-
-        case earbud_sm_req_factory_reset:
-            DEBUG_LOG("earbud_sm_cmd_factory_reset_request received from Peer");
-            appSmFactoryReset();
-            break;
-
-        case earbud_sm_ind_dfu_ready:
-            DEBUG_LOG("earbud_sm_ind_dfu_ready_indication received from Peer");
-            break;
-
-        default:
-            break;
-    }
-}
-
 /*! \brief Handle SM->SM marshalling messages.
     
     Currently the only handling is to make the Primary/Secondary role switch
@@ -1943,11 +1549,29 @@ static void earbudSm_HandleMarshalledEmptyPayloadMsg(const earbud_sm_msg_empty_p
 */
 static void appSm_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T* ind)
 {
-    switch (ind->type)
+    switch(ind->type)
     {
-        /* State Proxy internal messages */
-        case MARSHAL_TYPE_earbud_sm_msg_empty_payload_t:
-            earbudSm_HandleMarshalledEmptyPayloadMsg((const earbud_sm_msg_empty_payload_t*)ind->msg);
+        case MARSHAL_TYPE(earbud_sm_req_dfu_active_when_in_case_t):
+            appSmEnterDfuModeInCase(TRUE);
+            break;
+
+        case MARSHAL_TYPE(earbud_sm_req_factory_reset_t):
+            DEBUG_LOG("earbud_sm_cmd_factory_reset_request received from Peer");
+            appSmFactoryReset();
+            break;
+
+        case MARSHAL_TYPE(earbud_sm_ind_dfu_ready_t):
+            DEBUG_LOG("earbud_sm_ind_dfu_ready_indication received from Peer");
+            break;
+
+        case MARSHAL_TYPE(earbud_sm_req_stereo_audio_mix_t):
+            DEBUG_LOG("earbud_sm_req_stereo_audio_mix_t received from Peer");
+            appKymeraSetStereoLeftRightMix(TRUE);
+            break;
+
+        case MARSHAL_TYPE(earbud_sm_req_mono_audio_mix_t):
+            DEBUG_LOG("earbud_sm_req_mono_audio_mix_t received from Peer");
+            appKymeraSetStereoLeftRightMix(FALSE);
             break;
 
         default:
@@ -1971,34 +1595,12 @@ static void appSm_HandlePairingActivity(const PAIRING_ACTIVITY_T* pha)
     }
 }
 
-/*! \brief Handle rule action to update page scan settings. */
-static void appSmHandleBleConnectionUpdate(const CONN_RULES_BLE_CONNECTION_UPDATE_T* update)
-{
-    ConManagerAllowConnection(cm_transport_ble, update->enable);
-
-    DEBUG_LOGF("appSmHandleBleConnectionUpdate enable:%u Kicking peer sync", update->enable);
-    /*! \todo need event based mechanism for notifying peer of BLE changes */
-//  appPeerSyncSend(FALSE);
-}
-
-
 /*! \brief Idle timeout */
 static void appSmHandleInternalTimeoutIdle(void)
 {
     DEBUG_LOG("appSmHandleInternalTimeoutIdle");
     PanicFalse(APP_STATE_OUT_OF_CASE_IDLE == appGetState());
     appSetState(APP_STATE_OUT_OF_CASE_SOPORIFIC);
-}
-
-/*! \brief Handle rule action to update page scan settings. */
-static void appSmHandleConnRulesPageScanUpdate(const CONN_RULES_PAGE_SCAN_UPDATE_T* crpsu)
-{
-    DEBUG_LOGF("appSmHandleConnRulesPageScanUpdate enable:%u", crpsu->enable);
-
-    if (crpsu->enable)
-        BredrScanManager_PageScanRequest(SmGetTask(), SCAN_MAN_PARAMS_TYPE_SLOW);
-    else
-        BredrScanManager_PageScanRelease(SmGetTask());
 }
 
 /*! \brief Handle command to pair with a handset. */
@@ -2040,6 +1642,20 @@ static void appSmHandlePeerSigConnectHandsetIndication(PEER_SIG_CONNECT_HANDSET_
     rule_events_t event = ind->play_media ? RULE_EVENT_HANDOVER_RECONNECT_AND_PLAY
                                             : RULE_EVENT_HANDOVER_RECONNECT;
     appSmRulesSetEvent(event);
+}
+
+static void appSmHandlePeerSigConnectionInd(const PEER_SIG_CONNECTION_IND_T *ind)
+{
+    if (ind->status == peerSigStatusConnected)
+    {
+        appSmRulesResetEvent(RULE_EVENT_PEER_DISCONNECTED);
+        appSmRulesSetEvent(RULE_EVENT_PEER_CONNECTED);
+    }
+    else
+    {
+        appSmRulesResetEvent(RULE_EVENT_PEER_CONNECTED);
+        appSmRulesSetEvent(RULE_EVENT_PEER_DISCONNECTED);
+    }
 }
 
 static void appSmHandleAvA2dpConnectedInd(const AV_A2DP_CONNECTED_IND_T *ind)
@@ -2214,27 +1830,6 @@ static void appSmHandleHfpScoDisconnectedInd(void)
         appSmSetCoreState();
 }
 
-static void appSmHandleShadowProfileConnectedInd(void)
-{
-    DEBUG_LOGF("appSmHandleShadowProfileConnectedInd state=0x%x", appGetState());
-
-    /*  Shadow ACL connection established, Invoke Hdma_Init  */
-    if (appSmIsPrimary())
-        Hdma_Init();
- 
-}
-
-static void appSmHandleShadowProfileDisconnectedInd(void)
-{
-    DEBUG_LOGF("appSmHandleShadowProfileDisconnectedInd state=0x%x", appGetState());
-
-    /*  Shadow ACL connection disconnected, Invoke HDMA_Destroy  */
-    if (appSmIsPrimary())
-        Hdma_Destroy();
-
-
-}
-
 static void appSmHandleInternalPairHandset(void)
 {
     if (appSmStateIsIdle(appGetState()))
@@ -2340,34 +1935,24 @@ static void appSmHandleEnterDfuWithTimeout(uint32 timeoutMs)
     appSmRulesSetEvent(RULE_EVENT_DFU_CONNECT);
 }
 
-/*! \todo (very) temporary variable. This is required as 
-        \li goals are not queued at present
-        \li setting the event below raises a goal, while an existing one is running
- */
-bool dfu_has_been_restarted = FALSE;
-
 static void appSmHandleEnterDfuUpgraded(void)
 {
     appSmHandleEnterDfuWithTimeout(appConfigDfuTimeoutToStartAfterRestartMs());
 
-    dfu_has_been_restarted = TRUE;
-        /*! \todo this should be handled in the device_upgrade files,
-                or at least not call an Upgrade API */
-    //TwsTopology_SelectPrimaryAddress(UpgradePeerIsPrimaryDevice());
+    SmGetTaskData()->dfu_has_been_restarted = TRUE;
 }
 
 static void appSmHandleEnterDfuStartup(void)
 {
     appSmHandleEnterDfuWithTimeout(appConfigDfuTimeoutToStartAfterRebootMs());
 
-    dfu_has_been_restarted = FALSE;
+    SmGetTaskData()->dfu_has_been_restarted = FALSE;
 }
 
 static void appSmHandleDfuEnded(bool error)
 {
     DEBUG_LOGF("appSmHandleDfuEnded(%d)",error);
 
-    ConManagerAllowHandsetConnect(FALSE);
     if (appGetState() == APP_STATE_IN_CASE_DFU)
     {
         appSetState(APP_STATE_STARTUP);
@@ -2464,16 +2049,6 @@ static void appSmHandleInternalAllRequestedLinksDisconnected(SM_INTERNAL_LINK_DI
         case POST_DISCONNECT_ACTION_HANDSET_PAIRING:
             Pairing_Pair(SmGetTask(), appSmIsUserPairing());
         break;
-
-#if 0
-        case POST_DISCONNECT_ACTION_SWITCH_TO_PRIMARY:
-            appSm_CompleteSwitchRole(TRUE);
-        break;
-        case POST_DISCONNECT_ACTION_SWITCH_TO_SECONDARY:
-            appSm_CompleteSwitchRole(FALSE);
-        break;
-#endif
-
         case POST_DISCONNECT_ACTION_NONE:
         default:
         break;
@@ -2505,6 +2080,8 @@ static void appSmHandleInternalAllRequestedLinksDisconnected(SM_INTERNAL_LINK_DI
 
 static void appSm_HandleTwsTopologyRoleChange(tws_topology_role new_role)
 {
+    tws_topology_role old_role = SmGetTaskData()->role;
+
     switch (new_role)
     {
         case tws_topology_role_none:
@@ -2540,13 +2117,26 @@ static void appSm_HandleTwsTopologyRoleChange(tws_topology_role new_role)
             {
                 SecondaryRules_SetEvent(SmGetTask(), RULE_EVENT_OUT_CASE);
             }
+
+            /* As a primary the earbud may have been in a non-core state, in
+               particular, it may have been handset pairing. When transitioning
+               to secondary, force a transition to a core state so any primary
+               role activities are cancelled as a result of the state transition
+             */
+            if (old_role == tws_topology_role_primary)
+            {
+                if (!appSmIsCoreState())
+                {
+                    appSmSetCoreState();
+                }
+            }
             break;
 
         case tws_topology_role_dfu:
             DEBUG_LOG("appSm_HandleTwsTopologyRoleChange DFU. Make no changes");
-            if (dfu_has_been_restarted)
+            if (SmGetTaskData()->dfu_has_been_restarted)
             {
-                TwsTopology_SelectPrimaryAddress(UpgradePeerIsPrimaryDevice());
+                TwsTopology_SelectPrimaryAddress(UpgradePeer_IsPrimaryDevice());
             }
             break;
 
@@ -2651,14 +2241,14 @@ static void appSmHandleUiInput(MessageId  ui_input)
             appSmDeleteHandsets();
             break;
         case ui_input_factory_reset_request:
-            earbudSm_SendCommandToPeer(earbud_sm_req_factory_reset);
+            earbudSm_SendCommandToPeer(MARSHAL_TYPE(earbud_sm_req_factory_reset_t));
             /* The factory reset shall be applied locally once the peer has been commanded to reset.
              * N.b. if transimission of this command fails (e.g. single Earbud in use), the reset
              * shall still be applied locally. */
             break;
         case ui_input_dfu_active_when_in_case_request:
             appSmEnterDfuModeInCase(TRUE);
-            earbudSm_SendCommandToPeer(earbud_sm_req_dfu_active_when_in_case);
+            earbudSm_SendCommandToPeer(MARSHAL_TYPE(earbud_sm_req_dfu_active_when_in_case_t));
             break;
         default:
             break;
@@ -2828,6 +2418,61 @@ static void appSmHandleConnRulesAncExitTuning(void)
     appSmRulesSetRuleComplete(CONN_RULES_ANC_TUNING_STOP);
 }
 
+/*! \brief Handle setting remote audio mix */
+static void appSmHandleConnRulesSetRemoteAudioMix(CONN_RULES_SET_REMOTE_AUDIO_MIX_T *remote)
+{
+    DEBUG_LOG("appSmHandleConnRulesSetRemoteAudioMix stereo_mix=%d", remote->stereo_mix);
+
+    if (appPeerSigIsConnected())
+    {
+        marshal_type_t type = remote->stereo_mix ?
+                                MARSHAL_TYPE(earbud_sm_req_stereo_audio_mix_t) :
+                                MARSHAL_TYPE(earbud_sm_req_mono_audio_mix_t);
+        earbudSm_CancelAndSendCommandToPeer(type);
+    }
+
+    appSmRulesSetRuleComplete(CONN_RULES_SET_REMOTE_AUDIO_MIX);
+}
+
+/*! \brief Handle setting local audio mix */
+static void appSmHandleConnRulesSetLocalAudioMix(CONN_RULES_SET_LOCAL_AUDIO_MIX_T *local)
+{
+    DEBUG_LOG("appSmHandleConnRulesSetLocalAudioMix stereo_mix=%d", local->stereo_mix);
+
+    appKymeraSetStereoLeftRightMix(local->stereo_mix);
+
+    appSmRulesSetRuleComplete(CONN_RULES_SET_LOCAL_AUDIO_MIX);
+}
+
+
+/*! \brief Handle PEER_FIND_ROLE_PREPARE_FOR_ROLE_SELECTION message */
+static void appSm_HandlePeerFindRolePrepareForRoleSelection(void)
+{
+    appState state= appGetState();
+
+    DEBUG_LOG("appSm_HandlePeerFindRolePrepareForRoleSelection state=%d", state);
+
+    if(state == APP_STATE_HANDSET_PAIRING)
+    {
+        /* Cancel the pairing */
+        smTaskData *sm = SmGetTaskData();
+        Pairing_PairStop(&sm->task);
+    }
+    else
+    {  /* Shouldn't be possible as we only register for this event whilst in
+           handset pairing state */
+        PeerFindRole_PrepareResponse();
+    }
+}
+
+/*! \brief Handle PAIRING_STOP_CFM message */
+static void appSm_HandlePairingStopCfm(void)
+{
+    DEBUG_LOG("appSm_HandlePairingStopCfm");
+
+    PeerFindRole_PrepareResponse();
+}
+
 /*! \brief Application state machine message handler. */
 void appSmHandleMessage(Task task, MessageId id, Message message)
 {
@@ -2888,12 +2533,6 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
         case APP_HFP_SCO_DISCONNECTED_IND:
             appSmHandleHfpScoDisconnectedInd();
             break;
-        case SHADOW_PROFILE_CONNECT_IND:
-            appSmHandleShadowProfileConnectedInd();
-            break;
-        case SHADOW_PROFILE_DISCONNECT_IND:
-            appSmHandleShadowProfileDisconnectedInd();
-            break;
 
         /* Physical state changes */
         case PHY_STATE_CHANGED_IND:
@@ -2915,29 +2554,8 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             break;
 
         /* Connection rules */
-        case CONN_RULES_PEER_PAIR:
-            appSmHandleConnRulesPeerPair();
-            break;
         case CONN_RULES_PEER_SEND_LINK_KEYS:
             appSmHandleConnRulesForwardLinkKeys();
-            break;
-        case CONN_RULES_CONNECT_HANDSET:
-            appSmHandleConnRulesConnectHandset((CONN_RULES_CONNECT_HANDSET_T*)message);
-            break;
-        case CONN_RULES_CONNECT_PEER_SIGNALLING:
-            appSmHandleConnRulesConnectPeerSignalling();
-            break;
-        case CONN_RULES_CONNECT_PEER:
-            appSmHandleConnRulesConnectPeer((CONN_RULES_CONNECT_PEER_T*)message);
-            break;
-        case CONN_RULES_CONNECT_PEER_HANDSET:
-            appSmHandleConnRulesConnectPeerHandset((CONN_RULES_CONNECT_PEER_HANDSET_T*)message);
-            break;
-        case CONN_RULES_UPDATE_MRU_PEER_HANDSET:
-            appSmHandleConnRulesUpdateMruPeerHandset();
-            break;
-        case CONN_RULES_SEND_STATE_TO_HANDSET:
-            appSmHandleConnRulesSendStatusToHandset();
             break;
         case CONN_RULES_A2DP_TIMEOUT:
             appSmHandleConnRulesA2dpTimeout();
@@ -2963,12 +2581,6 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
         case CONN_RULES_LED_DISABLE:
             appSmHandleConnRulesLedDisable();
             break;
-        case CONN_RULES_DISCONNECT_HANDSET:
-            appSmHandleConnRulesHandsetDisconnect((CONN_RULES_DISCONNECT_HANDSET_T*)message);
-            break;
-        case CONN_RULES_DISCONNECT_PEER:
-            appSmHandleConnRulesPeerDisconnect();
-            break;
         case CONN_RULES_HANDSET_PAIR:
             appSmHandleConnRulesHandsetPair();
             break;
@@ -2980,14 +2592,6 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             break;
         case CONN_RULES_REJECT_HANDSET_CONNECT:
             appSmHandleConnRulesRejectHandsetConnect();
-            break;
-        case CONN_RULES_PAGE_SCAN_UPDATE:
-            appSmHandleConnRulesPageScanUpdate((CONN_RULES_PAGE_SCAN_UPDATE_T*)message);
-            break;
-        case CONN_RULES_SEND_PEER_SCOFWD_CONNECT:
-#ifdef INCLUDE_SCOFWD
-            appSmHandleConnRulesSendPeerScofwdConnect();
-#endif
             break;
         case CONN_RULES_SELECT_MIC:
             appSmHandleConnRulesSelectMic((CONN_RULES_SELECT_MIC_T*)message);
@@ -3007,9 +2611,11 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
         case CONN_RULES_ANC_TUNING_STOP:
             appSmHandleConnRulesAncExitTuning();
             break;
-
-        case CONN_RULES_BLE_CONNECTION_UPDATE:
-            appSmHandleBleConnectionUpdate((const CONN_RULES_BLE_CONNECTION_UPDATE_T *)message);
+        case CONN_RULES_SET_REMOTE_AUDIO_MIX:
+            appSmHandleConnRulesSetRemoteAudioMix((CONN_RULES_SET_REMOTE_AUDIO_MIX_T*)message);
+            break;
+        case CONN_RULES_SET_LOCAL_AUDIO_MIX:
+            appSmHandleConnRulesSetLocalAudioMix((CONN_RULES_SET_LOCAL_AUDIO_MIX_T*)message);
             break;
 
         case CONN_RULES_DFU_ALLOW:
@@ -3029,6 +2635,9 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             appSmHandlePeerSigConnectHandsetIndication((PEER_SIG_CONNECT_HANDSET_IND_T*)message);
             break;
         case PEER_SIG_CONNECT_HANDSET_CFM:
+            break;
+        case PEER_SIG_CONNECTION_IND:
+            appSmHandlePeerSigConnectionInd((const PEER_SIG_CONNECTION_IND_T *)message);
             break;
 
         /* TWS Topology messages */
@@ -3168,12 +2777,6 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             appSmHandleInternalBredrConnected();
             break;
 
-#if 0
-        case SM_INTERNAL_TIMEOUT_ADDR_SWITCH_RETRY:
-            appSm_SwitchAddress(((SM_INTERNAL_ADDR_SWITCH_DELAY_T*)message)->primary);
-            break;
-#endif
-
             /* marshalled messaging */
         case PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND:
             appSm_HandleMarshalledMsgChannelRxInd((PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T*)message);
@@ -3184,6 +2787,14 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
 
         case PAIRING_ACTIVITY:
             appSm_HandlePairingActivity((PAIRING_ACTIVITY_T*)message);
+            break;
+
+        case PEER_FIND_ROLE_PREPARE_FOR_ROLE_SELECTION:
+            appSm_HandlePeerFindRolePrepareForRoleSelection();
+            break;
+
+        case PAIRING_STOP_CFM:
+            appSm_HandlePairingStopCfm();
             break;
 
         default:
@@ -3253,8 +2864,6 @@ void appSmEnterDfuMode(void)
 
 static void appSmStartDfuTimer(void)
 {
-    PrimaryRules_SetEvent(SmGetTask(), RULE_EVENT_PAGE_SCAN_UPDATE);
-    ConManagerAllowHandsetConnect(TRUE);
     appSmHandleEnterDfuWithTimeout(appConfigDfuTimeoutAfterGaiaConnectionMs());
 }
 
@@ -3262,7 +2871,6 @@ void appSmEnterDfuModeInCase(bool enable)
 {
     MessageCancelAll(SmGetTask(), SM_INTERNAL_TIMEOUT_DFU_MODE_START);
     SmGetTaskData()->enter_dfu_in_case = enable;
-    ConManagerAllowHandsetConnect(TRUE);
 
     if (enable)
     {
@@ -3337,13 +2945,16 @@ bool appSmInit(Task init_task)
     /* register with peer signalling to receive handset commands */
     appPeerSigHandsetCommandsTaskRegister(&sm->task);
 
+    /* register with peer signalling to connect/disconnect messages */
+    appPeerSigClientRegister(&sm->task);
+
     /* register with power to receive sleep/shutdown messages. */
     appPowerClientRegister(&sm->task);
 
     /* set 'always run' events.
        setting the event isn't required, but it sets the task of the SM
        as the one to send the rule action message to. */
-    PrimaryRules_SetEvent(SmGetTask(), RULE_EVENT_PAGE_SCAN_UPDATE);
+    appSmRulesSetEvent(RULE_EVENT_PAGE_SCAN_UPDATE);
 
     /* get remote phy state events */
     StateProxy_EventRegisterClient(&sm->task, appConfigStateProxyRegisteredEventsDefault() |
@@ -3353,7 +2964,7 @@ bool appSmInit(Task init_task)
     appPeerSigMarshalledMsgChannelTaskRegister(SmGetTask(), 
                                                PEER_SIG_MSG_CHANNEL_APPLICATION,
                                                earbud_sm_marshal_type_descriptors,
-                                               NUMBER_OF_MARSHAL_OBJECT_TYPES);
+                                               NUMBER_OF_SM_MARSHAL_OBJECT_TYPES);
 
     /* Register to get pairing activity reports */
     Pairing_ActivityClientRegister(&sm->task);
@@ -3361,9 +2972,6 @@ bool appSmInit(Task init_task)
     /* Register for role changed indications from TWS Topology */
     TwsTopology_RoleChangedRegisterClient(SmGetTask());
 
-    /* Register for connect / disconnect events from shadow profile */
-    ShadowProfile_ClientRegister(SmGetTask());
-    
     appSetState(APP_STATE_INITIALISING);
 
     /* Register sm as ui provider*/
@@ -3415,10 +3023,12 @@ extern void appSmInitiateHandover(void)
     appSmRulesSetEvent(RULE_EVENT_HANDOVER_DISCONNECT);
 }
 
-/*! \brief Determine if this Earbud is Primary or Secondary.
+/*! \brief Determine if this Earbud is Primary.
+
     \todo this will move to topology.
 */
 bool appSmIsPrimary(void)
 {
     return SmGetTaskData()->role == tws_topology_role_primary;
 }
+

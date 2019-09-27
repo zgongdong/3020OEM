@@ -50,11 +50,6 @@ void ConnectionDmBleSecurityReq(
         CL_DEBUG(("ble_connection_type out of range\n"));
     
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
     {
         MAKE_CL_MESSAGE(CL_INTERNAL_SM_DM_SECURITY_REQ);
 

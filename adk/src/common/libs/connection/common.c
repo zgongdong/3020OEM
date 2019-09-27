@@ -270,6 +270,66 @@ hci_status connectionConvertHciStatus(uint16 status)
                 HCI_ERROR_ROLE_SWITCH_FAILED,
                 hci_error_role_switch_failed
             );        
+        CASE(
+                HCI_ERROR_INQUIRY_RESPONSE_DATA_TOO_LARGE,
+                hci_error_inquiry_response_data_too_large
+            );    
+        CASE(
+                HCI_ERROR_SP_NOT_SUPPORTED_BY_HOST,
+                hci_error_sp_not_supported_by_host
+            );    
+        CASE(
+                HCI_ERROR_HOST_BUSY_PAIRING,
+                hci_error_host_busy_pairing
+            );    
+        CASE(
+                HCI_ERROR_CONN_REJ_NO_SUITABLE_CHANNEL_FOUND,
+                hci_error_conn_rej_no_suitable_channel_found
+            );    
+        CASE(
+                HCI_ERROR_CONTROLLER_BUSY,
+                hci_error_controller_busy
+            );    
+        CASE(
+                HCI_ERROR_UNACCEPTABLE_CONN_PARAMETERS,
+                hci_error_unnaceptable_conn_parameters
+            );    
+        CASE(
+                HCI_ERROR_DIRECTED_ADVERTISING_TIMEOUT,
+                hci_error_directed_advertising_timeout
+            );    
+        CASE(
+                HCI_ERROR_CONN_TERMINATED_DUE_TO_MIC_FAILURE,
+                hci_error_conn_terminated_due_to_mic_failure
+            );    
+        CASE(
+                HCI_ERROR_CONNECTION_FAILED_TO_BE_ESTABLISHED,
+                hci_error_connection_failed_to_be_established
+            );    
+        CASE(
+                HCI_ERROR_MAC_CONNECTION_FAILED,
+                hci_error_mac_connection_failed
+            );    
+        CASE(
+                HCI_ERROR_COARSE_CLOCK_ADJUST_REJECTED,
+                hci_error_coarse_clock_adjust_rejected
+            );    
+        CASE(
+                HCI_ERROR_TYPE0_SUBMAP_NOT_DEFINED,
+                hci_error_type0_submap_not_defined
+            );    
+        CASE(
+                HCI_ERROR_UNKNOWN_ADVERTISER_IDENTIFIER,
+                hci_error_unknown_advertiser_identifier
+            );    
+        CASE(
+                HCI_ERROR_LIMIT_REACHED,
+                hci_error_limit_reached
+            );    
+        CASE(
+                HCI_ERROR_OPERATION_CANCELLED_BY_HOST,
+                hci_error_operation_cancelled_by_host
+            );                       
         coerce: return (hci_status)status;       
         default: 
             CL_DEBUG(("Unrecognised status %d\n", status));
@@ -1336,10 +1396,11 @@ l2cap_connect_status connectionConvertL2capConnectStatus(uint16 result)
             return l2cap_connect_failed_security;
         case L2CA_CONNECT_PHYS_CONN_TERM_LOCAL_HOST:
             return l2cap_connect_terminated_by_host;
+        case L2CA_CONNECT_KEY_MISSING:
+            return l2cap_connect_failed_key_missing;
         case L2CA_CONNECT_REJ_CONTROL_ID:
         case L2CA_CONNECT_LINK_LOSS:
         case L2CA_CONNECT_NOT_READY:
-        case L2CA_CONNECT_KEY_MISSING:
         case L2CA_CONNECT_PHYS_FAILED:
         case L2CA_CONNECT_INITIATING:
         case L2CA_CONNECT_RETRYING:
@@ -1395,9 +1456,10 @@ l2cap_connect_status connectionConvertL2capTpConnectStatus(uint16 result)
             return l2cap_tp_connect_failed_security;
         case L2CA_CONNECT_PHYS_CONN_TERM_LOCAL_HOST:
             return l2cap_tp_connect_terminated_by_host;
+        case L2CA_CONNECT_KEY_MISSING:
+            return l2cap_tp_connect_failed_key_missing;
         case L2CA_CONNECT_LINK_LOSS:
         case L2CA_CONNECT_NOT_READY:
-        case L2CA_CONNECT_KEY_MISSING:
         case L2CA_CONNECT_PHYS_FAILED:
         case L2CA_CONNECT_INITIATING:
         case L2CA_CONNECT_RETRYING:

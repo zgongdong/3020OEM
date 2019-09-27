@@ -14,6 +14,7 @@
 
 #include "tws_topology_procedure_set_address.h"
 #include "tws_topology_procedure_permit_bt.h"
+#include "tws_topology_procedure_permit_connection_le.h"
 #include "tws_topology_procedure_connectable_handset.h"
 #include "tws_topology_procedure_allow_handset_connect.h"
 
@@ -27,6 +28,7 @@
 #define DFU_PRIMARY_AFTER_BOOT_SCRIPT(ENTRY) \
     ENTRY(proc_set_address_fns, PROC_SET_ADDRESS_TYPE_DATA_PRIMARY), \
     ENTRY(proc_permit_bt_fns, NO_DATA), \
+    ENTRY(proc_permit_connection_le_fns, NO_DATA), \
     ENTRY(proc_allow_handset_connect_fns, PROC_ALLOW_HANDSET_CONNECT_DATA_ALLOW), \
     ENTRY(proc_connectable_handset_fns, PROC_CONNECTABLE_HANDSET_DATA_ENABLE)
 

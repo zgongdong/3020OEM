@@ -9,5 +9,6 @@ var structpairing_task_data =
     [ "pairing_lock", "structpairing_task_data.html#a4278561b04d13616d95b83f2b736ba65", null ],
     [ "pending_ble_address", "structpairing_task_data.html#a45f6366895472501b6944735e1ef84f4", null ],
     [ "state", "structpairing_task_data.html#a6576a97941c7c1a8f61384119685b0cd", null ],
+    [ "stop_task", "structpairing_task_data.html#a133fe1fce8f3e4d5a5ed669ce0f76903", null ],
     [ "task", "structpairing_task_data.html#aba8d7e5c1906844fdb6e47953d3518fc", null ]
 ];

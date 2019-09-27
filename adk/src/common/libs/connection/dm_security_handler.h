@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2004 - 2018 Qualcomm Technologies International, Ltd.
+Copyright (c) 2004 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -428,10 +428,7 @@ DESCRIPTION
 RETURNS
     
 */
-void handleSecurityInitReq(
-        connectionReadInfoState             *state, 
-        const CL_INTERNAL_SM_INIT_REQ_T     *req
-        );
+void handleSecurityInitReq(const CL_INTERNAL_SM_INIT_REQ_T *req );
 
 
 /****************************************************************************
@@ -447,11 +444,7 @@ DESCRIPTION
 RETURNS
     
 */
-void handleSecurityInitCfm(
-        connectionReadInfoState *state, 
-        const DM_SM_INIT_CFM_T  *cfm
-        );
-
+void handleSecurityInitCfm(const DM_SM_INIT_CFM_T  *cfm);
 
 
 /****************************************************************************

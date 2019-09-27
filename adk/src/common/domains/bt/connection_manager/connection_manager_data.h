@@ -23,7 +23,7 @@ typedef struct
 
     cm_transport_t connectable_transports;
     
-    le_scan_handle_t scan_pause_handle;
+    bool  is_le_scan_paused;
 
     /*! Structure grouping data for forced disconnect */
     struct {

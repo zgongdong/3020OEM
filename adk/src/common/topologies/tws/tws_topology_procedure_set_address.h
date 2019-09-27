@@ -4,7 +4,7 @@
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \version    
 \file       
-\brief      
+\brief      Interfaace to Topology procedure to set the BT address to Primary or Secondary. 
 */
 
 #ifndef TWS_TOPOLOGY_PROC_SET_ADDRESS_H
@@ -13,17 +13,25 @@
 #include "tws_topology_procedure_script_engine.h"
 #include "tws_topology_procedures.h"
 
+/*! Set Address procedure functions interface. */
 extern tws_topology_procedure_fns_t proc_set_address_fns;
 
+/*! Procedure configuration parameter, used to specify Primary or Secondary address.
+    Not typically used directly, but instead via the constants and macros below.
+*/
 typedef struct
 {
     bool primary;
 } SET_ADDRESS_TYPE_T;
 
+/*! Primary address parameter. */
 extern const SET_ADDRESS_TYPE_T proc_set_address_primary;
+/*! Macro to access primary address parameter as a goal_data parameter. */
 #define PROC_SET_ADDRESS_TYPE_DATA_PRIMARY  ((Message)&proc_set_address_primary)
 
+/*! Secondary address parameter. */
 extern const SET_ADDRESS_TYPE_T proc_set_address_secondary;
+/*! Macro to access secondary address parameter as a goal_data parameter. */
 #define PROC_SET_ADDRESS_TYPE_DATA_SECONDARY  ((Message)&proc_set_address_secondary)
 
 /* Make script available that will set primary address (including BT protection). */

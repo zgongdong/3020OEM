@@ -22,9 +22,6 @@ enum earbud_primary_rules_messages
     /*! Make the device not connectable. */
     CONN_RULES_DISABLE_CONNECTABLE,
 
-    /*! Start peer pairing. */
-    CONN_RULES_PEER_PAIR,
-
     /*! Use Peer Signalling (AVRCP) to send sync message. */
     CONN_RULES_SEND_PEER_SYNC,
 
@@ -40,17 +37,8 @@ enum earbud_primary_rules_messages
     /*! Connect A2DP and AVRCP to handset that peer is connected to (only TWS+). */
     CONN_RULES_CONNECT_PEER_HANDSET,
 
-    /*! Connect Peer Signalling for earbud to earbud communication */
-    CONN_RULES_CONNECT_PEER_SIGNALLING,
-
     /*! Connect A2DP and AVRCP for audio forwarding to peer earbud. */
     CONN_RULES_CONNECT_PEER,
-
-    /*! Update TDL MRU for peer's handset */
-    CONN_RULES_UPDATE_MRU_PEER_HANDSET,
-
-    /*! Send status and role to handset */
-    CONN_RULES_SEND_STATE_TO_HANDSET,
 
     /*! Start timer to pause A2DP streaming. */
     CONN_RULES_A2DP_TIMEOUT,
@@ -82,12 +70,6 @@ enum earbud_primary_rules_messages
     /*! Reject connections from handset */
     CONN_RULES_REJECT_HANDSET_CONNECT,
 
-    /*! Change page scan settings. */
-    CONN_RULES_PAGE_SCAN_UPDATE,
-
-    /*! Make sure the peer link for SCO forwarding is established */
-    CONN_RULES_SEND_PEER_SCOFWD_CONNECT,
-
     /*! Hangup an active call */
     CONN_RULES_HANGUP_CALL,
 
@@ -118,9 +100,6 @@ enum earbud_primary_rules_messages
     /*! Stop ANC Tuning */
     CONN_RULES_ANC_TUNING_STOP,
 
-    /*! Change whether we are allowing a new BLE connection (advertising) */
-    CONN_RULES_BLE_CONNECTION_UPDATE,
-
     /*! Set the current Primary or Secondary role */
     CONN_RULES_ROLE_DECISION,
 
@@ -130,17 +109,15 @@ enum earbud_primary_rules_messages
     /*! Start playing media */
     CONN_RULES_MEDIA_PLAY,
 
+    /*! Set the remote audio mix */
+    CONN_RULES_SET_REMOTE_AUDIO_MIX,
+
+    /*! Set the local audio mix */
+    CONN_RULES_SET_LOCAL_AUDIO_MIX,
+
     /*! Any rules with RULE_FLAG_PROGRESS_MATTERS are no longer in progress. */
     CONN_RULES_NOP,
 };
-
-/*! \brief Definition of #CONN_RULES_PAGE_SCAN_UPDATE action message. */
-typedef struct
-{
-    /*! TRUE page scan must be enabled.
-        FALSE page scan must be disabled. */
-    bool enable;
-} CONN_RULES_PAGE_SCAN_UPDATE_T;
 
 /*! \brief Actions to take after connecting handset. */
 typedef enum
@@ -148,22 +125,6 @@ typedef enum
     RULE_POST_HANDSET_CONNECT_ACTION_NONE,       /*!< Do nothing more */
     RULE_POST_HANDSET_CONNECT_ACTION_PLAY_MEDIA, /*!< Play media */
 } rulePostHandsetConnectAction;
-
-/*! \brief Definition of #CONN_RULES_CONNECT_HANDSET action message. */
-typedef struct
-{
-    /*! bitmask of profiles to connect. */
-    uint8 profiles;
-    /*! Action to take post-connect */
-    rulePostHandsetConnectAction action;
-} CONN_RULES_CONNECT_HANDSET_T;
-
-/*! \brief Definition of #CONN_RULES_CONNECT_PEER_HANDSET action message. */
-typedef struct
-{
-    /*! bitmask of profiles to connect. */
-    uint8 profiles;
-} CONN_RULES_CONNECT_PEER_HANDSET_T;
 
 /*! \brief Definition of #CONN_RULES_CONNECT_PEER action message. */
 typedef struct
@@ -186,24 +147,6 @@ typedef struct
     bool forwarding_control;
 } CONN_RULES_SCO_FORWARDING_CONTROL_T;
 
-/*! \brief Definition of #CONN_RULES_DISCONNECT_HANDSET action message. */
-typedef struct
-{
-    /*! TRUE handover the handset to the other earbud after disconnecting.
-        FALSE just disconnect */
-    bool handover;
-} CONN_RULES_DISCONNECT_HANDSET_T;
-
-
-/*! \brief Definition of #CONN_RULES_BLE_CONNECTION_UPDATE action message. */
-typedef struct
-{
-    /*! TRUE BLE connections are allowed
-        FALSE BLE connections are not allowed*/
-    bool enable;
-} CONN_RULES_BLE_CONNECTION_UPDATE_T;
-
-
 /*! \brief Definition of #CONN_RULES_DFU_ALLOW action message. */
 typedef struct
 {
@@ -219,6 +162,23 @@ typedef struct
         FALSE this Earbud is Secondary. */
     bool primary;
 } CONN_RULES_ROLE_DECISION_T;
+
+/*! \brief Definition of #CONN_RULES_SET_REMOTE_AUDIO_MIX message. */
+typedef struct
+{
+    /*! TRUE - remote earbud renders stereo mix of left and right.
+        FALSE - remote earbuds renders mono left or right. */
+    bool stereo_mix;
+} CONN_RULES_SET_REMOTE_AUDIO_MIX_T;
+
+/*! \brief Definition of #CONN_RULES_SET_LOCAL_AUDIO_MIX message. */
+typedef struct
+{
+    /*! TRUE - local earbud renders stereo mix or left and right.
+        FALSE - local earbuds renders mono left or right. */
+    bool stereo_mix;
+} CONN_RULES_SET_LOCAL_AUDIO_MIX_T;
+
 
 /*! Definition of all the events that may have rules associated with them */
 #define RULE_EVENT_STARTUP                       (1ULL << 0)     /*!< Startup */

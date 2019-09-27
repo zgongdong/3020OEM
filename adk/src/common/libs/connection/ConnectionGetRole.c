@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2004 - 2015 Qualcomm Technologies International, Ltd.
+Copyright (c) 2004 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -23,12 +23,21 @@ NOTES
 
 
 /*****************************************************************************/
-void ConnectionGetRole(Task task, Sink sink)
+void ConnectionGetRole(Task theAppTask, Sink sink)
 {
     MAKE_CL_MESSAGE(CL_INTERNAL_DM_GET_ROLE_REQ);
-    message->theAppTask = task;
+    message->theAppTask = theAppTask;
     message->sink = sink;
+	/* message->bd_addr does not need to be set. */
     MessageSend(connectionGetCmTask(), CL_INTERNAL_DM_GET_ROLE_REQ, message);
 }
 
+void ConnectionGetRoleBdaddr(Task theAppTask, const bdaddr *bd_addr)
+{
+    MAKE_CL_MESSAGE(CL_INTERNAL_DM_GET_ROLE_REQ);
+    message->theAppTask = theAppTask;
+    message->sink = (Sink)NULL; /* make sink to NULL to use bd_addr instead */
+    message->bd_addr = *bd_addr;
+    MessageSend(connectionGetCmTask(), CL_INTERNAL_DM_GET_ROLE_REQ, message);
+}
 

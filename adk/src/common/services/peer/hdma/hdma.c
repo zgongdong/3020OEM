@@ -12,23 +12,3 @@
 /*******************
  * Public Functions
  *******************/
-
-#ifdef INCLUDE_SHADOWING 
-
-/*! \brief Initialise HDMA component.
- */
-void Hdma_Init(void)
-{
-    /* Stub function -Do Nothing */
-    return;
-}
-
-/*! \brief De-Initialise HDMA component.
- */
-void Hdma_Destroy(void)
-{
-    /* Stub function -Do Nothing */
-    return;
-}
-
-#endif /* INCLUDE_SHADOWING */

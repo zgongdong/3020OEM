@@ -18,10 +18,11 @@
 
 #include <message.h>
 
-const SET_ROLE_TYPE_T proc_set_role_primary_role = {tws_topology_role_primary};
-const SET_ROLE_TYPE_T proc_set_role_secondary_role = {tws_topology_role_secondary};
-const SET_ROLE_TYPE_T proc_set_role_dfu_role = {tws_topology_role_dfu};
-const SET_ROLE_TYPE_T proc_set_role_none = {tws_topology_role_none};
+const SET_ROLE_TYPE_T proc_set_role_primary_role = {tws_topology_role_primary, FALSE};
+const SET_ROLE_TYPE_T proc_set_role_acting_primary_role = {tws_topology_role_primary, TRUE};
+const SET_ROLE_TYPE_T proc_set_role_secondary_role = {tws_topology_role_secondary, FALSE};
+const SET_ROLE_TYPE_T proc_set_role_dfu_role = {tws_topology_role_dfu, FALSE};
+const SET_ROLE_TYPE_T proc_set_role_none = {tws_topology_role_none, FALSE};
 
 void TwsTopology_ProcedureSetRoleStart(Task result_task,
                                         twstop_proc_start_cfm_func_t proc_start_cfm_fn,
@@ -53,6 +54,7 @@ void TwsTopology_ProcedureSetRoleStart(Task result_task,
      *  - update the role single point of truth here in topology
      */
     twsTopology_SetRole(role_type->role);
+    twsTopology_SetActingInRole(role_type->acting_in_role);
 
     /* procedure completed synchronously so indicate completed already */
     TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn, tws_topology_procedure_set_role, proc_result_success);

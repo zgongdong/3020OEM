@@ -39,14 +39,7 @@ RETURNS
 
 void ConnectionDmBleSetScanEnable(bool enable)
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        ConnectionDmBleSetScanEnableReq(NO_CFM_MESSAGE, enable);
-    }
+    ConnectionDmBleSetScanEnableReq(NO_CFM_MESSAGE, enable);
 }
 
 /****************************************************************************
@@ -63,21 +56,14 @@ RETURNS
 
 void ConnectionDmBleSetScanEnableReq(Task theAppTask, bool enable)
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_CL_MESSAGE(CL_INTERNAL_DM_BLE_SET_SCAN_ENABLE_REQ);
-        message->theAppTask = theAppTask;
-        message->enable = enable;
-        MessageSend(
-                    connectionGetCmTask(),
-                    CL_INTERNAL_DM_BLE_SET_SCAN_ENABLE_REQ,
-                    message
-                    );
-    }
+    MAKE_CL_MESSAGE(CL_INTERNAL_DM_BLE_SET_SCAN_ENABLE_REQ);
+    message->theAppTask = theAppTask;
+    message->enable = enable;
+    MessageSend(
+                connectionGetCmTask(),
+                CL_INTERNAL_DM_BLE_SET_SCAN_ENABLE_REQ,
+                message
+                );
 }
 
 /****************************************************************************
@@ -184,12 +170,6 @@ bool ConnectionBleAddAdvertisingReportFilter(
         CL_DEBUG(("Pattern is null\n"));
     }
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-        return FALSE;
-    }
-    else
     {
         /* Copy the data to a memory slot, which will be freed after
          * the function call.
@@ -225,15 +205,7 @@ RETURNS
 */
 bool ConnectionBleClearAdvertisingReportFilter(void)
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-        return FALSE;
-    }
-    else
-    {
-        return VmClearAdvertisingReportFilter();
-    }
+    return VmClearAdvertisingReportFilter();
 }
 
 /****************************************************************************
@@ -269,11 +241,6 @@ void ConnectionDmBleSetScanParametersReq(
         CL_DEBUG(("scan_window must be less than or equal to scan interval\n"));
     }
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
     {
         MAKE_PRIM_C(DM_HCI_ULP_SET_SCAN_PARAMETERS_REQ);
 
@@ -311,11 +278,6 @@ void ConnectionDmBleSetScanResponseDataReq(uint8 size_sr_data, const uint8 *sr_d
         CL_DEBUG(("Data is null\n"));
     }
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
     {
         MAKE_PRIM_C(DM_HCI_ULP_SET_SCAN_RESPONSE_DATA_REQ);
         prim->scan_response_data_len = size_sr_data;

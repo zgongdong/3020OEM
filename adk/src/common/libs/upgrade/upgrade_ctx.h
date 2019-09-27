@@ -14,6 +14,8 @@ DESCRIPTION
 
 #include <message.h>
 
+#include "imageupgrade.h"
+
 #include "upgrade_partition_data_priv.h"
 #include "upgrade_fw_if_priv.h"
 #include "upgrade_sm.h"
@@ -76,6 +78,13 @@ typedef struct
     char dev_variant[UPGRADE_HOST_VARIANT_CFM_BYTE_SIZE+1];
 
     const upgrade_response_functions_t *funcs;
+
+    /* P0 Hash context */
+    hash_context_t vctx;
+    
+    /* CSR Valid message received flag */
+    bool isCsrValidDoneReqReceived;
+    
 } UpgradeCtx;
 
 void UpgradeCtxSet(UpgradeCtx *ctx);

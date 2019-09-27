@@ -24,17 +24,14 @@
 #include "peer_find_role_sm.h"
 
 
-/*! Enumerated type (bit mask) to record operations that may operate 
-    simultaneously or take time to cancel */
+/*! Enumerated type (bit mask) to record scanning operations.
+    These take time to cancel 
+ */
 typedef enum
 {
         /*! We are still scanning */
     PEER_FIND_ROLE_ACTIVE_SCANNING        = (1 << 0),
-        /*! We are (connectable) advertising */
-    PEER_FIND_ROLE_ACTIVE_ADVERTISING     = (1 << 1),
-        /*! We are connecting */
-    PEER_FIND_ROLE_ACTIVE_CONNECTING      = (1 << 2),
-} peerFindRoleActiveStatus_t;
+} peerFindRoleScanActiveStatus_t;
 
 
 /*! Enumerated type (bit mask) to record when media is busy, that
@@ -45,6 +42,11 @@ typedef enum
     PEER_FIND_ROLE_AUDIO_STREAMING      = (1 << 0),
         /*! Call is inactive */
     PEER_FIND_ROLE_CALL_ACTIVE          = (1 << 1),
+        /*! Primary role has been issued */
+    PEER_FIND_ROLE_CONFIRMING_PRIMARY   = (1 << 2),
+
+        /*! Requested scan block  */
+    PEER_FIND_ROLE_SCANNING_DISABLED    = (1 << 8),
 } peerFindRoleMediaBusyStatus_t;
 
 /*! Structure to hold information used by the peer find role service */
@@ -83,16 +85,21 @@ typedef struct
         \todo This is a temporary feature */
     bool                        timeout_means_timeout;
 
-    /*! The advertisement settings */
-    adv_mgr_advert_t           *advert;
+    /*! Details of the current LE advertising data set */
+    le_adv_data_set_handle      advert_handle;
 
     /*! The scanner... */
     le_scan_handle_t            scan;
 
-    /*! What operations are busy? Bitfield using peerFindRoleActiveStatus_t 
+    /*! What scan operations are busy? Bitfield using peerFindRoleScanActiveStatus_t 
 
         This can be used in MessageSendConditional() */
-    uint16                      active;
+    uint16                      scan_activity;
+
+    /*! What operations are busy? Bitfield using peerFindRoleAdvertActiveStatus_t 
+
+        This can be used in MessageSendConditional() */
+    uint16                      advert_activity;
 
     /*! What media operations are active? Bitfield using
         peerFindRoleMediaBusyStatus_t
@@ -115,8 +122,8 @@ typedef struct
     /*! Information used by the scoring algorithms when calculating score */
     peer_find_role_scoring_t    scoring_info;
 
-    /*! Test override of score. */
-    grss_figure_of_merit_t      score_override;
+    /*! Prepare for role selection client. */
+    task_list_t                 prepare_tasks;
 } peerFindRoleTaskData;
 
 
@@ -139,15 +146,28 @@ extern peerFindRoleTaskData peer_find_role;
 /*! Access the scoring information for the peer find role service */
 #define PeerFindRoleGetScoring()    (&peer_find_role.scoring_info)
 
-/*! Access the busy status for the peer find role service */
-#define PeerFindRoleGetBusy()       (peer_find_role.active)
+/*! Access the scan busy status for the peer find role service */
+#define PeerFindRoleGetScanBusy()   (peer_find_role.scan_activity)
 
-/*! Set the busy status for the peer find role service 
+/*! Set the scan busy status for the peer find role service 
+
     \param new_value    Value to set
 */
-#define PeerFindRoleSetBusy(new_value)  do { \
-                                            peer_find_role.active = (new_value); \
-                                        } while(0)
+#define PeerFindRoleSetScanBusy(new_value)  do { \
+                                              peer_find_role.scan_activity = (new_value); \
+                                            } while(0)
+
+/*! Access the advertising busy status for the peer find role service */
+#define PeerFindRoleGetAdvertBusy()   (peer_find_role.advert_activity)
+
+/*! Set the advertising busy status for the peer find role service 
+
+    \param new_value    Value to set
+*/
+#define PeerFindRoleSetAdvertBusy(new_value)  do { \
+                                              peer_find_role.advert_activity = (new_value); \
+                                            } while(0)
+
 
 
 /*! Message identifiers used for internal messages */
@@ -185,6 +205,10 @@ typedef enum
 
         /*! Timer for disconnecting link from server side, if not done */
     PEER_FIND_ROLE_INTERNAL_TIMEOUT_NOT_DISCONNECTED,
+
+        /*! App has responded to a "prepare for role selection" request */
+    PEER_FIND_ROLE_INTERNAL_PREPARED,
+
 } peer_find_role_internal_message_t;
 
 
@@ -202,18 +226,30 @@ bool peer_find_role_is_central(void);
 
 /*! Set activity flag(s) for the find role task 
 
-    \param flags_to_set Bitmask of activities that will block actions
+    \param flags_to_set Bitmask of scanning activities that will block actions
 */
-void peer_find_role_activity_set(peerFindRoleActiveStatus_t flags_to_set);
+void peer_find_role_scan_activity_set(peerFindRoleScanActiveStatus_t flags_to_set);
 
 
 /*! Clear activity flag(s) for the find role task 
 
     Clearing flags may cause a message to be sent
 
-    \param flags_to_clear Bitmask of activities that no longer block actions
+    \param flags_to_clear Bitmask of scanning activities that no longer block actions
 */
-void peer_find_role_activity_clear(peerFindRoleActiveStatus_t flags_to_clear);
+void peer_find_role_scan_activity_clear(peerFindRoleScanActiveStatus_t flags_to_clear);
+
+
+/*! Record that we are advertising in the find role task 
+*/
+void peer_find_role_advertising_activity_set(void);
+
+
+/*! Clear the fact that we are advertising in the find role task 
+
+    This may cause a message to be sent
+*/
+void peer_find_role_advertising_activity_clear(void);
 
 
 /*! Send the peer_find_role service a message when there are no longer 
@@ -256,6 +292,20 @@ void PeerFindRole_OverrideScore(grss_figure_of_merit_t score);
     \return FALSE if no media blocking, TRUE otherwise
 */
 #define peer_find_role_media_active() (peer_find_role.media_busy != 0)
+
+
+/*! Check if we are waiting for primary role to be confirmed
+
+    \return TRUE if primary role has been reported previously
+*/
+#define peer_find_role_awaiting_primary_completion() (peer_find_role.media_busy & PEER_FIND_ROLE_CONFIRMING_PRIMARY)
+
+
+/*! Check if a client has registered for PREPARE_FOR_ROLE_SELECTION requests.
+
+    \return TRUE if a client is registered, FALSE otherwise.
+*/
+#define peer_find_role_prepare_client_registered() (TaskList_Size(&peer_find_role.prepare_tasks) != 0)
 
 
 #endif /* PEER_FIND_ROLE_PRIVATE_H_ */

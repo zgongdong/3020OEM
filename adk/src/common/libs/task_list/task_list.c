@@ -15,9 +15,72 @@
 
 #include <panic.h>
 
+/*! Accessor for total number of tasks in the list */
+#define taskList_Size(list) ((list)->base.size_list)
+
+/*! Set the list size */
+#define taskList_SizeSet(list, size) ((list)->base.size_list = (size))
+
+/*! Accessor for number of tasks in the flexible array */
+#define taskList_FlexibleSize(list) ((list)->base.size_flexible_tasks)
+
+/*! Set the list flexible size */
+#define taskList_FlexibleSizeSet(list, size) ((list)->base.size_flexible_tasks = (size))
+
+/*! Accessor for the list type */
+#define taskList_Type(list) ((list)->base.list_type)
+
+/*! Set the list type */
+#define taskList_TypeSet(list, type) ((list)->base.list_type = (type))
+
+/*! Accessor for the 'no destroy' flag */
+#define taskList_NoDestroy(list) ((list)->base.no_destroy)
+
+/*! Set the list no destroy value */
+#define taskList_NoDestroySet(list, value) ((list)->base.no_destroy = (value))
+
+/*! Sizeof a flexible task list */
+#define taskList_FlexibleSizeof(flexible_tasks) (sizeof(task_list_flexible_t) + ((flexible_tasks) * sizeof(Task)))
+
 /******************************************************************************
  * Internal functions
  ******************************************************************************/
+
+/*! \brief Find the task at a index (considering flexible array)
+
+    \param[in]  list        Pointer to a Tasklist.
+    \param[in] index        Index to find task.
+
+    \return Task The task at the index.
+ */
+static Task taskList_GetTaskAtIndex(task_list_t *list, uint16 index)
+{
+    task_list_flexible_t *flex = STRUCT_FROM_MEMBER(task_list_flexible_t, base, list);
+    uint16 flex_size = taskList_FlexibleSize(list);
+    uint16 list_size = taskList_Size(list);
+    Task task;
+
+    /* Tasks are placed in this order:
+        1. In the flexible array (if it exists)
+        2. In the union's task
+        3. In the union's dynamically allocated array (2) is moved to first element in this array.
+    */
+
+    if (index < flex_size)
+    {
+        task = flex->flexible_tasks[index];
+    }
+    else if ((index == flex_size) && (list_size == (index + 1)))
+    {
+        task = list->u.task;
+    }
+    else
+    {
+        task = list->u.tasks[index - flex_size];
+    }
+    return task;
+}
+
 /*! \brief Find the index in the task list array for a given task.
 
     \param[in]  list        Pointer to a Tasklist.
@@ -27,14 +90,14 @@
     \return bool TRUE search_task found and index returned.
                  FALSE search_task not found, index not valid.
  */
-static bool taskList_FindTaskIndex(task_list_t* list, Task search_task, uint16* index)
+static bool taskList_FindTaskIndex(task_list_t *list, Task search_task, uint16* index)
 {
     bool task_index_found = FALSE;
     uint16 iter = 0;
 
-    for (iter = 0; iter < list->size_list; iter++)
+    for (iter = 0; iter < taskList_Size(list); iter++)
     {
-        if (list->tasks[iter] == search_task)
+        if (taskList_GetTaskAtIndex(list, iter) == search_task)
         {
             *index = iter;
             task_index_found = TRUE;
@@ -42,6 +105,32 @@ static bool taskList_FindTaskIndex(task_list_t* list, Task search_task, uint16* 
     }
 
     return task_index_found;
+}
+
+/*! \brief Set the task at a given index.
+
+    \param[in]  list        Pointer to a Tasklist.
+    \param[in]  task        Task to set.
+    \param[in] index        Index of task to set.
+ */
+static void taskList_SetTaskAtIndex(task_list_t *list, Task task, uint16 index)
+{
+    task_list_flexible_t *flex = STRUCT_FROM_MEMBER(task_list_flexible_t, base, list);
+    uint16 flex_size = taskList_FlexibleSize(list);
+    uint16 list_size = taskList_Size(list);
+
+    if (index < flex_size)
+    {
+        flex->flexible_tasks[index] = task;
+    }
+    else if ((index == flex_size) && (index == (list_size - 1)))
+    {
+        list->u.task = task;
+    }
+    else
+    {
+        list->u.tasks[index - flex_size] = task;
+    }
 }
 
 /*! \brief Convert task_list_t to task_list_with_data_t.
@@ -60,6 +149,87 @@ static inline task_list_with_data_t *taskList_ToListWithData(task_list_t *list)
 static inline task_list_data_t *taskList_GetListData(task_list_t *list)
 {
     return taskList_ToListWithData(list)->data;
+}
+
+/*! \brief Resize a list (optionally with data)
+    \param list Pointer to the list to be resized.
+    \param The new size of the list.
+
+    This function does not check current size of the list - always resizing to
+    the new_size requested.
+
+    This function handles the list having a flexible array of tasks in addition
+    to a dynamically allocated list of tasks.
+*/
+static void taskList_Resize(task_list_t *list, uint16 new_size)
+{
+    /* Number of statically allocated tasks in the list (flexible array and task in union) */
+    uint16 flex_size = taskList_FlexibleSize(list);
+    uint16 static_size = flex_size + 1;
+    uint16 old_size = taskList_Size(list);
+
+    if (new_size == static_size)
+    {
+        if (old_size > static_size)
+        {
+            Task move_task = list->u.tasks[0];
+            free(list->u.tasks);
+            list->u.tasks = NULL;
+            list->u.task = move_task;
+        }
+        else if (old_size < static_size)
+        {
+            list->u.task = NULL;
+        }
+    }
+    else if (new_size > static_size)
+    {
+        size_t alloc_size = sizeof(Task) * (new_size - flex_size);
+
+        if (old_size == static_size)
+        {
+            Task move_task = list->u.task;
+            list->u.tasks = PanicNull(malloc(alloc_size));
+            list->u.tasks[0] = move_task;
+        }
+        else
+        {
+           list->u.tasks = PanicNull(realloc(list->u.tasks, alloc_size));
+        }
+    }
+    else
+    {
+        if (old_size > static_size)
+        {
+            free(list->u.tasks);
+            list->u.tasks = NULL;
+        }
+        else if (old_size == static_size)
+        {
+            list->u.task = NULL;
+        }
+    }
+
+    if (taskList_Type(list) == TASKLIST_TYPE_WITH_DATA)
+    {
+        task_list_with_data_t *list_with_data = taskList_ToListWithData(list);
+        if (new_size)
+        {
+            task_list_data_t *list_data = list_with_data->data;
+            list_data = realloc(list_data, sizeof(*list_data) * new_size);
+            list_with_data->data = PanicNull(list_data);
+        }
+        else
+        {
+            if (list_with_data->data)
+            {
+                free(list_with_data->data);
+                list_with_data->data = NULL;
+            }
+        }
+    }
+
+    taskList_SizeSet(list, new_size);
 }
 
 /*! \brief Helper function that iterates through a list but also returns the index.
@@ -83,12 +253,12 @@ static bool iterateIndex(task_list_t* list, Task* next_task, uint16* index)
     PanicNull(index);
 
     /* list not empty */
-    if (list->size_list)
+    if (taskList_Size(list))
     {
         /* next_task == NULL to start at tmp_index 0 */
         if (*next_task == 0)
         {
-            *next_task = list->tasks[tmp_index];
+            *next_task = taskList_GetTaskAtIndex(list, tmp_index);
             *index = tmp_index;
             iteration_successful =  TRUE;
         }
@@ -97,10 +267,11 @@ static bool iterateIndex(task_list_t* list, Task* next_task, uint16* index)
             /* move to next task */
             if (taskList_FindTaskIndex(list, *next_task, &tmp_index))
             {
-                if (tmp_index + 1 < list->size_list)
+                tmp_index += 1;
+                if (tmp_index < taskList_Size(list))
                 {
-                    *next_task = list->tasks[tmp_index+1];
-                    *index = tmp_index+1;
+                    *next_task = taskList_GetTaskAtIndex(list, tmp_index);
+                    *index = tmp_index;
                     iteration_successful =  TRUE;
                 }
             }
@@ -122,20 +293,46 @@ static bool iterateIndex(task_list_t* list, Task* next_task, uint16* index)
  */
 task_list_t* TaskList_Create(void)
 {
-    task_list_t* new_list = malloc(sizeof(*new_list));
+    return TaskList_CreateWithCapacity(1);
+}
 
-    TaskList_Initialise(new_list);
-    new_list->no_destroy = FALSE;
+task_list_t* TaskList_CreateWithCapacity(unsigned capacity)
+{
+    task_list_flexible_t* new_list;
 
-    return new_list;
+    if (capacity == 0)
+    {
+        capacity = 1;
+    }
+
+    /* All tasks list can store one task, so flexible array needs to be -1 */
+    new_list = malloc(taskList_FlexibleSizeof(capacity-1));
+
+    TaskList_InitialiseWithCapacity(new_list, capacity);
+    taskList_NoDestroySet(&new_list->base, FALSE);
+
+    return &new_list->base;
 }
 
 void TaskList_Initialise(task_list_t* list)
 {
-    PanicNull(list);
-    memset(list, 0, sizeof(*list));
-    list->list_type = TASKLIST_TYPE_STANDARD;
-    list->no_destroy = TRUE;
+    task_list_flexible_t *flex_list = STRUCT_FROM_MEMBER(task_list_flexible_t, base, list);
+    TaskList_InitialiseWithCapacity(flex_list, 1);
+}
+
+void TaskList_InitialiseWithCapacity(task_list_flexible_t* flex_list, unsigned capacity)
+{
+    task_list_t *base;
+
+    PanicNull(flex_list);
+    PanicFalse(capacity <= TASK_LIST_MAX_TASKS);
+
+    memset(flex_list, 0, taskList_FlexibleSizeof(capacity-1));
+
+    base = &flex_list->base;
+    taskList_TypeSet(base, TASKLIST_TYPE_STANDARD);
+    taskList_NoDestroySet(base, TRUE);
+    taskList_FlexibleSizeSet(base, capacity-1);
 }
 
 /*! \brief Create a task_list_t that can also store associated data.
@@ -145,6 +342,7 @@ task_list_t* TaskList_WithDataCreate(void)
     task_list_with_data_t *new_list = malloc(sizeof(*new_list));
 
     TaskList_WithDataInitialise(new_list);
+    taskList_NoDestroySet(&new_list->base, FALSE);
 
     return &new_list->base;
 }
@@ -153,7 +351,8 @@ void TaskList_WithDataInitialise(task_list_with_data_t* list)
 {
     PanicNull(list);
     memset(list, 0, sizeof(*list));
-    list->base.list_type = TASKLIST_TYPE_WITH_DATA;
+    taskList_TypeSet(&list->base, TASKLIST_TYPE_WITH_DATA);
+    taskList_NoDestroySet(&list->base, TRUE);
 }
 
 /*! \brief Destroy a task_list_t.
@@ -161,18 +360,16 @@ void TaskList_WithDataInitialise(task_list_with_data_t* list)
 void TaskList_Destroy(task_list_t* list)
 {
     PanicNull(list);
-    if (list->no_destroy)
+    if (taskList_NoDestroy(list))
     {
         Panic();
     }
 
-    free(list->tasks);
+    taskList_Resize(list, 0);
 
-    if (list->list_type == TASKLIST_TYPE_WITH_DATA)
+    if (taskList_Type(list) == TASKLIST_TYPE_WITH_DATA)
     {
         task_list_with_data_t *list_with_data = taskList_ToListWithData(list);
-        free(list_with_data->data);
-        list_with_data->data = NULL;
         free(list_with_data);
         list_with_data = NULL;
     }
@@ -195,13 +392,8 @@ bool TaskList_AddTask(task_list_t* list, Task add_task)
     /* if not in the list */
     if (!TaskList_IsTaskOnList(list, add_task))
     {
-        /* Resize list */
-        list->tasks = realloc(list->tasks, sizeof(Task) * (list->size_list + 1));
-        PanicNull(list->tasks);
-
-        /* Add task to list */
-        list->tasks[list->size_list] = add_task;
-        list->size_list += 1;
+        taskList_Resize(list, taskList_Size(list) + 1);
+        taskList_SetTaskAtIndex(list, add_task, taskList_Size(list) - 1);
 
         task_added = TRUE;
     }
@@ -217,16 +409,9 @@ bool TaskList_AddTaskWithData(task_list_t* list, Task add_task, const task_list_
 
     if (TaskList_IsTaskListWithData(list) && TaskList_AddTask(list, add_task))
     {
-        task_list_with_data_t *list_with_data = taskList_ToListWithData(list);
         task_list_data_t *list_data = taskList_GetListData(list);
 
-        /* create space in 'data' for new data item, size_list already
-         * accounts for the +1 after call to TaskList_AddTask */
-        list_data = realloc(list_data, sizeof(*list_data) * (list->size_list));
-        list_with_data->data = PanicNull(list_data);
-        /* but do need to use size_list-1 to access the new last
-         * entry in the data array */
-        list_data[list->size_list-1] = *data;
+        list_data[taskList_Size(list)-1] = *data;
         task_with_data_added = TRUE;
     }
 
@@ -256,40 +441,22 @@ bool TaskList_RemoveTask(task_list_t* list, Task del_task)
 
     if (taskList_FindTaskIndex(list, del_task, &index))
     {
-        uint16 tasks_to_end = list->size_list - index - 1;
-        memmove(&list->tasks[index], &list->tasks[index] + 1, sizeof(Task) * tasks_to_end);
-        if (list->list_type == TASKLIST_TYPE_WITH_DATA)
+        uint16 iter;
+        /* Move tasks into space created by removed task */
+        for (iter = index ; iter < taskList_Size(list) - 1; iter++)
+        {
+            Task next = taskList_GetTaskAtIndex(list, iter + 1);
+            taskList_SetTaskAtIndex(list, next, iter);
+        }
+
+        if (taskList_Type(list) == TASKLIST_TYPE_WITH_DATA)
         {
             task_list_data_t *list_data = taskList_GetListData(list) + index;
-            memmove(list_data, list_data + 1, sizeof(*list_data) * tasks_to_end);
+            size_t tomove = sizeof(*list_data) * (taskList_Size(list) - index - 1);
+            memmove(list_data, list_data + 1, tomove);
         }
-        list->size_list -= 1;
 
-        if (!list->size_list)
-        {
-            free(list->tasks);
-            list->tasks = NULL;
-            if (list->list_type == TASKLIST_TYPE_WITH_DATA)
-            {
-                task_list_with_data_t *task_list_with_data = taskList_ToListWithData(list);
-                free(task_list_with_data->data);
-                task_list_with_data->data = NULL;
-            }
-        }
-        else
-        {
-            /* resize list, if not an empty list now, then check realloc successfully
-             * returned the memory */
-            list->tasks = realloc(list->tasks, sizeof(Task) * list->size_list);
-            PanicNull(list->tasks);
-            if (list->list_type == TASKLIST_TYPE_WITH_DATA)
-            {
-                task_list_with_data_t *list_with_data = taskList_ToListWithData(list);
-                task_list_data_t *list_data = taskList_GetListData(list);
-                list_data = realloc(list_data, sizeof(*list_data) * (list->size_list));
-                list_with_data->data = PanicNull(list_data);
-            }
-        }
+        taskList_Resize(list, taskList_Size(list) - 1);
 
         task_removed = TRUE;
     }
@@ -303,21 +470,19 @@ void TaskList_RemoveAllTasks(task_list_t* list)
     
     /* tasklist cannot remove all tasks for lists with data as the data would need
      * to be removed as well, and is owned by the tasklist owner. */
-    if (list->list_type == TASKLIST_TYPE_WITH_DATA)
+    if (taskList_Type(list) == TASKLIST_TYPE_WITH_DATA)
     {
         Panic();
     }
 
-    free(list->tasks);
-    list->tasks = NULL;
-    list->size_list = 0;
+    taskList_Resize(list, 0);
 }
 
 /*! \brief Return number of tasks in list.
  */
 uint16 TaskList_Size(task_list_t* list)
 {
-    return list ? list->size_list : 0;
+    return list ? taskList_Size(list) : 0;
 }
 
 /*! \brief Iterate through all tasks in a list.
@@ -387,9 +552,9 @@ task_list_t *TaskList_Duplicate(task_list_t* list)
 
     PanicNull(list);
 
-    if (list->list_type == TASKLIST_TYPE_STANDARD)
+    if (taskList_Type(list) == TASKLIST_TYPE_STANDARD)
     {
-        new_list = TaskList_Create();
+        new_list = TaskList_CreateWithCapacity(taskList_FlexibleSize(list));
     }
     else
     {
@@ -398,20 +563,23 @@ task_list_t *TaskList_Duplicate(task_list_t* list)
 
     if (new_list)
     {
-        new_list->size_list = list->size_list;
-        new_list->tasks = PanicUnlessMalloc(sizeof(Task) * new_list->size_list);
-        memcpy(new_list->tasks, list->tasks, sizeof(Task) * new_list->size_list);
+        unsigned index;
 
-        if (new_list->list_type == TASKLIST_TYPE_WITH_DATA)
+        new_list->base = list->base;
+        taskList_NoDestroySet(new_list, FALSE);
+        taskList_Resize(new_list, taskList_Size(list));
+
+        for (index = 0; index < taskList_Size(list); index++)
         {
-            task_list_with_data_t *new_list_with_data = taskList_ToListWithData(new_list);
-            task_list_with_data_t *old_list_with_data = taskList_ToListWithData(list);
-            task_list_data_t *old_data = old_list_with_data->data;
-            task_list_data_t *new_data;
+            Task copytask = taskList_GetTaskAtIndex(list, index);
+            taskList_SetTaskAtIndex(new_list, copytask, index);
+        }
 
-            new_list_with_data->data = PanicUnlessMalloc(sizeof(task_list_data_t) * new_list->size_list);
-            new_data = new_list_with_data->data;
-            memcpy(new_data, old_data, sizeof(task_list_data_t) * new_list->size_list);
+        if (taskList_Type(new_list) == TASKLIST_TYPE_WITH_DATA)
+        {
+            task_list_data_t *old_data = taskList_ToListWithData(list)->data;
+            task_list_data_t *new_data = taskList_ToListWithData(new_list)->data;
+            memcpy(new_data, old_data, sizeof(task_list_data_t) * taskList_Size(list));
         }
     }
 
@@ -431,11 +599,12 @@ void TaskList_MessageSendLaterWithSize(task_list_t *list, MessageId id, void *da
 {
     PanicNull(list);
 
-    if (list->size_list)
+    if (taskList_Size(list))
     {
-        int index;
+        Task next_task = NULL;
+        uint16 index;
 
-        for (index = 0; index < list->size_list; index++)
+        while (iterateIndex(list, &next_task, &index))
         {
             void *copy = NULL;
             if (size_data && (data != NULL))
@@ -443,8 +612,7 @@ void TaskList_MessageSendLaterWithSize(task_list_t *list, MessageId id, void *da
                 copy = PanicUnlessMalloc(size_data);
                 memcpy(copy, data, size_data);
             }
-
-            MessageSendLater(list->tasks[index], id, copy, delay);
+            MessageSendLater(next_task, id, copy, delay);
         }
     }
 
@@ -507,7 +675,7 @@ bool TaskList_SetDataForTask(task_list_t* list, Task search_task, const task_lis
 bool TaskList_IsTaskListWithData(task_list_t* list)
 {
     PanicNull(list);
-    return list->list_type == TASKLIST_TYPE_WITH_DATA;
+    return taskList_Type(list) == TASKLIST_TYPE_WITH_DATA;
 }
 
 void TaskList_Init(void)

@@ -40,4 +40,9 @@ uint32 TimestampEvent_Delta(timestamp_event_id_t id1, timestamp_event_id_t id2)
     return (uint32)delta;
 }
 
+uint16 TimestampEvent_GetTime(timestamp_event_id_t id)
+{
+    return timestampEvent_Get(id);
+}
+
 #endif /* DISABLE_TIMESTAMP_EVENT */

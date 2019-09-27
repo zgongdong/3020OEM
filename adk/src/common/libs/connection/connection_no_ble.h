@@ -530,31 +530,6 @@ DESCRIPTION
 
 
 /*!
-    @brief L2CAP Link transferred disconnect Bluestack status
-           code. Conditionally redefined here to allow
-           compilation on platforms that do not support link
-           handover.
-*/
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
-
-#define L2CA_DISCONNECT_LINK_TRANSFERRED 0xFF
-
-/*!
-    @brief RFCOMM Link transferred disconnect Bluestack status
-           code. Conditionally redefined here to allow
-           compilation on platforms that do not support link
-           handover.
-*/
-#ifdef RFC_LINK_TRANSFERRED
-#undef RFC_LINK_TRANSFERRED
-#endif
-
-#define RFC_LINK_TRANSFERRED 0xFF
-
-
-/*!
     @brief L2CAP Connectionless Data mapping types.
 */
 typedef enum
@@ -763,10 +738,44 @@ typedef enum
       original piconet structure is restored. The switch may have failed
       because the TDD switch or piconet switch failed.*/
     hci_error_role_switch_failed,
+    /*! Indicates the inquiry response data was too large for any packet type
+      supported by the controller */
+    hci_error_inquiry_response_data_too_large,
+    /*! Indicates Simple Pairing not supported by the host */
+    hci_error_sp_not_supported_by_host,
+    /*! Indicates the host is busy with another pairing operation and 
+      cannot support the requested pairing */
+    hci_error_host_busy_pairing,
+    /*! Indicates no suitable channel was found */
+    hci_error_conn_rej_no_suitable_channel_found,
+    /*! Indiates the controller is busy */
+    hci_error_controller_busy,
+    /*! Indicates the connection parameters were invalid */
+    hci_error_unnaceptable_conn_parameters,
+    /*! Indiates that directed advertising has timed out */
+    hci_error_directed_advertising_timeout,
+    /*! Indicates the connection has been terminated due to a Message 
+      Integrity Check (MIC) failure */
+    hci_error_conn_terminated_due_to_mic_failure,
+    /*! Indicates the connection failed to be established */
+    hci_error_connection_failed_to_be_established,
+    /*! Indicates the MAC of a 802.11 AMP was requested to connect to a peer
+      but it failed. */
+    hci_error_mac_connection_failed,
+    /*! Indicates a coarse clock adjustment was rejected */
+    hci_error_coarse_clock_adjust_rejected,
+    /*! Indicates the LMP PDU is rejected because Type 0 Submap is not defined */
+    hci_error_type0_submap_not_defined,
+    /*! Indicates the requested Advertising or Sync handle does not exist */
+    hci_error_unknown_advertiser_identifier,
+    /*! Indicates the number of requested operations has been reached and the 
+      activity is complete (e.g. advertising or scanning) */
+    hci_error_limit_reached,
+    /*! Indicates a request to the controller by the host and still pending
+      was successfully cancelled */
+    hci_error_operation_cancelled_by_host,
     /*! Unrecognised error. */
     hci_error_unrecognised
-
-
 } hci_status;
 
 
@@ -1601,6 +1610,8 @@ typedef enum
     l2cap_connect_failed_invalid_conftab,
     /*! The connection attempt timed out. */
     l2cap_connect_timeout,
+    /*! The connection attempt failed because the key is missing. */
+    l2cap_connect_failed_key_missing,
     /*! The connection attempt failed because of an error. */
     l2cap_connect_error,
     /*! Unknown status. */
@@ -1643,6 +1654,8 @@ typedef enum
     l2cap_tp_connect_failed_invalid_conftab,
     /*! The connection attempt timed out. */
     l2cap_tp_connect_timeout,
+    /*! The connection attempt failed because the key is missing. */
+    l2cap_tp_connect_failed_key_missing,
     /*! The connection attempt failed because of an error. */
     l2cap_tp_connect_error,
     /*! Unknown status. */
@@ -2028,6 +2041,23 @@ typedef enum
 
 
 /*!
+    @brief Role switch confirm type as used in the message structure
+           for CL_DM_ROLE_CFM.  Used to indicate which operation 
+           caused the CL_DM_ROLE_CFM message
+*/
+typedef enum
+{
+    /*! A set role with a sink (ConnectionSetRole) */
+    cl_role_set,
+    /*! A set role with a bdaddr (ConnectionSetRoleBdaddr) */
+    cl_role_set_bdaddr,
+    /*! A get role with a sink (ConnectionGetRole) */
+    cl_role_get,
+    /*! A get role with a bdaddr (ConnectionGetRoleBdaddr) */
+    cl_role_get_bdaddr
+} cl_role_cfm_type;
+
+/*!
     @brief The message filter is a bitmap that controls which status messages
     the connection library will send to the application.  Each bit controls one
     or more messages, when the bit is set the connection library will send the
@@ -2193,6 +2223,7 @@ typedef enum
     CL_DM_ULP_PHY_UPDATE_IND,
     CL_DM_ULP_SET_PHY_CFM,
     CL_DM_ULP_SET_DEFAULT_PHY_CFM,
+    CL_DM_ULP_SET_PRIVACY_MODE_CFM,
     CL_DM_BLE_CONNECTION_UPDATE_COMPLETE_IND,
     CL_SM_BLE_READ_RANDOM_ADDRESS_CFM,
     CL_DM_BLE_TRANSMITTER_TEST_CFM,
@@ -2266,9 +2297,13 @@ typedef struct
 */
 typedef struct
 {
-    Sink        sink;                    /*!< The sink.*/
-    hci_status  status;                  /*!< The HCI status.*/
-    hci_role    role;                    /*!< The HCI role.*/
+    Sink              sink;            /*!< The sink.*/
+    hci_status        status;          /*!< The HCI status.*/
+    hci_role          role;            /*!< The HCI role.*/
+    bdaddr            bd_addr;         /*!< The Bluetooth address of the link.*/
+    cl_role_cfm_type  cfmtype;         /*!< The operation that resulted in this message. 
+                                            Sink maye invalid if this is cl_role_set_bdaddr
+                                            or cl_role_get_bdaddr. */   
 } CL_DM_ROLE_CFM_T;
 
 
@@ -4100,6 +4135,17 @@ void ConnectionSmSetSdpSecurityOut(bool enable, const bdaddr *bd_addr);
 */
 void ConnectionSetRole(Task theAppTask, Sink sink, hci_role role);
 
+/*!
+    @brief This function changes the current role for a particular connection.
+    @param theAppTask The client task.
+    @param bd_addr The Bluetooth device address of the remote device.
+    @param role The new role.
+
+    A CL_DM_ROLE_CFM message which contains the outcome of this function call
+    is returned.  Handler of this message should check cfmtype and sink
+    validity in message
+*/
+void ConnectionSetRoleBdaddr(Task theAppTask, const bdaddr *bd_addr, hci_role role);
 
 /*!
     @brief This function returns the current role for a particular connection.
@@ -4111,6 +4157,16 @@ void ConnectionSetRole(Task theAppTask, Sink sink, hci_role role);
 */
 void ConnectionGetRole(Task theAppTask, Sink sink);
 
+/*!
+    @brief This function returns the current role for a particular connection.
+    @param theAppTask The client task.
+    @param bdaddr The Bluetooth device address of the remote device.
+
+    A CL_DM_ROLE_CFM message which contains the outcome of this function call
+    is returned.  Handler of this message should check cfmtype and sink
+    validity in message
+*/
+void ConnectionGetRoleBdaddr(Task theAppTask, const bdaddr *bd_addr);
 
 /*!
     @brief Configures the inquiry mode.

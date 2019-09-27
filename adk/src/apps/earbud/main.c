@@ -62,6 +62,7 @@ static void appHandleSystemMessage(Task task, MessageId id, Message message)
         case MESSAGE_IMAGE_UPGRADE_ERASE_STATUS:
         case MESSAGE_IMAGE_UPGRADE_COPY_STATUS:
         case MESSAGE_IMAGE_UPGRADE_AUDIO_STATUS:
+        case MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS:
             handled = appUpgradeHandleSystemMessages(id, message, FALSE);
             break;
 

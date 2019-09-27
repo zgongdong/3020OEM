@@ -1,7 +1,7 @@
-/*******************************************************************************
+/*!
 
-        %%fullcopyright(2001)
-        (C) COPYRIGHT Cambridge Consultants Ltd 1998 
+Copyright (c) 2001 - 2019 Qualcomm Technologies International, Ltd.
+  
 
 \file   dm_prim.h
 
@@ -144,6 +144,8 @@ typedef enum dm_prim_tag
     ENUM_DM_ULP_SET_DEFAULT_PHY_REQ,
     ENUM_DM_VS_REGISTER_REQ,
     ENUM_DM_VS_COMMAND_REQ,
+    ENUM_DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ,
+    ENUM_DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ,
 
     ENUM_DM_AM_REGISTER_CFM = DM_PRIV_UP_PRIM,
     ENUM_DM_SET_BT_VERSION_CFM,
@@ -181,6 +183,8 @@ typedef enum dm_prim_tag
     ENUM_DM_VS_REGISTER_CFM,
     ENUM_DM_VS_COMMAND_CFM,
     ENUM_DM_VS_EVENT_IND,
+    ENUM_DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM,
+    ENUM_DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM,
 
     /*-------------------------------------------------------------
       Security Management Primitives
@@ -705,6 +709,11 @@ typedef enum dm_prim_tag
 #define DM_HCI_CSB_TX_TIMEOUT_RSP                           ((dm_prim_t)ENUM_DM_HCI_CSB_TX_TIMEOUT_RSP)
 #define DM_HCI_CSB_RX_TIMEOUT_RSP                           ((dm_prim_t)ENUM_DM_HCI_CSB_RX_TIMEOUT_RSP)
 #define DM_CONTROLLER_READY_NTF                             ((dm_prim_t)ENUM_DM_CONTROLLER_READY_NTF)
+#define DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ               ((dm_prim_t)ENUM_DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ)
+#define DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM               ((dm_prim_t)ENUM_DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM)
+#define DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ    ((dm_prim_t)ENUM_DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ)
+#define DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM    ((dm_prim_t)ENUM_DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM)
+
 
 /*-------------------------------------------------------------
   Synchronous Connection Interface Primitives
@@ -8037,6 +8046,96 @@ typedef struct
     hci_return_t    status;        /* status of set default PHY */
 } DM_ULP_SET_DEFAULT_PHY_CFM_T;
 
+/*----------------------------------------------------------------------------*
+ * PURPOSE
+ *
+ * This API allows applications to override the default behavior of the BR/EDR
+ * secure connections host support for the indicated BD Address.
+ *
+ * If host secure connections is enabled by default through DM_SM_INIT_REQ
+ * then application can use this API to disable the secure connections
+ * for specified BD Address.
+ *
+ * If host secure connections is not enabled by default then application can
+ * use this API to enable the secure connections for specified BD Address.
+ *
+ * Supported values of host_support_override:
+ * 0x00 - Disable secure connection support for provided BD Address
+ * 0x01 - Enable secure connection support for provided BD Address
+ * 0xFF - Delete the BD Address from the list.
+ *
+ * If application tries to set BD Address more than the max count that
+ * is allowed then status 0x07 (HCI_ERROR_MEMORY_FULL) will be
+ * returned through DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM event.
+ *
+ * RETURNS
+ *     DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM_T
+ *----------------------------------------------------------------------------*/
+
+typedef struct
+{
+    dm_prim_t   type;          /* DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ */
+    phandle_t   phandle;       /* destination phandle */
+    BD_ADDR_T   bd_addr;       /* BD Address to override */
+    uint8_t     host_support_override; /* See above supported values */
+} DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ_T;
+
+/*----------------------------------------------------------------------------*
+ * PURPOSE
+ *
+ * This event will notify the status of DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ
+ * command given by the application.
+ * Status value other than zero would imply that the BDADDR was not added to
+ * the list.
+ *
+ * RETURNS
+ *     None
+ *----------------------------------------------------------------------------*/
+typedef struct
+{
+    dm_prim_t       type;          /* DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM */
+    phandle_t       phandle;       /* destination phandle */
+    hci_return_t    status;        /* status of set secure connections override */
+    BD_ADDR_T       bd_addr;       /* BD Address sent in command */
+    uint8_t         host_support_override;  /* override value sent in command */
+} DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM_T;
+
+/*----------------------------------------------------------------------------*
+ * PURPOSE
+ *
+ * This API allows applications to read the maximum number of supported
+ * override BD Address supported in the controller.
+ *
+ * RETURNS
+ *     DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM_T
+ *----------------------------------------------------------------------------*/
+
+typedef struct
+{
+    dm_prim_t   type;    /* DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ */
+    phandle_t   phandle; /* destination phandle */
+} DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ_T;
+
+/*----------------------------------------------------------------------------*
+ * PURPOSE
+ *
+ * This event will notify the status of
+ * DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ command given by the
+ * application.
+ * Status value other than zero is considered to be failure.
+ *
+ * RETURNS
+ *     None
+ *----------------------------------------------------------------------------*/
+typedef struct
+{
+    dm_prim_t       type;     /* DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM */
+    phandle_t       phandle;  /* destination phandle */
+    hci_return_t    status;   /* status of set secure connections override */
+    uint8_t         max_override_bdaddr; /* Max number of BD Addrs that can be
+                                          * supported by local controller */
+} DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM_T;
+
 /*------------------------------------------------------------------------
  *
  *      UNION OF       PRIMITIVES
@@ -8547,6 +8646,10 @@ typedef union
     DM_ULP_PHY_UPDATE_IND_T                                 dm_ulp_phy_update_ind;
     DM_ULP_SET_DEFAULT_PHY_REQ_T                            dm_ulp_set_default_phy_req;
     DM_ULP_SET_DEFAULT_PHY_CFM_T                            dm_ulp_set_default_phy_cfm;
+    DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_REQ_T                 dm_write_sc_host_support_override_req;
+    DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM_T                 dm_write_sc_host_support_override_cfm;
+    DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_REQ_T      dm_read_sc_host_support_override_max_bd_addr_req;
+    DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM_T      dm_read_sc_host_support_override_max_bd_addr_cfm;
 } DM_UPRIM_T;
 
 /*============================================================================*

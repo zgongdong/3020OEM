@@ -35,13 +35,13 @@ NOTES
 #include <panic.h>
 #include <byte_utils.h>
 #include <hydra_macros.h>
+#include <rsa_pss_constants.h>
+#include <rsa_decrypt.h>
 
 #include "imageupgrade.h"
 #include "upgrade_ctx.h"
 #include "upgrade_fw_if.h"
-#include "rsa_decrypt.h"
 #include "secrsa_padding.h"
-#include "rsa_pss_constants.h"
 
 uint8 UpgradePartitionDataGetSigningMode(void);
 
@@ -196,11 +196,66 @@ bool UpgradeFWIFValidateUpdate(uint8 *buffer, uint16 partNum)
 
 /***************************************************************************
 NAME
-    UpgradeFWIFValidateFinalize
+    UpgradeFWIFValidateStart
 
 DESCRIPTION
     Verify the accumulated data in the validation context against
-    the given signature.
+    the given signature - initial request.
+
+PARAMS
+    P0 Hash context.
+
+RETURNS
+    UpgradeHostErrorCode Status code.
+*/
+UpgradeHostErrorCode UpgradeFWIFValidateStart(hash_context_t *vctx)
+{
+    uint8 SigningMode = UpgradePartitionDataGetSigningMode();
+    
+    UpgradeHostErrorCode errorCode;
+    
+    switch (SigningMode)
+    {
+        case IMAGE_HEADER_SIGNING_MODE:
+            SIGNATURE_DEBUG(("UPG: ImageUpgradeHashSectionUpdate(%d)\n", IMAGE_SECTION_APPS_P0_HEADER));
+            if (ImageUpgradeHashSectionUpdate(vctx, IMAGE_SECTION_APPS_P0_HEADER))
+            {
+                errorCode = UPGRADE_HOST_OEM_VALIDATION_SUCCESS;
+            }
+            else
+            {
+                SIGNATURE_DEBUG(("UPG: ImageUpgradeHashSectionUpdate failed\n"));
+                ImageUpgradeHashFinalise(vctx, NULL, SHA_256_HASH_LENGTH);
+                errorCode = UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER;
+            }
+            break;
+
+        case ALL_PARTITIONS_SIGNING_MODE:    
+            /*
+             * We have a valid context, so update it with the image sections that
+             * are indicated by the set bits in the partitionMap.
+             */
+            SIGNATURE_DEBUG(("UPG: ImageUpgradeHashAllSectionsUpdate\n"));
+            ImageUpgradeHashAllSectionsUpdate(vctx);
+            errorCode = UPGRADE_HOST_HASHING_IN_PROGRESS;
+            break;
+
+        default:
+            SIGNATURE_DEBUG(("UPG: Unknown signing mode %d\n", SigningMode));
+            ImageUpgradeHashFinalise(vctx, NULL, SHA_256_HASH_LENGTH);
+            errorCode = UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER;
+    }
+    
+    return errorCode;
+}
+
+/***************************************************************************
+NAME
+    UpgradeFWIFValidateFinish
+
+DESCRIPTION
+    Verify the accumulated data in the validation context against
+    the given signature - finish request.
 
 PARAMS
     signature Pointer to the signature to compare against.
@@ -225,16 +280,13 @@ NOTE
 RETURNS
     bool TRUE if validation is successful, FALSE otherwise.
 */
-bool UpgradeFWIFValidateFinalize(uint8 *signature)
+bool UpgradeFWIFValidateFinish(hash_context_t *vctx, uint8 *signature)
 {
     uint16 workSignature[RSA_SIGNATURE_SIZE];
     uint16 reworkSignature[RSA_SIGNATURE_SIZE];
     uint8 sectionHash[SHA_256_HASH_LENGTH];
     uint16 sign_r2n[RSA_SIGNATURE_SIZE];
-    uint8 SigningMode;
-    hash_context_t vctx;
     int verify_result;
-    uint16 partNum;
 
     /* sanity check to make sure the use of defines for array sizes in the function 
      * matches the original use of sizeof(). sizeof() removed in case malloc used.
@@ -243,54 +295,6 @@ bool UpgradeFWIFValidateFinalize(uint8 *signature)
             compiler_assumptions_changed_u16);
     COMPILE_TIME_ASSERT(sizeof(sectionHash) == SHA_256_HASH_LENGTH,
             compiler_assumptions_changed_u8);
-
-    /* Create the hash context in Apps P0. */
-    vctx = ImageUpgradeHashInitialise(SHA256_ALGORITHM);
-
-    if (vctx == NULL)
-    {
-        Panic();
-    }
-
-    SigningMode = UpgradePartitionDataGetSigningMode();
-    
-    switch (SigningMode)
-    {
-        case IMAGE_HEADER_SIGNING_MODE:
-            SIGNATURE_DEBUG(("UPG: ImageUpgradeHashSectionUpdate(%d)\n", IMAGE_SECTION_APPS_P0_HEADER));
-            if (!ImageUpgradeHashSectionUpdate(vctx, IMAGE_SECTION_APPS_P0_HEADER))
-            {
-                SIGNATURE_DEBUG(("UPG: ImageUpgradeHashSectionUpdate failed\n"));
-                ImageUpgradeHashFinalise(vctx, NULL, SHA_256_HASH_LENGTH);
-                return FALSE;
-            }
-            break;
-
-        case ALL_PARTITIONS_SIGNING_MODE:    
-            /*
-             * We have a valid context, so update it with the image sections that
-             * are indicated by the set bits in the partitionMap.
-             */
-            for (partNum = 0; partNum < IMAGE_SECTION_ID_MAX; partNum++)
-            {
-                if ((partitionMap >> partNum) & 1)
-                {
-                    SIGNATURE_DEBUG(("UPG: ImageUpgradeHashSectionUpdate(%d)\n", partNum));
-                    if (!ImageUpgradeHashSectionUpdate(vctx, partNum))
-                    {
-                        SIGNATURE_DEBUG(("UPG: ImageUpgradeHashSectionUpdate failed\n"));
-                        ImageUpgradeHashFinalise(vctx, NULL, SHA_256_HASH_LENGTH);
-                        return FALSE;
-                    }
-                }
-            }
-            break;
-
-        default:
-            SIGNATURE_DEBUG(("UPG: Unknown signing mode %d\n", SigningMode));
-            ImageUpgradeHashFinalise(vctx, NULL, SHA_256_HASH_LENGTH);
-            return FALSE;
-    }
 
     /* Get the result of the ImageUpgradeHashSectionUpdate */
     if (!ImageUpgradeHashFinalise(vctx, sectionHash, SHA_256_HASH_LENGTH))

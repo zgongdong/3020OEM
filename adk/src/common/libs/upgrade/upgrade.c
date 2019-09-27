@@ -434,6 +434,26 @@ void UpgradeCopyAudioStatus(Message message)
 
 /****************************************************************************
 NAME
+    UpgradeHashAllSectionsUpdateStatus
+
+DESCRIPTION
+    Inform the Upgrade library of the result an attempt to calculate teh hash over all sections.
+
+RETURNS
+    n/a
+*/
+void UpgradeHashAllSectionsUpdateStatus(Message message)
+{
+    
+    UNUSED(message);
+    PRINT(("UpgradeHashAllSectionsUpdateStatus(%p)\n", message));
+#ifdef MESSAGE_IMAGE_UPGRADE_HASH_ALL_SECTIONS_UPDATE_STATUS
+    UpgradeSMHashAllSectionsUpdateStatus(message);
+#endif
+}
+
+/****************************************************************************
+NAME
     UpgradeApplyResponse
 
 DESCRIPTION

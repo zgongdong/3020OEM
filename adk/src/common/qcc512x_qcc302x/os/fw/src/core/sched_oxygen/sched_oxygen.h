@@ -894,4 +894,48 @@ extern void cancel_bg_ints(void);
 extern void restore_bg_ints(void);
 #endif
 
+/**
+ * \brief Scans through a message queue and invokes scan_func() passed to this
+ *        function for each message found in the queue.
+ * 
+ * \param queueId ID of the queue to be scanned.
+ * \param scan_func Function to be invoked for each message found in the queue.
+ * \param data pointer to variable which will be passed as an arguement to 
+ *        scan_func()
+ * \return TRUE if a message has been obtained from the queue, else FALSE.
+ *
+ * \note 
+ *  For any queue for any task, this function runs down all pending
+ *  messages calling scan_func for each message.  It passes the uint16 (mi)
+ *  and void* message parameters(mv) to scan_func along with the void* data
+ *  that was passed to scan_queue.  If scan_func returns a non-zero value
+ *  at any point then the scan is stopped and scan_queue returns that
+ *  non-zero value to the calling function.  Otherwise, if scan_queue
+ *  reaches the end of the list of pending messages then it returns zero
+ *  to the calling function.
+ *  
+ *  Example of use, see if any message(mv) with the uint16 parameter 5(mi) is
+ *  on the queue q using a generic search function:
+ *  
+ *  static uint16 find_message_n(uint16 mi, void *mv, void *data)
+ *  {
+ *      uint16 n = *(uint16 *) data;
+ *  
+ *      if (mi == n)
+ *          return 1;
+ *      return 0;
+ *  }
+ *  
+ *  bool is_5_present(qid q)
+ *  {
+ *      uint16 n = 5;
+ *  
+ *      return scan_queue(q, find_message_n, (void *) &n) != 0;
+ *  }
+ *  
+*/
+extern uint16 scan_queue(qid queueId,
+                uint16 (*scan_func)(uint16 mi, void *mv, void *data),
+                void *data);
+
 #endif   /* SCHED_OXYGEN_H */

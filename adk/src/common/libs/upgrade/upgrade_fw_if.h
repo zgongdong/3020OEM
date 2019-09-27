@@ -15,6 +15,8 @@ DESCRIPTION
 #include <csrtypes.h>
 #include <sink.h>
 
+#include "imageupgrade.h"
+
 #include "upgrade_msg_host.h"
 
 /*!
@@ -205,15 +207,27 @@ void UpgradeFWIFValidateInit(void);
 bool UpgradeFWIFValidateUpdate(uint8 *buffer, uint16 len);
 
 /*!
-    @brief Verify the accumulated data in the validation context against
+    @brief Start verify the accumulated data in the validation context against
            the given signature. The signature is a sequence of 128 bytes
            packed into 64 16-bit words.
 
-    @param signature Pointer to the signature to compare against.
+    @param vctx P0 Hash context.
 
-    @return TRUE if validation is successful, FALSE otherwise.
+    @return Status code.
 */
-bool UpgradeFWIFValidateFinalize(uint8 *signature);
+UpgradeHostErrorCode UpgradeFWIFValidateStart(hash_context_t *vctx);
+
+/*!
+    @brief Finish verify the accumulated data in the validation context against
+           the given signature. The signature is a sequence of 128 bytes
+           packed into 64 16-bit words.
+
+    @param vctx P0 Hash context.
+    @param signature Signature sequence.
+
+    @return TRUE if a validation was successful, FALSE otherwise.
+*/
+bool UpgradeFWIFValidateFinish(hash_context_t *vctx, uint8 *signature);
 
 /*!
     @brief Add the data from an existing partition to the validation context.

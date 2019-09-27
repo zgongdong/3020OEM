@@ -88,7 +88,7 @@ static void AbortPeerDfu(void)
     }
     else
     {
-        /* We are here because user has aborted upgrade and peer device 
+        /* We are here because user has aborted upgrade and peer device
          * upgrade is not yet started. Send Link disconnetc request.
          */
         if(upgradePeerInfo->SmCtx->peerState == UPGRADE_PEER_STATE_SYNC)
@@ -378,7 +378,7 @@ static void SendDataToPeer (uint32 data_length, uint8 *data)
 
 static bool StartPeerData(uint32 dataLength, uint8 *packet, bool last_packet)
 {
-    DEBUG_LOGF("UpgradePeer: Start Data %x, len %d\n", packet, dataLength);
+    PRINT(("UpgradePeer: Start Data %x, len %d\n", packet, dataLength));
 
     /* Set up parameters */
     if (packet == NULL)
@@ -421,7 +421,7 @@ static void ReceiveDataBytesREQ(UPGRADE_PEER_START_DATA_BYTES_REQ_T *data)
     /* This will be updated as how much data device is sending */
     uint32 sentLength = 0;
 
-    DEBUG_LOGF("UpgradePeer: DATA Bytes Req\n");
+    PRINT(("UpgradePeer: DATA Bytes Req\n"));
 
     /* Checking the data has the good length */
     if (data->common.length == UPGRADE_DATA_BYTES_REQ_DATA_LENGTH)
@@ -483,7 +483,7 @@ static void SendValidationDoneReq (void)
  */
 static void ReceiveValidationDoneCFM(UPGRADE_PEER_VERIFICATION_DONE_CFM_T *data)
 {
-    if ((data->common.length == UPGRADE_VAIDATION_DONE_CFM_DATA_LENGTH) && 
+    if ((data->common.length == UPGRADE_VAIDATION_DONE_CFM_DATA_LENGTH) &&
          data->delay_time > 0)
     {
         MessageSendLater((Task)&upgradePeerInfo->myTask,
@@ -499,7 +499,7 @@ static void ReceiveValidationDoneCFM(UPGRADE_PEER_VERIFICATION_DONE_CFM_T *data)
 /**
  * This method is called when we received an UPGRADE_TRANSFER_COMPLETE_IND
  * message. We manage this packet and use it for the next step which is to send
- * a validation to continue the process or to abort it temporally. 
+ * a validation to continue the process or to abort it temporally.
  * It will be done later.
  */
 static void ReceiveTransferCompleteIND(void)
@@ -559,7 +559,7 @@ static void SendPeerData(uint8 *data, uint16 dataSize)
         dataInd =(UPGRADE_PEER_DATA_IND_T *)PanicUnlessMalloc(
                                             sizeof(*dataInd) + dataSize - 1);
 
-        DEBUG_LOGF("UpgradePeer: Send Data %d\n", dataSize);
+        PRINT(("UpgradePeer: Send Data %d\n", dataSize));
 
         ByteUtilsMemCpyToStream(dataInd->data, data, dataSize);
 
@@ -698,7 +698,7 @@ static void HandlePeerAppMsg(uint8 *data)
     upgrade_peer_status_t error;
 
     msgId = ByteUtilsGet1ByteFromStream(data);
-    DEBUG_LOGF("UpgradePeer: Handle APP Msg 0x%x\n", msgId);
+    PRINT(("UpgradePeer: Handle APP Msg 0x%x\n", msgId));
 
     switch(msgId)
     {
@@ -762,7 +762,7 @@ static void HandleLocalMessage(Task task, MessageId id, Message message)
 {
     UNUSED(task);
 
-    DEBUG_LOGF("UpgradePeer: Local Msg 0x%x\n", id);
+    PRINT(("UpgradePeer: Local Msg 0x%x\n", id));
     switch(id)
     {
         case INTERNAL_START_REQ_MSG:
@@ -876,7 +876,7 @@ NAME
     UpgradePeerLoadPSStore  -  Load PSKEY on boot
 
 DESCRIPTION
-    Save the details of the PSKEY and offset that we were passed on 
+    Save the details of the PSKEY and offset that we were passed on
     initialisation, and retrieve the current values of the key.
 
     In the unlikely event of the storage not being found, we initialise
@@ -893,7 +893,7 @@ static void UpgradePeerLoadPSStore(uint16 dataPskey,uint16 dataPskeyStart)
     upgradePeerInfo->upgrade_peer_pskey = dataPskey;
     upgradePeerInfo->upgrade_peer_pskeyoffset = dataPskeyStart;
 
-    /* Worst case buffer is used, so confident we can read complete key 
+    /* Worst case buffer is used, so confident we can read complete key
      * if it exists. If we limited to what it should be, then a longer key
      * would not be read due to insufficient buffer
      * Need to zero buffer used as the cache is on the stack.
@@ -1052,16 +1052,16 @@ static void UpgradePeerCtxInit(void)
 
 /****************************************************************************
 NAME
-    UpgradePeerIsPrimaryDevice
+    UpgradePeer_IsPrimaryDevice
 
 DESCRIPTION
     DFU rules need to know after reboot if the device was DFU primary or secondary.
-    This information might be required even before the upgrade peer context is created 
+    This information might be required even before the upgrade peer context is created
     So creating the context just to read the information and then freeing it.
     If context is already created then just read the information from the context.
 */
 
-bool UpgradePeerIsPrimaryDevice(void)
+bool UpgradePeer_IsPrimaryDevice(void)
 {
     bool is_primary_device;
 
@@ -1087,7 +1087,7 @@ bool UpgradePeerIsPrimaryDevice(void)
         is_primary_device = upgradePeerInfo->UpgradePSKeys.is_primary_device;
     }
 
-    DEBUG_LOGF("UpgradePeer: UpgradePeerIsPrimaryDevice %d\n", is_primary_device);
+    DEBUG_LOGF("UpgradePeer: UpgradePeer_IsPrimaryDevice %d\n", is_primary_device);
 
     return is_primary_device;
 }
@@ -1096,7 +1096,7 @@ bool UpgradePeerIsPrimaryDevice(void)
 /****************************************************************************
  NAME
     UpgradePeerInit
- 
+
  DESCRIPTION
     Perform initialisation for the upgrade library. This consists of fixed
     initialisation as well as taking account of the information provided
@@ -1148,7 +1148,7 @@ DESCRIPTION
 */
 bool UpgradePeerIsRestarted(void)
 {
-    return ((upgradePeerInfo->SmCtx != NULL) && 
+    return ((upgradePeerInfo->SmCtx != NULL) &&
              (upgradePeerInfo->SmCtx->mResumePoint ==
                 UPGRADE_PEER_RESUME_POINT_POST_REBOOT));
 }
@@ -1162,7 +1162,7 @@ DESCRIPTION
 */
 bool UpgradePeerIsCommited(void)
 {
-    return ((upgradePeerInfo->SmCtx != NULL) && 
+    return ((upgradePeerInfo->SmCtx != NULL) &&
              (upgradePeerInfo->SmCtx->peerState ==
                 UPGRADE_PEER_STATE_COMMIT_CONFIRM));
 }
@@ -1270,7 +1270,7 @@ void UpgradePeerProcessDataRequest(upgrade_peer_app_msg_t Id, uint8 *data,
     if (upgradePeerInfo->SmCtx == NULL)
         return;
 
-    DEBUG_LOGF("UpgradePeer: Process MsgId, Size 0x%x, %d\n", Id, dataSize);
+    PRINT(("UpgradePeer: Process MsgId, Size 0x%x, %d\n", Id, dataSize));
 
     switch(Id)
     {
@@ -1346,4 +1346,3 @@ void UpgradePeerProcessDataRequest(upgrade_peer_app_msg_t Id, uint8 *data,
             DEBUG_LOGF("unhandled msg\n");
     }
 }
-

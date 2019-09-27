@@ -509,24 +509,8 @@ UpgradeHostErrorCode HandleFooterState(uint8 *data, uint16 len, bool reqComplete
 
     if(reqComplete)
     {
-        bool signatureValid;
-
-        PRINT(("PART_DATA: Upgrade file download is finished\n"));
-
-        signatureValid = UpgradeFWIFValidateFinalize(ctx->signature);
-
-        free(ctx->signature);
-        ctx->signature = 0;
         ctx->signatureReceived = 0;
-
-        if(signatureValid)
-        {
-            return UPGRADE_HOST_OEM_VALIDATION_SUCCESS;
-        }
-        else
-        {
-            return UPGRADE_HOST_ERROR_OEM_VALIDATION_FAILED_FOOTER;
-        }
+        return UPGRADE_HOST_DATA_TRANSFER_COMPLETE;        
     }
 
     return UPGRADE_HOST_SUCCESS;

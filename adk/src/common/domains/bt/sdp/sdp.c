@@ -472,3 +472,110 @@ uint16 appSdpGetDeviceUpgradePeerAttributeSearchRequestSize(void)
     return sizeof(device_upgrade_peer_fwd_attribute_list);
 }
 #endif
+
+/* Offset of the PSM in the Handover Profile service record */
+#define HANDOVER_PROFILE_L2CAP_PSM_OFFSET (33)
+
+/* Handover Profile service record */
+static const uint8 handover_profile_service_record[] =
+{
+   /* Offset */ /* ServiceClassIDList(0x0001), Data Element Sequence */
+    /*  0 */    SDP_ATTR_ID(UUID_SERVICE_CLASS_ID_LIST),
+    /*  3 */        SDP_DATA_EL_SEQ(17),
+
+    /*  UUID Qualcomm Handover Profile (0000eb06-d102-11e1-9b23-00025b00a5a5) */
+    /*  5 */        SDP_DATA_EL_UUID128(UUID_HANDOVER_PROFILE_SERVICE),
+
+    /* 22 */    SDP_ATTR_ID(UUID_PROTOCOL_DESCRIPTOR_LIST),
+    /* 25 */        SDP_DATA_EL_SEQ(8),
+    /* 27 */            SDP_DATA_EL_SEQ(6),
+    /* 29 */                SDP_DATA_EL_UUID16(UUID16_L2CAP),
+    /* Place holder created to add the PSM value during SDP search */
+    /* 32 */                SDP_DATA_EL_UINT16(0x9999)
+};
+
+/* Handover profile service search request */
+static const uint8 handover_profile_service_search_request[] =
+{
+    SDP_DATA_EL_SEQ(17),                     /* type = DataElSeq, 17 bytes in DataElSeq */
+        SDP_DATA_EL_UUID128(UUID_HANDOVER_PROFILE_SERVICE),
+};
+
+/* Handover profile attribute search request */
+static const uint8 handover_profile_attribute_list[] =
+{
+    SDP_DATA_EL_SEQ(3),                                /* Data Element Sequence of 3 */
+        SDP_ATTR_ID(UUID_PROTOCOL_DESCRIPTOR_LIST),
+};
+
+/*! \brief Set Handover Profile L2CAP PSM into service record.
+
+    \param[in] record       Pointer to SDP service record.
+    \param[in] psm          PSM of Handover profile.
+*/
+void sdp_SetHandoverProfilePsm(uint8 *record, uint16 psm)
+{
+    record[HANDOVER_PROFILE_L2CAP_PSM_OFFSET + 0] = (psm >> 8) & 0xFF;
+    record[HANDOVER_PROFILE_L2CAP_PSM_OFFSET + 1] = (psm >> 0) & 0xFF;
+}
+
+/*! \brief Get a pointer to the service record of Handover Profile.
+
+    \returns A pointer to the service record of Handover Profile.
+*/
+const uint8 *sdp_GetHandoverProfileServiceRecord(void)
+{
+    return handover_profile_service_record;
+}
+
+/*! \brief Get the size of the Handover Profile service record.
+
+    \returns Size of Handover Profile service record.
+*/
+uint16 sdp_GetHandoverProfileServiceRecordSize(void)
+{
+    return sizeof(handover_profile_service_record);
+}
+
+/*! \brief Get a pointer to an SDP search record that can be used to find Handover Profile.
+
+    The pointer returned can be passed to ConnectionSdpServiceSearchAttributeRequest
+    as the search_pattern parameter.
+
+    \returns A pointer to an SDP search record that can be used to find a Handover Profile.
+ */
+const uint8 *sdp_GetHandoverProfileServiceSearchRequest(void)
+{
+    return handover_profile_service_search_request;
+}
+
+/*! \brief Get the size of Handover Profile search request record.
+
+    \returns The size of Handover Profile search request record.
+*/
+uint16 sdp_GetHandoverProfileServiceSearchRequestSize(void)
+{
+    return sizeof(handover_profile_service_search_request);
+}
+
+/*! \brief Gets pointer to an attribute search record that can be used to find Handover Profile.
+
+    The pointer returned can be passed to ConnectionSdpServiceSearchAttributeRequest
+    as the search_pattern parameter.
+
+    \returns A pointer to an attribute search record that can be used to find Handover Profile.
+*/
+const uint8 *sdp_GetHandoverProfileAttributeSearchRequest(void)
+{
+    return handover_profile_attribute_list;
+}
+
+/*! \brief Gets the size of attribute search request record.
+
+    \returns The size of Handover Profile attribute search request record.
+*/
+uint16 sdp_GetHandoverProfileAttributeSearchRequestSize(void)
+{
+    return sizeof(handover_profile_attribute_list);
+}
+

@@ -23,7 +23,6 @@ adverts associated with a connection are configured here.
 #ifndef LE_ADVERTSING_MANAGER_H_
 #define LE_ADVERTSING_MANAGER_H_
 
-
 #include "domain_message.h"
 
 #include <connection.h>
@@ -63,42 +62,6 @@ typedef enum{
     le_adv_mgr_status_error_unknown
 }le_adv_mgr_status_t;
 
-/* Data type for the state of LE Advertising Manager */
-typedef enum{
-    le_adv_mgr_state_uninitialised,
-    le_adv_mgr_state_initialised,
-    le_adv_mgr_state_started,
-    le_adv_mgr_state_suspended,
-}le_adv_mgr_state_t;
-
-/*! Messages sent by the advertising manager.  */
-enum adv_mgr_messages_t
-{
-        /*! Message signalling the battery module initialisation is complete */
-    APP_ADVMGR_INIT_CFM = ADV_MANAGER_MESSAGE_BASE,
-        /*! Message responding to AdvertisingManager_Start */
-    APP_ADVMGR_ADVERT_START_CFM,
-        /*! Message responding to AdvertisingManager_SetAdvertData */
-    APP_ADVMGR_ADVERT_SET_DATA_CFM,
-};
-
-
-/*! Message sent when AdvertisingManager_Start() completes */
-typedef struct
-{
-    /*! Final result of the AdvertisingManager_Start() operation */
-    connection_lib_status   status;
-} APP_ADVMGR_ADVERT_START_CFM_T;
-
-
-/*! Message sent when AdvertisingManager_SetAdvertData() completes */
-typedef struct
-{
-        /*! Final result of the AdvertisingManager_SetAdvertData() operation */
-    connection_lib_status   status;
-} APP_ADVMGR_ADVERT_SET_DATA_CFM_T;
-
-
 /*! State of the advertising manager (internal) */
 typedef enum _le_advertising_manager_state_t
 {
@@ -109,7 +72,6 @@ typedef enum _le_advertising_manager_state_t
         /*! There is an active advert (on the stack) */
     ADV_MGR_STATE_ADVERTISING,
 } adv_mgr_state_t;
-
 
 /*! Type of discoverable advertising to use.
 
@@ -124,7 +86,6 @@ typedef enum
         /*! LE General Discoverable Mode */
     ble_discoverable_mode_general = BLE_FLAGS_GENERAL_DISCOVERABLE_MODE,
 } adv_mgr_ble_discoverable_mode_t;
-
 
 /*! \todo work out what this is for. Note that have removed broadcasting reasons. */
 typedef enum
@@ -159,20 +120,20 @@ typedef struct
     TaskData                    task;
         /*! Local state for advertising manager */
     adv_mgr_state_t             state;
-        /*! Local state for advertising manager */
-    le_adv_mgr_state_t           adv_state;
         /*! Bitmask for allowed advertising event types */
     uint8           mask_enabled_events;
     /*! Flag to indicate enabled/disabled state of all advertising event types */
     bool            is_advertising_allowed;
     /*! Flag to indicate if data update is required */
     bool            is_data_update_required;
-    /*! Selected advertising data set for the undirected advertising */
-    le_adv_data_set_handle dataset_handle;
+    /*! Flag to indicate if local address is already configured or not */
+    bool is_local_address_configured;
+    /*! Selected handset advertising data set for the undirected advertising */
+    le_adv_data_set_handle dataset_handset_handle;
+    /*! Selected peer advertising data set for the undirected advertising */
+    le_adv_data_set_handle dataset_peer_handle;    
     /*! Configured advertising parameter set for the undirected advertising */
     le_adv_params_set_handle params_handle;
-        /*! Flag for Allocated storage for the device name */
-    uint8*                      localName;
         /*! An advert that is currently in the middle of an operation
             that blocks other activity */
     adv_mgr_advert_t           *blockingAdvert;
@@ -407,9 +368,9 @@ typedef enum
 /*! \brief Data type for the supported advertising data sets */
 typedef enum
 {
- le_adv_data_set_cooperative_identifiable,
- le_adv_data_set_cooperative_unidentifiable,
- le_adv_data_set_exclusive
+ le_adv_data_set_handset_identifiable = 1UL<<0,
+ le_adv_data_set_handset_unidentifiable = 1UL<<1,
+ le_adv_data_set_peer =  1UL<<2
 } le_adv_data_set_t;
 /*! \brief Data structure to specify the attributes for the individual data items */
 typedef struct
@@ -436,29 +397,51 @@ typedef struct
 
 /*! \brief Opaque type for LE Advertising Manager registry object */
 struct _le_adv_mgr_register;
+
 /*! \brief Handle to LE Advertising Manager registry object */
 typedef struct _le_adv_mgr_register * le_adv_mgr_register_handle;
 
 /*! \brief Data type for the message identifiers */
 typedef enum
 {
-    LE_ADV_MGR_SELECT_DATASET_CFM = ADV_MANAGER_MESSAGE_BASE,
+    /*! Message signalling the battery module initialisation is complete */
+    APP_ADVMGR_INIT_CFM = ADV_MANAGER_MESSAGE_BASE,
+    /*! Message responding to AdvertisingManager_Start */
+    APP_ADVMGR_ADVERT_START_CFM,
+    /*! Message responding to AdvertisingManager_SetAdvertData */
+    APP_ADVMGR_ADVERT_SET_DATA_CFM,
+    LE_ADV_MGR_SELECT_DATASET_CFM,
     LE_ADV_MGR_RELEASE_DATASET_CFM,
     LE_ADV_MGR_ENABLE_CONNECTABLE_CFM,
     LE_ADV_MGR_ALLOW_ADVERTISING_CFM,
-    LE_ADV_MGR_NOTIFY_DATA_CHANGE_CFM
+    LE_ADV_MGR_NOTIFY_DATA_CHANGE_CFM,
+    LE_ADV_MGR_RPA_TIMEOUT_IND,
 }le_adv_mgr_message_id_t;
+
+/*! Message sent when AdvertisingManager_Start() completes */
+typedef struct
+{
+    /*! Final result of the AdvertisingManager_Start() operation */
+    connection_lib_status   status;
+} APP_ADVMGR_ADVERT_START_CFM_T;
+
+/*! Message sent when AdvertisingManager_SetAdvertData() completes */
+typedef struct
+{
+    /*! Final result of the AdvertisingManager_SetAdvertData() operation */
+    connection_lib_status   status;
+} APP_ADVMGR_ADVERT_SET_DATA_CFM_T;
 
 /*! \brief Data structure for the confirmation message LE_ADV_MGR_SELECT_DATASET_CFM */
 typedef struct
 {
- le_adv_mgr_status_t status;
+    le_adv_mgr_status_t status;
 }LE_ADV_MGR_SELECT_DATASET_CFM_T;
 
 /*! \brief Data structure for the confirmation message LE_ADV_MGR_RELEASE_DATASET_CFM */
 typedef struct
 {
- le_adv_mgr_status_t status;
+    le_adv_mgr_status_t status;
 }LE_ADV_MGR_RELEASE_DATASET_CFM_T;
 
 /*! \brief Data structure for the confirmation message LE_ADV_MGR_ADVERT_ENABLE_CONNECTABLE_CFM */
@@ -480,7 +463,7 @@ typedef struct
 /*! \brief Data structure for the confirmation message LE_ADV_MGR_NOTIFY_DATA_CHANGE_CFM */
 typedef struct
 {
- le_adv_mgr_status_t status;
+    le_adv_mgr_status_t status;
 }LE_ADV_MGR_NOTIFY_DATA_CHANGE_CFM_T;
 
 /*! \brief Data structure to specify the input parameters for LeAdvertisingManager_SelectAdvertisingDataSet() API function */
@@ -488,6 +471,22 @@ typedef struct
 {
     le_adv_data_set_t set;
 }le_adv_select_params_t;
+
+/*! \brief Data type for own address types */
+typedef enum
+{
+    le_adv_own_address_type_public = 0x0,
+    le_adv_own_address_type_random = 0x1,
+    le_adv_own_address_type_rpa_fallback_public = 0x2,
+    le_adv_own_address_type_rpa_fallback_random = 0x3
+}le_adv_own_address_type_t;
+
+/*! \brief Data structure to specify the use of public address or resolvable private address with/without configurable timer for the own address */
+typedef struct
+{
+    le_adv_own_address_type_t own_address_type;
+    uint16 timeout;
+}le_adv_own_addr_config_t;
 
 /*! Initialise LE Advertising Manager
 
@@ -600,5 +599,11 @@ bool LeAdvertisingManager_ParametersSelect(uint8 index);
 \return TRUE to indicate successful advertising interval parameter get operation, FALSE otherwise.
 */
 bool LeAdvertisingManager_GetAdvertisingInterval(le_adv_common_parameters_t * interval);
+
+/*! \brief Public API to get the configuration for the own address
+\param[out] own_address_config The own address configuration parameter of the type le_adv_own_addr_config_t
+\return TRUE to indicate successful own address config get operation, FALSE otherwise.
+*/
+bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_address_config);
 
 #endif /* LE_ADVERTSING_MANAGER_H_ */

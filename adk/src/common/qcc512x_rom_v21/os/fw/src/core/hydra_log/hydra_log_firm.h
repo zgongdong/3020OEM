@@ -218,59 +218,80 @@ extern void hydra_log_firm_putchar(char c);
 
 #define HYDRA_LOG_SET_LEVEL_IMPL(lvl) (debugLogLevel = (lvl))
 
-#define /*lint --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG0(lvl, fmt) \
-    do                                                                  \
-    {                                                                   \
-        if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl) \
-        { \
-            HYDRA_LOG_STRING(log_fmt, fmt); \
-            hydra_log_firm_0(log_fmt); \
-        }                                                               \
-    }                                                                   \
+#define /*lint --e{774}  --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG0(lvl, fmt) \
+    do                                              \
+    {                                               \
+        if (HYDRA_LOG_MAX_LEVEL >= lvl)             \
+        {                                           \
+            if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl) \
+            {                                       \
+                HYDRA_LOG_STRING(log_fmt, fmt);     \
+                hydra_log_firm_0(log_fmt);          \
+            }                                       \
+        }                                           \
+    }                                               \
     while (0)
 
-#define /*lint --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG1(lvl, fmt, a1) \
-    do                                                                  \
-    { \
-        if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl) \
-        {                                                               \
-            HYDRA_LOG_STRING(log_fmt, fmt); \
-            hydra_log_firm_1(log_fmt, (hydra_log_elem)(a1)); \
-        }                                                               \
-    }                                                                   \
+#define /*lint --e{774}  --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG1(lvl, fmt, a1) \
+    do                                                          \
+    {                                                           \
+        if (HYDRA_LOG_MAX_LEVEL >= lvl)                         \
+        {                                                       \
+            if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl)             \
+            {                                                   \
+                HYDRA_LOG_STRING(log_fmt, fmt);                 \
+                hydra_log_firm_1(log_fmt, (hydra_log_elem)(a1));\
+            }                                                   \
+        }                                                       \
+    }                                                           \
     while (0)
 
-#define /*lint --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG2(lvl, fmt, a1, a2) \
-    do                                                                  \
-    {                                                                   \
-        if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl) \
-        {                                                               \
-            HYDRA_LOG_STRING(log_fmt, fmt); \
-            hydra_log_firm_2(log_fmt, (hydra_log_elem)(a1), (hydra_log_elem)(a2)); \
-        }                                                               \
-    }                                                                   \
+#define /*lint --e{774}  --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG2(lvl, fmt, a1, a2) \
+    do                                                          \
+    {                                                           \
+        if (HYDRA_LOG_MAX_LEVEL >= lvl)                         \
+        {                                                       \
+            if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl)             \
+            {                                                   \
+                HYDRA_LOG_STRING(log_fmt, fmt);                 \
+                hydra_log_firm_2(log_fmt, (hydra_log_elem)(a1), \
+                                          (hydra_log_elem)(a2));\
+            }                                                   \
+        }                                                       \
+    }                                                           \
     while (0)
 
-#define /*lint --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG3(lvl, fmt, a1, a2, a3) \
-    do                                                                  \
-    {                                                                   \
-        if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl) \
-        {                                                               \
-            HYDRA_LOG_STRING(log_fmt, fmt); \
-            hydra_log_firm_3(log_fmt, (hydra_log_elem)(a1), (hydra_log_elem)(a2), (hydra_log_elem)(a3));               \
-        }                                                               \
-    }                                                                   \
+#define /*lint --e{774}  --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG3(lvl, fmt, a1, a2, a3) \
+    do                                                          \
+    {                                                           \
+        if (HYDRA_LOG_MAX_LEVEL >= lvl)                         \
+        {                                                       \
+            if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl)             \
+            {                                                   \
+                HYDRA_LOG_STRING(log_fmt, fmt);                 \
+                hydra_log_firm_3(log_fmt, (hydra_log_elem)(a1), \
+                                          (hydra_log_elem)(a2), \
+                                          (hydra_log_elem)(a3));\
+            }                                                   \
+        }                                                       \
+    }                                                           \
     while (0)
 
-#define /*lint --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG4(lvl, fmt, a1, a2, a3, a4) \
-    do                                                                  \
-    {                                                                   \
-        if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl) \
-        {                                                               \
-            HYDRA_LOG_STRING(log_fmt, fmt); \
-            hydra_log_firm_4(log_fmt, (hydra_log_elem)(a1), (hydra_log_elem)(a2), (hydra_log_elem)(a3), (hydra_log_elem)(a4)); \
-        }                                                               \
-    }                                                                   \
+#define /*lint --e{774}  --e{607} --e{960} --e{685} --e{568} --e{42} --e{40} */ HYDRA_LOG4(lvl, fmt, a1, a2, a3, a4) \
+    do                                                          \
+    {                                                           \
+        if (HYDRA_LOG_MAX_LEVEL >= lvl)                         \
+        {                                                       \
+            if (HYDRA_LOG_LEVEL_CURRENT_SYM >= lvl)             \
+            {                                                   \
+                HYDRA_LOG_STRING(log_fmt, fmt);                 \
+                hydra_log_firm_4(log_fmt, (hydra_log_elem)(a1), \
+                                          (hydra_log_elem)(a2), \
+                                          (hydra_log_elem)(a3), \
+                                          (hydra_log_elem)(a4));\
+            }                                                   \
+        }                                                       \
+    }                                                           \
     while (0)
 
 #define HYDRA_LOG_PUTCHAR(c)    hydra_log_firm_putchar((char)(c & 0xff))

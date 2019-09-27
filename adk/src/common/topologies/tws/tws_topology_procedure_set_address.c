@@ -9,10 +9,13 @@
 
 #include "tws_topology_procedure_set_address.h"
 #include "tws_topology_procedure_prohibit_bt.h"
+#include "tws_topology_procedure_prohibit_connection_le.h"
 #include "tws_topology_procedure_permit_bt.h"
+#include "tws_topology_procedure_permit_connection_le.h"
 #include "tws_topology_procedures.h"
 
 #include <bt_device.h>
+#include <link_policy.h>
 
 #include <logging.h>
 
@@ -38,8 +41,10 @@ tws_topology_procedure_fns_t proc_set_address_fns = {
 /* Define components of script set_primary_address_script */
 #define SET_PRIMARY_ADDRESS_SCRIPT(ENTRY) \
     ENTRY(proc_prohibit_bt_fns, NO_DATA), \
+    ENTRY(proc_prohibit_connection_le_fns, NO_DATA), \
     ENTRY(proc_set_address_fns, PROC_SET_ADDRESS_TYPE_DATA_PRIMARY), \
-    ENTRY(proc_permit_bt_fns, NO_DATA),
+    ENTRY(proc_permit_bt_fns, NO_DATA), \
+    ENTRY(proc_permit_connection_le_fns, NO_DATA), 
 /* Create the script set_primary_address_script */
 DEFINE_TOPOLOGY_SCRIPT(set_primary_address, SET_PRIMARY_ADDRESS_SCRIPT);
 
@@ -65,16 +70,18 @@ void TwsTopology_ProcedureSetAddressStart(Task result_task,
 
     proc_start_cfm_fn(tws_topology_procedure_set_address, proc_result_success);
 
+    PanicNull(type);
+
     /* start the procedure */
     if (type->primary)
     {
-        appDeviceGetPrimaryBdAddr(&addr);
+        PanicFalse(appDeviceGetPrimaryBdAddr(&addr));
         DEBUG_LOG("TwsTopology_ProcedureSetAddressStart, SWITCHING TO PRIMARY ADDRESS %04x,%02x,%06lx",
                    addr.nap, addr.uap, addr.lap);
     }
     else
     {
-        appDeviceGetSecondaryBdAddr(&addr);
+        PanicFalse(appDeviceGetSecondaryBdAddr(&addr));
         DEBUG_LOG("TwsTopology_ProcedureSetAddressStart, SWITCHING TO SECONDARY ADDRESS %04x,%02x,%06lx",
                    addr.nap, addr.uap, addr.lap);
     }
@@ -91,8 +98,9 @@ void TwsTopology_ProcedureSetAddressStart(Task result_task,
     {
         DEBUG_LOG("TwsTopology_ProcedureSetAddressStart (%u) SUCCESS", OVERRIDE_BD_ADDR_MAX_ATTEMPTS - attempts_remaining);
         /* update my address in BT device database if required */
-        BtDevice_SetMyAddress(&addr);
+        PanicFalse(BtDevice_SetMyAddress(&addr));
         TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn, tws_topology_procedure_set_address, proc_result_success);
+        appLinkPolicyHandleAddressSwap();
     }
     else
     {

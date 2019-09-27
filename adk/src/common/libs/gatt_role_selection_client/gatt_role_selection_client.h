@@ -61,6 +61,7 @@ typedef struct
 
     bool init_response_needed;          /*!< Need to send a response for init */
     bool control_response_needed;       /*!< Need to send a response for writing to the role control endpoint */
+    uint16  active_procedure;           /*!< Flag set when a procedure is active. Used for MessageSendConditional. */
 } GATT_ROLE_SELECTION_CLIENT;
 
 
@@ -165,15 +166,6 @@ bool GattRoleSelectionClientInit(GATT_ROLE_SELECTION_CLIENT *instance,
                                  uint16 cid,
                                  uint16 start_handle,
                                  uint16 end_handle);
-
-/*!
-	@brief Destroy a client instance.
-	Must be called before the same instance can be initialised again.
-	@param instance A valid area of memory that the service library can use.
-	
-	@return TRUE if successful, FALSE otherwise.
-*/
-bool GattRoleSelectionClientDestroy(GATT_ROLE_SELECTION_CLIENT *instance);
 
 /*!
     @brief When a GATT connection is removed, the application must remove all client service instances that were

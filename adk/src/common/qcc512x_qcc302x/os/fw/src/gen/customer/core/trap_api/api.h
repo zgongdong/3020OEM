@@ -277,4 +277,12 @@
  * \defgroup trapset_ra_partition RA_PARTITION
  * \ingroup api
  */
+/**
+ * \defgroup trapset_acl_control ACL_CONTROL
+ * \ingroup api
+ */
+/**
+ * \defgroup trapset_shadowing SHADOWING
+ * \ingroup api
+ */
 #endif

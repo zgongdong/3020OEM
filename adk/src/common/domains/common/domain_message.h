@@ -65,6 +65,9 @@
     X(POWER_UI)             /* See #powerUiMessages */ \
     X(DEVICE_UPGRADE_PEER)  /* See #DeviceUpgradePeer_messages */ \
     X(TELEPHONY)            /* See #telephony_messages */ \
+    X(LE_SCAN_MANAGER)      /* See #scan_manager_messages */ \
+    X(HANDOVER_PROFILE)     /* See #handover_profile_messages */ \
+    X(LOCAL_NAME)           /* See #local_name_messages */
 
 
 /*! A table of service component names */
@@ -88,6 +91,7 @@
     X(UI_INPUTS_VOLUME) \
     X(UI_INPUTS_HANDSET) \
     X(UI_INPUTS_AUDIO_CURATION) \
+    X(UI_INPUTS_PROMPT) \
     X(UI_INPUTS_BOUNDS_CHECK)
 
 /*! This expansion macro concatenates the component name with the text

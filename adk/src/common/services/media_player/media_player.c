@@ -8,6 +8,8 @@
 
 #include "media_player.h"
 #include <logging.h>
+#include <panic.h>
+
 #include "ui.h"
 #include "av.h"
 #include "audio_sources.h"
@@ -94,14 +96,20 @@ static void mediaPlayer_ConnectAudio(audio_source_t source)
 {
     source_defined_params_t source_params;
 
-    DEBUG_LOG("mediaPlayer_ConnectAudio source=%d)", source);
-    AudioSources_GetConnectParameters(source, &source_params);
+    DEBUG_LOG("mediaPlayer_ConnectAudio source=%d", source);
 
-    connect_parameters_t connect_params = { .source_type = source_type_audio, .source_params = source_params };
+    if(AudioSources_GetConnectParameters(source, &source_params))
+    {
+        connect_parameters_t connect_params = { .source_type = source_type_audio, .source_params = source_params };
 
-    KymeraAdaptation_Connect(&connect_params);
+        KymeraAdaptation_Connect(&connect_params);
 
-    AudioSources_ReleaseConnectParameters(source, &source_params);
+        AudioSources_ReleaseConnectParameters(source, &source_params);
+    }
+    else
+    {
+        DEBUG_LOG("mediaPlayer_ConnectAudio connect_params not valid, can't connect");
+    }
 }
 
 static void mediaPlayer_DisconnectAudio(audio_source_t source)
@@ -109,13 +117,19 @@ static void mediaPlayer_DisconnectAudio(audio_source_t source)
     source_defined_params_t source_params;
 
     DEBUG_LOG("mediaPlayer_DisconnectAudio source=%d)", source);
-    AudioSources_GetDisconnectParameters(source, &source_params);
 
-    disconnect_parameters_t disconnect_params = { .source_type = source_type_audio, .source_params = source_params };
+    if(AudioSources_GetDisconnectParameters(source, &source_params))
+    {
+        disconnect_parameters_t disconnect_params = { .source_type = source_type_audio, .source_params = source_params };
 
-    KymeraAdaptation_Disconnect(&disconnect_params);
+        KymeraAdaptation_Disconnect(&disconnect_params);
 
-    AudioSources_ReleaseDisconnectParameters(source, &source_params);
+        AudioSources_ReleaseDisconnectParameters(source, &source_params);
+    }
+    else
+    {
+        Panic();
+    }
 }
 
 static void mediaPlayer_HandleMediaMessage(Task task, MessageId id, Message message)

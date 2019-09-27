@@ -99,9 +99,9 @@ static const struct {
     gatt_uuid_t expected_uuid[4];
     size_t      offset_in_instance;
 } expectedCharacteristics[] = {
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROLE_SEL_SHADOWING_STATE),     offsetof(GATT_ROLE_SELECTION_CLIENT, handle_state) },
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROLE_SEL_CONTROL_POINT),       offsetof(GATT_ROLE_SELECTION_CLIENT, handle_role_control) },
-    { UUID_128_FORMAT_gatt_uuid_t(UUID128_ROLE_SEL_FIGURE_OF_MERIT),     offsetof(GATT_ROLE_SELECTION_CLIENT, handle_figure_of_merit) } };
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROLE_SEL_SHADOWING_STATE)},     offsetof(GATT_ROLE_SELECTION_CLIENT, handle_state) },
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROLE_SEL_CONTROL_POINT)},       offsetof(GATT_ROLE_SELECTION_CLIENT, handle_role_control) },
+    { {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROLE_SEL_FIGURE_OF_MERIT)},     offsetof(GATT_ROLE_SELECTION_CLIENT, handle_figure_of_merit) } };
 
 static bool roleSelectionUuidCompare(const gatt_uuid_t *uuid_a, const gatt_uuid_t *uuid_b)
 {

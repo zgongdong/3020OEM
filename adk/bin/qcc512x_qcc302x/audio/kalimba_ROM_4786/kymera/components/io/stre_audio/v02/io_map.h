@@ -10,7 +10,7 @@
    Cambridge, CB4 0WZ. UK
    http://www.csr.com
 
-   $Id: //depot/bg/Staging/QCC512x_QCC302x.SRC.1.0/adk/bin/qcc512x_qcc302x/audio/kalimba_ROM_4786/kymera/components/io/stre_audio/v02/io_map.h#3 $
+   $Id: //depot/bg/Staging/QCC512x_QCC302x.SRC.1.0/adk/bin/qcc512x_qcc302x/audio/kalimba_ROM_4786/kymera/components/io/stre_audio/v02/io_map.h#9 $
    $Name$
    $Source$
 

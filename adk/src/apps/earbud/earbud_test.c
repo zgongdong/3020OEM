@@ -22,6 +22,7 @@
 #include "peripherals/thermistor.h"
 #include "ui.h"
 #include "peer_link_keys.h"
+#include "microphones.h"
 
 #if defined(HAVE_9_BUTTONS)
 #include "9_buttons.h"
@@ -64,6 +65,12 @@
 static void testTaskHandler(Task task, MessageId id, Message message);
 TaskData testTask = {testTaskHandler};
 
+struct 
+{
+    uint16 testcase;
+    uint16 iteration;
+    uint16 last_marker;
+} test_support = {0};
 
 /*! \brief Handle ACL Mode Changed Event
 
@@ -230,6 +237,33 @@ bool appTestHandsetA2dpConnect(void)
     {
         return FALSE;
     }
+}
+
+/*! Used to block the rules for handset pairing */
+bool appTestHandsetPairingBlocked = FALSE;
+
+/*! \brief Stop the earbud pairing with a handset
+ */
+void appTestBlockAutoHandsetPairing(bool block)
+{
+    bool was_blocked = appTestHandsetPairingBlocked;
+    bool paired_already = appTestIsHandsetPaired();
+
+    appTestHandsetPairingBlocked = block;
+
+    DEBUG_LOG("appTestBlockAutoHandsetPairing(%d) was %d (paired:%d)",
+                    block, was_blocked, paired_already);
+}
+
+/*! \brief Return if Earbud has a handset pairing
+ */
+bool appTestIsHandsetPaired(void)
+{
+    bool paired = BtDevice_IsPairedWithHandset();
+
+    DEBUG_LOG("appTestIsHandsetPaired:%d",paired);
+
+    return paired;
 }
 
 /*! \brief Return if Earbud has an Handset A2DP connection
@@ -933,8 +967,11 @@ void appTestFactoryReset(void)
 */
 bool appTestIsPeerPaired(void)
 {
-    DEBUG_LOG("appTestIsPeerPaired");
-    return BtDevice_IsPairedWithPeer();
+    bool paired = BtDevice_IsPairedWithPeer();
+
+    DEBUG_LOG("appTestIsPeerPaired:%d",paired);
+
+    return paired;
 }
 
 void appTestConnectHandset(void)
@@ -1325,8 +1362,9 @@ void appTestAncSetup(void)
     OperatorFrameworkEnable(1);
 
     /* Set up MICs */
-    Source ADC_A, ADC_B;
-    appKymeraMicSetup(appConfigAncFeedForwardMic(), &ADC_A, appConfigAncFeedBackMic(), &ADC_B, sample_rate);
+    Source ADC_A = Microphones_TurnOnMicrophone(appConfigAncFeedForwardMic(), sample_rate, high_priority_user);
+    Source ADC_B = Microphones_TurnOnMicrophone(appConfigAncFeedBackMic(), sample_rate, high_priority_user);
+    SourceSynchronise(ADC_A, ADC_B);
 
     /* Get the DAC output sinks */
     Sink DAC_L = (Sink)PanicFalse(StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_A));
@@ -1379,8 +1417,9 @@ void appTestAudioPassthrough(void)
     OperatorFrameworkEnable(1);
 
     /* Set up MICs */
-    Source ADC_A, ADC_B;
-    appKymeraMicSetup(appConfigScoMic1(), &ADC_A, appConfigScoMic2(), &ADC_B, sample_rate);
+    Source ADC_A = Microphones_TurnOnMicrophone(appConfigAncFeedForwardMic(), sample_rate, high_priority_user);
+    Source ADC_B = Microphones_TurnOnMicrophone(appConfigAncFeedBackMic(), sample_rate, high_priority_user);
+    SourceSynchronise(ADC_A, ADC_B);
 
     /* Get the DAC output sinks */
     Sink DAC_L = (Sink)PanicFalse(StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_A));
@@ -1536,7 +1575,68 @@ bool appTestIsInitialisationCompleted(void)
 
 bool appTestIsPrimary(void)
 {
-    return appSmIsPrimary();
+    bool prim = appSmIsPrimary();
+
+    DEBUG_LOG("appTestIsPrimary: %d",prim);
+
+    return prim;
+}
+
+
+bool appTestIsTopologyRole(app_test_topology_role_enum_t checked_role)
+{
+    bool role_matches = FALSE;
+    tws_topology_role role = TwsTopology_GetRole();
+
+    switch (checked_role)
+    {
+        case app_test_topology_role_none:
+            role_matches = (role == tws_topology_role_none);
+            DEBUG_LOG("appTestIsTopologyRole. No role:%d", role_matches);
+            break;
+
+        case app_test_topology_role_dfu:
+            role_matches = (role == tws_topology_role_dfu);
+            DEBUG_LOG("appTestIsTopologyRole. DFU:%d", role_matches);
+            break;
+
+        case app_test_topology_role_any_primary:
+            role_matches = (role == tws_topology_role_primary);
+            DEBUG_LOG("appTestIsTopologyRole. Primary:%d (Acting:%d)", 
+                            role_matches, TwsTopology_IsActingPrimary());
+            break;
+
+        case app_test_topology_role_primary:
+            role_matches = TwsTopology_IsFullPrimary();
+            DEBUG_LOG("appTestIsTopologyRole. Primary(Full):%d", role_matches);
+            break;
+
+        case app_test_topology_role_acting_primary:
+            role_matches = TwsTopology_IsActingPrimary();
+            DEBUG_LOG("appTestIsTopologyRole. Acting Primary:%d", role_matches);
+            break;
+
+        case app_test_topology_role_secondary:
+            role_matches = (role == tws_topology_role_secondary);
+            DEBUG_LOG("appTestIsTopologyRole. Secondary:%d", role_matches);
+            break;
+
+        default:
+            DEBUG_LOG("appTestIsTopologyRole. Unsupported role:%d",checked_role);
+            Panic();
+            break;
+    }
+
+    return role_matches;
+}
+
+
+bool appTestIsTopologyIdle(void)
+{
+    bool idle = (TwsTopology_GetRole() == app_test_topology_role_none);
+
+    DEBUG_LOG("appTestIsTopologyIdle:%d", idle);
+    return idle;
 }
 
 static void earbudTest_ReportProperty(device_t device, device_property_t property)
@@ -1722,3 +1822,69 @@ bool appTestUpgradeResetState(void)
 
     return UpgradePSClearStore();
 }
+
+void EarbudTest_EnterInCaseDfu(void)
+{
+    DEBUG_LOG("EarbudTest_EnterInCaseDfu");
+
+    appSmEnterDfuModeInCase(TRUE);
+    appTestPhyStateInCaseEvent();
+}
+
+uint16 appTestSetTestNumber(uint16 test_number)
+{
+    test_support.testcase = test_number;
+
+    return test_number;
+}
+
+uint16 appTestSetTestIteration(uint16 test_iteration)
+{
+    test_support.iteration = test_iteration;
+
+    return test_iteration;
+}
+
+uint16 appTestWriteMarker(uint16 marker)
+{
+    static unsigned testcase = 0;
+    test_support.last_marker = marker;
+
+    if (   test_support.testcase 
+        && (  test_support.testcase != testcase
+           || marker == 0))
+    {
+        testcase = test_support.testcase;
+
+        if (test_support.iteration)
+        {
+            DEBUG_LOG("@@@Testcase:%d  Iteration:%d -------------------------------");
+        }
+        else
+        {
+            DEBUG_LOG("@@@Testcase:%d  ------------------------------------------");
+        }
+    }
+
+    if (marker)
+    {
+        if (test_support.testcase && test_support.iteration)
+        {
+            DEBUG_LOG("@@@Testcase marker: TC%d Iteration:%d Step:%d *************************",
+                    testcase, test_support.iteration, marker);
+        }
+        else if (test_support.testcase)
+        {
+            DEBUG_LOG("@@@Testcase marker: TC%d Step:%d *************************",
+                    testcase, marker);
+        }
+        else
+        {
+            DEBUG_LOG("@@@Testcase marker: Iteration:%d Step:%d *************************",
+                    test_support.iteration, marker);
+        }
+    }
+
+    return marker;
+}
+

@@ -1601,7 +1601,7 @@
     <configurations>
         <configuration name="makefile_project" options="clean|build|default">
             <devkitConfiguration>makefile_project</devkitConfiguration>
-            <devkitGroup>kitres://{885B2E62-D6DE-4472-8989-51ED1537BF28}</devkitGroup>
+            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
             <property name="BUILD_ARGUMENTS">CONFIGS=qcc512x_rom_v21 EXTRA_WARNINGS=FALSE install</property>
             <property name="BUILD_LIBS_AS_PRIVATE"></property>
             <property name="BUILD_TYPE">DEBUG</property>

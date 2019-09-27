@@ -21,7 +21,7 @@ void TwsTopology_SendRoleChangedInd(tws_topology_role role)
     MAKE_TWS_TOPOLOGY_MESSAGE(TWS_TOPOLOGY_ROLE_CHANGED_IND);
 
     message->role = role;
-    TaskList_MessageSend(twst->role_changed_tasks, TWS_TOPOLOGY_ROLE_CHANGED_IND, message);
+    TaskList_MessageSend(&twst->role_changed_tasks, TWS_TOPOLOGY_ROLE_CHANGED_IND, message);
 }
 
 void TwsTopology_SendStartCfm(tws_topology_status_t sts, tws_topology_role role)

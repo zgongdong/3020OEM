@@ -16,7 +16,7 @@ const tws_topology_procedure_fns_t* acting_primary_role_procs[] = {
 };
 
 const Message acting_primary_role_procs_data[] = {
-    PROC_SET_ROLE_TYPE_DATA_PRIMARY,
+    PROC_SET_ROLE_TYPE_DATA_ACTING_PRIMARY,
 };
 
 const tws_topology_proc_script_t acting_primary_role_script = {

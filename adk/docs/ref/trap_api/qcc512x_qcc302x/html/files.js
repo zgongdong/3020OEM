@@ -1,5 +1,6 @@
 var files =
 [
+    [ "acl.h", "acl_8h.html", "acl_8h" ],
     [ "adc.h", "adc_8h.html", "adc_8h" ],
     [ "api.h", "api_8h.html", null ],
     [ "audio_anc.h", "audio__anc_8h.html", "audio__anc_8h" ],
@@ -61,9 +62,6 @@ var files =
     [ "usb_hub.h", "usb__hub_8h.html", "usb__hub_8h" ],
     [ "util.h", "util_8h.html", "util_8h" ],
     [ "vm.h", "vm_8h.html", "vm_8h" ],
-    [ "vm_.h", "vm___8h.html", [
-      [ "packed_irk", "structpacked__irk.html", "structpacked__irk" ],
-      [ "packed_root_keys", "structpacked__root__keys.html", "structpacked__root__keys" ]
-    ] ],
+    [ "vm_.h", "vm___8h.html", "vm___8h" ],
     [ "voltsense.h", "voltsense_8h.html", "voltsense_8h" ]
 ];

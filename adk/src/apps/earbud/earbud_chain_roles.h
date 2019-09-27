@@ -31,6 +31,8 @@ typedef enum chain_operator_roles
     OPR_SBC_ENCODER,
     /*! Role identifier used for the AAC decoder operator */
     OPR_AAC_DECODER,
+    /*! Role identifier used for the aptX classic decoder operator */
+    OPR_APTX_DECODER,
     /*! Role identifier used for the aptX adaptive TWS+ decoder operator */
     OPR_APTX_ADAPTIVE_TWS_PLUS_DECODER,
     /*! Role identifier used for the splitter */
@@ -95,6 +97,10 @@ typedef enum chain_operator_roles
 
     /*! Prompt decoder */
     OPR_PROMPT_DECODER,
+
+    /*! Mixes left and right stereo decode to a mono mix (100% L, 100% R, 50% L 50% R) */
+    OPR_LEFT_RIGHT_MIXER,
+
 } chain_operator_role_t;
 
 /*! These names may be used in chain endpoint definitions.
@@ -146,17 +152,13 @@ typedef enum chain_endpoint_roles
 } chain_endpoint_role_t;
 
 
-#ifdef HAVE_STRPLUS_ROM
-/* On Stretto+/Aura+ aptX-adaptive decode is downloaded */
+#if defined(__QCC3400_APP__) || defined(__QCC514X_APPS__)
 #define DOWNLOAD_APTX_ADAPTIVE_DECODE
 #elif defined(HAVE_STR_ROM_2_0_1)
-/* On Stretto 2.1/Aura 2.1 these capabilities are downloaded */
 #else
-/* On Stretto 2.0/Aura 2.0 these capabilities are downloaded */
 #define DOWNLOAD_SWITCHED_PASSTHROUGH
 #define DOWNLOAD_APTX_CLASSIC_DEMUX
 #define DOWNLOAD_AEC_REF
-/*#define DOWNLOAD_APTX_ADAPTIVE_DECODE - No support for aptX adaptive on Aura 2.0 */
 #define DOWNLOAD_ASYNC_WBS_DEC
 #define DOWNLOAD_ASYNC_WBS_ENC
 #endif

@@ -29,6 +29,7 @@ var earbud__chain__roles_8h =
       [ "OPR_SBC_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8aba72f4613a85909f32b32f84ba488792", null ],
       [ "OPR_SBC_ENCODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8ac6fc7f15f5c1f6533529f51505389ee9", null ],
       [ "OPR_AAC_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a2825a2ef3f477965a4515e52a0d78778", null ],
+      [ "OPR_APTX_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8af7433b0d0c2a1903f24c07fc06a8aa33", null ],
       [ "OPR_APTX_ADAPTIVE_TWS_PLUS_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8ae82fba4765a6165e07fb4c4af9ce1b0c", null ],
       [ "OPR_SPLITTER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a7ff532269240917a6f879683ab47da89", null ],
       [ "OPR_CONSUMER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8ac37558f4e919eca8a7ebe47291c5b426", null ],
@@ -54,6 +55,7 @@ var earbud__chain__roles_8h =
       [ "OPR_LATENCY_BUFFER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a83438f572c526e7744faf58ef0d19f8e", null ],
       [ "OPR_TONE_PROMPT_RESAMPLER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a15e8bbc4bf530856be57fddbbc8c368c", null ],
       [ "OPR_TONE_GEN", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a1c6a0342455f22193aff4f3e032213ec", null ],
-      [ "OPR_PROMPT_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a727795631ff5a29cebc4837aa21031eb", null ]
+      [ "OPR_PROMPT_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a727795631ff5a29cebc4837aa21031eb", null ],
+      [ "OPR_LEFT_RIGHT_MIXER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a65237e4d5017702ec5e85ee238f66354", null ]
     ] ]
 ];

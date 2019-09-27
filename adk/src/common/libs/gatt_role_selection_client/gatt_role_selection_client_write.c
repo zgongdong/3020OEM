@@ -89,28 +89,88 @@ void gattRoleSelectionSendClientCommandCfmMsg(GATT_ROLE_SELECTION_CLIENT *instan
     }
 }
 
+/* Ask the gatt manager to write the characteristic.
+
+    We check the state here as we could have a de-qeueued message
+    after an error occurs. In that case we still send a 
+    confirmation message to the application.
+ */
+void GattRoleSelectionClientChangePeerRoleImpl(GATT_ROLE_SELECTION_CLIENT *instance,
+                                               GattRoleSelectionServiceControlOpCode role,
+                                               bool queued)
+{
+    role_selection_client_state_t state = gattRoleSelectionClientGetState(instance);
+    uint8 state_to_write = (uint8)role;
+
+    switch (state)
+    {
+        case role_selection_client_uninitialised:
+        case role_selection_client_error:
+        case role_selection_client_finding_handles:
+            DEBUG_LOG("GattRoleSelectionClientChangePeerRoleImpl. Client probably ended. State:%d", state);
+
+            if (queued)
+            {
+                instance->control_response_needed = TRUE;
+                gattRoleSelectionSendClientCommandCfmMsg(instance, gatt_status_failure);
+            }
+            break;
+
+        case role_selection_client_initialised:
+            gattRoleSelectionClientSetState(instance, role_selection_client_waiting_write);
+            
+            GattManagerWriteCharacteristicValue(&instance->lib_task, instance->handle_role_control, 
+                                                1, &state_to_write);
+            
+            instance->control_response_needed = TRUE;
+            break;
+
+        default:
+            DEBUG_LOG("GattRoleSelectionClientChangePeerRoleImpl. Unexpected state %d", state);
+            Panic();
+            break;
+    }
+}
 
 bool GattRoleSelectionClientChangePeerRole(GATT_ROLE_SELECTION_CLIENT *instance,
-                                           GattRoleSelectionServiceControlOpCode state)
+                                           GattRoleSelectionServiceControlOpCode role)
 {
-    uint8   state_to_write = (uint8)state;
+    role_selection_client_state_t state;
 
     if (!instance)
     {
+        DEBUG_LOG("GattRoleSelectionClientChangePeerRole NO INSTANCE");
+
         return FALSE;
     }
 
-    if (role_selection_client_initialised != gattRoleSelectionClientGetState(instance))
+    state = gattRoleSelectionClientGetState(instance);
+    switch (state)
     {
-        return FALSE;
+        case role_selection_client_uninitialised:
+        case role_selection_client_error:
+            /* Dropthrough here. These states represent errors and are 
+               handled in the impl function */
+
+        case role_selection_client_initialised:
+            GattRoleSelectionClientChangePeerRoleImpl(instance, role, FALSE);
+            break;
+
+            /* Although an unlikely scenario if in finding_handles state
+               the command will go through. */
+        case role_selection_client_finding_handles:
+        default:
+            /* The client is busy completing something else. Send a message to 
+               do as soon as possible. Could send a message in all cases, but 
+               delays the process unnecessarily */
+            DEBUG_LOG("GattRoleSelectionClientChangePeerRole not initialised. state:%d",state);
+
+            MAKE_ROLE_SELECTION_MESSAGE(ROLE_SELECTION_CLIENT_INTERNAL_CHANGE_ROLE);
+            message->role = role;
+            MessageSendConditionally(&instance->lib_task, ROLE_SELECTION_CLIENT_INTERNAL_CHANGE_ROLE,
+                                     message, &instance->active_procedure);
+            break;
     }
-
-    gattRoleSelectionClientSetState(instance, role_selection_client_waiting_write);
-
-    GattManagerWriteCharacteristicValue(&instance->lib_task, instance->handle_role_control, 
-                                        1, &state_to_write);
-
-    instance->control_response_needed = TRUE;
 
     return TRUE;
 }

@@ -1,6 +1,7 @@
 /*!
 
-        %%fullcopyright(2009)
+Copyright (c) 2010 - 2019 Qualcomm Technologies International, Ltd.
+  
 
 \file   att_prim.h
 

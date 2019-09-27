@@ -10,7 +10,7 @@
 #include "earbud_init.h"
 #include "pairing.h"
 #include "le_advertising_manager.h"
-#include "le_scan_manager_protected.h"
+#include "le_scan_manager.h"
 
 #include "connection_manager.h"
 #include "connection_manager_data.h"
@@ -84,34 +84,30 @@ static bool conManagerIsConnectingBle(void)
 /******************************************************************************/
 static bool conManagerPauseLeScan(cm_connection_t* connection)
 {
-    if(!con_manager.scan_pause_handle)
-    {
-        ConManagerDebugConnection(connection);
-        DEBUG_LOG("conManagerPauseLeScan");
-        
-        LeScanManager_Pause(&con_manager.task);
-        ConManagerSetConnectionState(connection, ACL_CONNECTING_PENDING_PAUSE);
-        return TRUE;
-    }
-    return FALSE;
+     if(!con_manager.is_le_scan_paused)
+     {
+         ConManagerDebugConnection(connection);
+         DEBUG_LOG("conManagerPauseLeScan");
+
+         LeScanManager_Pause(&con_manager.task);
+         ConManagerSetConnectionState(connection, ACL_CONNECTING_PENDING_PAUSE);
+         return TRUE;
+     }
+     return FALSE;
 }
 
 /******************************************************************************/
 static void conManagerResumeLeScanIfPaused(void)
 {
-    if(con_manager.scan_pause_handle)
-    {
-        LeScanManager_Resume(&con_manager.task, con_manager.scan_pause_handle);
-        con_manager.scan_pause_handle = NULL;
-    }
+   LeScanManager_Resume(&con_manager.task);
+   con_manager.is_le_scan_paused = FALSE;
 }
-
 
 /******************************************************************************/
 static bool conManagerPrepareForConnection(cm_connection_t* connection)
 {
     const tp_bdaddr* tpaddr = ConManagerGetConnectionTpAddr(connection);
-    
+
     PanicNull((void *)tpaddr);
 
     if(tpaddr->transport == TRANSPORT_BLE_ACL)
@@ -125,7 +121,7 @@ static bool conManagerPrepareForConnection(cm_connection_t* connection)
     {
         conManagerSendWritePageTimeout(conManagerGetPageTimeout(tpaddr));
     }
-    
+
     return TRUE;
 }
 
@@ -229,8 +225,11 @@ static void conManagerReleaseAclImpl(const tp_bdaddr* tpaddr)
             }
             else
             {
-                conManagerSendCloseTpAclRequest(tpaddr, FALSE);
+                /* Depending on address type conn_tpaddr may not be same as tpaddr */
+                const tp_bdaddr* conn_tpaddr = ConManagerGetConnectionTpAddr(connection);
+                conManagerSendCloseTpAclRequest(conn_tpaddr, FALSE);
             }
+            conManagerNotifyObservers(tpaddr, cm_notify_message_disconnect_requested, hci_success);
         }
     }
 }
@@ -284,7 +283,11 @@ static void appHandleClSdpServiceSearchAttributeCfm(const CL_SDP_SERVICE_SEARCH_
         if (conManagerGetConnectionState(connection) == ACL_CONNECTED_SDP_SEARCH)
         {
             /* Indicate to clients the connection is up */
-            conManagerNotifyObservers(&tpaddr, TRUE, hci_success);
+            conManagerNotifyObservers(&tpaddr, 
+                                      connection->bitfields.local
+                                            ? cm_notify_message_connected_outgoing
+                                            : cm_notify_message_connected_incoming,
+                                      hci_success);
             conManagerSendInternalMsgUpdateQos(connection);
 
             /* Move to ACL_CONNECTED state */
@@ -336,8 +339,11 @@ static void conManagerCheckForForcedDisconnect(tp_bdaddr *tpaddr)
 static void ConManagerHandleClDmAclOpenedIndication(const CL_DM_ACL_OPENED_IND_T *ind)
 {
     tp_bdaddr tpaddr;
+    cm_connection_t *connection;
+    
     BdaddrTpFromTypedAndFlags(&tpaddr, &ind->bd_addr, ind->flags);
-    cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(&tpaddr);
+    
+    connection = ConManagerFindConnectionFromBdAddr(&tpaddr);
     
     DEBUG_LOGF("ConManagerHandleClDmAclOpenedIndication, status %d, incoming %u, flags:%x",
                ind->status, (ind->flags & DM_ACL_FLAG_INCOMING) ? 1 : 0, ind->flags);
@@ -364,7 +370,10 @@ static void ConManagerHandleClDmAclOpenedIndication(const CL_DM_ACL_OPENED_IND_T
         }
         else
         {
-            conManagerNotifyObservers(&tpaddr, TRUE, hci_success);
+            conManagerNotifyObservers(&tpaddr, 
+                                      is_local ? cm_notify_message_connected_outgoing
+                                               : cm_notify_message_connected_incoming,
+                                      hci_success);
             conManagerSendInternalMsgUpdateQos(connection);
         }
     }
@@ -427,7 +436,7 @@ static void ConManagerHandleClDmAclClosedIndication(const CL_DM_ACL_CLOSED_IND_T
     }
 
     /* Indicate to client the connection to this connection has gone */
-    conManagerNotifyObservers(&tpaddr, FALSE, ind->status);
+    conManagerNotifyObservers(&tpaddr, cm_notify_message_disconnected, ind->status);
 }
 
 /*! \brief Decide whether we allow a BR/EDR device to connect
@@ -550,9 +559,9 @@ void ConManagerQueryHandsetTwsVersion(const bdaddr *bd_addr)
 }
 
 /******************************************************************************/
-static void conManagerHandleScanManagerPauseCfm(SCAN_MANAGER_PAUSE_PENDING_CFM_T* cfm)
+static void conManagerHandleScanManagerPauseCfm(void)
 {
-    con_manager.scan_pause_handle = cfm->handle;
+    con_manager.is_le_scan_paused = TRUE;
     conManagerPrepareForConnectionComplete();
 }
 
@@ -568,8 +577,8 @@ static void ConManagerHandleMessage(Task task, MessageId id, Message message)
             appHandleClSdpServiceSearchAttributeCfm((CL_SDP_SERVICE_SEARCH_ATTRIBUTE_CFM_T *)message);
             break;
         
-        case SCAN_MANAGER_PAUSE_PENDING_CFM:
-            conManagerHandleScanManagerPauseCfm((SCAN_MANAGER_PAUSE_PENDING_CFM_T*)message);
+        case LE_SCAN_MANAGER_PAUSE_CFM:
+            conManagerHandleScanManagerPauseCfm();
             break;
         
         case PAIRING_PAIR_CFM:
@@ -591,12 +600,14 @@ bool ConManagerInit(Task init_task)
     /* Set up task handler */
     con_manager.task.handler = ConManagerHandleMessage;
 
+    /*Set Pause Status as FALSE in init*/
+    con_manager.is_le_scan_paused = FALSE;
+
     /* Default to allow BR/EDR connection until told otherwise */
     ConManagerAllowConnection(cm_transport_bredr, TRUE);
 
     /* setup role switch policy */
     ConManagerSetupRoleSwitchPolicy();
-
     UNUSED(init_task);
     return TRUE;
 }
@@ -616,6 +627,12 @@ bool ConManagerIsAclLocal(const bdaddr *addr)
     tp_bdaddr tpaddr;
     BdaddrTpFromBredrBdaddr(&tpaddr, addr);
     const cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(&tpaddr);
+    return conManagerConnectionIsLocallyInitiated(connection);
+}
+
+bool ConManagerIsTpAclLocal(const tp_bdaddr *tpaddr)
+{
+    const cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(tpaddr);
     return conManagerConnectionIsLocallyInitiated(connection);
 }
 
@@ -641,6 +658,18 @@ void ConManagerGetLpState(const bdaddr *addr, lpPerConnectionState *lp_state)
 void ConManagerAllowHandsetConnect(bool allowed)
 {
     con_manager.handset_connect_allowed = allowed;
+
+    if(con_manager.handset_connect_allowed)
+    {
+        /* Indicate to observer client that handset connection is allowed */
+        conManagerNotifyAllowedConnectionsObservers(cm_handset_allowed);
+    }
+    else
+    {
+        /* Indicate to observer client that handset connection is not allowed */
+        conManagerNotifyAllowedConnectionsObservers(cm_handset_disallowed);
+        
+    }
 }
 
 /******************************************************************************/

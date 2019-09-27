@@ -29,6 +29,7 @@
 #include "trap_api/otp.h" 
 #include "trap_api/psu.h" 
 #include "trap_api/dormant.h" 
+#include "trap_api/acl.h" 
 #include "trap_api/charger.h" 
 #include "trap_api/partition.h" 
 #include "trap_api/sdmmc.h" 
@@ -168,6 +169,21 @@ typedef struct IPC_SINK_GET_RFCOMM_CONN_ID {
     uint16 sink;
 } IPC_SINK_GET_RFCOMM_CONN_ID;
 
+typedef struct IPC_SINK_GET_RFCOMM_SERVER_CHANNEL {
+    IPC_HEADER header;
+    uint16 sink;
+} IPC_SINK_GET_RFCOMM_SERVER_CHANNEL;
+
+typedef struct IPC_STREAM_RFCOMM_SINK_FROM_SERVER_CHANNEL {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * tpaddr;
+    uint8 server_channel;
+} IPC_STREAM_RFCOMM_SINK_FROM_SERVER_CHANNEL;
+
+typedef struct IPC_UINT8_RSP {
+    IPC_HEADER header;
+    uint8 ret;
+} IPC_UINT8_RSP;
 #endif /* TRAPSET_RFCOMM */
 
 
@@ -960,6 +976,45 @@ typedef struct IPC_STREAM_FAST_PIPE_SINK {
 #endif /* TRAPSET_FASTPIPE */
 
 
+#if TRAPSET_SHADOWING
+typedef struct IPC_ACL_HANDOVER_PREPARE {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * acl_addr;
+    const TP_BD_ADDR_T * recipient;
+} IPC_ACL_HANDOVER_PREPARE;
+
+typedef struct IPC_ACL_HANDOVER_PREPARED {
+    IPC_HEADER header;
+    uint16 handle;
+} IPC_ACL_HANDOVER_PREPARED;
+
+typedef struct IPC_STREAM_ACL_MARSHAL_SOURCE {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * tpaddr;
+} IPC_STREAM_ACL_MARSHAL_SOURCE;
+
+typedef struct IPC_STREAM_ACL_MARSHAL_SINK {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * tpaddr;
+} IPC_STREAM_ACL_MARSHAL_SINK;
+
+typedef struct IPC_ACL_HANDOVER_COMMIT {
+    IPC_HEADER header;
+    uint16 handle;
+} IPC_ACL_HANDOVER_COMMIT;
+
+typedef struct IPC_ACL_HANDOVER_CANCEL {
+    IPC_HEADER header;
+    uint16 handle;
+} IPC_ACL_HANDOVER_CANCEL;
+
+typedef struct IPC_ACL_HANDOVER_PREPARE_STATUS_RSP {
+    IPC_HEADER header;
+    acl_handover_prepare_status ret;
+} IPC_ACL_HANDOVER_PREPARE_STATUS_RSP;
+#endif /* TRAPSET_SHADOWING */
+
+
 #if TRAPSET_LCD
 typedef struct IPC_LCD_CONFIGURE {
     IPC_HEADER header;
@@ -1316,6 +1371,24 @@ typedef struct IPC_VM_UPDATE_ROOT_KEYS {
     packed_root_keys * root_keys;
 } IPC_VM_UPDATE_ROOT_KEYS;
 
+typedef struct IPC_VM_OVERRIDE_L2CAP_CONN_CONTEXT {
+    IPC_HEADER header;
+    uint16 cid;
+    conn_context_t context;
+} IPC_VM_OVERRIDE_L2CAP_CONN_CONTEXT;
+
+typedef struct IPC_VM_OVERRIDE_SYNC_CONN_CONTEXT {
+    IPC_HEADER header;
+    uint16 handle;
+    conn_context_t context;
+} IPC_VM_OVERRIDE_SYNC_CONN_CONTEXT;
+
+typedef struct IPC_VM_OVERRIDE_RFCOMM_CONN_CONTEXT {
+    IPC_HEADER header;
+    uint16 conn_id;
+    conn_context_t context;
+} IPC_VM_OVERRIDE_RFCOMM_CONN_CONTEXT;
+
 typedef struct IPC_VM_GET_PUBLIC_ADDRESS_RSP {
     IPC_HEADER header;
     bool ret;
@@ -1510,6 +1583,32 @@ typedef struct IPC_TASK_RSP {
     Task ret;
 } IPC_TASK_RSP;
 #endif /* TRAPSET_HOST */
+
+
+#if TRAPSET_ACL_CONTROL
+typedef struct IPC_ACL_RECEIVE_ENABLE {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * addr;
+    bool enable;
+    uint32 timeout;
+} IPC_ACL_RECEIVE_ENABLE;
+
+typedef struct IPC_ACL_RECEIVED_DATA_PROCESSED {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * addr;
+    uint32 timeout;
+} IPC_ACL_RECEIVED_DATA_PROCESSED;
+
+typedef struct IPC_ACL_TRANSMIT_DATA_PENDING {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * addr;
+} IPC_ACL_TRANSMIT_DATA_PENDING;
+
+typedef struct IPC_ACL_RX_PROCESSED_STATUS_RSP {
+    IPC_HEADER header;
+    acl_rx_processed_status ret;
+} IPC_ACL_RX_PROCESSED_STATUS_RSP;
+#endif /* TRAPSET_ACL_CONTROL */
 
 
 #if TRAPSET_OPERATOR
@@ -2084,6 +2183,10 @@ typedef union IPC_RSP {
     IPC_PSSTORES_RSP ipc_psstores_rsp;
     IPC_VM_RESET_SOURCE_RSP ipc_vm_reset_source_rsp;
 #endif /* TRAPSET_CORE */
+#if TRAPSET_FONT
+    IPC_FONTID_RSP ipc_fontid_rsp;
+    IPC_SIZE_T_RSP ipc_size_t_rsp;
+#endif /* TRAPSET_FONT */
 #if TRAPSET_BLUESTACK
     IPC_VM_GET_PUBLIC_ADDRESS_RSP ipc_vm_get_public_address_rsp;
     IPC_INQUIRYPRIORITY_RSP ipc_inquirypriority_rsp;
@@ -2100,6 +2203,15 @@ typedef union IPC_RSP {
     IPC_CONST_UINT8__PTR_RSP ipc_const_uint8__ptr_rsp;
     IPC_STREAM_PIPE_PAIR_RSP ipc_stream_pipe_pair_rsp;
 #endif /* TRAPSET_STREAM */
+#if TRAPSET_USB
+    IPC_USBALTINTERFACE_RSP ipc_usbaltinterface_rsp;
+    IPC_USB_ATTACHED_STATUS_RSP ipc_usb_attached_status_rsp;
+    IPC_USBINTERFACE_RSP ipc_usbinterface_rsp;
+    IPC_USB_DEVICE_STATE_RSP ipc_usb_device_state_rsp;
+#endif /* TRAPSET_USB */
+#if TRAPSET_SRAM
+    IPC_UINT16__PTR_RSP ipc_uint16__ptr_rsp;
+#endif /* TRAPSET_SRAM */
 #if TRAPSET_CHARGER
     IPC_CHARGER_STATUS_RSP ipc_charger_status_rsp;
 #endif /* TRAPSET_CHARGER */
@@ -2112,15 +2224,15 @@ typedef union IPC_RSP {
 #if TRAPSET_HOST
     IPC_TASK_RSP ipc_task_rsp;
 #endif /* TRAPSET_HOST */
-#if TRAPSET_CHARGERMESSAGE
-    IPC_CHARGER_EVENTS_RSP ipc_charger_events_rsp;
-#endif /* TRAPSET_CHARGERMESSAGE */
+#if TRAPSET_ACL_CONTROL
+    IPC_ACL_RX_PROCESSED_STATUS_RSP ipc_acl_rx_processed_status_rsp;
+#endif /* TRAPSET_ACL_CONTROL */
 #if TRAPSET_FILE
     IPC_FILE_TYPE_RSP ipc_file_type_rsp;
 #endif /* TRAPSET_FILE */
-#if TRAPSET_SRAM
-    IPC_UINT16__PTR_RSP ipc_uint16__ptr_rsp;
-#endif /* TRAPSET_SRAM */
+#if TRAPSET_RFCOMM
+    IPC_UINT8_RSP ipc_uint8_rsp;
+#endif /* TRAPSET_RFCOMM */
 #if TRAPSET_OPERATOR
     IPC_OPERATOR_FRAMEWORK_CONFIGURATION_GET_RSP ipc_operator_framework_configuration_get_rsp;
     IPC_OPERATOR_RSP ipc_operator_rsp;
@@ -2130,18 +2242,14 @@ typedef union IPC_RSP {
 #if TRAPSET_IMAGEUPGRADE
     IPC_HASH_CONTEXT_T_RSP ipc_hash_context_t_rsp;
 #endif /* TRAPSET_IMAGEUPGRADE */
-#if TRAPSET_FONT
-    IPC_FONTID_RSP ipc_fontid_rsp;
-    IPC_SIZE_T_RSP ipc_size_t_rsp;
-#endif /* TRAPSET_FONT */
+#if TRAPSET_SHADOWING
+    IPC_ACL_HANDOVER_PREPARE_STATUS_RSP ipc_acl_handover_prepare_status_rsp;
+#endif /* TRAPSET_SHADOWING */
 #if TRAPSET_WAKE_ON_AUDIO
     IPC_AUDIO_DSP_GET_CLOCK_RSP ipc_audio_dsp_get_clock_rsp;
     IPC_AUDIO_POWER_SAVE_MODE_RSP ipc_audio_power_save_mode_rsp;
 #endif /* TRAPSET_WAKE_ON_AUDIO */
-#if TRAPSET_USB
-    IPC_USBALTINTERFACE_RSP ipc_usbaltinterface_rsp;
-    IPC_USB_ATTACHED_STATUS_RSP ipc_usb_attached_status_rsp;
-    IPC_USBINTERFACE_RSP ipc_usbinterface_rsp;
-    IPC_USB_DEVICE_STATE_RSP ipc_usb_device_state_rsp;
-#endif /* TRAPSET_USB */
+#if TRAPSET_CHARGERMESSAGE
+    IPC_CHARGER_EVENTS_RSP ipc_charger_events_rsp;
+#endif /* TRAPSET_CHARGERMESSAGE */
 } IPC_RSP;

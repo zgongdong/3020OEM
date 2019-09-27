@@ -49,11 +49,23 @@ static const ble_connection_params audio_connection_params =
     LE_FIXED_PARAMS, LE_AUDIO_CONNECTION_PARAMS
 };
 
+/* Absolute shortest interval/lowest latency possible */
+#define LE_SHORT_CONNECTION_PARAMS \
+    .conn_interval_min  = 6, \
+    .conn_interval_max  = 6, \
+    .conn_latency       = 0
+
+static const ble_connection_params short_connection_params = 
+{
+    LE_FIXED_PARAMS, LE_SHORT_CONNECTION_PARAMS
+};
+
 const ble_connection_params* cm_qos_params[cm_qos_max] = 
 {
-    [cm_qos_invalid]        = NULL,
-    [cm_qos_low_power]      = &low_power_connection_params,
-    [cm_qos_low_latency]    = &low_latency_connection_params,
-    [cm_qos_audio]          = &audio_connection_params,
-    [cm_qos_passive]        = &low_power_connection_params
+    [cm_qos_invalid]                = NULL,
+    [cm_qos_low_power]              = &low_power_connection_params,
+    [cm_qos_low_latency]            = &low_latency_connection_params,
+    [cm_qos_audio]                  = &audio_connection_params,
+    [cm_qos_short_data_exchange]    = &short_connection_params,
+    [cm_qos_passive]                = &low_power_connection_params
 };

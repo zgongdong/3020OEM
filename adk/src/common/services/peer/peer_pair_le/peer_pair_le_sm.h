@@ -52,17 +52,16 @@
 
     DISCOVERY : Advertising and scanning. No devices yet detected.
     DISCOVERY --> SELECTING : CL_DM_BLE_ADVERTISING_REPORT_IND. 
-    DISCOVERY --> PAIRING_AS_SERVER : GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM
+    DISCOVERY --> PAIRING_AS_SERVER : GATT Connect observer notification
 
     SELECTING : Advertising and scanning. 
     SELECTING : At least one advert from a matching device has been seen.
     SELECTING --> CONNECTING : PEER_PAIR_LE_TIMEOUT_FROM_FIRST_SCAN, single device found
     SELECTING --> DISCOVERY : PEER_PAIR_LE_TIMEOUT_FROM_FIRST_SCAN, no suitable device found
-    SELECTING --> PAIRING_AS_SERVER : GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM
+    SELECTING --> PAIRING_AS_SERVER : GATT Connect observer notification
 
     CONNECTING: Creating a connection to discovered device
-    CONNECTING --> PAIRING_AS_CLIENT : GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM, success
-    CONNECTING --> DISCOVERY : GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM, failure
+    CONNECTING --> PAIRING_AS_CLIENT : CON_MANAGER_TP_CONNECT_IND
 
     PAIRING_AS_SERVER : Bluetooth pairing and encryption
     PAIRING_AS_SERVER --> NEGOTIATE_C_ROLE : Pairing successful
@@ -80,14 +79,14 @@
 
     COMPLETED_WAIT_FOR_DISCONNECT: Wait for other device to disconnect
     COMPLETED_WAIT_FOR_DISCONNECT --> DISCONNECTING : Timeout waiting for other device to disconnect, disconnect link
-    COMPLETED_WAIT_FOR_DISCONNECT --> INITIALISED : CON_MANAGER_CONNECTION_IND, link disconnected
+    COMPLETED_WAIT_FOR_DISCONNECT --> INITIALISED : CON_MANAGER_TP_DISCONNECT_IND, link disconnected
 
     COMPLETED: Peer paired
     COMPLETED: Disconnect link
     COMPLETED --> DISCONNECTING : Automatic
 
     DISCONNECTING: Waiting for disconnection to complete
-    DISCONNECTING --> INITIALISED : CON_MANAGER_CONNECTION_IND, link disconnected
+    DISCONNECTING --> INITIALISED : CON_MANAGER_TP_DISCONNECT_IND, link disconnected
 
     \enduml
 */

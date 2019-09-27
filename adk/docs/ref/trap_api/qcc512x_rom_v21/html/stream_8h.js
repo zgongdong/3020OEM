@@ -1,5 +1,7 @@
 var stream_8h =
 [
+    [ "StreamAclMarshalSink", "group__trapset__shadowing.html#ga6813630b903a29e82babf12570da67c0", null ],
+    [ "StreamAclMarshalSource", "group__trapset__shadowing.html#gac21e0ddc51ef09b8c8a3cef222db41a9", null ],
     [ "StreamAttAddHandle", "group__trapset__att.html#ga7fc559e46cd2d21afdb27a5debfeec8c", null ],
     [ "StreamAttClientSink", "group__trapset__att.html#gac7dee276a0ec6b57f538af6a34986e9b", null ],
     [ "StreamAttClientSource", "group__trapset__att.html#gaeac5bbf64dacedebc317072089276fae", null ],

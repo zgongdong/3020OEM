@@ -104,7 +104,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a42e843d94719628db333b9044ba34093"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__role__selection__client_8h.html#a42e843d94719628db333b9044ba34093">GattRoleSelectionClientChangePeerRole</a> (<a class="el" href="struct_g_a_t_t___r_o_l_e___s_e_l_e_c_t_i_o_n___c_l_i_e_n_t.html">GATT_ROLE_SELECTION_CLIENT</a> *instance, <a class="el" href="gatt__role__selection__service_8h.html#a2426f70aa1a072e0397f28918942760f">GattRoleSelectionServiceControlOpCode</a> state)</td></tr>
 <tr class="separator:a42e843d94719628db333b9044ba34093"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9e60d0b36f203caf717505e2ac862c9d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__role__selection__client_8h.html#a9e60d0b36f203caf717505e2ac862c9d">GattRoleSelectionClientDestroy</a> (<a class="el" href="struct_g_a_t_t___r_o_l_e___s_e_l_e_c_t_i_o_n___c_l_i_e_n_t.html">GATT_ROLE_SELECTION_CLIENT</a> *instance)</td></tr>
-<tr class="memdesc:a9e60d0b36f203caf717505e2ac862c9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy a client instance. Must be called before the same instance can be initialised again.  <a href="#a9e60d0b36f203caf717505e2ac862c9d">More...</a><br /></td></tr>
+<tr class="memdesc:a9e60d0b36f203caf717505e2ac862c9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">When a GATT connection is removed, the application must remove all client service instances that were associated with the connection (using the CID value). This is the clean up routine as a result of calling the GattRoleSelectionClientInit API. That is, the GattRoleSelectionClientInit API is called when a connection is made, and the GattRoleSelectionClientDestroy is called when the connection is removed.  <a href="#a9e60d0b36f203caf717505e2ac862c9d">More...</a><br /></td></tr>
 <tr class="separator:a9e60d0b36f203caf717505e2ac862c9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a930bcf78a8b882badcaeabd7d31890ed"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__role__selection__client_8h.html#a930bcf78a8b882badcaeabd7d31890ed">GattRoleSelectionClientEnablePeerFigureOfMeritNotifications</a> (<a class="el" href="struct_g_a_t_t___r_o_l_e___s_e_l_e_c_t_i_o_n___c_l_i_e_n_t.html">GATT_ROLE_SELECTION_CLIENT</a> *instance)</td></tr>
 <tr class="separator:a930bcf78a8b882badcaeabd7d31890ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -209,15 +209,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Destroy a client instance. Must be called before the same instance can be initialised again. </p>
-<p>When a GATT connection is removed, the application must remove all client service instances that were associated with the connection (using the CID value). This is the clean up routine as a result of calling the GattRoleSelectionClientInit API. That is, the GattRoleSelectionClientInit API is called when a connection is made, and the GattRoleSelectionClientDestroy is called when the connection is removed.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">instance</td><td>A valid area of memory that the service library can use.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>TRUE if successful, FALSE otherwise.</dd></dl>
+<p>When a GATT connection is removed, the application must remove all client service instances that were associated with the connection (using the CID value). This is the clean up routine as a result of calling the GattRoleSelectionClientInit API. That is, the GattRoleSelectionClientInit API is called when a connection is made, and the GattRoleSelectionClientDestroy is called when the connection is removed. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">instance</td><td>The client instance that was passed into the GattRoleSelectionClientInit API.</td></tr>

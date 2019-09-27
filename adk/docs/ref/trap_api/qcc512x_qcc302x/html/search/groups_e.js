@@ -1,6 +1,7 @@
 var searchData=
 [
   ['sd_5fmmc',['SD_MMC',['../group__trapset__sd__mmc.html',1,'']]],
+  ['shadowing',['SHADOWING',['../group__trapset__shadowing.html',1,'']]],
   ['shunt',['SHUNT',['../group__trapset__shunt.html',1,'']]],
   ['spiflash',['SPIFLASH',['../group__trapset__spiflash.html',1,'']]],
   ['sqifexecute',['SQIFEXECUTE',['../group__trapset__sqifexecute.html',1,'']]],

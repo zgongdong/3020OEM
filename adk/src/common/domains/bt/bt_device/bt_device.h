@@ -40,6 +40,9 @@ typedef enum
 #define DEVICE_PROFILE_SCOFWD   (1 << 3)
 /*! \brief Device supports peer signalling. */
 #define DEVICE_PROFILE_PEERSIG  (1 << 4)
+/*! \brief Device supports Handover profile. */
+#define DEVICE_PROFILE_HANDOVER (1 << 5)
+
 
 /*! Bit in handset flags defining if we need to send the link key to the peer earbud. */
 #define DEVICE_FLAGS_HANDSET_LINK_KEY_TX_REQD       (1 << 0)
@@ -61,8 +64,6 @@ typedef enum
 #define DEVICE_FLAGS_PRIMARY_ADDR                   (1 << 8)
 /*! Bit in flags indicating that this device's address is the primary address. */
 #define DEVICE_FLAGS_SECONDARY_ADDR                 (1 << 9)
-/*! Bit in flags indicating that this device is currently connected. */
-#define DEVICE_FLAGS_IS_CONNECTED                   (1 << 10)
 /*! Define that can be used when not setting any flags */
 #define DEVICE_FLAGS_NO_FLAGS                       0
 
@@ -449,6 +450,18 @@ bool appDeviceGetPrimaryBdAddr(bdaddr* bd_addr);
                  FALSE failure and bd_addr is not valid.
 */
 bool appDeviceGetSecondaryBdAddr(bdaddr* bd_addr);
+
+/*! \brief Test is an address is the primary address.
+
+    \param bd_addr Pointer to the BT address of the device
+*/
+bool appDeviceIsPrimary(const bdaddr* bd_addr);
+
+/*! \brief Test is an address is the secondary address.
+
+    \param bd_addr Pointer to the BT address of the device
+*/
+bool appDeviceIsSecondary(const bdaddr* bd_addr);
 
 /*! \brief Check to determine if this devices address matches the primary address.
 

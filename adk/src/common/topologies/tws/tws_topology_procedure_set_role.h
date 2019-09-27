@@ -18,6 +18,7 @@ extern tws_topology_procedure_fns_t proc_set_role_fns;
 typedef struct
 {
     tws_topology_role role;
+    bool acting_in_role;
 } SET_ROLE_TYPE_T;
 
 extern const SET_ROLE_TYPE_T proc_set_role_none;
@@ -25,6 +26,9 @@ extern const SET_ROLE_TYPE_T proc_set_role_none;
 
 extern const SET_ROLE_TYPE_T proc_set_role_primary_role;
 #define PROC_SET_ROLE_TYPE_DATA_PRIMARY     ((Message)&proc_set_role_primary_role)
+
+extern const SET_ROLE_TYPE_T proc_set_role_acting_primary_role;
+#define PROC_SET_ROLE_TYPE_DATA_ACTING_PRIMARY     ((Message)&proc_set_role_acting_primary_role)
 
 extern const SET_ROLE_TYPE_T proc_set_role_secondary_role;
 #define PROC_SET_ROLE_TYPE_DATA_SECONDARY   ((Message)&proc_set_role_secondary_role)

@@ -30,7 +30,6 @@ NOTES
 #include <connection_manager.h>
 #include <message.h>
 #include "device_upgrade.h"
-#include <connection_manager.h>
 
 /* L2CAP Connection specific macros */
 #define MAX_ATTRIBUTES 0x32
@@ -95,6 +94,7 @@ BRIEF
 
 static void DeviceUpgradePeerSendL2capConnectFailure(void)
 {
+    DEBUG_LOG("DeviceUpgradePeer L2cap connection failure request");
     upgrade_peer_connect_state_t l2cap_status = UPGRADE_PEER_CONNECT_FAILED;
     UpgradePeerProcessDataRequest(UPGRADE_PEER_CONNECT_CFM,
                                  (uint8 *)&l2cap_status, sizeof(uint16));
@@ -263,6 +263,7 @@ static void DeviceUpgradePeerSdpSearch(void)
         /* Disconnect the l2cap connection and put the device state to disconnected */
         theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
         DeviceUpgradePeerSendL2capConnectFailure();
+        return;
     }
 
     /* Perform SDP search */
@@ -635,6 +636,7 @@ static void DeviceUpgradePeerConnectL2cap(const bdaddr *bd_addr)
     {
         theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
         DeviceUpgradePeerSendL2capConnectFailure();
+        return;
     }
 
     ConnectionL2capConnectRequest(&theDeviceUpgradePeer->task,
@@ -765,6 +767,7 @@ static void DeviceUpgradePeerHandleL2capConnectInd(const CL_L2CAP_CONNECT_IND_T 
     {
         theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
         DeviceUpgradePeerSendL2capConnectFailure();
+        return;
     }
 
     static const uint16 l2cap_conftab[] =
@@ -847,6 +850,7 @@ static void DeviceUpgradePeerHandleL2capConnectCfm(const CL_L2CAP_CONNECT_CFM_T 
     {
         theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
         DeviceUpgradePeerSendL2capConnectFailure();
+        return;
     }
     theDeviceUpgradePeer->pending_connects--;
 
@@ -881,14 +885,10 @@ static void DeviceUpgradePeerHandleL2capConnectCfm(const CL_L2CAP_CONNECT_CFM_T 
                 {
                     theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
                     DeviceUpgradePeerSendL2capConnectFailure();
+                    return;
                 }
 
                 deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_CONNECTED);
-
-                if (theDeviceUpgradePeer->is_primary)
-                {
-                    ConManagerAllowHandsetConnect(TRUE);
-                }
             }
             else
             {

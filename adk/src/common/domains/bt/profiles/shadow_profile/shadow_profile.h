@@ -127,101 +127,6 @@ typedef CON_MANAGER_TP_CONNECT_IND_T SHADOW_PROFILE_ESCO_CONNECT_IND_T;
 /*! \brief Shadow ACL disconnect indication. */
 typedef CON_MANAGER_TP_DISCONNECT_IND_T SHADOW_PROFILE_ESCO_DISCONNECT_IND_T;
 
-#ifdef INCLUDE_SHADOWING
-
-/*! \brief Initialise the shadow_profile module.
-
-    Shadow_profile initialisation is asynchronous; when it is complete
-    SHADOW_PROFILE_INIT_CFM is sent to #task.
-
-    This module registers itself with the firmware as the handler
-    for all SDM prims.
-
-    \param task The init task to send SHADOW_PROFILE_INIT_CFM to.
-
-    \return TRUE if initialisation is in progress; FALSE if it failed.
-*/
-bool ShadowProfile_Init(Task task);
-
-/*! \brief Inform shadow profile of current device Primary/Secondary role.
-
-    \param primary TRUE to set Primary role, FALSE to set Secondary role.
-*/
-void ShadowProfile_SetRole(bool primary);
-
-/*! \brief Get the SCO sink associated with the shadow eSCO link.
-
-    This function is only relevant on the Secondary device. It is intended
-    to be used in the Secondary to Primary role switch, when transferring
-    ownership of the SCO sink from shadow_profile to hfp_profile.
-
-    On the Primary device it will always return 0.
-
-    On the Secondary device it will will return a valid Sink only if the
-    shadow eSCO link is connected and active.
-
-    \return Sink A valid eSCO sink or 0.
-*/
-Sink ShadowProfile_GetScoSink(void);
-
-/*! \brief Inform shadow_profile that the peer earbud has connected.
-
-    This can be called on both the Primary and Secondary devices.
-*/
-void ShadowProfile_PeerConnected(void);
-
-/*! \brief Inform shadow_profile that the peer earbud has disconnected.
-
-    This can be called on both the Primary and Secondary devices.
-*/
-void ShadowProfile_PeerDisconnected(void);
-
-/*! \brief Request shadow_profile to connect to the peer.
-
-    This should only be called from the Primary device.
-*/
-void ShadowProfile_Connect(void);
-
-/*! \brief Request shadow_profile to disconnect from the peer.
-
-    This should only be called from the Primary device.
-*/
-void ShadowProfile_Disconnect(void);
-
-/*! \brief Register a Task to receive notifications from shadow_profile.
-
-    Once registered, #client_task will receive #shadow_profile_msg_t messages.
-
-    \param client_task Task to register to receive shadow_profile notifications.
-*/
-void ShadowProfile_ClientRegister(Task client_task);
-
-/*! \brief Un-register a Task that is receiving notifications from shadow_profile.
-
-    If the task is not currently registered then nothing will be changed.
-
-    \param client_task Task to un-register from shadow_profile notifications.
-*/
-void ShadowProfile_ClientUnregister(Task client_task);
-
-/*! \brief Test if any shadow ACL, eSCO or A2DP connection(s) are connected.
-
-    \return TRUE if any shadow connection is connected; FALSE otherwise.
-*/
-bool ShadowProfile_IsConnected(void);
-
-/*! \brief Test if shadow eSCO is being actively rendered.
-
-    Test if the shadow_profile is acting as the Secondary device and has a
-    valid shadow eSCO Sink active.
-
-    This function will always return FALSE for the Primary device.
-
-    \return TRUE if Secondary and have a valid eSCO sink; FALSE otherwise.
-*/
-bool ShadowProfile_IsEscoActive(void);
-
-#else
 
 #define ShadowProfile_IsConnected() (FALSE)
 
@@ -243,6 +148,5 @@ bool ShadowProfile_IsEscoActive(void);
 
 #define ShadowProfile_GetScoSink() ((Sink)NULL)
 
-#endif /* INCLUDE_SHADOWING */
 
 #endif /* SHADOW_PROFILE_H_ */

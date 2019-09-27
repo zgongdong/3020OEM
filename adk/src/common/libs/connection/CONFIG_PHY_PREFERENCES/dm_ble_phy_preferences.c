@@ -60,25 +60,18 @@ void ConnectionDmUlpSetPhy(
         const uint8 flags
         )
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_PRIM_T(DM_ULP_SET_PHY_REQ);
-        
-        prim->phandle = 0;
-        BdaddrConvertTpVmToBluestack(&prim->tp_addrt, tpaddr);
+    MAKE_PRIM_T(DM_ULP_SET_PHY_REQ);
 
-        prim->min_tx = (phy_rate_t)min_tx;        /* Minimum preferred tx rate */
-        prim->max_tx = (phy_rate_t)max_tx;        /* Maximum preferred tx rate */
-        prim->min_rx = (phy_rate_t)min_rx;        /* Minimum preferred rx rate */
-        prim->max_rx = (phy_rate_t)max_rx;        /* Maximum preferred rx rate */
-        prim->flags  = (phy_rate_t)flags;         /* Flags for additional preferences */
+    prim->phandle = 0;
+    BdaddrConvertTpVmToBluestack(&prim->tp_addrt, tpaddr);
 
-        VmSendDmPrim(prim);
-    }
+    prim->min_tx = (phy_rate_t)min_tx;        /* Minimum preferred tx rate */
+    prim->max_tx = (phy_rate_t)max_tx;        /* Maximum preferred tx rate */
+    prim->min_rx = (phy_rate_t)min_rx;        /* Minimum preferred rx rate */
+    prim->max_rx = (phy_rate_t)max_rx;        /* Maximum preferred rx rate */
+    prim->flags  = (phy_rate_t)flags;         /* Flags for additional preferences */
+
+    VmSendDmPrim(prim);
 }        
 
 /****************************************************************************
@@ -99,24 +92,17 @@ void ConnectionDmUlpSetDefaultPhy(
         const uint8 flags
         )
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_PRIM_T(DM_ULP_SET_DEFAULT_PHY_REQ);
-        
-        prim->phandle = 0;
+    MAKE_PRIM_T(DM_ULP_SET_DEFAULT_PHY_REQ);
 
-        prim->min_tx = (phy_rate_t)min_tx;        /* Minimum preferred tx rate */
-        prim->max_tx = (phy_rate_t)max_tx;        /* Maximum preferred tx rate */
-        prim->min_rx = (phy_rate_t)min_rx;        /* Minimum preferred rx rate */
-        prim->max_rx = (phy_rate_t)max_rx;        /* Maximum preferred rx rate */
-        prim->flags  = (phy_rate_t)flags;         /* Flags for additional preferences */
+    prim->phandle = 0;
 
-        VmSendDmPrim(prim);
-    }
+    prim->min_tx = (phy_rate_t)min_tx;        /* Minimum preferred tx rate */
+    prim->max_tx = (phy_rate_t)max_tx;        /* Maximum preferred tx rate */
+    prim->min_rx = (phy_rate_t)min_rx;        /* Minimum preferred rx rate */
+    prim->max_rx = (phy_rate_t)max_rx;        /* Maximum preferred rx rate */
+    prim->flags  = (phy_rate_t)flags;         /* Flags for additional preferences */
+
+    VmSendDmPrim(prim);
 }  
 
 /****************************************************************************

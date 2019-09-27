@@ -22,10 +22,14 @@ NOTES
 #include "hfp_link_manager.h"
 
 #include "marshal.h"
-#include <app/bluestack/rfcomm_prim.h>
+#include "bdaddr.h"
 #include <panic.h>
 #include <stdlib.h>
+/*#include <app/bluestack/rfcomm_prim.h>*/
+#include <sink.h>
 
+
+#define RFC_INVALID_SERV_CHANNEL   0x00
 
 static bool hfpVeto(void);
 
@@ -87,15 +91,39 @@ RETURNS
 */    
 static void stitchLink(hfp_link_data *unmarshalled_link)
 {
+    uint16 scoHandle, channel;
+    tp_bdaddr tp_addr;
     hfp_link_data *link = hfpGetIdleLink();
 
     PanicNull(link);
 
+    BdaddrTpFromBredrBdaddr(&tp_addr, &unmarshalled_link->identifier.bd_addr);
+
     unmarshalled_link->identifier.bd_addr = *(hfp_marshal_inst->bd_addr);
-    unmarshalled_link->identifier.sink = StreamRfcommSinkFromServerChannel(unmarshalled_link->identifier.bd_addr,
+    unmarshalled_link->identifier.sink = StreamRfcommSinkFromServerChannel(&tp_addr,
                                                                            *(hfp_marshal_inst->server_channel));
 
     *link = *unmarshalled_link;
+    
+    /* Initialize the connection context for the relevant connection id */
+    if(link->audio_sink)
+    {
+        scoHandle = SinkGetScoHandle(link->audio_sink);
+        PanicZero(scoHandle);  /* Invalid SCO Handle */
+        VmOverrideSyncConnContext(scoHandle, (conn_context_t)&theHfp->task);
+        /* Stitch the SCO sink and the task */
+        MessageStreamTaskFromSink(link->audio_sink, &theHfp->task);
+        /* Configure SCO sink messages */
+        SinkConfigure(link->audio_sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
+    }
+    
+    channel = SinkGetRfcommServerChannel(link->identifier.sink);
+    PanicZero(channel);   /* Invalid server channel */
+    VmOverrideRfcommConnContext(channel, (conn_context_t)&theHfp->task);
+    /* Stitch the RFCOMM sink and the task */
+    MessageStreamTaskFromSink(link->identifier.sink, &theHfp->task);
+    /* Configure RFCOMM sink messages */
+    SinkConfigure(link->identifier.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);    
 
     free(unmarshalled_link);
     free(hfp_marshal_inst->bd_addr);

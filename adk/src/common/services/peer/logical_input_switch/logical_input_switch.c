@@ -53,9 +53,7 @@ static void logicalInputSwitch_SendLogicalInputToPeer(uint16 logical_input)
 
 static inline void logicalInputSwitch_HandleMarshalledMsgChannelTxCfm(PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T* cfm)
 {
-    PanicNull(cfm);
     DEBUG_LOG("logicalInputSwitch_HandleMarshalledMsgChannelTxCfm %d", cfm->status);
-    free(cfm->msg_ptr);
 }
 
 static void logicalInputSwitch_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T* ind)

@@ -9,7 +9,7 @@
 #ifndef KYMERA_CONFIG_H
 #define KYMERA_CONFIG_H
 
-#include "scofwd_profile_config.h"
+#include "microphones.h"
 
 /*! \brief Fixed tone volume in dB */
 #define KYMERA_CONFIG_TONE_VOLUME               (-20)
@@ -21,113 +21,16 @@
 #if defined(HAVE_STR_ROM_2_0_1)
 #define DOWNLOAD_USB_AUDIO
 #endif
-
-//!@{ @name Parameters for microphone 0 - Left analog MIC */
-#define appConfigMic0Bias()                     (BIAS_CONFIG_MIC_BIAS_0)
-#define appConfigMic0BiasVoltage()              (3) /* 1.9v */
-#define appConfigMic0PreAmp()                   (TRUE)
-#define appConfigMic0Pio()                      (0x13)
-#define appConfigMic0Gain()                     (0x5)
-#define appConfigMic0IsDigital()                (FALSE)
-#define appConfigMic0AudioInstance()            (AUDIO_INSTANCE_0)
-#define appConfigMic0AudioChannel()             (AUDIO_CHANNEL_A)
-//!@}
-
-//!@{ @name Parameters for microphone 1 - Right analog MIC */
-#define appConfigMic1Bias()                     (BIAS_CONFIG_MIC_BIAS_0)
-#define appConfigMic1BiasVoltage()              (3) /* 1.9v */
-#define appConfigMic1PreAmp()                   (TRUE)
-#define appConfigMic1Pio()                      (0x16)
-#define appConfigMic1Gain()                     (0x5)
-#define appConfigMic1IsDigital()                (FALSE)
-#define appConfigMic1AudioInstance()            (AUDIO_INSTANCE_0)
-#define appConfigMic1AudioChannel()             (AUDIO_CHANNEL_B)
-//!@}
-
-#if defined(CORVUS_PG806)
-
-//!@{ @name Parameters for microphone 2 - HBL_L_FB Analog MIC connected to digital MIC ADC */
-#define appConfigMic2Bias()                     (BIAS_CONFIG_MIC_BIAS_0)
-#define appConfigMic2BiasVoltage()              (3)
-#define appConfigMic2PreAmp()                   (FALSE)
-#define appConfigMic2Pio()                      (0)
-#define appConfigMic2Gain()                     (0)
-#define appConfigMic2IsDigital()                (TRUE)
-#define appConfigMic2AudioInstance()            (AUDIO_INSTANCE_1)
-#define appConfigMic2AudioChannel()             (AUDIO_CHANNEL_B)
-//!@}
-
-//!@{ @name Parameters microphone 3 - HBL_L_FF Analog MIC connected to digital MIC ADC */
-#define appConfigMic3Bias()                     (BIAS_CONFIG_MIC_BIAS_0)
-#define appConfigMic3BiasVoltage()              (3)
-#define appConfigMic3PreAmp()                   (FALSE)
-#define appConfigMic3Pio()                      (0)
-#define appConfigMic3Gain()                     (0)
-#define appConfigMic3IsDigital()                (TRUE)
-#define appConfigMic3AudioInstance()            (AUDIO_INSTANCE_1)
-#define appConfigMic3AudioChannel()             (AUDIO_CHANNEL_A)
-//!@}
-
 /*! @{ Which microphones to use for SCO */
     /*! microphone to use for the first SCO mic */
-#define appConfigScoMic1()                      (0)
-    /*! microphone to use for the second SCO mic. This should be defined as
-        NO_MIC if using 1-mic CVC */
-#define appConfigScoMic2()                      (NO_MIC)     /* Don't use microphone for SCO 2nd mic (CVC 1-mic) */
+#define appConfigScoMic1()                      (microphone_1)
+#define appConfigScoMic2()                      (microphone_none)     /* Don't use microphone for SCO 2nd mic (CVC 1-mic) */
 /*! @} */
 
 //!@{ @name ANC configuration */
 #define appConfigAncPathEnable()                (feed_forward_mode_left_only)
-#define appConfigAncFeedForwardMic()            (3)         /* Use microphone 3 for ANC feed-forward */
-#define appConfigAncFeedBackMic()               (NO_MIC)    /* Don't use microphone for ANC feed-back */
-#define appConfigAncMicGainStepSize()           (5)
-#define appConfigAncSidetoneGain()              (10)
-#define appConfigAncMode()                      (anc_mode_1)
-//!@}
-
-
-/*! Enable ANC tuning functionality */
-#define appConfigAncTuningEnabled()             (TRUE)
-
-/*! ANC tuning monitor microphone */
-#define appConfigAncTuningMonitorMic()          (2)
-
-#else
-
-//!@{ @name Parameters for microphone 2 */
-#define appConfigMic2Bias()                     (BIAS_CONFIG_PIO)
-#define appConfigMic2BiasVoltage()              (0)
-#define appConfigMic2PreAmp()                   (FALSE)
-#define appConfigMic2Pio()                      (4)
-#define appConfigMic2Gain()                     (0)
-#define appConfigMic2IsDigital()                (TRUE)
-#define appConfigMic2AudioInstance()            (AUDIO_INSTANCE_1)
-#define appConfigMic2AudioChannel()             (AUDIO_CHANNEL_A)
-//!@}
-
-//!@{ @name Parameters microphone 3 */
-#define appConfigMic3Bias()                     (BIAS_CONFIG_PIO)
-#define appConfigMic3BiasVoltage()              (0)
-#define appConfigMic3PreAmp()                   (FALSE)
-#define appConfigMic3Pio()                      (4)
-#define appConfigMic3Gain()                     (0)
-#define appConfigMic3IsDigital()                (TRUE)
-#define appConfigMic3AudioInstance()            (AUDIO_INSTANCE_1)
-#define appConfigMic3AudioChannel()             (AUDIO_CHANNEL_B)
-//!@}
-
-/*! @{ Which microphones to use for SCO */
-    /*! microphone to use for the first SCO mic */
-#define appConfigScoMic1()                      (0)          /* Use microphone 0 for SCO 1st mic */
-    /*! microphone to use for the second SCO mic. This should be defined as
-        NO_MIC if using 1-mic CVC */
-#define appConfigScoMic2()                      (NO_MIC)     /* Don't use microphone for SCO 2nd mic (CVC 1-mic) */
-/*! @} */
-
-//!@{ @name ANC configuration */
-#define appConfigAncPathEnable()                (feed_forward_mode_left_only)
-#define appConfigAncFeedForwardMic()            (0)         /* Use microphone 0 for ANC feed-forward */
-#define appConfigAncFeedBackMic()               (NO_MIC)    /* Don't use microphone for ANC feed-back */
+#define appConfigAncFeedForwardMic()            (microphone_1)
+#define appConfigAncFeedBackMic()               (microphone_none)
 #define appConfigAncMicGainStepSize()           (5)
 #define appConfigAncSidetoneGain()              (10)
 #define appConfigAncMode()                      (anc_mode_1)
@@ -137,9 +40,7 @@
 #define appConfigAncTuningEnabled()             (FALSE)
 
 /*! ANC tuning monitor microphone */
-#define appConfigAncTuningMonitorMic()          (NO_MIC)
-
-#endif
+#define appConfigAncTuningMonitorMic()          (microphone_none)
 
 /*! Time to play to be applied on this earbud, based on the Wesco
     value specified when creating the connection.
@@ -206,5 +107,15 @@
 
 /*! Maximum volume gain in dB */
 #define appConfigMaxVolumedB() (0)
+
+/*! This enables support for rendering a 50/50 mono mix of the left/right
+    decoded aptX channels when only one earbud is in ear. This feature requires
+    a stereo aptX licence since a stereo decode is performed, so it is disabled
+    by default. If disabled (set to 0), with aptX, only the left/right channel
+    audio will be rendered by the left/right earbud.
+
+    SBC and AAC support stereo mixing by default.
+*/
+#define appConfigEnableAptxStereoMix() (0)
 
 #endif /* KYMERA_CONFIG_H */

@@ -46,15 +46,7 @@ typedef uint8_t hci_sub_op_code_t;            /* used for Qualcomm commands  */
  OP CODE defines - QCT commands
  ******************************************************************************/
 #define OCF_MASK                                 ((hci_ocf_t)HCI_OPCODE_MASK)
-
-#define QCT_NVM_DNLD_COMMANDS                    ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x000)
-#define QCT_NVM_ACCESS_COMMANDS                  ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x00B)
-#define HCI_VS_DEBUG_OPCODE                      ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x00C)
-#define HCI_VS_BLUETOOTH_CMD                     ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x3FF)
-#define QCT_SET_BAUDRATE_REQ                     ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x048)
-#define HCI_VS_LINK_POWER_CTRL_REQ               ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x0DA)
-#define HCI_VS_BCAUD_HYDRA                       ((hci_op_code_t)HCI_MANUFACTURER_EXTENSION| 0x025)
-
+/* B-289548 These defines are duplicated for now exclude from firmware builds */
 /******************************************************************************
    HCI_COMMAND, Argument Length Definitions.
  *****************************************************************************/

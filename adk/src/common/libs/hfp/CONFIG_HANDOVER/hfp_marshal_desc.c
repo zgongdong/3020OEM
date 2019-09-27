@@ -19,8 +19,10 @@ NOTES
 #include "hfp_init.h"
 #include "hfp_service_manager.h"
 
-#include <app/bluestack/rfcomm_prim.h>
 #include <panic.h>
+
+
+#define RFC_INVALID_SERV_CHANNEL   0x00
 
 
 /* hfp_link_data contains an alias of hfp_service_data which is not be marshalled.
@@ -83,7 +85,7 @@ static const marshal_type_descriptor_t mtd_sync_pkt_type =
 
 
 /* Read/Write callbacks for marshalling hfp_service_data_alias */
-static const marshal_readwrite_cb read_write_cb_hfp_service_data_alias[2] =
+static const marshal_custom_copy_cbs read_write_cb_hfp_service_data_alias =
 {
     convertChannelToService,
     convertServiceToChannel
@@ -91,7 +93,7 @@ static const marshal_readwrite_cb read_write_cb_hfp_service_data_alias[2] =
 
 const marshal_type_descriptor_t mtd_hfp_service_data_alias =
 {
-    {.read_write_cb = &read_write_cb_hfp_service_data_alias},   /* Callbacks */
+    {.custom_copy_cbs = &read_write_cb_hfp_service_data_alias}, /* Callbacks */
     sizeof(hfp_service_data_alias),                             /* Although server channel (uint8) would be marshalled,
                                                                    allocation at the unmarshaller needs to be
                                                                    able to hold pointer to hfp_service_data */

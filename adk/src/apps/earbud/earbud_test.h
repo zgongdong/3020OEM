@@ -20,6 +20,7 @@
     a real reading.
  */
 extern uint16 appTestBatteryVoltage;
+extern bool appTestHandsetPairingBlocked;
 extern TaskData testTask;
 
 /*! \brief Returns the current battery voltage
@@ -101,6 +102,22 @@ bool appTestIsPairingInProgress(void);
                  FALSE if no handset is paired
 */
 bool appTestHandsetA2dpConnect(void);
+
+/*! \brief Stop the earbud automatically pairing with a handset
+
+    Rules that permit pairing will be stopped while a block is in
+    place.
+
+    \param  block   Enable/Disable the block
+*/
+void appTestBlockAutoHandsetPairing(bool block);
+
+/*! \brief Return if Earbud has a handset pairing
+
+    \return TRUE Earbud is paired with at least one handset, 
+            FALSE otherwise
+*/
+bool appTestIsHandsetPaired(void);
 
 /*! \brief Return if Earbud has an Handset A2DP connection
 
@@ -585,13 +602,45 @@ void appTestEnterDfuWhenEnteringCase(bool unused);
  */
 bool appTestIsInitialisationCompleted(void);
 
-/*! Determine if the Earbud is currently primray.
-     \return bool TRUE Earbud is Primary.
-                  FALSE Earbud is Secondary.
-     \note A return value of FALSE (i.e. Secondary) for one Earbud DOES NOT imply the other
-           Earbud is Primary. Both must be tested as both Earbuds can Secondary.
+/*! Determine if the Earbud is currently primary.
+
+    \return TRUE Earbud is Primary or Acting Primary. FALSE in all
+             other cases
+
+    \note A return value of FALSE for one Earbud DOES NOT imply it is
+        secondary. See \ref appTestIsSecondary
 */
 bool appTestIsPrimary(void);
+
+
+typedef enum
+{
+    app_test_topology_role_none,
+    app_test_topology_role_dfu,
+    app_test_topology_role_any_primary,
+    app_test_topology_role_primary,
+    app_test_topology_role_acting_primary,
+    app_test_topology_role_secondary,
+} app_test_topology_role_enum_t;
+
+/*! Check if the earbud topology is in the specified role
+
+    The roles are specified in the test API. If toplogy 
+    is modified, the test code may need to change but uses in 
+    tests should not.
+
+    \return TRUE The topology is in the specified role
+*/
+bool appTestIsTopologyRole(app_test_topology_role_enum_t role);
+
+
+/*! Test function to report if the Topology is in a stable state.
+
+    The intention is to use this API between tests. Other than
+    the topology being in the No Role state, the implementation 
+    is not defined here. */
+bool appTestIsTopologyIdle(void);
+
 
 /*! Report the contents of the Device Database. */
 void EarbudTest_DeviceDatabaseReport(void);
@@ -652,5 +701,49 @@ void EarbudTest_PeerFindRoleOverrideScore(uint16 score);
     \return TRUE if the store was cleared
 */
 bool appTestUpgradeResetState(void);
+
+/*! Puts the Earbud into the In Case DFU state ready to test a DFU session
+*/
+void EarbudTest_EnterInCaseDfu(void);
+
+
+/*! Set a test number to be displayed through appTestWriteMarker
+
+    This is intended for use in test output. Set test_number to 
+    zero to not display.
+
+    \param  test_number The testcase number to use in output
+
+    \return The test number. This can give output on the pydbg console 
+        as well as the output.
+*/
+uint16 appTestSetTestNumber(uint16 test_number);
+
+
+/*! Set a test iteration to be displayed through appTestWriteMarker
+
+    This is intended for use in test output. Set test_iteration to 
+    zero to not display.
+
+    \param  test_iteration The test iteration number to use in output
+
+    \return The test iteration. This can give output on the pydbg console 
+        as well as the output.
+*/
+uint16 appTestSetTestIteration(uint16 test_iteration);
+
+
+/*! Write a marker to output
+
+    This is intended for use in test output
+
+    \param  marker The value to include in the marker. A marker of 0 will
+        write details of the testcase and iteration set through
+        appTestSetTestNumber() and appTestSetTestIteration().
+
+    \return The marker value. This can give output on the pydbg console 
+        as well as the output.
+*/
+uint16 appTestWriteMarker(uint16 marker);
 
 #endif /* EARBUD_TEST_H */

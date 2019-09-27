@@ -587,6 +587,11 @@ typedef enum panicid
     PANIC_NO_CLIENT_FOR_VENDOR_EVENT = 0xe4,
 
     /**
+     * An unrecognised entry has been read from the transport control buffer
+     */
+    PANIC_TRANSPORT_BT_UNRECOGNISED_CMD = 0xe5,
+
+    /**
      * Random Access Partition task has been resumed before requested operation
      * is completed.
      * This indicates there is a problem with scheduler priorities.

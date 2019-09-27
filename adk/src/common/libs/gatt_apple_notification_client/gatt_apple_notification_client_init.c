@@ -31,20 +31,23 @@ static void initAncsClient(GANCS *ancs, Task app_task, uint16 cid)
     ancs->ds_ccd = GATT_ANCS_INVALID_HANDLE;
 }
 
-gatt_ancs_status_t GattAncsInit(GANCS *ancs, Task app_task, uint16 cid, uint16 start_handle, uint16 end_handle)
+bool GattAncsInit(Task app_task, uint16 cid, uint16 start_handle, uint16 end_handle, void *ancs_dynamic, void* ancs_constant)
 {
+    UNUSED(ancs_constant);
+    GANCS* ancs = (GANCS*)ancs_dynamic;
+
     if ((app_task == NULL) || (ancs == NULL))
-        return gatt_ancs_status_invalid_parameter;
+        return FALSE;
 
     initAncsClient(ancs, app_task, cid);
 
     if (registerWithGattManager(ancs, cid, start_handle, end_handle) == FALSE)
-        return gatt_ancs_status_failed;
+        return FALSE;
 
     GattManagerDiscoverAllCharacteristics(&ancs->lib_task);
     ancs->pending_cmd = ancs_pending_discover_all_characteristics;
 
     PRINT(("ANCS: Initialised instance [%p] with cid [0x%02x]\n", (void *) ancs, ancs->cid));
 
-    return gatt_ancs_status_initiating;
+    return TRUE;
 }

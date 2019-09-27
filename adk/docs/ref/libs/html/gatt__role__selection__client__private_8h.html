@@ -66,13 +66,64 @@ $(document).ready(function(){initNavTree('gatt__role__selection__client__private
 </script>
 <div id="doc-content">
 <div class="header">
+  <div class="summary">
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">gatt_role_selection_client_private.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:aa21e3061d6bb3dceb24ab603c02e7e5c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="gatt__role__selection__client__private_8h.html#aa21e3061d6bb3dceb24ab603c02e7e5c">GattRoleSelectionClientChangePeerRoleImpl</a> (<a class="el" href="struct_g_a_t_t___r_o_l_e___s_e_l_e_c_t_i_o_n___c_l_i_e_n_t.html">GATT_ROLE_SELECTION_CLIENT</a> *instance, <a class="el" href="gatt__role__selection__service_8h.html#a2426f70aa1a072e0397f28918942760f">GattRoleSelectionServiceControlOpCode</a> state, bool queued)</td></tr>
+<tr class="separator:aa21e3061d6bb3dceb24ab603c02e7e5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Private header </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Function Documentation</h2>
+<a class="anchor" id="aa21e3061d6bb3dceb24ab603c02e7e5c"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void GattRoleSelectionClientChangePeerRoleImpl </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="struct_g_a_t_t___r_o_l_e___s_e_l_e_c_t_i_o_n___c_l_i_e_n_t.html">GATT_ROLE_SELECTION_CLIENT</a> *&#160;</td>
+          <td class="paramname"><em>instance</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="gatt__role__selection__service_8h.html#a2426f70aa1a072e0397f28918942760f">GattRoleSelectionServiceControlOpCode</a>&#160;</td>
+          <td class="paramname"><em>state</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>queued</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Command the peer to change their state to that requested</p>
+<p>Internal function implementing GattRoleSelectionClientChangePeerRole. Sends a message commanding the peer to change to the requested state. The application will be sent a <a class="el" href="struct_g_a_t_t___r_o_l_e___s_e_l_e_c_t_i_o_n___c_l_i_e_n_t___c_o_m_m_a_n_d___c_f_m___t.html" title="Contents of the GATT_ROLE_SELECTION_CLIENT_COMMAND_CFM message that is sent by the library following ...">GATT_ROLE_SELECTION_CLIENT_COMMAND_CFM_T</a> once the command is complete.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">instance</td><td>The gatt client instance memory </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">state</td><td>The role to change the peer to </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">queued</td><td>If this is from a queued message </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+</div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

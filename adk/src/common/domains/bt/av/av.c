@@ -80,7 +80,7 @@ static void appAvError(avTaskData *theAv, MessageId id, Message message)
     UNUSED(message); UNUSED(theAv);UNUSED(id);
 
 #ifdef AV_DEBUG
-    DEBUG_LOGF("appAvError %p, state=%u, id=%x", (void *)theAv, theAv->state, id);
+    DEBUG_LOGF("appAvError %p, state=%u, id=%x", (void *)theAv, theAv->bitfields.state, id);
 #else
     Panic();
 #endif
@@ -945,7 +945,7 @@ void appAvInstanceA2dpConnected(avInstanceTaskData *theInst)
     appDeviceUpdateMruDevice(&theInst->bd_addr);
 
     /* If A2DP was initiated by us, or AVRCP has already been brought up by someone else */
-    if (theInst->a2dp.local_initiated || appAvrcpIsConnected(theInst))
+    if (theInst->a2dp.bitfields.local_initiated || appAvrcpIsConnected(theInst))
     {
         DEBUG_LOG("appAvInstanceA2dpConnected, locally initiated, connecting AVRCP");
         appAvAvrcpConnectRequest(&theInst->av_task, &theInst->bd_addr);
@@ -965,7 +965,7 @@ void appAvInstanceA2dpConnected(avInstanceTaskData *theInst)
     MAKE_AV_MESSAGE(AV_A2DP_CONNECTED_IND);
     message->av_instance = theInst;
     message->bd_addr = theInst->bd_addr;
-    message->local_initiated = theInst->a2dp.local_initiated;
+    message->local_initiated = theInst->a2dp.bitfields.local_initiated;
     appAvSendStatusMessage(AV_A2DP_CONNECTED_IND, message, sizeof(*message));
 
     ProfileManager_SendConnectCfmToTaskList(TaskList_GetBaseTaskList(&AvGetTaskData()->a2dp_connect_request_clients),
@@ -984,7 +984,7 @@ void appAvInstanceA2dpDisconnected(avInstanceTaskData *theInst)
     /* If required, stop any A2DP synchronisation with another AV instance */
     appAvA2dpSyncDisable(theInst);
 
-    if (theInst->a2dp.disconnect_reason == AV_A2DP_CONNECT_FAILED)
+    if (theInst->a2dp.bitfields.disconnect_reason == AV_A2DP_CONNECT_FAILED)
     {
         ProfileManager_SendConnectCfmToTaskList(TaskList_GetBaseTaskList(&AvGetTaskData()->a2dp_connect_request_clients),
                                                 &theInst->bd_addr, profile_manager_failed, av_A2dpSendConnectCfm);
@@ -1001,7 +1001,7 @@ void appAvInstanceA2dpDisconnected(avInstanceTaskData *theInst)
     MAKE_AV_MESSAGE(AV_A2DP_DISCONNECTED_IND);
     message->av_instance = theInst;
     message->bd_addr = theInst->bd_addr;
-    message->reason = theInst->a2dp.disconnect_reason;
+    message->reason = theInst->a2dp.bitfields.disconnect_reason;
     appAvSendStatusMessage(AV_A2DP_DISCONNECTED_IND, message, sizeof(*message));
 }
 
@@ -1422,7 +1422,7 @@ static void appAvSetState(avTaskData *theAv, avState state)
     DEBUG_LOGF("appAvSetState(%d)", state);
 
     /* Set new state */
-    theAv->state = state;
+    theAv->bitfields.state = state;
 
     /* Handle state entry functions */
     switch (state)
@@ -1440,7 +1440,7 @@ static void appAvSetState(avTaskData *theAv, avState state)
     }
 
     /* Set new state */
-    theAv->state = state;
+    theAv->bitfields.state = state;
 }
 
 /*! \brief Set AV FSM state
@@ -1449,7 +1449,7 @@ static void appAvSetState(avTaskData *theAv, avState state)
 */
 static avState appAvGetState(avTaskData *theAv)
 {
-    return theAv->state;
+    return theAv->bitfields.state;
 }
 
 /*! \brief Handle A2DP Library initialisation confirmation
@@ -1564,7 +1564,7 @@ bool appAvInit(Task init_task)
 
     /* Initialise state */
     theAv->suspend_state = 0;
-    theAv->state = AV_STATE_NULL;
+    theAv->bitfields.state = AV_STATE_NULL;
     appAvSetState(theAv, AV_STATE_INITIALISING_A2DP);
 
     /* Initialise client lists */
@@ -2236,10 +2236,10 @@ bool appAvInstanceStartMediaPlayback(avInstanceTaskData *theInst)
 {
     if (appA2dpIsConnectedMedia(theInst) && appAvIsAvrcpConnected(theInst))
     {
-        if (theInst->a2dp.flags & A2DP_START_MEDIA_PLAYBACK)
+        if (theInst->a2dp.bitfields.flags & A2DP_START_MEDIA_PLAYBACK)
         {
             DEBUG_LOGF("appAvInstanceStartMediaPlayback(%p)", theInst);
-            theInst->a2dp.flags &= ~A2DP_START_MEDIA_PLAYBACK;
+            theInst->a2dp.bitfields.flags &= ~A2DP_START_MEDIA_PLAYBACK;
             MessageSendLater(&theInst->av_task, AV_INTERNAL_AVRCP_PLAY_REQ, NULL,
                              appConfigHandoverMediaPlayDelay());
             return TRUE;
@@ -2284,14 +2284,14 @@ void appAvVolumeStop(int16 step)
     {
         if (MessageCancelFirst(&AvGetTaskData()->task, AV_INTERNAL_VOLUME_UP_REPEAT))
         {
-            if (AvGetTaskData()->volume_repeat)
+            if (AvGetTaskData()->bitfields.volume_repeat)
             {
                 appAvSendUiMessageId(AV_VOLUME_UP);
             }
         }
         if (MessageCancelFirst(&AvGetTaskData()->task, AV_INTERNAL_VOLUME_DOWN_REPEAT))
         {
-            if (AvGetTaskData()->volume_repeat)
+            if (AvGetTaskData()->bitfields.volume_repeat)
             {
                 appAvSendUiMessageId(AV_VOLUME_DOWN);
             }
@@ -2331,7 +2331,7 @@ static bool appAvVolumeRepeat(int16 step)
         message->step = step;
         MessageSendLater(&AvGetTaskData()->task, step > 0 ? AV_INTERNAL_VOLUME_UP_REPEAT : AV_INTERNAL_VOLUME_DOWN_REPEAT,
                          message, AVRCP_CONFIG_VOLUME_REPEAT_TIME);
-        AvGetTaskData()->volume_repeat = 1;
+        AvGetTaskData()->bitfields.volume_repeat = 1;
 
         /* Return indicating volume changed */
         return TRUE;
@@ -2361,7 +2361,7 @@ void appAvVolumeStart(int16 step)
     {
         if (appAvVolumeRepeat(step))
         {
-            AvGetTaskData()->volume_repeat = 0;
+            AvGetTaskData()->bitfields.volume_repeat = 0;
             if (step > 0)
             {
                 appAvSendUiMessageId(AV_VOLUME_UP);

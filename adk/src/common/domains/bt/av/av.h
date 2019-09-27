@@ -33,7 +33,7 @@
 #include "bt_device.h"
 #include "a2dp_profile.h"
 #include "avrcp_profile.h"
-#include "av_types.h"
+#include "av_typedef.h"
 #include "ui_config_table.h"
 #include "audio_sources_list.h"
 
@@ -227,6 +227,7 @@ typedef enum
     AV_A2DP_CONNECT_FAILED,         /*!< A connection attempt failed */
     AV_A2DP_DISCONNECT_LINKLOSS,    /*!< Link dropped */
     AV_A2DP_DISCONNECT_NORMAL,      /*!< A requested disconnect completed */
+    AV_A2DP_DISCONNECT_LINK_TRANSFERRED,  /*!< Link transferred to peer device */
     AV_A2DP_DISCONNECT_ERROR,       /*!< Disconnect due to some error */
 } avA2dpDisconnectReason;
 

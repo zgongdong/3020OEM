@@ -16,11 +16,6 @@
 static void audioCuration_HandleMessage(Task task, MessageId id, Message message);
 static const TaskData ui_task = {audioCuration_HandleMessage};
 
-/* Ui Inputs in which audio curation service is interested*/
-const message_group_t interested_msg_groups[] =
-{
-    POWER_UI_MESSAGE_GROUP
-};
 
 static const message_group_t ui_inputs[] =
 {
@@ -101,22 +96,28 @@ static unsigned getAncCurrentContext(void)
     return (unsigned)context;
 }
 
-static void handlePowerDomainInput(MessageId input)
+static void handlePowerClientEvents(MessageId id)
 {
-    switch(input)
+    switch(id)
     {
-        case POWER_ON:
-            DEBUG_LOG("handlePowerDomainInput, power-on input");
+        /* Power indication */
+        case APP_POWER_SHUTDOWN_PREPARE_IND:
+            AncStateManager_PowerOff();
+            appPowerShutdownPrepareResponse(audioCuration_UiTask());
+            break;
+
+        case APP_POWER_SLEEP_PREPARE_IND:
+            AncStateManager_PowerOff();
+            appPowerSleepPrepareResponse(audioCuration_UiTask());
+            break;
+
+        /*In case of Sleep/SHUTDOWN cancelled*/
+        case APP_POWER_SHUTDOWN_CANCELLED_IND:
+        case APP_POWER_SLEEP_CANCELLED_IND:
             AncStateManager_PowerOn();
             break;
 
-        case POWER_OFF_MSG:
-            DEBUG_LOG("handlePowerDomainInput, power-off input");
-            AncStateManager_PowerOff();
-            break;
-
         default:
-            DEBUG_LOG("handlePowerDomainInput, unhandled input");
             break;
     }
 }
@@ -193,11 +194,10 @@ static void audioCuration_HandleMessage(Task task, MessageId id, Message message
     UNUSED(task);
     UNUSED(message);
 
-    if (ID_TO_MSG_GRP(id) == POWER_UI_MESSAGE_GROUP)
+    if (id >= APP_POWER_INIT_CFM && id <= APP_POWER_SHUTDOWN_CANCELLED_IND)
     {
-        handlePowerDomainInput(id);
+        handlePowerClientEvents(id);
     }
-
     if (ID_TO_MSG_GRP(id) == UI_INPUTS_AUDIO_CURATION_MESSAGE_GROUP)
     {
         handleUiDomainInput(id);
@@ -213,16 +213,18 @@ static void audioCuration_HandleMessage(Task task, MessageId id, Message message
 */
 bool AudioCuration_Init(Task init_task)
 {
-    UNUSED(init_task);
-
     Ui_RegisterUiProvider(ui_provider_audio_curation, getCurrentContext);
 
     Ui_RegisterUiInputConsumer(audioCuration_UiTask(), ui_inputs, ARRAY_DIM(ui_inputs));
 
-    MessageBroker_RegisterInterestInMsgGroups(audioCuration_UiTask(), interested_msg_groups, ARRAY_DIM(interested_msg_groups));
-
     DEBUG_LOG("AudioCuration_Init, called");
 
+    /* register with power to receive shutdown messages. */
+    appPowerClientRegister(audioCuration_UiTask());
+    appPowerClientAllowSleep(audioCuration_UiTask());
+
+    UNUSED(init_task);
+    
     return TRUE;
 }
 

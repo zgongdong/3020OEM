@@ -105,7 +105,8 @@ $(document).ready(function(){initNavTree('vm___8h.html','');});
 
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Data Structures</a>  </div>
+<a href="#nested-classes">Data Structures</a> &#124;
+<a href="#typedef-members">Typedefs</a>  </div>
   <div class="headertitle">
 <div class="title">vm_.h File Reference</div>  </div>
 </div><!--header-->
@@ -118,7 +119,26 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpacked__root__keys.html">packed_root_keys</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:af7048ed13446de52e9012e19b10aebd0"><td class="memItemLeft" align="right" valign="top">typedef unsigned int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a></td></tr>
+<tr class="separator:af7048ed13446de52e9012e19b10aebd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Typedef Documentation</h2>
+<a class="anchor" id="af7048ed13446de52e9012e19b10aebd0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef unsigned int <a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Opaque connection context type. Used in VmOverrideSyncConnContext, VmOverrideRfcommConnContext, VmOverrideL2capConnContext traps. This type is the same as Bluestack's context_t. It is redefined here to avoid type clashes between bluestack types and VM types. </p>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

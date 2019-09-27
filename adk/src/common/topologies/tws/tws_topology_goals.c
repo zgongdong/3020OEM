@@ -50,62 +50,91 @@
 #pragma unitsuppress Unused
 
 static int twsTopology_GetGoalIndexFromName(tws_topology_goal goal);
+static const tws_topology_goal_entry_t* twsTopology_GetGoalEntryFromGoal(tws_topology_goal goal);
+static tws_topology_goal twsTopology_FindGoalForProcedure(tws_topology_procedure proc);
 
-#define ADD_ACTIVE_GOAL(goal)           (TwsTopologyGetTaskData()->active_goals |= (goal))
-#define REMOVE_ACTIVE_GOAL(goal)        (TwsTopologyGetTaskData()->active_goals &= (~goal))
-#define ADD_ACTIVE_PROCEDURE(proc)      (TwsTopologyGetTaskData()->active_procedures |= (proc))
-#define REMOVE_ACTIVE_PROCEDURE(proc)   (TwsTopologyGetTaskData()->active_procedures &= (~proc))
+static void twsTopology_QueueGoal(MessageId rule_id, Message goal_data, size_t goal_data_size, tws_topology_goal wait_mask, tws_topology_goal new_goal);
+static void twsTopology_DequeGoal(tws_topology_goal goal);
+static void TwsTopology_ClearGoal(tws_topology_goal goal);
 
-/*! The is currently a link between the ordering of entries in this table
- * and the ordering of entries in the tws_topology_goal enum.
- * \todo find a way (XMACRO?) to ensure this cannot be broken and/or compile time
- * assert if it does get broken. */
+#define ADD_GOAL_TO_MASK(goal_mask, goal)           ((goal_mask) |= (goal))
+#define REMOVE_GOAL_FROM_MASK(goal_mask, goal)      ((goal_mask) &= (~goal))
+
+/*! \brief This table defines each goal supported by the topology.
+    Each entry links the goal set by a topology rule decision with the procedure required to achieve it.
+    Entries also provide the configuration for how the goal should be handled, identifying the following
+    characteristics:
+     - is the goal exclusive with another, requiring the exclusive goal to be cancelled
+     - the contention policy of the goal
+        - can cancel other goals
+        - can execute concurrently with other goals
+        - must wait for other goal completion
+     - function pointers to the procedure or script to achieve the goal
+     - events to generate back into the role rules engine following goal completion
+        - success, failure or timeout are supported
+     
+    Not all goals require configuration of all parameters so utility macros are used to define a
+    goal and set default parameters for unrequired fields.
+*/
 const tws_topology_goal_entry_t goals[] =
 {
     SCRIPT_GOAL(tws_topology_goal_pair_peer, tws_topology_procedure_pair_peer_script,
-         &pair_peer_script, tws_topology_goal_none),
+                &pair_peer_script, tws_topology_goal_none),
 
     GOAL(tws_topology_goal_find_role, tws_topology_procedure_find_role,
          &proc_find_role_fns, tws_topology_goal_none),
 
     GOAL_TIMEOUT(tws_topology_goal_secondary_connect_peer, tws_topology_procedure_sec_connect_peer,
-         &proc_sec_connect_peer_fns, tws_topology_goal_none, TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT),
+                 &proc_sec_connect_peer_fns, tws_topology_goal_none, TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT),
 
-    GOAL(tws_topology_goal_primary_connect_peer_profiles, tws_topology_procedure_pri_connect_peer_profiles,
-         &proc_pri_connect_peer_profiles_fns, tws_topology_goal_primary_disconnect_peer_profiles),
+    GOAL_WITH_CONCURRENCY(tws_topology_goal_primary_connect_peer_profiles, tws_topology_procedure_pri_connect_peer_profiles,
+                          &proc_pri_connect_peer_profiles_fns, tws_topology_goal_primary_disconnect_peer_profiles,
+                            tws_topology_goal_primary_connectable_peer
+                          | tws_topology_goal_connectable_handset
+                          | tws_topology_goal_connect_handset),
 
     GOAL(tws_topology_goal_primary_disconnect_peer_profiles, tws_topology_procedure_disconnect_peer_profiles,
          &proc_disconnect_peer_profiles_fns, tws_topology_goal_primary_connect_peer_profiles),
 
-    GOAL(tws_topology_goal_primary_connectable_peer, tws_topology_procedure_pri_connectable_peer,
-         &proc_pri_connectable_peer_fns, tws_topology_goal_none),
+    GOAL_WITH_CONCURRENCY_TIMEOUT(tws_topology_goal_primary_connectable_peer, tws_topology_procedure_pri_connectable_peer,
+                                  &proc_pri_connectable_peer_fns, tws_topology_goal_none,
+                                  TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT,
+                                    tws_topology_goal_primary_connect_peer_profiles
+                                  | tws_topology_goal_connect_handset
+                                  | tws_topology_goal_connectable_handset),
 
     SCRIPT_GOAL_CANCEL(tws_topology_goal_no_role_idle, tws_topology_procedure_no_role_idle,
-         &no_role_idle_script, tws_topology_goal_none),
+                       &no_role_idle_script, tws_topology_goal_none),
 
     GOAL(tws_topology_goal_set_role, tws_topology_procedure_set_role,
          &proc_set_role_fns, tws_topology_goal_none),
 
-    GOAL(tws_topology_goal_connect_handset, tws_topology_procedure_connect_handset,
-         &proc_connect_handset_fns, tws_topology_goal_none),
+    GOAL_WITH_CONCURRENCY(tws_topology_goal_connect_handset, tws_topology_procedure_connect_handset,
+                          &proc_connect_handset_fns, tws_topology_goal_disconnect_handset,
+                            tws_topology_goal_primary_connect_peer_profiles
+                          | tws_topology_goal_primary_connectable_peer
+                          | tws_topology_goal_connectable_handset),
 
     GOAL(tws_topology_goal_disconnect_handset, tws_topology_procedure_disconnect_handset,
-         &proc_disconnect_handset_fns, tws_topology_goal_none),
+         &proc_disconnect_handset_fns, tws_topology_goal_connect_handset),
 
-    GOAL(tws_topology_goal_connectable_handset, tws_topology_procedure_connectable_handset,
-         &proc_connectable_handset_fns, tws_topology_goal_none),
+    GOAL_WITH_CONCURRENCY(tws_topology_goal_connectable_handset, tws_topology_procedure_connectable_handset,
+                          &proc_connectable_handset_fns, tws_topology_goal_none,
+                            tws_topology_goal_primary_connectable_peer
+                          | tws_topology_goal_primary_connect_peer_profiles
+                          | tws_topology_goal_connect_handset),
 
-    SCRIPT_GOAL_SUCCESS(tws_topology_goal_become_primary, tws_topology_procedure_become_primary,
-                &primary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
+    SCRIPT_GOAL_CANCEL_SUCCESS(tws_topology_goal_become_primary, tws_topology_procedure_become_primary,
+                        &primary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
 
-    SCRIPT_GOAL_SUCCESS(tws_topology_goal_become_secondary, tws_topology_procedure_become_secondary,
-                &secondary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
+    SCRIPT_GOAL_CANCEL_SUCCESS(tws_topology_goal_become_secondary, tws_topology_procedure_become_secondary,
+                        &secondary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
     
     SCRIPT_GOAL_SUCCESS(tws_topology_goal_become_acting_primary, tws_topology_procedure_become_acting_primary,
-                &acting_primary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
+                        &acting_primary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
     
     SCRIPT_GOAL(tws_topology_goal_set_address, tws_topology_procedure_set_address,
-         &set_primary_address_script, tws_topology_goal_none),
+                &set_primary_address_script, tws_topology_goal_none),
 
     SCRIPT_GOAL(tws_topology_goal_set_primary_address_and_find_role, tws_topology_procedure_set_primary_address_and_find_role,
                 &primary_address_find_role_script, tws_topology_goal_none),
@@ -120,7 +149,7 @@ const tws_topology_goal_entry_t goals[] =
          &proc_cancel_find_role_fns, tws_topology_goal_none),
 
     SCRIPT_GOAL(tws_topology_goal_primary_find_role, tws_topology_procedure_primary_find_role,
-         &primary_find_role_script, tws_topology_goal_none),
+                &primary_find_role_script, tws_topology_goal_none),
 
     SCRIPT_GOAL(tws_topology_goal_dfu_role, tws_topology_procedure_dfu_role,
                 &dfu_role_script, tws_topology_goal_none),
@@ -136,18 +165,76 @@ const tws_topology_goal_entry_t goals[] =
 
 };
 
-/*! \brief Clear a goal from the list of current goals. 
-    \param[in] goal Type of goal to clear from the list.
+/******************************************************************************
+ * Callbacks for procedure confirmations
+ *****************************************************************************/
 
-    \note Clearing a goal may be due to successful completion
-    or successful cancellation.
+/*! \brief Handle confirmation of procedure start.
+    
+    Provided as a callback to procedures.
 */
-static void TwsTopology_ClearGoal(tws_topology_goal goal)
+static void twsTopology_GoalProcStartCfm(tws_topology_procedure proc, proc_result_t result)
 {
-    twsTopologyTaskData* td = TwsTopologyGetTaskData();
-    DEBUG_LOG("TwsTopology_ClearGoal goal 0x%x", goal);
-    REMOVE_ACTIVE_GOAL(goal);
+    DEBUG_LOG("twsTopology_GoalProcStartCfm proc 0x%x", proc);
+
+    UNUSED(result);
 }
+
+/*! \brief Handle completion of a goal.
+  
+    Provided as a callback for procedures to use to indicate goal completion.
+
+    Remove the goal and associated procedure from the lists tracking
+    active ones.
+    May generate events into the rules engine based on the completion
+    result of the goal.
+*/
+static void twsTopology_GoalProcComplete(tws_topology_procedure proc, proc_result_t result)
+{
+    tws_topology_goal completed_goal = twsTopology_FindGoalForProcedure(proc);
+    const tws_topology_goal_entry_t* goal_entry = twsTopology_GetGoalEntryFromGoal(completed_goal);
+
+    DEBUG_LOG("twsTopology_GoalProcComplete proc 0x%x for goal 0x%x", proc, completed_goal);
+
+    /* generate any events off the completion status of the goal */
+    if ((proc_result_success == result) && (goal_entry->success_event))
+    {
+        DEBUG_LOG("twsTopology_GoalProcComplete generating success event 0x%x", goal_entry->success_event);
+        twsTopology_RulesSetEvent(goal_entry->success_event);
+    }
+    if ((proc_result_timeout == result) && (goal_entry->timeout_event))
+    {
+        DEBUG_LOG("twsTopology_GoalProcComplete generating timeout event 0x%x", goal_entry->timeout_event);
+        twsTopology_RulesSetEvent(goal_entry->timeout_event);
+    }
+    if ((proc_result_failed == result) && (goal_entry->failed_event))
+    {
+        DEBUG_LOG("twsTopology_GoalProcComplete generating failed event 0x%x", goal_entry->failed_event);
+        twsTopology_RulesSetEvent(goal_entry->failed_event);
+    }
+
+    /* clear the goal from list of active goals, this may cause further
+     * goals to be delivered from the pending_goal_queue_task */
+    TwsTopology_ClearGoal(completed_goal);
+}
+
+/*! \brief Handle confirmation of goal cancellation.
+
+    Provided as a callback for procedures to use to indicate cancellation has
+    been completed.
+*/
+static void twsTopology_GoalProcCancelCfm(tws_topology_procedure proc, proc_result_t result)
+{
+    DEBUG_LOG("twsTopology_GoalProcCancelCfm proc 0x%x", proc);
+
+    UNUSED(result);
+
+    TwsTopology_ClearGoal(twsTopology_FindGoalForProcedure(proc));
+}
+
+/******************************************************************************
+ * Goal and goal mask utility functions
+ *****************************************************************************/
 
 /*! \brief Reverse lookup of procedure to goal from the goals table. */
 static tws_topology_goal twsTopology_FindGoalForProcedure(tws_topology_procedure proc)
@@ -167,74 +254,32 @@ static tws_topology_goal twsTopology_FindGoalForProcedure(tws_topology_procedure
     return 0;
 }
 
-static void twsTopology_GoalProcStartCfm(tws_topology_procedure proc, proc_result_t result)
-{
-    DEBUG_LOG("twsTopology_GoalProcStartCfm proc 0x%x", proc);
-
-    UNUSED(result);
-
-    /* record the procedure as active */
-    ADD_ACTIVE_PROCEDURE(proc);
-}
-
-/*! \brief Handle completion of a goal.
-    
-    Remove the goal and associated procedure from the lists tracking
-    active ones.
-    May generate events into the rules engine based on the completion
-    result of the goal.
+/*! \brief Validate that a goal only has a single bit set, and therefore is not a mask of goals.
+    \return bool TRUE if there is 1 bit set in the goal, and only 1 bit.
 */
-static void twsTopology_GoalProcComplete(tws_topology_procedure proc, proc_result_t result)
+static bool twsTopology_NotGoalMask(tws_topology_goal goal)
 {
-    tws_topology_goal completed_goal = twsTopology_FindGoalForProcedure(proc);
-    int index = twsTopology_GetGoalIndexFromName(completed_goal);
-
-    DEBUG_LOG("twsTopology_GoalProcComplete proc 0x%x for goal 0x%x", proc, completed_goal);
-
-    REMOVE_ACTIVE_PROCEDURE(proc);
-    
-    /* goals were cleared before considering further events that might need
-     * generating based on the result, this has since moved to afterwards, but
-     * strongly suspect this will break.... */
-//    TwsTopology_ClearGoal(completed_goal);
-
-    /* generate any events off the completion status of the goal */
-    if ((proc_result_success == result) && (goals[index].success_event))
-    {
-        DEBUG_LOG("twsTopology_GoalProcComplete generating success event 0x%x", goals[index].success_event);
-        twsTopology_RulesSetEvent(goals[index].success_event);
-    }
-    if ((proc_result_timeout == result) && (goals[index].timeout_event))
-    {
-        DEBUG_LOG("twsTopology_GoalProcComplete generating timeout event 0x%x", goals[index].timeout_event);
-        twsTopology_RulesSetEvent(goals[index].timeout_event);
-    }
-    if ((proc_result_failed == result) && (goals[index].failed_event))
-    {
-        DEBUG_LOG("twsTopology_GoalProcComplete generating failed event 0x%x", goals[index].failed_event);
-        twsTopology_RulesSetEvent(goals[index].failed_event);
-    }
-
-    /* clear the goal from list of active goals, this may cause further
-     * goals to be delivered from the pending_goal_queue */
-    TwsTopology_ClearGoal(completed_goal);
+    return (goal && !(goal & (goal-1)));
 }
 
-static void twsTopology_GoalProcCancelCfm(tws_topology_procedure proc, proc_result_t result)
+/*! \brief From a bitmask of goals return the least significant set goal.
+ 
+    For example from a mask of goals with bit pattern 0b1010 it will return 0b10.
+    Given an empty mask it will return 0.
+*/
+static tws_topology_goal twsTopology_FirstGoalFromMask(tws_topology_goal goal_mask)
 {
-    DEBUG_LOG("twsTopology_GoalProcCancelCfm proc 0x%x", proc);
-
-    UNUSED(result);
-
-    REMOVE_ACTIVE_PROCEDURE(proc);
-    
-    TwsTopology_ClearGoal(twsTopology_FindGoalForProcedure(proc));
+    return ((goal_mask ^ (goal_mask-1)) & goal_mask);
 }
 
-/*! \brief Find the index in the goals table for a given goal. */
+/*! \brief Convert a tws_topology_goal enum to a 0..TWS_TOPOLOGY_GOALS_MAX-1 array index
+*/
 static int twsTopology_GetGoalIndexFromName(tws_topology_goal goal)
 {
     int index = 0;
+
+    /* validate parameter is a single goal and not a mask */
+    PanicFalse(twsTopology_NotGoalMask(goal));
 
     while (goal)
     {
@@ -253,115 +298,235 @@ static int twsTopology_GetGoalIndexFromName(tws_topology_goal goal)
     return index;
 }
 
+/*! \brief Return a pointer to a goal_entry for a given goal.
+*/
+static const tws_topology_goal_entry_t* twsTopology_GetGoalEntryFromGoal(tws_topology_goal goal)
+{
+    int index = twsTopology_GetGoalIndexFromName(goal);
+    return &goals[index];
+}
+
+/******************************************************************************
+ * Goal Queue Handling
+ *****************************************************************************/
+
 /*! \brief Determine if a goal is scripted. */
 static bool twsTopology_IsScriptedGoal(tws_topology_goal goal)
 {
-    int index = twsTopology_GetGoalIndexFromName(goal);
-    return (goals[index].proc_script != NULL);
+    const tws_topology_goal_entry_t* goal_entry = twsTopology_GetGoalEntryFromGoal(goal);
+    return (goal_entry->proc_script != NULL);
 }
 
 /*! \brief Determine if a goal is a type that will cancel in-progress goals. */
 static bool twsTopology_GoalCancelsActive(tws_topology_goal goal)
 {
-    int index = twsTopology_GetGoalIndexFromName(goal);
-    return (goals[index].contention == goal_contention_queue_cancel_run);
+    const tws_topology_goal_entry_t* goal_entry = twsTopology_GetGoalEntryFromGoal(goal);
+    return (goal_entry->contention == goal_contention_cancel);
 }
 
-/*! return TRUE if goal is already active. */
+/*! \brief Determine if a goal is a type that will cancel in-progress goals. */
+static bool twsTopology_GoalRunsConcurrently(tws_topology_goal goal)
+{
+    const tws_topology_goal_entry_t* goal_entry = twsTopology_GetGoalEntryFromGoal(goal);
+    return (goal_entry->contention == goal_contention_concurrent);
+}
+
+/*! \brief return TRUE if goal is already active. */
 static bool twsTopology_GoalAlreadyActive(tws_topology_goal goal)
 {
-    return TwsTopologyGetTaskData()->active_goals & goal;
+    return TwsTopologyGetTaskData()->active_goals_mask & goal;
 }
 
-#if 0
-static void twsTopology_HandleExclusiveGoals(tws_topology_goal goal)
-{
-    twsTopologyTaskData *td = TwsTopologyGetTaskData();
-    int index = twsTopology_GetGoalIndexFromName(goal);
-    tws_topology_goal exclusive_goal = goals[index].exclusive_goal;
-
-    /* does the goal have an exclusive goal specified and that exclusive goal
-     * is currently active? */
-    if (    (exclusive_goal != tws_topology_goal_none)
-         && (td->active_goals & goals[index].exclusive_goal))
-    {
-        /* call cleanup on the exclusive goal procedure (synchronous) and remove
-         * the goal from active list */
-        int exclusive_goal_index = twsTopology_GetGoalIndexFromName(exclusive_goal);
-        if (goals[exclusive_goal_index].proc_fns->proc_cleanup_fn)
-        {
-            goals[exclusive_goal_index].proc_fns->proc_cleanup_fn();
-        }
-        else
-        {
-            DEBUG_LOG("twsTopology_HandleExclusiveGoals cleanup expected for goal %x but no cleaup()");
-            Panic();
-        }
-        REMOVE_ACTIVE_GOAL(goals[index].exclusive_goal);
-    }
-}
-#endif
-
-/*! \brief Is the specified goal already running? */
-static bool twsTopology_HandleAlreadyActiveGoal(tws_topology_goal goal, Message goal_data)
-{
-    int index = twsTopology_GetGoalIndexFromName(goal);
-    if (goals[index].proc_fns->proc_update_fn)
-    {
-        goals[index].proc_fns->proc_update_fn(goal_data);
-        return TRUE;
-    }
-    return FALSE;
-}
-
-static void twsTopology_CancelActiveGoals(void)
-{
-    twsTopologyTaskData* td = TwsTopologyGetTaskData();
-    int index = twsTopology_GetGoalIndexFromName(td->active_goals);
-    int count = 0;
-
-    /* cancel anything waiting on the pending queue */
-    count = MessageFlushTask(&td->pending_goal_queue);
-
-    DEBUG_LOG("twsTopology_CancelActiveGoals %u cancelled", count);
-
-    /* cancel anything active */
-    if (twsTopology_IsScriptedGoal(goals[index].goal))
-    {
-        DEBUG_LOG("twsTopology_CancelActiveGoals cancelling scripted goal 0x%x", goals[index].goal);
-        /* start scripted goal */
-        TwsTopology_ProcScriptEngineCancel(TwsTopologyGetTask(),
-                                           twsTopology_GoalProcCancelCfm);
-    }
-    else
-    {
-        DEBUG_LOG("twsTopology_CancelActiveGoals cancelling singular goal 0x%x", goals[index].goal);
-        /* start single goal */
-        goals[index].proc_fns->proc_cancel_fn(twsTopology_GoalProcCancelCfm);
-    }
-}
-
-/*! \brief Put goal onto queue to be re-delivered once no goals are active.
+/*! \brief Put goal onto queue to be re-delivered once wait_mask goals are cleared.
     
     Active goals may become cleared either by normal completion or due to
     cancellation.
 */
-static void twsTopology_QueueGoal(MessageId rule_id, Message goal_data, size_t goal_data_size)
+static void twsTopology_QueueGoal(MessageId rule_id, Message goal_data, size_t goal_data_size,
+                                  tws_topology_goal wait_mask, tws_topology_goal new_goal)
 {
     twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    int index = twsTopology_GetGoalIndexFromName(new_goal);
 
     DEBUG_LOG("twsTopology_QueueGoal rule_id 0x%x", rule_id);
+
+    td->pending_goal_lock_mask[index] = wait_mask;
+    td->pending_goal_lock_id[index] = rule_id;
 
     if (goal_data)
     {
         void* message = PanicUnlessMalloc(goal_data_size);
         memcpy(message, goal_data, goal_data_size);
-        MessageSendConditionallyOnTask(&td->pending_goal_queue, rule_id, message, (Task*)&td->active_goals);
+        MessageSendConditionallyOnTask(&td->pending_goal_queue_task, rule_id, message,
+                                       (Task*)&td->pending_goal_lock_mask[index]);
     }
     else
     {
-        MessageSendConditionallyOnTask(&td->pending_goal_queue, rule_id, NULL, (Task*)&td->active_goals);
+        MessageSendConditionallyOnTask(&td->pending_goal_queue_task, rule_id, NULL,
+                                       (Task*)&td->pending_goal_lock_mask[index]);
     }
+
+    td->pending_goal_queue_size++;
+}
+
+/*! \brief Remove goal message from queue and update queued goal count. */
+static void twsTopology_DequeGoal(tws_topology_goal goal)
+{
+    twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    int index = twsTopology_GetGoalIndexFromName(goal);
+    int cancelled_count = 0;
+
+    cancelled_count = MessageCancelAll(&td->pending_goal_queue_task, td->pending_goal_lock_id[index]);
+    td->pending_goal_queue_size -= cancelled_count;
+
+    DEBUG_LOG("twsTopology_DequeGoal id 0x%x count %u queue size %u", td->pending_goal_lock_id[index],
+                                                                      cancelled_count,
+                                                                      td->pending_goal_queue_size);
+}
+
+/*! \brief Find the number of goals in the #pending_goal_queue_task. */
+static int twsTopology_GoalQueueSize(void)
+{
+    twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    return td->pending_goal_queue_size;
+}
+
+/******************************************************************************
+ * Goal processing functions; add/cancel/clear/start
+ *****************************************************************************/
+
+/*! \brief Decide if a goal can be run now
+
+    Goals can NOT be started if
+    * a goal is alredy running
+    * there are queued goals, and this is a new goal
+
+    \return TRUE if a goal can be started immediately
+  */ 
+static bool twsTopology_GoalCanRunNow(bool is_new_goal)
+{
+    twsTopologyTaskData *td = TwsTopologyGetTaskData();
+    return (   (td->active_goals_mask == tws_topology_goal_none)
+            && (   (twsTopology_GoalQueueSize() == 0)
+                || !is_new_goal));
+}
+
+/*! \brief Cancel a single goal. */
+static void twsTopology_CancelGoal(tws_topology_goal cancel_goal)
+{
+    const tws_topology_goal_entry_t* cancel_goal_entry = twsTopology_GetGoalEntryFromGoal(cancel_goal);
+
+    PanicFalse(twsTopology_NotGoalMask(cancel_goal));
+
+    if (twsTopology_IsScriptedGoal(cancel_goal))
+    {
+        DEBUG_LOG("twsTopology_CancelGoal cancelling scripted goal 0x%x", cancel_goal);
+        TwsTopology_ProcScriptEngineCancel(TwsTopologyGetTask(),
+                                           twsTopology_GoalProcCancelCfm);
+    }
+    else
+    {
+        DEBUG_LOG("twsTopology_CancelGoal cancelling singular goal 0x%x", cancel_goal);
+        cancel_goal_entry->proc_fns->proc_cancel_fn(twsTopology_GoalProcCancelCfm);
+    }
+}
+
+/*! \brief Cancel any active or queued exclusive goals.
+    \param new_goal The new goal to be achieved and considered here for exclusive property.
+    \param wait_mask[out] tws_topology_goal Mask of goals that must complete before running new goal.
+    \return bool TRUE if the goal has exclusive goals, FALSE otherwise.
+*/
+static bool twsTopology_HandleExclusiveGoals(tws_topology_goal new_goal,
+                                             tws_topology_goal* wait_mask)
+{
+    const tws_topology_goal_entry_t* new_goal_entry = twsTopology_GetGoalEntryFromGoal(new_goal);
+    tws_topology_goal exclusive_goal = new_goal_entry->exclusive_goal;
+    bool rc = FALSE;
+
+    /* does the goal have an exclusive goal specified and that exclusive goal
+     * is currently active? */
+    if (    (exclusive_goal != tws_topology_goal_none)
+         && (TwsTopology_IsGoalActive(exclusive_goal)))
+    {
+        DEBUG_LOG("twsTopology_HandleExclusiveGoals exclusive goal 0x%x", new_goal);
+        /* clear any pending queued exclusive goals */
+        twsTopology_DequeGoal(exclusive_goal);
+
+        /* cancel active exclusive goals */ 
+        twsTopology_CancelGoal(exclusive_goal);
+
+        /* if exclusive goal synchronously cancelled remove it
+         * from the wait mask */
+        if (!TwsTopology_IsGoalActive(exclusive_goal))
+        {
+            REMOVE_GOAL_FROM_MASK(*wait_mask, exclusive_goal);
+        }
+        rc = TRUE;
+    }
+
+    return rc;
+}
+
+/*! \brief Cancel all active and queued goals.
+    \param new_goal The new goal to be achieved and considered here for cancellation property.
+    \param wait_mask[out] tws_topology_goal Mask of goals that must complete cancellation before running new goal.
+    \return bool TRUE if the goal has caused cancellation, FALSE otherwise.
+*/
+static bool twsTopology_HandleCancellationGoals(tws_topology_goal new_goal,
+                                                tws_topology_goal* wait_mask)
+{
+    twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    tws_topology_goal working_cancel_mask = td->active_goals_mask;
+    int count = 0;
+    bool rc = FALSE;
+
+    if (twsTopology_GoalCancelsActive(new_goal))
+    {
+        /* cancel anything waiting on the pending queue */
+        count = MessageFlushTask(&td->pending_goal_queue_task);
+        td->pending_goal_queue_size = 0;
+        DEBUG_LOG("twsTopology_CancelAllGoals %u cancelled", count);
+
+        /* cancel anything active */
+        while (working_cancel_mask)
+        {
+            tws_topology_goal goal = twsTopology_FirstGoalFromMask(working_cancel_mask);
+            twsTopology_CancelGoal(goal);
+            REMOVE_GOAL_FROM_MASK(working_cancel_mask, goal);
+        }
+
+        /* whatever hasn't synchronously completed cancellation must
+         * be waited to complete before executing new cancel goal */
+        *wait_mask = td->active_goals_mask;
+
+        rc = TRUE;
+    }
+
+    return rc;
+}
+
+/*! \brief Remove from the wait mask any goals with which the new goal *can* run concurrently.
+*/
+static bool twsTopology_HandleConcurrentGoals(tws_topology_goal new_goal,
+                                              tws_topology_goal* wait_mask)
+{
+    const tws_topology_goal_entry_t* goal = twsTopology_GetGoalEntryFromGoal(new_goal);
+    tws_topology_goal concurrent_goals_mask = goal->concurrent_goals_mask;
+    bool rc = FALSE;
+
+    if (twsTopology_GoalRunsConcurrently(new_goal))
+    {
+        *wait_mask &= ~(concurrent_goals_mask);
+
+        DEBUG_LOG("twsTopology_HandleConcurrentGoals Ok goal 0x%x mask 0x%x", new_goal, concurrent_goals_mask);
+        rc = TRUE;
+    }
+    else
+    {
+        DEBUG_LOG("twsTopology_HandleConcurrentGoals Issue failed 0x%x contention:%d mask 0x%x", new_goal, goal->contention, concurrent_goals_mask);
+    }
+
+    return rc;
 }
 
 /*! \brief Start the procedure for achieving a goal.
@@ -371,25 +536,26 @@ static void twsTopology_QueueGoal(MessageId rule_id, Message goal_data, size_t g
 */
 static void twsTopology_StartGoal(tws_topology_goal goal, Message goal_data)
 {
-    int index = twsTopology_GetGoalIndexFromName(goal);
+    twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    const tws_topology_goal_entry_t* goal_entry = twsTopology_GetGoalEntryFromGoal(goal);
 
     DEBUG_LOG("twsTopology_StartGoal goal 0x%x", goal);
 
-    ADD_ACTIVE_GOAL(goal);
+    ADD_GOAL_TO_MASK(td->active_goals_mask, goal);
 
     if (twsTopology_IsScriptedGoal(goal))
     {
         /* start scripted goal */
         TwsTopology_ProcScriptEngineStart(TwsTopologyGetTask(),
-                goals[index].proc_script,
-                goals[index].proc,
+                goal_entry->proc_script,
+                goal_entry->proc,
                 twsTopology_GoalProcStartCfm,
                 twsTopology_GoalProcComplete);
     }
     else
     {
         /* start single goal */
-        goals[index].proc_fns->proc_start_fn(TwsTopologyGetTask(),
+        goal_entry->proc_fns->proc_start_fn(TwsTopologyGetTask(),
                 twsTopology_GoalProcStartCfm,
                 twsTopology_GoalProcComplete,
                 goal_data);
@@ -403,179 +569,230 @@ static void twsTopology_StartGoal(tws_topology_goal goal, Message goal_data)
     of the new goal), or may just be left to complete in the normal manner.
 
     Where cancellation or completion of existing active goals is required
-    the new goal will be queued and re-delivered once thre are no active
-    goals.
+    the new goal will be queued and re-delivered once conditions meet those
+    required by the goal.
 */
-static void TwsTopology_AddGoal(tws_topology_goal goal, MessageId rule_id, Message goal_data, size_t goal_data_size)
+static void TwsTopology_AddGoal(tws_topology_goal new_goal, MessageId rule_id, 
+                                Message goal_data, size_t goal_data_size, 
+                                bool is_new_goal)
 {
     twsTopologyTaskData* td = TwsTopologyGetTaskData();
 
-    DEBUG_LOG("TwsTopology_AddGoal goal 0x%x existing goals 0x%x", goal, td->active_goals);
+    DEBUG_LOG("TwsTopology_AddGoal new_goal 0x%x existing goals 0x%x", new_goal, td->active_goals_mask);
+    DEBUG_LOG("TwsTopology_AddGoal pending_queue_size %u", td->pending_goal_queue_size);
 
-    /* handle cleanup of any exclusive goal for the new goal */
-    /*! \todo not currently supported and may be retired in favour of standard cancellation */
-//    twsTopology_HandleExclusiveGoals(goal);
-
-    /* if the new goal is already active then try and update the procedure */
-#if 0
-    /*! \todo not currently supported */
-    if (twsTopology_GoalAlreadyActive(goal))
+    if (twsTopology_GoalCanRunNow(is_new_goal))
     {
-        if (!twsTopology_HandleAlreadyActiveGoal(goal, goal_data))
-        {
-            DEBUG_LOG("TwsTopology_AddGoal new goal %x when already running but it doesn't support Update()", goal);
-            Panic();
-        }
+        DEBUG_LOG("TwsTopology_AddGoal start 0x%x immediately", new_goal);
+        /* no goals active, just start this new one */
+        twsTopology_StartGoal(new_goal, goal_data);
     }
     else
-#endif
     {
-        /* handle contention with existing active goals */
-        if (td->active_goals)
-        {
-            /* optionally cancel any active goals, if this type of goal requires it */
-            if (twsTopology_GoalCancelsActive(goal))
-            {
-                twsTopology_CancelActiveGoals();
-            }
+        /* default behaviour if goals cannot run yet is to be queued
+         * pending completion of active goals. Setup a wait mask with
+         * active goals, it may be modified by consideration of cancellation,
+         * exclusive or concurrent goals later. */
+        tws_topology_goal wait_mask = td->active_goals_mask;
+        DEBUG_LOG("TwsTopology_AddGoal must queue, wait_mask 0x%x", wait_mask);
 
-            /* cancel may have synchronously cleared the active goals, if not
-             * then queue it, otherwise start it immediately */
-            if (td->active_goals)
+        /* first see if this goal will cancel everything */
+        if (twsTopology_HandleCancellationGoals(new_goal, &wait_mask))
+        {
+            DEBUG_LOG("TwsTopology_AddGoal 0x%x is a cancel goal", new_goal);
+            /* start immediately if possible, else queue and stop processing */
+            if (!wait_mask && twsTopology_GoalCanRunNow(is_new_goal))
             {
-                /* always queue the goals */
-                twsTopology_QueueGoal(rule_id, goal_data, goal_data_size);
+                twsTopology_StartGoal(new_goal, goal_data);
             }
             else
             {
-                /* no goals active, just start this new one */
-                twsTopology_StartGoal(goal, goal_data);
+                twsTopology_QueueGoal(rule_id, goal_data, goal_data_size, wait_mask, new_goal);
             }
         }
         else
         {
-            /* no goals active, just start this new one */
-            twsTopology_StartGoal(goal, goal_data);
+            /* remove any goals from the wait_mask with which the new goal
+             * can run concurrently, i.e. this goal will not need to wait
+             * for them to complete in order to start. */
+            bool concurrent = twsTopology_HandleConcurrentGoals(new_goal, &wait_mask);
+
+            DEBUG_LOG("TwsTopology_AddGoal after conncurrent handling, wait_mask 0x%x", wait_mask);
+
+            /* handle cancellation of any exclusive goals specified by
+             * the new goal */
+            twsTopology_HandleExclusiveGoals(new_goal, &wait_mask);
+
+            DEBUG_LOG("TwsTopology_AddGoal after exclusive handling, wait_mask 0x%x", wait_mask);
+
+            /* if goal supports concurrency and the wait_mask is clear then the
+             * goal can be started now
+             * OR 
+             * anything that needed cancelling has completed synchronously
+             * then we may be able to start now
+             *
+             * otherwise queue the goal on
+             * completion of the remaining goals in the wait_mask 
+             */
+            if (   (concurrent && !wait_mask)
+                || twsTopology_GoalCanRunNow(is_new_goal))
+            {
+                twsTopology_StartGoal(new_goal, goal_data);
+            }
+            else 
+            {
+                twsTopology_QueueGoal(rule_id, goal_data, goal_data_size, wait_mask, new_goal);
+            }
         }
     }
 }
 
-bool TwsTopology_IsGoalActive(tws_topology_goal goal)
+/*! \brief Clear a goal from the list of current goals. 
+    \param[in] goal Type of goal to clear from the list.
+
+    \note Clearing a goal may be due to successful completion
+    or successful cancellation.
+*/
+static void TwsTopology_ClearGoal(tws_topology_goal goal)
 {
-    return (TwsTopologyGetTaskData()->active_goals & goal);
+    twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    DEBUG_LOG("TwsTopology_ClearGoal goal 0x%x", goal);
+    REMOVE_GOAL_FROM_MASK(td->active_goals_mask, goal);
+
+    /*! clear this goal from all pending goal locks,
+        may result in a queued goal being delivered to start */
+    for (int i=0; i< TWS_TOPOLOGY_GOALS_MAX; i++)
+    {
+        REMOVE_GOAL_FROM_MASK(td->pending_goal_lock_mask[i], goal);
+    }
 }
 
+/*! \brief Determine if a goal is currently being executed. */
+bool TwsTopology_IsGoalActive(tws_topology_goal goal)
+{
+    return (TwsTopologyGetTaskData()->active_goals_mask & goal);
+}
+
+/*! \brief Given a new goal decision from a rules engine, find the goal and attempt to start it. */
 void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
 {
-    UNUSED(task);
+    twsTopologyTaskData* td = TwsTopologyGetTaskData();
+    bool new_goal = (task != &td->pending_goal_queue_task);
 
     DEBUG_LOG("TwsTopology_HandleGoalDecision id 0x%x", id);
+
+    /* decrement goal queue if this was delivered from it rather
+     * than externally from the rules engine */
+    if (!new_goal)
+    {
+        td->pending_goal_queue_size--;
+    }
 
     switch (id)
     {
         case TWSTOP_PRIMARY_GOAL_PAIR_PEER:
-            TwsTopology_AddGoal(tws_topology_goal_pair_peer, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_pair_peer, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_SET_PRIMARY_ADDRESS:
-            TwsTopology_AddGoal(tws_topology_goal_set_address, id, PROC_SET_ADDRESS_TYPE_DATA_PRIMARY, sizeof(SET_ADDRESS_TYPE_T));
+            TwsTopology_AddGoal(tws_topology_goal_set_address, id, PROC_SET_ADDRESS_TYPE_DATA_PRIMARY, sizeof(SET_ADDRESS_TYPE_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_SET_PRIMARY_ADDRESS_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_set_primary_address_and_find_role, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_set_primary_address_and_find_role, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_TIMEOUT, sizeof(FIND_ROLE_PARAMS_T));
+            TwsTopology_AddGoal(tws_topology_goal_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_TIMEOUT, sizeof(FIND_ROLE_PARAMS_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_CANCEL_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_cancel_find_role, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_cancel_find_role, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_SECONDARY_GOAL_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_TIMEOUT, sizeof(FIND_ROLE_PARAMS_T));
+            TwsTopology_AddGoal(tws_topology_goal_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_TIMEOUT, sizeof(FIND_ROLE_PARAMS_T), new_goal);
             break;
 
         case TWSTOP_SECONDARY_GOAL_CONNECT_PEER:
-            TwsTopology_AddGoal(tws_topology_goal_secondary_connect_peer, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_secondary_connect_peer, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_SECONDARY_GOAL_NO_ROLE_IDLE:
         case TWSTOP_DFU_GOAL_NO_ROLE_IDLE:
-            TwsTopology_AddGoal(tws_topology_goal_no_role_idle, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_no_role_idle, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_SECONDARY_GOAL_NO_ROLE_FIND_ROLE:
         case TWSTOP_DFU_GOAL_NO_ROLE_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_no_role_find_role, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_no_role_find_role, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_NO_ROLE_IDLE:
-            TwsTopology_AddGoal(tws_topology_goal_no_role_idle, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_no_role_idle, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_BECOME_PRIMARY:
-            TwsTopology_AddGoal(tws_topology_goal_become_primary, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_become_primary, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_BECOME_SECONDARY:
-            TwsTopology_AddGoal(tws_topology_goal_become_secondary, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_become_secondary, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_BECOME_ACTING_PRIMARY:
-            TwsTopology_AddGoal(tws_topology_goal_become_acting_primary, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_become_acting_primary, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_ROLE_SWITCH_TO_SECONDARY:
-            TwsTopology_AddGoal(tws_topology_goal_role_switch_to_secondary, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_role_switch_to_secondary, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_PRIMARY_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_primary_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_CONTINUOUS, sizeof(FIND_ROLE_PARAMS_T));
+            TwsTopology_AddGoal(tws_topology_goal_primary_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_CONTINUOUS, sizeof(FIND_ROLE_PARAMS_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_CONNECT_PEER_PROFILES:
-            TwsTopology_AddGoal(tws_topology_goal_primary_connect_peer_profiles, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECT_PEER_PROFILES_T));
+            TwsTopology_AddGoal(tws_topology_goal_primary_connect_peer_profiles, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECT_PEER_PROFILES_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_CONNECTABLE_PEER:
-            TwsTopology_AddGoal(tws_topology_goal_primary_connectable_peer, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECTABLE_PEER_T));
+            TwsTopology_AddGoal(tws_topology_goal_primary_connectable_peer, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECTABLE_PEER_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_PROFILES:
-            TwsTopology_AddGoal(tws_topology_goal_primary_disconnect_peer_profiles, id, message, sizeof(TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_PROFILES_T));
+            TwsTopology_AddGoal(tws_topology_goal_primary_disconnect_peer_profiles, id, message, sizeof(TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_PROFILES_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET:
-            TwsTopology_AddGoal(tws_topology_goal_connectable_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET_T));
+            TwsTopology_AddGoal(tws_topology_goal_connectable_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET_T), new_goal);
             break;
         
         case TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET:
-            TwsTopology_AddGoal(tws_topology_goal_connect_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET_T));
+            TwsTopology_AddGoal(tws_topology_goal_connect_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET_T), new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_disconnect_peer_find_role, id, NULL, 0);
+            TwsTopology_AddGoal(tws_topology_goal_disconnect_peer_find_role, id, NULL, 0, new_goal);
             break;
 
 #if 0
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_HANDSET:
-            TwsTopology_AddGoal(tws_topology_goal_disconnect_handset, id, message);
+            TwsTopology_AddGoal(tws_topology_goal_disconnect_handset, id, message, new_goal);
             break;
 #endif
 
         case TWSTOP_PRIMARY_GOAL_DFU_ROLE:
         case TWSTOP_SECONDARY_GOAL_DFU_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_dfu_role, id, message, 0);
+            TwsTopology_AddGoal(tws_topology_goal_dfu_role, id, message, 0, new_goal);
             break;
 
         case TWSTOP_DFU_GOAL_SECONDARY:
-            TwsTopology_AddGoal(tws_topology_goal_dfu_secondary, id, message, 0);
+            TwsTopology_AddGoal(tws_topology_goal_dfu_secondary, id, message, 0, new_goal);
             break;
 
         case TWSTOP_DFU_GOAL_PRIMARY:
-            TwsTopology_AddGoal(tws_topology_goal_dfu_primary, id, message, 0);
+            TwsTopology_AddGoal(tws_topology_goal_dfu_primary, id, message, 0, new_goal);
             break;
 
         default:

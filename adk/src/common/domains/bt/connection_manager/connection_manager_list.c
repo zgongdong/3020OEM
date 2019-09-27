@@ -12,38 +12,30 @@
 #include <logging.h>
 #include <panic.h>
 
-/*! Structure used to hold information about a single device, managed by
-    the connection manager.
-    This structure should not be accessed directly.
- */
-struct __cm_connection_t
-{
-    /*! Bluetooth address of the device */
-    TaskData task_data;
-    /*! Bluetooth address of the device */
-    tp_bdaddr tpaddr;
-    /*! A non-zero value indicates that a procedure is operational on
-        the device. It will clear to 0 when complete */
-    uint16 lock;
-    /*! State of the device */
-    cm_connection_state_t state:4;
-    /*! Number of functions interested in this device currently.
-        \note The count relies on calls to \ref ConManagerCreateAcl
-        and \ref ConManagerReleaseAcl being paired */
-    unsigned users:3;
-    /*! Flag that indicates if this is an incoming ACL */
-    bool local:1;
-    /*! The current link policy for this connection */
-    lpPerConnectionState lp_state;
-    /*! The most recently requested QoS for this connection */
-    uint8 qos_list[cm_qos_max]; 
-};
-
 #define CON_MANAGER_MAX_CONNECTIONS 4
 
 cm_connection_t connections[CON_MANAGER_MAX_CONNECTIONS];
 
 #define for_all_connections(connection) for(connection = &connections[0]; connection < &connections[CON_MANAGER_MAX_CONNECTIONS]; connection++)
+
+/******************************************************************************/
+static void conManagerResolveTpaddr(const tp_bdaddr * tpaddr, tp_bdaddr * resolved_tpaddr)
+{
+    /* Attempt to resolve RPA to a public address where applicable */
+    if(tpaddr->transport == TRANSPORT_BLE_ACL)
+    {
+        if(tpaddr->taddr.type == TYPED_BDADDR_RANDOM)
+        {
+            if(VmGetPublicAddress(tpaddr, resolved_tpaddr))
+            {
+                return;
+            }
+        }
+    }
+    
+    /* Use the original tpaddr (whatever transport/type) */
+    memcpy(resolved_tpaddr, tpaddr, sizeof(tp_bdaddr));
+}
 
 /******************************************************************************/
 Task ConManagerGetTask(cm_connection_t* connection)
@@ -74,14 +66,14 @@ void ConManagerDebugAddress(const tp_bdaddr *tpaddr)
 void ConManagerDebugConnection(const cm_connection_t *connection)
 {
     DEBUG_LOGF("ConManagerDebugConnection, state %u, lock %u, users %u",
-               connection->state, connection->lock, connection->users);
+               connection->bitfields.state, connection->lock, connection->bitfields.users);
     ConManagerDebugAddress(&connection->tpaddr);
 }
 
 /******************************************************************************/
 void ConManagerSetConnectionState(cm_connection_t *connection, cm_connection_state_t state)
 {
-    connection->state = state;
+    connection->bitfields.state = state;
     connection->lock = (state & ACL_STATE_LOCK);
 
     DEBUG_LOGF("ConManagerSetConnectionState");
@@ -92,7 +84,7 @@ void ConManagerSetConnectionState(cm_connection_t *connection, cm_connection_sta
 cm_connection_state_t conManagerGetConnectionState(const cm_connection_t *connection)
 {
     if(connection)
-        return connection->state;
+        return connection->bitfields.state;
     
     return ACL_DISCONNECTED;
 }
@@ -104,7 +96,13 @@ cm_connection_t *ConManagerFindConnectionFromBdAddr(const tp_bdaddr *tpaddr)
     
     for_all_connections(connection)
     {
-        if (BdaddrTpIsSame(&connection->tpaddr, tpaddr))
+        tp_bdaddr resolved_tpaddr;
+        tp_bdaddr resolved_conn_tpaddr;
+        
+        conManagerResolveTpaddr(tpaddr, &resolved_tpaddr);
+        conManagerResolveTpaddr(&connection->tpaddr, &resolved_conn_tpaddr);
+        
+        if (BdaddrTpIsSame(&resolved_conn_tpaddr, &resolved_tpaddr))
             return connection;
     }
     return NULL;
@@ -121,7 +119,7 @@ static cm_connection_t *conManagerFindConnectionFromState(cm_transport_t transpo
         
         if(connection_transport & transport_mask)
         {
-            if (connection->state == state)
+            if (connection->bitfields.state == state)
                 return connection;
         }
     }
@@ -134,13 +132,13 @@ cm_connection_t *ConManagerFindFirstActiveLink(void)
 
     for_all_connections(connection)
     {
-        if (   connection->state != ACL_DISCONNECTED
-            && connection->state != ACL_DISCONNECTED_LINK_LOSS)
+        if (   connection->bitfields.state != ACL_DISCONNECTED
+            && connection->bitfields.state != ACL_DISCONNECTED_LINK_LOSS)
         {
             DEBUG_LOG("ConManagerFindFirstActiveLink. Found 0x%x. State: %x Lock:%x Users:%x",
                         connection->tpaddr.taddr.addr.lap, 
-                        connection->state, connection->lock,
-                        connection->users);
+                        connection->bitfields.state, connection->lock,
+                        connection->bitfields.users);
             return connection;
         }
     }
@@ -178,35 +176,35 @@ bool conManagerAnyLinkInState(cm_transport_t transport_mask, cm_connection_state
 void ConManagerSetConnectionLocal(cm_connection_t *connection, bool local)
 {
     if (connection)
-        connection->local = local;
+        connection->bitfields.local = local;
 }
 
 /******************************************************************************/
 void conManagerAddConnectionUser(cm_connection_t *connection)
 {
     if(connection)
-        connection->users += 1;
+        connection->bitfields.users += 1;
 }
 
 /******************************************************************************/
 void conManagerRemoveConnectionUser(cm_connection_t *connection)
 {
-    if(connection && connection->users)
-        connection->users -= 1;
+    if(connection && connection->bitfields.users)
+        connection->bitfields.users -= 1;
 }
 
 /******************************************************************************/
 void conManagerResetConnectionUsers(cm_connection_t *connection)
 {
     if(connection)
-        connection->users = 0;
+        connection->bitfields.users = 0;
 }
 
 /******************************************************************************/
 bool conManagerConnectionIsInUse(cm_connection_t *connection)
 {
     if(connection)
-        return (connection->users > 0);
+        return (connection->bitfields.users > 0);
     
     return FALSE;
 }
@@ -248,7 +246,7 @@ uint8* conManagerGetQosList(cm_connection_t* connection)
 /******************************************************************************/
 bool conManagerConnectionIsLocallyInitiated(const cm_connection_t *connection)
 {
-    return connection ? connection->local : FALSE;
+    return connection ? connection->bitfields.local : FALSE;
 }
 
 /******************************************************************************/
@@ -279,6 +277,7 @@ static cm_connection_t* conManagerReuseLinkLossConnection(void)
 cm_connection_t* ConManagerAddConnection(const tp_bdaddr *tpaddr, cm_connection_state_t state, bool is_local)
 {
     cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(tpaddr);
+    
     if (connection)
     {
         DEBUG_LOG("ConManagerAddConnection - existing found");

@@ -101,6 +101,9 @@ var connection_8h =
     ] ],
     [ "phy_rate", "group__connection.html#ga68e1ffa1927443b4cb200c8fb01c1e55", null ],
     [ "phy_type", "group__connection.html#ga0e48423b6eb18e7e35fa66f59bc96c88", null ],
+    [ "privacy_mode", "group__connection.html#ga8baabe5f17f04e1a22d079350757fdd8", [
+      [ "privacy_mode_last", "group__connection.html#gga8baabe5f17f04e1a22d079350757fdd8a066b5509c3e92f403fac75c95b9cc116", null ]
+    ] ],
     [ "ConnectionBleAddAdvertisingReportFilter", "group__connection.html#gaca9febff8a04438da583822490877c0e", null ],
     [ "ConnectionBleClearAdvertisingReportFilter", "group__connection.html#gabe3c8061380aa051635aaa1fe3141641", null ],
     [ "ConnectionBondedToPrivacyEnabledDevice", "group__connection.html#ga69dd72cda9d0d1fdfe7521a5b6b69c95", null ],
@@ -127,5 +130,7 @@ var connection_8h =
     [ "ConnectionDmUlpEnableZeroSlaveLatency", "group__connection.html#ga7f6daa3246f1fb1e1d67d4c7e6efa636", null ],
     [ "ConnectionDmUlpSetDefaultPhy", "group__connection.html#ga615e10457d0c7ff91967d251a9a53b41", null ],
     [ "ConnectionDmUlpSetPhy", "group__connection.html#ga886275ea9ae25a23ac7e5ee50776963d", null ],
-    [ "ConnectionSmBleReadRandomAddressReq", "group__connection.html#ga5e79c5f8703f7000f37541f719200b43", null ]
+    [ "ConnectionDmUlpSetPrivacyModeReq", "group__connection.html#ga524563123ebcc1fae0175d960ccfd975", null ],
+    [ "ConnectionSmBleReadRandomAddressReq", "group__connection.html#ga5e79c5f8703f7000f37541f719200b43", null ],
+    [ "ConnectionSmBleReadRandomAddressTaskReq", "group__connection.html#ga9f9976af1233a4d5a0282d2d88f41fd0", null ]
 ];

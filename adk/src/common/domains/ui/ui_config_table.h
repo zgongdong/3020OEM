@@ -71,6 +71,11 @@
     UI_INPUT(ui_input_anc_set_next_mode) \
     UI_INPUT(ui_input_anc_enter_tuning_mode) \
     UI_INPUT(ui_input_anc_exit_tuning_mode) \
+    UI_INPUT(ui_input_prompt_pairing = UI_INPUTS_PROMPT_MESSAGE_BASE) \
+    UI_INPUT(ui_input_prompt_pairing_successful) \
+    UI_INPUT(ui_input_prompt_pairing_failed) \
+    UI_INPUT(ui_input_prompt_connected) \
+    UI_INPUT(ui_input_prompt_disconnected) \
     UI_INPUT(ui_input_invalid = UI_INPUTS_BOUNDS_CHECK_MESSAGE_BASE) \
 
 #define GENERATE_ENUM(ENUM) ENUM,

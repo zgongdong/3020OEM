@@ -6,5 +6,6 @@ var group__le__peer__pairing__service =
     [ "peer_pair_le_status_t", "group__le__peer__pairing__service.html#ga33797ef80dac55a7906d650f4e97c0fd", null ],
     [ "PeerPairLe_FindPeer", "group__le__peer__pairing__service.html#ga8e57c0d2b3fb5163c0a13dfa98ab06de", null ],
     [ "PeerPairLe_HandleConnectionLibraryMessages", "group__le__peer__pairing__service.html#ga7a89457e5593c92692bce925792d700f", null ],
+    [ "PeerPairLe_HandleFoundDeviceScan", "group__le__peer__pairing__service.html#ga2b71d5901fa7522f7a2f1299947b33ae", null ],
     [ "PeerPairLe_Init", "group__le__peer__pairing__service.html#ga07ef104d522d7e81ce8ed7d1bfc5dd99", null ]
 ];

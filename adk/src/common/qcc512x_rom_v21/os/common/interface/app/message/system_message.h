@@ -28,7 +28,8 @@
   All Bluestack message numbers are relative to this.
 
   Bluestack messages are sent to the task registered with MessageBlueStackTask(),
-  except MESSAGE_BLUESTACK_ATT_PRIM which are routed to the task registered with MessageAttTask().
+  except MESSAGE_BLUESTACK_ATT_PRIM which are routed to the task registered with MessageAttTask(),
+  and MESSAGE_BLUESTACK_SDM_PRIM which are routed to the task registered with MessageSdmTask().
 */
 #define MESSAGE_BLUESTACK_BASE_           (SYSTEM_MESSAGE_BASE_)
 
@@ -49,8 +50,9 @@
 #define MESSAGE_BLUESTACK_UDP_PRIM        (MESSAGE_BLUESTACK_BASE_ + 15) /*!< UDP primitive from Bluestack.*/
 #define MESSAGE_BLUESTACK_FB_PRIM         (MESSAGE_BLUESTACK_BASE_ + 16) /*!< FB primitive from Bluestack.*/
 #define MESSAGE_BLUESTACK_ATT_PRIM        (MESSAGE_BLUESTACK_BASE_ + 18) /*!< ATT primitive from Bluestack.*/
+#define MESSAGE_BLUESTACK_SDM_PRIM        (MESSAGE_BLUESTACK_BASE_ + 22) /*!< SDM primitive from Bluestack. */
 
-#define MESSAGE_BLUESTACK_END_            (MESSAGE_BLUESTACK_BASE_ + 19) /*!< End of Bluestack primitives.*/
+#define MESSAGE_BLUESTACK_END_            (MESSAGE_BLUESTACK_BASE_ + 23) /*!< End of Bluestack primitives.*/
 
 /*
     Word-oriented message over BCSP#13. Message is the legacy

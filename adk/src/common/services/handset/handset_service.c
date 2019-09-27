@@ -22,31 +22,8 @@
 
 
 
-/*! \brief The global data for the handset_service */
-typedef struct
-{
-    /*! Handset Service task */
-    TaskData task_data;
-
-    /* Handset Service state machine */
-    handset_service_state_machine_t state_machine;
-
-    /*! Client list for notifications */
-    task_list_t client_list;
-
-} handset_service_data_t;
-
 /*! Handset Service module data. */
 handset_service_data_t handset_service;
-
-/*! Get pointer to the Handset Service modules data structure */
-#define HandsetService_Get() (&handset_service)
-
-/*! Get the Task for the handset_service */
-#define HandsetService_GetTask() (&HandsetService_Get()->task_data)
-
-/*! Get the state machine for the handset service. */
-#define HandsetService_GetSm() (&HandsetService_Get()->state_machine)
 
 
 /*
@@ -129,6 +106,14 @@ static void handsetService_InternalDisconnectReq(handset_service_state_machine_t
     MESSAGE_MAKE(req, HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ_T);
     req->device = sm->handset_device;
     MessageSend(&sm->task_data, HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ, req);
+}
+
+/*! \brief Send a HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ to a state machine. */
+static void handsetService_InternalConnectStopReq(handset_service_state_machine_t *sm)
+{
+    MESSAGE_MAKE(req, HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ_T);
+    req->device = sm->handset_device;
+    MessageSend(&sm->task_data, HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ, req);
 }
 
 /*! \brief Helper function for starting a connect req. */
@@ -359,6 +344,27 @@ void HandsetService_DisconnectRequest(Task task, const bdaddr *addr)
             addr->nap, addr->uap, addr->lap);
 
     handsetService_DisconnectReq(task, addr);
+}
+
+void HandsetService_StopConnect(Task task, const bdaddr *addr)
+{
+    handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(addr);
+
+    if (sm)
+    {
+        PanicFalse(sm->connect_stop_task == (Task)0);
+        handsetService_InternalConnectStopReq(sm);
+        sm->connect_stop_task = task;
+    }
+    else
+    {
+        HS_LOG("HandsetService_StopConnect no handset connection to stop");
+
+        MESSAGE_MAKE(cfm, HANDSET_SERVICE_CONNECT_STOP_CFM_T);
+        cfm->addr = *addr;
+        cfm->status = handset_service_status_disconnected;
+        MessageSend(task, HANDSET_SERVICE_CONNECT_STOP_CFM, cfm);
+    }
 }
 
 void HandsetService_ConnectableRequest(Task task)

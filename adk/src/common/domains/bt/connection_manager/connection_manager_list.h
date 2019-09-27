@@ -10,33 +10,7 @@
 #define __CON_MANAGER_LIST_H
 
 #include <connection_manager.h>
-
-/*! Flag used on ACL states to indicate if the state represents an activity
-    that will finish. */
-#define ACL_STATE_LOCK (0x8)
-
-/*! Internal state for an individual ACK link */
-typedef enum
-{
-    /*! The ACL is connecting. Lock variables will clear once connected, or failed */
-    ACL_CONNECTING               = 0 + ACL_STATE_LOCK,
-    /*! The ACL is connected. */
-    ACL_CONNECTED                = 1,
-    /*! The ACL is searching for a matching SDP record. Lock variables will clear
-        once completed. */
-    ACL_CONNECTED_SDP_SEARCH     = 2 + ACL_STATE_LOCK,
-    /*! The ACL is disconnected. */
-    ACL_DISCONNECTED             = 3,
-    /*! The ACL is disconected due to link-loss. */
-    ACL_DISCONNECTED_LINK_LOSS   = 4,
-    /*! The ACL is waiting on LE scan to pause */
-    ACL_CONNECTING_PENDING_PAUSE = 5 + ACL_STATE_LOCK
-    
-} cm_connection_state_t;
-
-struct __cm_connection_t;
-
-typedef struct __cm_connection_t cm_connection_t;
+#include "connection_manager_list_typedef.h"
 
 typedef struct
 {

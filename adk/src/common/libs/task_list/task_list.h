@@ -4,34 +4,61 @@
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \version    
 \file       task_list.h
-\brief      Interface to simple list of VM tasks.
+\brief      A object that stores lists of VM tasks (optionally with data).
 
-            Task lists may be allocated dynamically or statically.
-            For example:
-            // Dynamic allocation/initialisation:
+            Task lists may be allocated dynamically or statically, optionally
+            with an initial capacity.
+
+            Task lists with data do not currently support setting an initial
+            capacity.
+
+            Example usage:
+            // Dynamic allocation:
             task_list_t *list = TaskList_Create();
             task_list_t *list_with_data = TaskList_WithDataCreate();
 
-            // Static allocation/initialisation:
-            task_list_t list;
-            task_list_with_data_t list_with_data;
-            task_list_t *list_with_data_base;
-            TaskList_Initialise(&list);
-            TaskList_WithDataInitialise(&list_with_data);
-            list_with_data_base = TaskList_GetBaseTaskList(list_with_data);
-            // task_list API can be accessed using either &list or list_with_data_base
+            // Dynamic allocation with initial task capacity
+            // list is a single allocation with initial capacity to store
+            // 5 tasks without further allocations.
+            task_list_t *list = TaskList_CreateWithCapacity(5);
 
-            The structures task_list_t and task_list_with_data_t are exposed
+            // Static allocation/initialisation of standard list:
+            task_list_t list;
+            TaskList_Initialise(&list);
+
+            // Static allocation/initialisation of list with data
+            task_list_with_data_t list_with_data;
+            task_list_t *list_base;
+            TaskList_WithDataInitialise(&list_with_data);
+            list_base = TaskList_GetBaseTaskList(list_with_data);
+            // list__base can be passed to task_list APIs.
+
+            // Static allocation/initialisation of task list with initial capacity
+            // to store 5 tasks.
+            task_list_capacity_5_t list;
+            task_list_t *list_base;
+            TaskList_InitialiseWithCapacity((task_list_flexible_t*)&list, 5);
+            list_base = TaskList_GetFlexibleBaseTaskList((task_list_flexible_t)&list);
+            // list_base can be passed to task_list APIs.
+
+            The structures task_list_t, task_list_flexible_t, task_list_capacity_N_t
+            and task_list_with_data_t are exposed
             to allow the user to allocate task lists dynamically or statically.
             However, the task_list module reserves the right to change its
             implementation in future releases. Therefore, do _not_ access
-            members of task_list_t/task_list_with_data_t directly, use the
+            members of these structures directly, use the
             accessor APIs instead.
 
             If a statically allocated task_list_with_data_t is used, the task list
             APIs may be used by passing the address of the base member of the
-            task_list_with_data_t structure. The helper macro TaskList_GetBaseTaskList
+            task_list_with_data_t structure. The helper function TaskList_GetBaseTaskList
             _should_ be used to retrieve the base task list.
+
+            If a statically allocated task_list_capacity_N_t is used,
+            the task list APIs may be used by passing the address of the base
+            member of the task_list_capacity_N_t structure. The helper macro
+            TaskList_GetFlexibleBaseTaskList _should_ be used to retrieve the base
+            task list rather than accessing the base member directly.
 */
 
 #ifndef TASK_LIST_H
@@ -88,26 +115,120 @@ typedef union
     int8 arr_s8[8];
 } task_list_data_t;
 
-/*! \brief List of VM Tasks.
- */
+/*! Number of bits used to store size of list */
+#define TASK_LIST_SIZE_BITS 4
+/*! Maximum number of tasks a list may contain */
+#define TASK_LIST_MAX_TASKS ((1 << TASK_LIST_SIZE_BITS) - 1)
+
 typedef struct
 {
-    /*! List of tasks. */
-    Task* tasks;
+    /*! Number of tasks in the list (combination of dynamic allocated tasks
+    and statically allocated tasks). */
+    unsigned size_list : TASK_LIST_SIZE_BITS;
 
-    /*! Number of tasks in #tasks. */
-    unsigned size_list : 8;
+    /*! Number of tasks allocated in flexible_tasks. */
+    unsigned size_flexible_tasks : TASK_LIST_SIZE_BITS;
 
     /*! Standard task_list_t or one that can support data. */
     unsigned list_type : 1;
 
-
     /*! If set, this task list was statically allocated and initialised with
      *  #TaskList_Initialise, it is not valid to call #TaskList_Destroy */
     unsigned no_destroy : 1;
+
+} task_list_base_t;
+
+/*! \brief List of VM Tasks.
+
+    This type has an initial capacity to store 1 task (in u.task).
+    Futher tasks will be stored in dynamically allocated memory (in u.tasks).
+ */
+typedef struct
+{
+    /*! Base task list elements  */
+    task_list_base_t base;
+
+    union
+    {
+        /*! Pointer to dynamically allocated list of tasks */
+        Task *tasks;
+
+        /*! A task, used when dynamic allocated list is not used */
+        Task task;
+    } u;
+
 } task_list_t;
 
-/*! \brief Task list with data */
+/*! \brief List of VM Tasks with a flexible array of tasks.
+
+    This type has an initial capacity to store 1+N tasks, where N is the number
+    of elements in the flexible_tasks array.
+
+    When the capacity of the flexible task list is exceeded, further tasks will
+    be stored in dynamically allocated memory.
+
+    This type may be used when the number of tasks on a list is known/estimated
+    at compile-time - using the flexible array to store tasks avoids one
+    dyanamic memory allocation - i.e. the task_list_flexible_t stores the task
+    list state and tasks in a single allocation.
+
+    The function TaskList_CreateWithCapacity should be used to dynamically
+    allocate a flexible length task list.
+
+    Structures with flexible arrays cannot be allocated statically. To support
+    statically allocated flexible task lists, use the capacity defined types
+    below.
+ */
+typedef struct
+{
+    /*! Base task list */
+    task_list_t base;
+
+    /*! Flexible array of tasks */
+    Task flexible_tasks[];
+
+} task_list_flexible_t;
+
+/*! Declare a Task List structure with capacity to store N tasks.
+    Since task_list_t can naturally store 1 task, the length of the flexible_tasks
+    array is N-1. */
+#define TASK_LIST_CAPACITY_STRUCT(N) { task_list_t base; Task flexible_tasks[N-1]; }
+
+/*! Task list type that has capacity to store 1 task. */
+typedef struct task_list_t task_list_capacity_1_t;
+/*! Task list type that has capacity to store 2 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(2) task_list_capacity_2_t;
+/*! Task list type that has capacity to store 3 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(3) task_list_capacity_3_t;
+/*! Task list type that has capacity to store 4 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(4) task_list_capacity_4_t;
+/*! Task list type that has capacity to store 5 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(5) task_list_capacity_5_t;
+/*! Task list type that has capacity to store 6 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(6) task_list_capacity_6_t;
+/*! Task list type that has capacity to store 7 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(7) task_list_capacity_7_t;
+/*! Task list type that has capacity to store 8 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(8) task_list_capacity_8_t;
+/*! Task list type that has capacity to store 9 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(9) task_list_capacity_9_t;
+/*! Task list type that has capacity to store 10 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(10) task_list_capacity_10_t;
+/*! Task list type that has capacity to store 11 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(11) task_list_capacity_11_t;
+/*! Task list type that has capacity to store 12 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(12) task_list_capacity_12_t;
+/*! Task list type that has capacity to store 13 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(13) task_list_capacity_13_t;
+/*! Task list type that has capacity to store 14 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(14) task_list_capacity_14_t;
+/*! Task list type that has capacity to store 15 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(15) task_list_capacity_15_t;
+/*! Task list type that has capacity to store 16 tasks. */
+typedef struct TASK_LIST_CAPACITY_STRUCT(16) task_list_capacity_16_t;
+
+/*! \brief Task list with data. Task lists with data do not currently
+    support flexible arrays of tasks - tasks and data are dynamically allocated */
 typedef struct
 {
     /*! Base task_list */
@@ -144,6 +265,20 @@ static inline task_list_t *TaskList_GetBaseTaskList(task_list_with_data_t *list)
     return &list->base;
 }
 
+/*! \brief Obtain pointer to the base task_list_t from a task_list_flexible_t.
+    \return The base task_list_t.
+
+    This function can also be used with task_list_capacity_N_t types by casting
+    the task_list_capacity_N_t type to a task_list_flexible_t.
+
+    Always use this function to get the base task_list_t, do not access the base
+    member directly.
+*/
+static inline task_list_t *TaskList_GetFlexibleBaseTaskList(task_list_flexible_t *list)
+{
+    return &list->base;
+}
+
 /*! \brief Create a task_list_t.
 
     Must only be used for dynamically allocated task lists, i.e. task_list_t*
@@ -153,6 +288,16 @@ static inline task_list_t *TaskList_GetBaseTaskList(task_list_with_data_t *list)
  */
 task_list_t* TaskList_Create(void);
 
+/*! \brief Create a task_list_t with pre-allocated task capacity.
+    \param capacity The initial capacity of the list.
+
+    Must only be used for dynamically allocated task lists, i.e. task_list_t*
+    For statically allocated task lists, use #TaskList_Initialise.
+
+    \return task_list_t* Pointer to new task_list_t.
+ */
+task_list_t* TaskList_CreateWithCapacity(unsigned capacity);
+
 /*! \brief Initialise a task_list_t.
     \param list The list to initialise.
 
@@ -160,6 +305,18 @@ task_list_t* TaskList_Create(void);
     For dynamically allocated task lists, use #TaskList_Create.
 */
 void TaskList_Initialise(task_list_t* list);
+
+/*! \brief Initialise a task_list_t with pre-allocated task capacity.
+    \param list The list to initialise.
+    \param capacity The initial capacity of the list.
+
+    Must only be used for statically allocated task lists with a flexible number
+    of tasks, e.g. task_list_capacity_N_t.
+
+    For dynamically allocated task lists, use #TaskList_Create.
+    For non-flexible statically allocated task lists, use #TaskList_Initialise.
+ */
+void TaskList_InitialiseWithCapacity(task_list_flexible_t* list, unsigned capacity);
 
 /*! \brief Remove all tasks from a list.
     \param list The list from which to remove all tasks.

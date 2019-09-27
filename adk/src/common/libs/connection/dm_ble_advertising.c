@@ -52,11 +52,6 @@ void ConnectionDmBleSetAdvertisingDataReq(uint8 size_ad_data, const uint8 *ad_da
         CL_DEBUG(("Pattern is null\n"));
     }
 #endif
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
     {
         MAKE_PRIM_C(DM_HCI_ULP_SET_ADVERTISING_DATA_REQ);
         prim->advertising_data_len = size_ad_data;
@@ -93,20 +88,13 @@ RETURNS
 */
 void ConnectionDmBleSetAdvertiseEnableReq(Task theAppTask, bool enable)
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
-    {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
-    }
-    else
-    {
-        MAKE_CL_MESSAGE(CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ);
-        message->theAppTask = theAppTask;
-        message->enable = enable;
-        MessageSend(
-                    connectionGetCmTask(),
-                    CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ,
-                    message);
-    }
+    MAKE_CL_MESSAGE(CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ);
+    message->theAppTask = theAppTask;
+    message->enable = enable;
+    MessageSend(
+                connectionGetCmTask(),
+                CL_INTERNAL_DM_BLE_SET_ADVERTISE_ENABLE_REQ,
+                message);
 }
 
 /****************************************************************************
@@ -198,122 +186,115 @@ void ConnectionDmBleSetAdvertisingParamsReq(
         const ble_adv_params_t *adv_params 
         )
 {
-    if (connectionGetBtVersion() < bluetooth4_0)
+    MAKE_PRIM_C(DM_HCI_ULP_SET_ADVERTISING_PARAMETERS_REQ);
+
+    /* Set defaults to avoid HCI validation failures */
+    prim->direct_address_type = HCI_ULP_ADDRESS_PUBLIC;
+    prim->adv_interval_max = 0x0800; /* 1.28s */
+    prim->adv_interval_min = 0x0800;
+    prim->advertising_filter_policy = HCI_ULP_ADV_FP_ALLOW_ANY;
+
+    switch(adv_type)
     {
-        CL_DEBUG(("Bluestack does not support low energy (BT 4.0)\n"));
+    case ble_adv_ind:
+        prim->advertising_type =
+                HCI_ULP_ADVERT_CONNECTABLE_UNDIRECTED;
+        break;
+    case ble_adv_direct_ind:
+    case ble_adv_direct_ind_high_duty:
+        prim->advertising_type =
+                HCI_ULP_ADVERT_CONNECTABLE_DIRECTED_HIGH_DUTY;
+        break;
+    case ble_adv_scan_ind:
+        prim->advertising_type =
+                HCI_ULP_ADVERT_DISCOVERABLE;
+        break;
+    case ble_adv_nonconn_ind:
+        prim->advertising_type =
+                HCI_ULP_ADVERT_NON_CONNECTABLE;
+        break;
+    case ble_adv_direct_ind_low_duty:
+        prim->advertising_type =
+                HCI_ULP_ADVERT_CONNECTABLE_DIRECTED_LOW_DUTY;
+        break;
     }
-    else
-    {
-        MAKE_PRIM_C(DM_HCI_ULP_SET_ADVERTISING_PARAMETERS_REQ);
 
-        /* Set defaults to avoid HCI validation failures */
-        prim->direct_address_type = HCI_ULP_ADDRESS_PUBLIC;
-        prim->adv_interval_max = 0x0800; /* 1.28s */
-        prim->adv_interval_min = 0x0800;
-        prim->advertising_filter_policy = HCI_ULP_ADV_FP_ALLOW_ANY;
+    prim->own_address_type = connectionConvertOwnAddress(own_address);
 
-        switch(adv_type)
-        {
-            case ble_adv_ind:
-                prim->advertising_type =
-                    HCI_ULP_ADVERT_CONNECTABLE_UNDIRECTED;
-                break;
-            case ble_adv_direct_ind:
-            case ble_adv_direct_ind_high_duty:
-                prim->advertising_type = 
-                    HCI_ULP_ADVERT_CONNECTABLE_DIRECTED_HIGH_DUTY;
-                break;
-            case ble_adv_scan_ind:
-                prim->advertising_type = 
-                    HCI_ULP_ADVERT_DISCOVERABLE;
-                break;
-            case ble_adv_nonconn_ind:
-                prim->advertising_type = 
-                    HCI_ULP_ADVERT_NON_CONNECTABLE;
-                break;
-            case ble_adv_direct_ind_low_duty:
-                prim->advertising_type = 
-                    HCI_ULP_ADVERT_CONNECTABLE_DIRECTED_LOW_DUTY;
-                break;
-        } 
+    channel_map &= BLE_ADV_CHANNEL_ALL;
 
-        prim->own_address_type = connectionConvertOwnAddress(own_address);
-        
-        channel_map &= BLE_ADV_CHANNEL_ALL;
+    prim->advertising_channel_map = channel_map & BLE_ADV_CHANNEL_ALL;
 
-        prim->advertising_channel_map = channel_map & BLE_ADV_CHANNEL_ALL; 
-
-        if (adv_type ==  ble_adv_direct_ind ||
+    if (adv_type ==  ble_adv_direct_ind ||
             adv_type ==  ble_adv_direct_ind_high_duty ||
             adv_type ==  ble_adv_direct_ind_low_duty )
-        {
-            /* Without an address, this cannot proceed. */
-            if (
-                    !adv_params || 
-                    BdaddrIsZero(&adv_params->direct_adv.direct_addr)
-               )
-                Panic();
+    {
+        /* Without an address, this cannot proceed. */
+        if (
+                !adv_params ||
+                BdaddrIsZero(&adv_params->direct_adv.direct_addr)
+                )
+            Panic();
 
-            /* Use the ble_directed_adv_params_t type of the union for all
+        /* Use the ble_directed_adv_params_t type of the union for all
              * 'direct' advertising params, as it is same as the
              * ble_directed_low_duty_adv_params_t type for the first two
              * elements.
              */
 
-            prim->direct_address_type = 
+        prim->direct_address_type =
                 (adv_params->low_duty_direct_adv.random_direct_address) ?
                     HCI_ULP_ADDRESS_RANDOM : HCI_ULP_ADDRESS_PUBLIC;
 
-            BdaddrConvertVmToBluestack( 
+        BdaddrConvertVmToBluestack(
                     &prim->direct_address,
                     &adv_params->low_duty_direct_adv.direct_addr
                     );
 
-            if (adv_type == ble_adv_direct_ind_low_duty)
-            {
-                prim->adv_interval_min = adv_params->low_duty_direct_adv.adv_interval_min;
-                prim->adv_interval_max = adv_params->low_duty_direct_adv.adv_interval_max;
-            }
-        }
-        else
+        if (adv_type == ble_adv_direct_ind_low_duty)
         {
-            if (adv_params)
-            {
-                /* These params are validated by HCI. */
-                prim->adv_interval_min 
+            prim->adv_interval_min = adv_params->low_duty_direct_adv.adv_interval_min;
+            prim->adv_interval_max = adv_params->low_duty_direct_adv.adv_interval_max;
+        }
+    }
+    else
+    {
+        if (adv_params)
+        {
+            /* These params are validated by HCI. */
+            prim->adv_interval_min
                     = adv_params->undirect_adv.adv_interval_min;
-                prim->adv_interval_max
+            prim->adv_interval_max
                     = adv_params->undirect_adv.adv_interval_max;
 
-                switch (adv_params->undirect_adv.filter_policy)
-                {
-                    case ble_filter_none:
-                        prim->advertising_filter_policy =
-                            HCI_ULP_ADV_FP_ALLOW_ANY;
-                        break;
-                    case ble_filter_scan_only:
-                        prim->advertising_filter_policy = 
-                            HCI_ULP_ADV_FP_ALLOW_CONNECTIONS;
-                        break;
-                    case ble_filter_connect_only:
-                        prim->advertising_filter_policy = 
-                            HCI_ULP_ADV_FP_ALLOW_SCANNING;
-                        break;
-                    case ble_filter_both:
-                        prim->advertising_filter_policy = 
-                            HCI_ULP_ADV_FP_ALLOW_WHITELIST;
-                        break;    
-                }
-
-                /* Set the direct address & type to 0, as they are not used. */
-                prim->direct_address_type = 0;
-                BdaddrSetZero(&prim->direct_address);
+            switch (adv_params->undirect_adv.filter_policy)
+            {
+            case ble_filter_none:
+                prim->advertising_filter_policy =
+                        HCI_ULP_ADV_FP_ALLOW_ANY;
+                break;
+            case ble_filter_scan_only:
+                prim->advertising_filter_policy =
+                        HCI_ULP_ADV_FP_ALLOW_CONNECTIONS;
+                break;
+            case ble_filter_connect_only:
+                prim->advertising_filter_policy =
+                        HCI_ULP_ADV_FP_ALLOW_SCANNING;
+                break;
+            case ble_filter_both:
+                prim->advertising_filter_policy =
+                        HCI_ULP_ADV_FP_ALLOW_WHITELIST;
+                break;
             }
-            /* otherwise, if 'adv_params' is null, defaults are used. */
-        }
 
-        VmSendDmPrim(prim);
+            /* Set the direct address & type to 0, as they are not used. */
+            prim->direct_address_type = 0;
+            BdaddrSetZero(&prim->direct_address);
+        }
+        /* otherwise, if 'adv_params' is null, defaults are used. */
     }
+
+    VmSendDmPrim(prim);
 }
 
 

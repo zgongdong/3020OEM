@@ -37,6 +37,7 @@
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li><a href="pages.html"><span>Related&#160;Pages</span></a></li>
       <li class="current"><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="annotated.html"><span>Data&#160;Structures</span></a></li>
       <li><a href="examples.html"><span>Examples</span></a></li>
@@ -74,6 +75,8 @@ Files</h2></td></tr>
 <tr class="separator:ga07ef104d522d7e81ce8ed7d1bfc5dd99"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga8e57c0d2b3fb5163c0a13dfa98ab06de"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__le__peer__pairing__service.html#ga8e57c0d2b3fb5163c0a13dfa98ab06de">PeerPairLe_FindPeer</a> (Task task)</td></tr>
 <tr class="separator:ga8e57c0d2b3fb5163c0a13dfa98ab06de"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2b71d5901fa7522f7a2f1299947b33ae"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__le__peer__pairing__service.html#ga2b71d5901fa7522f7a2f1299947b33ae">PeerPairLe_HandleFoundDeviceScan</a> (const CL_DM_BLE_ADVERTISING_REPORT_IND_T *scan)</td></tr>
+<tr class="separator:ga2b71d5901fa7522f7a2f1299947b33ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7a89457e5593c92692bce925792d700f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__le__peer__pairing__service.html#ga7a89457e5593c92692bce925792d700f">PeerPairLe_HandleConnectionLibraryMessages</a> (MessageId id, Message message, bool already_handled)</td></tr>
 <tr class="separator:ga7a89457e5593c92692bce925792d700f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -99,9 +102,8 @@ Files</h2></td></tr>
 <p>The service works by advertising support for the peer pairing service. At the same time it scans for devices that support the service. Once an advertisement is seen a timeout is started to make sure that the device seen is the closest device. See appConfigPeerPairLeTimeoutPeerSelect.</p>
 <p>The timeout is based on a comparison of the Bluetooth device addresses of the devices. In typical usage both devices will recognise each other at about the same time. The different timeouts ensure that one device will connect first.</p>
 <h3>Connect</h3>
-<p>The service makes connections using the gatt_manager library.</p>
-<p>When advertising the service is always trying to connect to a server, using GattManagerConnectToRemoteServer.</p>
-<p>When an advert has been seen the service stops advertising and attempt to make a connection to a client, using GattManagerWaitForRemoteClient.</p>
+<p>When advertising the service is always trying to connect to a server.</p>
+<p>When an advert has been seen the service stops advertising and attempt to make a connection to a client.</p>
 <p>When a connection is established the gatt root key service is started at each end of the link. As a server by one device and as a client by the other.</p>
 <h3>Verify device and transfer keys</h3>
 <p>The GATT service for root key transfer verifies that the devices are compatible, and transfers the keys between them autonomously.</p>
@@ -216,6 +218,31 @@ Files</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>TRUE if the handler has dealt with the message, FALSE otherwise </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga2b71d5901fa7522f7a2f1299947b33ae"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void PeerPairLe_HandleFoundDeviceScan </td>
+          <td>(</td>
+          <td class="paramtype">const CL_DM_BLE_ADVERTISING_REPORT_IND_T *&#160;</td>
+          <td class="paramname"><em>scan</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;adk/src/common/services/peer/peer_pair_le/peer_pair_le.h&gt;</code></p>
+<p>Accepts the LE Advertisements from Scan Manager.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">CL_DM_BLE_ADVERTISING_REPORT_IND_T</td><td>CL Structure for LE Adverts </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

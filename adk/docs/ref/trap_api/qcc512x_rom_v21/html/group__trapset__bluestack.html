@@ -140,6 +140,15 @@ Functions</h2></td></tr>
 <tr class="memitem:ga1258d4e01d5cec00dd9a21ae73ed9966"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__bluestack.html#ga1258d4e01d5cec00dd9a21ae73ed9966">VmGetPublicAddress</a> (const <a class="el" href="structtp__bdaddr.html">tp_bdaddr</a> *random_addr, <a class="el" href="structtp__bdaddr.html">tp_bdaddr</a> *public_addr)</td></tr>
 <tr class="memdesc:ga1258d4e01d5cec00dd9a21ae73ed9966"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves public address for a given random address. Note: To be used only on an established link.  <a href="#ga1258d4e01d5cec00dd9a21ae73ed9966">More...</a><br /></td></tr>
 <tr class="separator:ga1258d4e01d5cec00dd9a21ae73ed9966"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2f6a871c7336b62f171fa4302c24e00e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__bluestack.html#ga2f6a871c7336b62f171fa4302c24e00e">VmOverrideL2capConnContext</a> (uint16 cid, <a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a> context)</td></tr>
+<tr class="memdesc:ga2f6a871c7336b62f171fa4302c24e00e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override L2CAP connecton context.  <a href="#ga2f6a871c7336b62f171fa4302c24e00e">More...</a><br /></td></tr>
+<tr class="separator:ga2f6a871c7336b62f171fa4302c24e00e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga717489e28b88057dde0c6e96c1137dce"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__bluestack.html#ga717489e28b88057dde0c6e96c1137dce">VmOverrideRfcommConnContext</a> (uint16 conn_id, <a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a> context)</td></tr>
+<tr class="memdesc:ga717489e28b88057dde0c6e96c1137dce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override RFCOMM connecton context.  <a href="#ga717489e28b88057dde0c6e96c1137dce">More...</a><br /></td></tr>
+<tr class="separator:ga717489e28b88057dde0c6e96c1137dce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga25d4e01659e990ebc0b77ceb832869c8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__bluestack.html#ga25d4e01659e990ebc0b77ceb832869c8">VmOverrideSyncConnContext</a> (uint16 handle, <a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a> context)</td></tr>
+<tr class="memdesc:ga25d4e01659e990ebc0b77ceb832869c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override DM Sync connecton context.  <a href="#ga25d4e01659e990ebc0b77ceb832869c8">More...</a><br /></td></tr>
+<tr class="separator:ga25d4e01659e990ebc0b77ceb832869c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0c7349b61ec91e3078739b24c9832f64"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__bluestack.html#ga0c7349b61ec91e3078739b24c9832f64">VmSendDmPrim</a> (void *prim)</td></tr>
 <tr class="memdesc:ga0c7349b61ec91e3078739b24c9832f64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sends a DM Bluestack primitive.  <a href="#ga0c7349b61ec91e3078739b24c9832f64">More...</a><br /></td></tr>
 <tr class="separator:ga0c7349b61ec91e3078739b24c9832f64"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -219,7 +228,7 @@ Functions</h2></td></tr>
 <p>Register a task to handle BlueStack primitives. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">task</td><td>This task will receive MESSAGE_BLUESTACK_*_PRIM, except #MESSAGE_BLUESTACK_ATT_PRIM that are handled by the <a class="el" href="group__trapset__att.html#gabcdbacb41dd8edf00d78888bbc8469c8" title="Register a task to handle BlueStack ATT primitives. ">MessageAttTask()</a>. </td></tr>
+    <tr><td class="paramname">task</td><td>This task will receive MESSAGE_BLUESTACK_*_PRIM, except #MESSAGE_BLUESTACK_ATT_PRIM that are handled by the <a class="el" href="group__trapset__att.html#gabcdbacb41dd8edf00d78888bbc8469c8" title="Register a task to handle BlueStack ATT primitives. ">MessageAttTask()</a> and #MESSAGE_BLUESTACK_SDM_PRIM that are handled by the <a class="el" href="group__trapset__shadowing.html#ga840a2905a411b868d9023d834ec5b194" title="Register a task to handle BlueStack Shadow Manager(SDM) primitives. ">MessageSdmTask()</a>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -469,6 +478,120 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>TRUE if public address was found for a given resolvable random address, FALSE otherwise.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga2f6a871c7336b62f171fa4302c24e00e"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool VmOverrideL2capConnContext </td>
+          <td>(</td>
+          <td class="paramtype">uint16&#160;</td>
+          <td class="paramname"><em>cid</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a>&#160;</td>
+          <td class="paramname"><em>context</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Override L2CAP connecton context. </p>
+<p>This trap allows application to override the L2CAP connection context for a given cid. In general, this trap will be used where the L2CAP connection structures in Bluestack is populated as a result of unmarshalling and not because of a L2CAP connection initiation from the application. In such a case connection context in the L2CAP connection structures won't be initialized. So, after unmarshalling, the application needs to explicitly call this trap to initialize the connection context for all the relevant L2CAP connection ids.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">cid</td><td>The L2CAP connection id </td></tr>
+    <tr><td class="paramname">context</td><td>Connection context </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if connection context value is set successfully, FALSE otherwise.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga717489e28b88057dde0c6e96c1137dce"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool VmOverrideRfcommConnContext </td>
+          <td>(</td>
+          <td class="paramtype">uint16&#160;</td>
+          <td class="paramname"><em>conn_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a>&#160;</td>
+          <td class="paramname"><em>context</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Override RFCOMM connecton context. </p>
+<p>This trap allows application to override the RFCOMM connection context for a given RFCOMM connection id. In general, this trap will be used where the RFCOMM connection structures in Bluestack is populated as a result of unmarshalling and not because of a RFCOMM client connection initiation from the application. In such a case connection context in the RFCOMM connection structures won't be initialized. So, after unmarshalling, the application needs to explicitly call this trap to initialize the connection context for all the relevant RFCOMM connection ids.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn_id</td><td>The RFCOMM connection id </td></tr>
+    <tr><td class="paramname">context</td><td>Connection context </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if connection context value is set successfully, FALSE otherwise.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="ga25d4e01659e990ebc0b77ceb832869c8"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool VmOverrideSyncConnContext </td>
+          <td>(</td>
+          <td class="paramtype">uint16&#160;</td>
+          <td class="paramname"><em>handle</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="vm___8h.html#af7048ed13446de52e9012e19b10aebd0">conn_context_t</a>&#160;</td>
+          <td class="paramname"><em>context</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Override DM Sync connecton context. </p>
+<p>This trap allows application to override the DM Sync connection context for a given eSCO connection handle. In general, this trap will be used where the DM Sync connection structures in Bluestack is populated as a result of unmarshalling and not because of a DM Sync connection initiation from the application. In such a case connection context in the DM Sync connection structures won't be initialized. So, after unmarshalling, the application needs to explicitly call this trap to initialize the connection context for all the relevant eSCO connection handles.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">handle</td><td>The eSCO connection handle </td></tr>
+    <tr><td class="paramname">context</td><td>Connection context </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if connection context value is set successfully, FALSE otherwise.</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This trap may NOT be called from a high-priority task handler </dd></dl>
 
 </div>

@@ -76,7 +76,7 @@ $(document).ready(function(){initNavTree('task__list_8h.html','');});
 </div><!--header-->
 <div class="contents">
 
-<p>Interface to simple list of VM tasks.  
+<p>A object that stores lists of VM tasks (optionally with data).  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
@@ -84,15 +84,20 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">union &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="uniontask__list__data__t.html">task_list_data_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Definition of 'data' that can be stored in a TaskListWithData.  <a href="uniontask__list__data__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__flexible__t.html">task_list_flexible_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of VM Tasks with a flexible array of tasks.  <a href="structtask__list__flexible__t.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__t.html">task_list_t</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of VM Tasks.  <a href="structtask__list__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structtask__list__with__data__t.html">task_list_with_data_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Task list with data.  <a href="structtask__list__with__data__t.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Task list with data. Task lists with data do not currently support flexible arrays of tasks - tasks and data are dynamically allocated.  <a href="structtask__list__with__data__t.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:ad629630e718095087616d4229af50025"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structtask__list__t.html">task_list_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#ad629630e718095087616d4229af50025">task_list_capacity_1_t</a></td></tr>
+<tr class="separator:ad629630e718095087616d4229af50025"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad53003c9e906ea9d406f9301ba7c28ac"><td class="memItemLeft" align="right" valign="top">typedef bool(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#ad53003c9e906ea9d406f9301ba7c28ac">TaskListIterateWithDataRawHandler</a>) (Task task, <a class="el" href="uniontask__list__data__t.html">task_list_data_t</a> *data, void *arg)</td></tr>
 <tr class="memdesc:ad53003c9e906ea9d406f9301ba7c28ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">A function type to handle one iteration of <a class="el" href="task__list_8h.html#ae8f2e7b63ccc9a0667d2b6c8c051e8d9" title="Iterate through all tasks in a list calling handler each iteration. ">TaskList_IterateWithDataRawFunction</a>.  <a href="#ad53003c9e906ea9d406f9301ba7c28ac">More...</a><br /></td></tr>
 <tr class="separator:ad53003c9e906ea9d406f9301ba7c28ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -104,6 +109,36 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a060cf134acdf393753f47fcad740811e"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a060cf134acdf393753f47fcad740811e">TASK_LIST_CAPACITY_STRUCT</a> (2) task_list_capacity_2_t</td></tr>
+<tr class="separator:a060cf134acdf393753f47fcad740811e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a71f4340ac760b143afbbb991cf790517"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a71f4340ac760b143afbbb991cf790517">TASK_LIST_CAPACITY_STRUCT</a> (3) task_list_capacity_3_t</td></tr>
+<tr class="separator:a71f4340ac760b143afbbb991cf790517"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3c251fcbf52b3dd26f11cc898ba4c3a6"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a3c251fcbf52b3dd26f11cc898ba4c3a6">TASK_LIST_CAPACITY_STRUCT</a> (5) task_list_capacity_5_t</td></tr>
+<tr class="separator:a3c251fcbf52b3dd26f11cc898ba4c3a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a32c6ddb6f53f5af8158b330d3a440024"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a32c6ddb6f53f5af8158b330d3a440024">TASK_LIST_CAPACITY_STRUCT</a> (9) task_list_capacity_9_t</td></tr>
+<tr class="separator:a32c6ddb6f53f5af8158b330d3a440024"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a953bc81a71f1bafae132264f077bb242"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a953bc81a71f1bafae132264f077bb242">TASK_LIST_CAPACITY_STRUCT</a> (10) task_list_capacity_10_t</td></tr>
+<tr class="separator:a953bc81a71f1bafae132264f077bb242"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8c26458cd738bb261709b3c67b698ec5"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a8c26458cd738bb261709b3c67b698ec5">TASK_LIST_CAPACITY_STRUCT</a> (6) task_list_capacity_6_t</td></tr>
+<tr class="separator:a8c26458cd738bb261709b3c67b698ec5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c4de578c9cd970501994a0cd6f6cf48"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a2c4de578c9cd970501994a0cd6f6cf48">TASK_LIST_CAPACITY_STRUCT</a> (11) task_list_capacity_11_t</td></tr>
+<tr class="separator:a2c4de578c9cd970501994a0cd6f6cf48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a531d0da03554ede48bf1d553c2964e03"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a531d0da03554ede48bf1d553c2964e03">TASK_LIST_CAPACITY_STRUCT</a> (12) task_list_capacity_12_t</td></tr>
+<tr class="separator:a531d0da03554ede48bf1d553c2964e03"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9ea3741c260587e131355a3b76c60720"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a9ea3741c260587e131355a3b76c60720">TASK_LIST_CAPACITY_STRUCT</a> (4) task_list_capacity_4_t</td></tr>
+<tr class="separator:a9ea3741c260587e131355a3b76c60720"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1cebddd1cbf52477986e986805ac8f0d"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a1cebddd1cbf52477986e986805ac8f0d">TASK_LIST_CAPACITY_STRUCT</a> (7) task_list_capacity_7_t</td></tr>
+<tr class="separator:a1cebddd1cbf52477986e986805ac8f0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9e29dc6b5d20a81dd9d0d9e7bdfa87c0"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a9e29dc6b5d20a81dd9d0d9e7bdfa87c0">TASK_LIST_CAPACITY_STRUCT</a> (13) task_list_capacity_13_t</td></tr>
+<tr class="separator:a9e29dc6b5d20a81dd9d0d9e7bdfa87c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9c75c2f394b22365069a32f107e9b43"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#ac9c75c2f394b22365069a32f107e9b43">TASK_LIST_CAPACITY_STRUCT</a> (14) task_list_capacity_14_t</td></tr>
+<tr class="separator:ac9c75c2f394b22365069a32f107e9b43"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0a988ad8593ab907d84ae9e37b107d5"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#af0a988ad8593ab907d84ae9e37b107d5">TASK_LIST_CAPACITY_STRUCT</a> (8) task_list_capacity_8_t</td></tr>
+<tr class="separator:af0a988ad8593ab907d84ae9e37b107d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4eb56d561d85fb025b619780308deb60"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a4eb56d561d85fb025b619780308deb60">TASK_LIST_CAPACITY_STRUCT</a> (15) task_list_capacity_15_t</td></tr>
+<tr class="separator:a4eb56d561d85fb025b619780308deb60"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ebfa3f608802951b8594911ec417b18"><td class="memItemLeft" align="right" valign="top">struct&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a3ebfa3f608802951b8594911ec417b18">TASK_LIST_CAPACITY_STRUCT</a> (16) task_list_capacity_16_t</td></tr>
+<tr class="separator:a3ebfa3f608802951b8594911ec417b18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a28ef2761c3e88664855aac38e099ffaf"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a28ef2761c3e88664855aac38e099ffaf">TaskList_AddTask</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list, Task add_task)</td></tr>
 <tr class="memdesc:a28ef2761c3e88664855aac38e099ffaf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a task to a list.  <a href="#a28ef2761c3e88664855aac38e099ffaf">More...</a><br /></td></tr>
 <tr class="separator:a28ef2761c3e88664855aac38e099ffaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -113,6 +148,9 @@ Functions</h2></td></tr>
 <tr class="memitem:abd94542176a288203c7954e441df286e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structtask__list__t.html">task_list_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e">TaskList_Create</a> (void)</td></tr>
 <tr class="memdesc:abd94542176a288203c7954e441df286e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>.  <a href="#abd94542176a288203c7954e441df286e">More...</a><br /></td></tr>
 <tr class="separator:abd94542176a288203c7954e441df286e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1cf56e75444775c5154bf68d8f95cfc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structtask__list__t.html">task_list_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#aa1cf56e75444775c5154bf68d8f95cfc">TaskList_CreateWithCapacity</a> (unsigned capacity)</td></tr>
+<tr class="memdesc:aa1cf56e75444775c5154bf68d8f95cfc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity.  <a href="#aa1cf56e75444775c5154bf68d8f95cfc">More...</a><br /></td></tr>
+<tr class="separator:aa1cf56e75444775c5154bf68d8f95cfc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb7fd82b20a344092941676b7fab93ed"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#aeb7fd82b20a344092941676b7fab93ed">TaskList_Destroy</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list)</td></tr>
 <tr class="memdesc:aeb7fd82b20a344092941676b7fab93ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>.  <a href="#aeb7fd82b20a344092941676b7fab93ed">More...</a><br /></td></tr>
 <tr class="separator:aeb7fd82b20a344092941676b7fab93ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -132,6 +170,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
 <tr class="memitem:a042a8c88b30606c774c6bacde880e89d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d">TaskList_Initialise</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list)</td></tr>
 <tr class="memdesc:a042a8c88b30606c774c6bacde880e89d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>.  <a href="#a042a8c88b30606c774c6bacde880e89d">More...</a><br /></td></tr>
 <tr class="separator:a042a8c88b30606c774c6bacde880e89d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc72babcc6de7fbd428d4f66498ed6e6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#abc72babcc6de7fbd428d4f66498ed6e6">TaskList_InitialiseWithCapacity</a> (<a class="el" href="structtask__list__flexible__t.html">task_list_flexible_t</a> *list, unsigned capacity)</td></tr>
+<tr class="memdesc:abc72babcc6de7fbd428d4f66498ed6e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity.  <a href="#abc72babcc6de7fbd428d4f66498ed6e6">More...</a><br /></td></tr>
+<tr class="separator:abc72babcc6de7fbd428d4f66498ed6e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1e4dd480b0d14a2d9ecdb2e8384730c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task__list_8h.html#ac1e4dd480b0d14a2d9ecdb2e8384730c">TaskList_IsTaskListWithData</a> (<a class="el" href="structtask__list__t.html">task_list_t</a> *list)</td></tr>
 <tr class="memdesc:ac1e4dd480b0d14a2d9ecdb2e8384730c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determine if the list is one that supports data.  <a href="#ac1e4dd480b0d14a2d9ecdb2e8384730c">More...</a><br /></td></tr>
 <tr class="separator:ac1e4dd480b0d14a2d9ecdb2e8384730c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -176,24 +217,52 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
 <tr class="separator:a0a28ab9d28c045109d68f12fd8231d52"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Interface to simple list of VM tasks. </p>
+<div class="textblock"><p>A object that stores lists of VM tasks (optionally with data). </p>
 <dl class="section copyright"><dt>Copyright</dt><dd>Copyright (c) 2018-2019 Qualcomm Technologies International, Ltd.<br />
  All Rights Reserved.<br />
  Qualcomm Technologies International, Ltd. Confidential and Proprietary. </dd></dl>
-<dl class="section version"><dt>Version</dt><dd><pre class="fragment">        Task lists may be allocated dynamically or statically.
-        For example:
-</pre> Dynamic allocation/initialisation: <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list = <a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e" title="Create a task_list_t. ">TaskList_Create()</a>; <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list_with_data = <a class="el" href="task__list_8h.html#ad1f2033632edfb749f05f5bf2c5b37f5" title="Create a task_list_t that can also store associated data. ">TaskList_WithDataCreate()</a>;</dd></dl>
-<p>Static allocation/initialisation: <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> list; <a class="el" href="structtask__list__with__data__t.html" title="Task list with data. ">task_list_with_data_t</a> list_with_data; <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list_with_data_base; TaskList_Initialise(&amp;list); TaskList_WithDataInitialise(&amp;list_with_data); list_with_data_base = TaskList_GetBaseTaskList(list_with_data); task_list API can be accessed using either &amp;list or list_with_data_base </p><pre class="fragment">        The structures task_list_t and task_list_with_data_t are exposed
+<dl class="section version"><dt>Version</dt><dd><pre class="fragment">        Task lists may be allocated dynamically or statically, optionally
+        with an initial capacity.
+
+        Task lists with data do not currently support setting an initial
+        capacity.
+
+        Example usage:
+</pre> Dynamic allocation: <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list = <a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e" title="Create a task_list_t. ">TaskList_Create()</a>; <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list_with_data = <a class="el" href="task__list_8h.html#ad1f2033632edfb749f05f5bf2c5b37f5" title="Create a task_list_t that can also store associated data. ">TaskList_WithDataCreate()</a>;</dd></dl>
+<p>Dynamic allocation with initial task capacity list is a single allocation with initial capacity to store 5 tasks without further allocations. <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list = TaskList_CreateWithCapacity(5);</p>
+<p>Static allocation/initialisation of standard list: <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> list; TaskList_Initialise(&amp;list);</p>
+<p>Static allocation/initialisation of list with data <a class="el" href="structtask__list__with__data__t.html" title="Task list with data. Task lists with data do not currently support flexible arrays of tasks - tasks a...">task_list_with_data_t</a> list_with_data; <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> *list_base; TaskList_WithDataInitialise(&amp;list_with_data); list_base = TaskList_GetBaseTaskList(list_with_data); list__base can be passed to task_list APIs.</p>
+<p>Static allocation/initialisation of task list with initial capacity to store 5 tasks. task_list_capacity_5_t list; <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> <em>list_base; TaskList_InitialiseWithCapacity((<a class="el" href="structtask__list__flexible__t.html" title="List of VM Tasks with a flexible array of tasks. ">task_list_flexible_t</a></em>)&amp;list, 5); list_base = TaskList_GetFlexibleBaseTaskList((task_list_flexible_t)&amp;list); list_base can be passed to task_list APIs. </p><pre class="fragment">        The structures task_list_t, task_list_flexible_t, task_list_capacity_N_t
+        and task_list_with_data_t are exposed
         to allow the user to allocate task lists dynamically or statically.
         However, the task_list module reserves the right to change its
         implementation in future releases. Therefore, do _not_ access
-        members of task_list_t/task_list_with_data_t directly, use the
+        members of these structures directly, use the
         accessor APIs instead.
 
         If a statically allocated task_list_with_data_t is used, the task list
         APIs may be used by passing the address of the base member of the
-        task_list_with_data_t structure. The helper macro TaskList_GetBaseTaskList
-        _should_ be used to retrieve the base task list.</pre></div><h2 class="groupheader">Typedef Documentation</h2>
+        task_list_with_data_t structure. The helper function TaskList_GetBaseTaskList
+        _should_ be used to retrieve the base task list.
+
+        If a statically allocated task_list_capacity_N_t is used,
+        the task list APIs may be used by passing the address of the base
+        member of the task_list_capacity_N_t structure. The helper macro
+        TaskList_GetFlexibleBaseTaskList _should_ be used to retrieve the base
+        task list rather than accessing the base member directly.</pre></div><h2 class="groupheader">Typedef Documentation</h2>
+<a class="anchor" id="ad629630e718095087616d4229af50025"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="structtask__list__t.html">task_list_t</a> <a class="el" href="task__list_8h.html#ad629630e718095087616d4229af50025">task_list_capacity_1_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 1 task. </p>
+
+</div>
+</div>
 <a class="anchor" id="ad53003c9e906ea9d406f9301ba7c28ac"></a>
 <div class="memitem">
 <div class="memproto">
@@ -255,6 +324,261 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a class="anchor" id="a060cf134acdf393753f47fcad740811e"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">2&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 2 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a71f4340ac760b143afbbb991cf790517"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">3&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 3 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a3c251fcbf52b3dd26f11cc898ba4c3a6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">5&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 5 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a32c6ddb6f53f5af8158b330d3a440024"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">9&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 9 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a953bc81a71f1bafae132264f077bb242"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">10&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 10 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a8c26458cd738bb261709b3c67b698ec5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">6&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 6 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a2c4de578c9cd970501994a0cd6f6cf48"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">11&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 11 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a531d0da03554ede48bf1d553c2964e03"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">12&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 12 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a9ea3741c260587e131355a3b76c60720"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">4&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 4 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a1cebddd1cbf52477986e986805ac8f0d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">7&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 7 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a9e29dc6b5d20a81dd9d0d9e7bdfa87c0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">13&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 13 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="ac9c75c2f394b22365069a32f107e9b43"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">14&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 14 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="af0a988ad8593ab907d84ae9e37b107d5"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">8&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 8 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a4eb56d561d85fb025b619780308deb60"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">15&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 15 tasks. </p>
+
+</div>
+</div>
+<a class="anchor" id="a3ebfa3f608802951b8594911ec417b18"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct TASK_LIST_CAPACITY_STRUCT </td>
+          <td>(</td>
+          <td class="paramtype">16&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Task list type that has capacity to store 16 tasks. </p>
+
+</div>
+</div>
 <a class="anchor" id="a28ef2761c3e88664855aac38e099ffaf"></a>
 <div class="memitem">
 <div class="memproto">
@@ -349,6 +673,32 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
 </div><div class="memdoc">
 
 <p>Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. </p>
+<p>Must only be used for dynamically allocated task lists, i.e. task_list_t* For statically allocated task lists, use <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>.</p>
+<dl class="section return"><dt>Returns</dt><dd>task_list_t* Pointer to new <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="aa1cf56e75444775c5154bf68d8f95cfc"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structtask__list__t.html">task_list_t</a>* TaskList_CreateWithCapacity </td>
+          <td>(</td>
+          <td class="paramtype">unsigned&#160;</td>
+          <td class="paramname"><em>capacity</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">capacity</td><td>The initial capacity of the list.</td></tr>
+  </table>
+  </dd>
+</dl>
 <p>Must only be used for dynamically allocated task lists, i.e. task_list_t* For statically allocated task lists, use <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>.</p>
 <dl class="section return"><dt>Returns</dt><dd>task_list_t* Pointer to new <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. </dd></dl>
 
@@ -514,6 +864,43 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="task
   </dd>
 </dl>
 <p>Must only be used for statically allocated task lists, i.e. <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a>. For dynamically allocated task lists, use <a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e" title="Create a task_list_t. ">TaskList_Create</a>. </p>
+
+</div>
+</div>
+<a class="anchor" id="abc72babcc6de7fbd428d4f66498ed6e6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void TaskList_InitialiseWithCapacity </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structtask__list__flexible__t.html">task_list_flexible_t</a> *&#160;</td>
+          <td class="paramname"><em>list</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned&#160;</td>
+          <td class="paramname"><em>capacity</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initialise a <a class="el" href="structtask__list__t.html" title="List of VM Tasks. ">task_list_t</a> with pre-allocated task capacity. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">list</td><td>The list to initialise. </td></tr>
+    <tr><td class="paramname">capacity</td><td>The initial capacity of the list.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>Must only be used for statically allocated task lists with a flexible number of tasks, e.g. task_list_capacity_N_t.</p>
+<p>For dynamically allocated task lists, use <a class="el" href="task__list_8h.html#abd94542176a288203c7954e441df286e" title="Create a task_list_t. ">TaskList_Create</a>. For non-flexible statically allocated task lists, use <a class="el" href="task__list_8h.html#a042a8c88b30606c774c6bacde880e89d" title="Initialise a task_list_t. ">TaskList_Initialise</a>. </p>
 
 </div>
 </div>

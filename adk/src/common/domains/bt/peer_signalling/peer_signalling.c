@@ -79,8 +79,20 @@ bool peer_sig_panic_if_not_connected = FALSE;
 /*! \brief Data held per client task for marshalled message channels. */
 typedef struct
 {
+    /*! Each channel has a task, so messages can be cancelled for each channel
+        independently. */
+    TaskData channel_task;
+
+    /*! The client for the channel */
+    Task client_task;
+
+    /*! Marshal instance for this channel */
     marshaller_t    marshaller;
+
+    /*! Unmarshal instance for this channel */
     unmarshaller_t  unmarshaller;
+
+    /*! The channel */
     peerSigMsgChannel msg_channel_id;
 } marshal_msg_channel_data_t;
 
@@ -137,9 +149,12 @@ typedef struct
     Sink link_sink;                 /*!< The sink of the L2CAP link */
     Source link_source;             /*!< The source of the L2CAP link */
 
-    /* State related to marshaling messages between peers */
-    task_list_t* marshal_msg_channel_tasks;
-    PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ_T* retx;
+    /*Transmitted and receieved peer signalling message sequence numbers*/
+    uint8 tx_seq;
+    uint8 rx_seq;
+
+    /*! Per-channel state */
+    marshal_msg_channel_data_t marshal_msg_channel_state[PEER_SIG_MSG_CHANNEL_MAX];
 
     /* Record the Task which first requested a connect or disconnect */
     task_list_t connect_tasks;
@@ -156,6 +171,13 @@ typedef struct
 /*! Macro to make message with variable length for array fields. */
 #define MAKE_PEER_SIG_MESSAGE_WITH_LEN(TYPE, LEN) \
     TYPE##_T *message = (TYPE##_T *) PanicUnlessMalloc(sizeof(TYPE##_T) + LEN);
+
+/*! MTU of the L2CAP */
+#define PEER_SIG_L2CAP_MTU 672
+
+/*! MTU for each marshal message. Peer signalling pauses writing to the sink
+    while space in sink is less than this limit. */
+#define PEER_SIG_MARSHAL_MESSAGE_MTU (PEER_SIG_L2CAP_MTU/2)
 
 /******************************************************************************
  * Peer Signalling Message Definitions
@@ -222,11 +244,14 @@ static void appPeerSigMsgConnectionInd(peerSigStatus status);
 static void appPeerSigStartInactivityTimer(void);
 static void appPeerSigCancelInactivityTimer(void);
 static void appPeerSigCancelInProgressOperation(void);
-static void appPeerSigHandleInternalMarshalledMsgChannelTxRequest(const PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ_T* req, bool retx);
+static void appPeerSigMarshal(marshal_msg_channel_data_t *mmcd,
+                              marshal_type_t type,
+                              void *msg_ptr);
 static void appPeerSigMsgConnectCfm(Task task, peerSigStatus status);
 static void appPeerSigMsgDisconnectCfm(Task task, peerSigStatus status);
 static void appPeerSigSendConnectConfirmation(peerSigStatus status);
 static void appPeerSigSendDisconnectConfirmation(peerSigStatus status);
+static marshal_msg_channel_data_t* appPeerSigGetChannelData(peerSigMsgChannel channel);
 
 /*!< Peer earbud signalling */
 peerSigTaskData app_peer_sig;
@@ -302,6 +327,7 @@ static void appPeerSigExitConnected(void)
 
 static void appPeerSigEnterDisconnected(void)
 {
+    peerSigMsgChannel channel;
     peerSigTaskData *peer_sig = PeerSigGetTaskData();
     DEBUG_LOG("appPeerSigEnterDisconnected");
 
@@ -323,6 +349,21 @@ static void appPeerSigEnterDisconnected(void)
 
     /* Reset the sdp retry count */
     peer_sig->sdp_search_attempts = 0;
+
+    /* Reset tx and rx message sequence number */
+    peer_sig->tx_seq = 0;
+    peer_sig->rx_seq = 0;
+
+    for (channel = 0; channel < PEER_SIG_MSG_CHANNEL_MAX; channel++)
+    {
+        marshal_msg_channel_data_t *mmcd = appPeerSigGetChannelData(channel);
+        if (mmcd->client_task)
+        {
+            MessageFlushTask(&mmcd->channel_task);
+        }
+    }
+
+    peer_sig->lock &= ~peer_sig_lock_marshal;
 }
 
 static void appPeerSigExitDisconnected(void)
@@ -523,14 +564,15 @@ static void appPeerSigMsgChannelTxConfirmation(Task task, peerSigStatus status,
 }
 
 /*! \brief Send confirmation of result of marshalled message transmission to client. */
-static void appPeerSigMarshalledMsgChannelTxCfm(Task task, uint8* msg_ptr,
+static void appPeerSigMarshalledMsgChannelTxCfm(Task task,
+                                                marshal_type_t type,
                                                 peerSigStatus status,
                                                 peerSigMsgChannel channel)
 {
     MAKE_MESSAGE(PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM);
     message->status = status;
     message->channel = channel;
-    message->msg_ptr = msg_ptr;
+    message->type = type;
     MessageSend(task, PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM, message);
 }
 
@@ -1105,7 +1147,7 @@ static void appPeerSigConnectL2cap(const bdaddr *bd_addr)
         /* Local MTU exact value (incoming). */
         L2CAP_AUTOPT_MTU_IN,
         /*  Exact MTU for this L2CAP connection - 672. */
-            672,
+            PEER_SIG_L2CAP_MTU,
         /* Remote MTU Minumum value (outgoing). */
         L2CAP_AUTOPT_MTU_OUT,
         /*  Minimum MTU accepted from the Remote device. */
@@ -1421,16 +1463,18 @@ static void appPeerSigHandleL2capDisconnectCfm(const CL_L2CAP_DISCONNECT_CFM_T *
 
 octet
 0       |   Header
-1       |   opid
+1       |   Tx seq number
 2       |   opid
-3       |
+3       |   opid
 4       |
 5       |
-6+n     |
+6       |
+7+n     |
 
 */
 #define PEER_SIG_HEADER_OFFSET 0
-#define PEER_SIG_OPID_OFFSET 1
+#define PEER_SIG_TX_SEQ_NUMBER_OFFSET 1
+#define PEER_SIG_OPID_OFFSET 2
 
 #define PEER_SIG_TYPE_MASK      0x3
 #define PEER_SIG_TYPE_REQUEST   0x1
@@ -1444,18 +1488,18 @@ octet
 #define PEER_SIG_SET_HEADER_TYPE(hdr, type) ((hdr) = (((hdr) & ~PEER_SIG_TYPE_MASK) | type))
 
 /* Request type */
-#define PEER_SIG_PAYLOAD_SIZE_OFFSET 3
-#define PEER_SIG_PAYLOAD_OFFSET 5
-#define PEER_SIG_REQUEST_SIZE_MIN 5
+#define PEER_SIG_PAYLOAD_SIZE_OFFSET 4
+#define PEER_SIG_PAYLOAD_OFFSET 6
+#define PEER_SIG_REQUEST_SIZE_MIN 6
 
 /* Response type */
-#define PEER_SIG_RESPONSE_STATUS_OFFSET 3
-#define PEER_SIG_RESPONSE_SIZE  5
+#define PEER_SIG_RESPONSE_STATUS_OFFSET 4
+#define PEER_SIG_RESPONSE_SIZE  6
 
 /* Marshal type */
-#define PEER_SIG_MARSHAL_CHANNELID_OFFSET   1
-#define PEER_SIG_MARSHAL_PAYLOAD_OFFSET     5
-#define PEER_SIG_MARSHAL_HEADER_SIZE        5
+#define PEER_SIG_MARSHAL_CHANNELID_OFFSET   2
+#define PEER_SIG_MARSHAL_PAYLOAD_OFFSET     6
+#define PEER_SIG_MARSHAL_HEADER_SIZE        6
 
 enum peer_sig_reponse
 {
@@ -1523,7 +1567,7 @@ static void appPeerSigL2capSendRequest(uint16 opid, const uint8 *payload, uint16
         uint8 *msg = data;
 
         msg[PEER_SIG_HEADER_OFFSET] = PEER_SIG_SET_HEADER_TYPE(hdr, PEER_SIG_TYPE_REQUEST);
-
+        msg[PEER_SIG_TX_SEQ_NUMBER_OFFSET] = ++peer_sig->tx_seq;
         appPeerSigWriteUint16(&msg[PEER_SIG_OPID_OFFSET], opid);
         appPeerSigWriteUint16(&msg[PEER_SIG_PAYLOAD_SIZE_OFFSET], payload_size);
 
@@ -1584,6 +1628,8 @@ static void appPeerSigL2capSendResponse(uint16 opid, uint16 status)
         uint8 hdr = 0;
 
         data[PEER_SIG_HEADER_OFFSET] = PEER_SIG_SET_HEADER_TYPE(hdr, PEER_SIG_TYPE_RESPONSE);
+        data[PEER_SIG_TX_SEQ_NUMBER_OFFSET]= ++peer_sig->tx_seq;
+
         appPeerSigWriteUint16(&data[PEER_SIG_OPID_OFFSET], opid);
         appPeerSigWriteUint16(&data[PEER_SIG_RESPONSE_STATUS_OFFSET], status);
 
@@ -1705,46 +1751,42 @@ static void appPeerSigL2capProcessResponse(uint16 opid, const uint8 *data, uint1
     peer_sig->lock &= ~peer_sig_lock_op;
 }
 
-static void appPeerSigL2capProcessMarshal(const uint8* data, uint16 size)
+static marshal_msg_channel_data_t* appPeerSigGetChannelData(peerSigMsgChannel channel)
 {
     peerSigTaskData* peer_sig = PeerSigGetTaskData();
-    task_list_data_t list_data = {0};
+    PanicFalse(channel < PEER_SIG_MSG_CHANNEL_MAX);
+    return &peer_sig->marshal_msg_channel_state[channel];
+}
+
+static void appPeerSigL2capProcessMarshal(const uint8* data, uint16 size)
+{
     marshal_msg_channel_data_t* mmcd = NULL;
-    Task task = NULL;
     uint16 marshal_size = size - PEER_SIG_MARSHAL_HEADER_SIZE; 
     peerSigMsgChannel channel = appPeerSigReadUint32(&data[PEER_SIG_MARSHAL_CHANNELID_OFFSET]);
+    marshal_type_t type;
+    void* rx_msg;
 
 //    DEBUG_LOG("appPeerSigL2capProcessMarshal channel %u data %p size %u", channel, data, size);
 
 #ifdef DUMP_MARSHALL_DATA
     dump_buffer(data, size);
 #endif
-    
-    while (TaskList_IterateWithData(peer_sig->marshal_msg_channel_tasks, &task, &list_data))
+
+    mmcd = appPeerSigGetChannelData(channel);
+
+    if (mmcd->client_task)
     {
-        mmcd = list_data.ptr;
-        if (mmcd->msg_channel_id == channel)
+        UnmarshalSetBuffer(mmcd->unmarshaller, &data[PEER_SIG_MARSHAL_PAYLOAD_OFFSET], marshal_size); 
+
+        if (Unmarshal(mmcd->unmarshaller, &rx_msg, &type))
         {
-            marshal_type_t type;
-            void* rx_msg;
+            MAKE_MESSAGE(PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND);
 
-            UnmarshalSetBuffer(mmcd->unmarshaller, &data[PEER_SIG_MARSHAL_PAYLOAD_OFFSET], marshal_size); 
-
-            if (Unmarshal(mmcd->unmarshaller, &rx_msg, &type))
-            {
-//                size_t consumed = 0;
-                MAKE_MESSAGE(PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND);
-            
-//                consumed = UnmarshalConsumed(mmcd->unmarshaller);
-//                DEBUG_LOG("appPeerSigL2capProcessMarshal consumed %u type %u msg %p *msg %x", consumed, type, rx_msg, *(uint32*)rx_msg);
-
-                message->channel = channel;
-                message->msg = rx_msg;
-                message->type = type;
-                MessageSend(task, PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND, message);
-                UnmarshalClearStore(mmcd->unmarshaller);
-            }
-            break;
+            message->channel = channel;
+            message->msg = rx_msg;
+            message->type = type;
+            MessageSend(mmcd->client_task, PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND, message);
+            UnmarshalClearStore(mmcd->unmarshaller);
         }
     }
 }
@@ -1761,6 +1803,7 @@ static void appPeerSigL2capProcessData(void)
         const uint8 *data = SourceMap(source);
 
         uint8 type = PEER_SIG_GET_HEADER_TYPE(data[PEER_SIG_HEADER_OFFSET]);
+        peer_sig->rx_seq = data[PEER_SIG_TX_SEQ_NUMBER_OFFSET];
         uint16 opid = appPeerSigReadUint16(&data[PEER_SIG_OPID_OFFSET]);
 
         /*DEBUG_LOG("appPeerSigL2capProcessData type 0x%x opid 0x%x", type, opid);*/
@@ -1817,16 +1860,31 @@ static void appPeerSigHandleMMD(const MessageMoreData *mmd)
     }
 }
 
+/*! Check space in buffer and set/clear lock based on slack vs MTU. */
+static void appPeerSigSetLockBasedOnSinkSlack(void)
+{
+    peerSigTaskData *peer_sig = PeerSigGetTaskData();
+
+    uint16 slack = SinkSlack(peer_sig->link_sink);
+
+    if (slack < PEER_SIG_MARSHAL_MESSAGE_MTU)
+    {
+        DEBUG_LOG("appPeerSigSetLockBasedOnSinkSlack %u locking", slack);
+        peer_sig->lock |= peer_sig_lock_marshal;
+    }
+    else
+    {
+        peer_sig->lock &= ~peer_sig_lock_marshal;
+    }
+}
+
 /*! \brief Handle notification of more space in the peer signalling channel. */
 static void appPeerSigHandleMMS(const MessageMoreSpace *mms)
 {
     peerSigTaskData *peer_sig = PeerSigGetTaskData();
 
-    if ((mms->sink == peer_sig->link_sink) && (peer_sig->retx))
-    {
-        DEBUG_LOGF("PEER_SIG: MMS %u", SinkSlack(PeerSigGetTaskData()->link_sink));
-        appPeerSigHandleInternalMarshalledMsgChannelTxRequest(peer_sig->retx, TRUE);
-    }
+    PanicFalse(mms->sink == peer_sig->link_sink);
+    appPeerSigSetLockBasedOnSinkSlack();
 }
 
 /******************************************************************************
@@ -1964,37 +2022,26 @@ static void appPeerSigHandleInternalMsgChannelTxRequest(const PEER_SIG_INTERNAL_
 }
 
 /*! \brief Write the marshalled message header into a buffer. */
-static void appPeerSigWriteMarshalMsgChannelHeader(uint8* bufptr, peerSigMsgChannel channel)
+static void appPeerSigWriteMarshalMsgChannelHeader(uint8* bufptr, uint8 tx_seq, peerSigMsgChannel channel)
 {
     uint8 hdr = 0;
 
     bufptr[PEER_SIG_HEADER_OFFSET] = PEER_SIG_SET_HEADER_TYPE(hdr, PEER_SIG_TYPE_MARSHAL);
+    bufptr[PEER_SIG_TX_SEQ_NUMBER_OFFSET] = tx_seq;
+
     appPeerSigWriteUint32(&bufptr[PEER_SIG_MARSHAL_CHANNELID_OFFSET], channel);
 }
 
-/*! \brief Find the marshaller for a give marshalled message channel task. */
-static marshaller_t appPeerSigGetMsgChannelMarshaller(Task task)
-{
-    peerSigTaskData *peer_sig = PeerSigGetTaskData();
-    task_list_data_t data = {0};
-
-    if (TaskList_GetDataForTask(peer_sig->marshal_msg_channel_tasks, task, &data))
-    {
-        marshal_msg_channel_data_t* mmcd = (marshal_msg_channel_data_t*)data.ptr;
-        return mmcd->marshaller;
-    }
-    DEBUG_LOGF("appPeerSigGetMsgChannelMarshaller failed to find marshaller for task %x", task);
-    return NULL;
-}
-
 /*! \brief Attempt to marshal a message to the peer. */
-static void appPeerSigHandleInternalMarshalledMsgChannelTxRequest(
-                  const PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ_T* req, bool retx)
+static void appPeerSigMarshal(
+                    marshal_msg_channel_data_t *mmcd,
+                    marshal_type_t type,
+                    void *msg_ptr)
 {
     peerSigTaskData *peer_sig = PeerSigGetTaskData();
 
-    DEBUG_LOGF("appPeerSigHandleInternalMarshalledMsgChannelTxRequest chan %u msgptr %p type %u",
-                                req->channel, req->msg_ptr, req->type);
+    DEBUG_LOGF("appPeerSigMarshal chan %u msgptr %p type %u",
+                                mmcd->msg_channel_id, msg_ptr, type);
 
     switch (appPeerSigGetState())
     {
@@ -2003,73 +2050,63 @@ static void appPeerSigHandleInternalMarshalledMsgChannelTxRequest(
             marshaller_t marshaller;
             size_t space_required = 0;
             uint8* bufptr = NULL;
-                
+
             /* get the marshaller for this msg channel */
-            marshaller = PanicNull(appPeerSigGetMsgChannelMarshaller(req->client_task));
+            marshaller = PanicNull(mmcd->marshaller);
 
             /* determine how much space the marshaller will need in order to claim
              * it from the l2cap sink, then try and claim that amount */
             MarshalSetBuffer(marshaller, NULL, 0);
-            Marshal(marshaller, req->msg_ptr, req->type);
+            Marshal(marshaller, msg_ptr, type);
             space_required = MarshalRemaining(marshaller);
             bufptr = appPeerSigClaimSink(peer_sig->link_sink, PEER_SIG_MARSHAL_HEADER_SIZE + space_required);
+            PanicNull(bufptr);
 
-            if (bufptr)
-            {
-                /* write the marshal msg header */
-                appPeerSigWriteMarshalMsgChannelHeader(bufptr, req->channel);
+            /*Increment peer signalling tx sequence number*/
+            peer_sig->tx_seq++;
 
-                /* tell the marshaller where in the buffer it can write */
-                MarshalSetBuffer(marshaller, &bufptr[PEER_SIG_MARSHAL_PAYLOAD_OFFSET], space_required); 
+            /* write the marshal msg header */
+            appPeerSigWriteMarshalMsgChannelHeader(bufptr, peer_sig->tx_seq, mmcd->msg_channel_id);
 
-                /* actually marshal this time and flush the sink to transmit it */
-                PanicFalse(Marshal(marshaller, req->msg_ptr, req->type));
+            /* tell the marshaller where in the buffer it can write */
+            MarshalSetBuffer(marshaller, &bufptr[PEER_SIG_MARSHAL_PAYLOAD_OFFSET], space_required); 
+
+            /* actually marshal this time and flush the sink to transmit it */
+            PanicFalse(Marshal(marshaller, msg_ptr, type));
 #ifdef DUMP_MARSHALL_DATA
-                dump_buffer(bufptr, PEER_SIG_MARSHAL_HEADER_SIZE + space_required);
+            dump_buffer(bufptr, PEER_SIG_MARSHAL_HEADER_SIZE + space_required);
 #endif
-                SinkFlush(peer_sig->link_sink, PEER_SIG_MARSHAL_HEADER_SIZE + space_required);
+            SinkFlush(peer_sig->link_sink, PEER_SIG_MARSHAL_HEADER_SIZE + space_required);
 
-                /* clean the marshaller for next time */
-                MarshalClearStore(marshaller);
+            /* clean the marshaller for next time */
+            MarshalClearStore(marshaller);
 
-                /* tell the client the message was sent */
-                appPeerSigMarshalledMsgChannelTxCfm(req->client_task, req->msg_ptr, peerSigStatusSuccess, req->channel);
+            /* tell the client the message was sent */
+            appPeerSigMarshalledMsgChannelTxCfm(mmcd->client_task, type,
+                                                peerSigStatusSuccess, mmcd->msg_channel_id);
 
-                /* if this was a retx, then free the message and clear the lock to
-                 * enable other operations */
-                if (retx)
-                {
-                    DEBUG_LOG("appPeerSigHandleInternalMarshalledMsgChannelTxRequest retx success");
-                    free(peer_sig->retx);
-                    peer_sig->retx = NULL;
-                    peer_sig->lock &= ~peer_sig_lock_marshal;
-                }
-            }
-            else
-            {
-                DEBUG_LOG("appPeerSigHandleInternalMarshalledMsgChannelTxRequest no l2cap space (retx:%u)", retx);
-
-                /* if not a retx then remember the message and wait for more space in the l2cap */
-                if (!retx)
-                {
-                    MAKE_MESSAGE(PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ);
-                    memcpy(message, req, sizeof(PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ_T));
-                    peer_sig->retx = message;
-                    peer_sig->lock |= peer_sig_lock_marshal;
-                }
-            }
+            appPeerSigSetLockBasedOnSinkSlack();
         }
         break;
 
         default:
         {
-            DEBUG_LOG("appPeerSigHandleInternalMarshalledMsgChannelTxRequest not connected");
-            appPeerSigMarshalledMsgChannelTxCfm(req->client_task, req->msg_ptr,
+            DEBUG_LOG("appPeerSigMarshal not connected");
+            appPeerSigMarshalledMsgChannelTxCfm(mmcd->client_task, type,
                                                 peerSigStatusMarshalledMsgChannelTxFail,
-                                                req->channel);
+                                                mmcd->msg_channel_id);
         }
         break;
     }
+}
+
+/*! \brief Handler for per-channel task marshal messages. */
+static void appPeerSigHandleMarshalMessage(Task task, MessageId id, Message message)
+{
+    marshal_msg_channel_data_t *mmcd =
+        STRUCT_FROM_MEMBER(marshal_msg_channel_data_t, channel_task, task);
+
+    appPeerSigMarshal(mmcd, id, (void*)message);
 }
 
 /*! \brief Peer signalling task message handler.
@@ -2142,10 +2179,6 @@ static void appPeerSigHandleMessage(Task task, MessageId id, Message message)
             appPeerSigHandleInternalMsgChannelTxRequest((PEER_SIG_INTERNAL_MSG_CHANNEL_TX_REQ_T*)message);
             break;
 
-        case PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ:
-            appPeerSigHandleInternalMarshalledMsgChannelTxRequest((PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ_T*)message, FALSE);
-            break;
-
         default:
             DEBUG_LOGF("appPeerSigHandleMessage. Unhandled message 0x%04x (%d)",id,id);
             break;
@@ -2177,10 +2210,6 @@ bool appPeerSigInit(Task init_task)
     /* Create a TaskListWithData to track client tasks
      * for specific message channels. */
     peer_sig->msg_channel_tasks = TaskList_WithDataCreate();
-
-    /* Create a TaskListWithData to track client tasks for marshalling
-     * message channels. */
-    peer_sig->marshal_msg_channel_tasks = TaskList_WithDataCreate();
 
     /* Initialise task lists for connect and disconnect requests */
     TaskList_Initialise(&peer_sig->connect_tasks);
@@ -2316,50 +2345,32 @@ void appPeerSigHandsetCommandsTaskRegister(Task handset_commands_task)
     peer_sig->rx_handset_commands_task = handset_commands_task;
 }
 
-/*! \brief Register to receive PEER_SIG_MSG_CHANNEL_RX_IND messages for a channel mask.
+/*! \brief Register to receive PEER_SIG_MSG_CHANNEL_RX_IND messages for a channel.
 
-    \param[in] task         Task to receive incoming messages on the channels in channel_mask.
-    \param[in] channel_mask Mask of channels IDs registered to messages.
+    \param[in] task         Task to receive incoming messages on the channels in channel.
+    \param[in] channel      Channel to register.
  */
-void appPeerSigMsgChannelTaskRegister(Task task, peerSigMsgChannel channel_mask)
+void appPeerSigMsgChannelTaskRegister(Task task, peerSigMsgChannel channel)
 {
     peerSigTaskData* peer_sig = PeerSigGetTaskData();
-    task_list_data_t data = {0};
+    task_list_data_t data = {.u32 = channel};
 
-    if (TaskList_GetDataForTask(peer_sig->msg_channel_tasks, task, &data))
-    {
-        data.u32 |= channel_mask;
-        TaskList_SetDataForTask(peer_sig->msg_channel_tasks, task, &data);
-    }
-    else
-    {
-        data.u32 |= channel_mask;
-        TaskList_AddTaskWithData(peer_sig->msg_channel_tasks, task, &data);
-    }
+    PanicFalse(TaskList_AddTaskWithData(peer_sig->msg_channel_tasks, task, &data));
 }
 
-/*! \brief Stop receiving PEER_SIG_MSG_CHANNEL_RX_IND messages on a channel mask.
+/*! \brief Stop receiving PEER_SIG_MSG_CHANNEL_RX_IND messages on a channel.
 
-    \param[in] task         Task to stop receiving incoming messages for the channels in channel_mask.
-    \param     channel_mask Mask of channels IDs to unregister for messages.
+    \param[in] task         Task to stop receiving incoming messages for the channels in channel.
+    \param     channel      Channel IDs to unregister for messages.
 */
-void appPeerSigMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel_mask)
+void appPeerSigMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel)
 {
     peerSigTaskData* peer_sig = PeerSigGetTaskData();
     task_list_data_t data = {0};
 
-    if (TaskList_GetDataForTask(peer_sig->msg_channel_tasks, task, &data))
-    {
-        data.u32 &= ~channel_mask;
-        if (data.u32)
-        {
-            TaskList_SetDataForTask(peer_sig->msg_channel_tasks, task, &data);
-        }
-        else
-        {
-            TaskList_RemoveTask(peer_sig->msg_channel_tasks, task);
-        }
-    }
+    PanicFalse(TaskList_GetDataForTask(peer_sig->msg_channel_tasks, task, &data));
+    PanicFalse(data.u32 == channel);
+    PanicFalse(TaskList_RemoveTask(peer_sig->msg_channel_tasks, task));
 }
 
 /* Force peer signalling channel to disconnect if it is up. */
@@ -2371,58 +2382,38 @@ void appPeerSigDisconnect(Task task)
 }
 
 /*! \brief Register a task for a marshalled message channel(s). */
-void appPeerSigMarshalledMsgChannelTaskRegister(Task task, peerSigMsgChannel channel_mask,
+void appPeerSigMarshalledMsgChannelTaskRegister(Task task, peerSigMsgChannel channel,
                                                 const marshal_type_descriptor_t * const * type_desc,
                                                 size_t num_type_desc)
 {
-    peerSigTaskData *peer_sig = PeerSigGetTaskData();
-    marshal_msg_channel_data_t* mmcd = PanicUnlessMalloc(sizeof(marshal_msg_channel_data_t));
-    if (mmcd)
-    {
-        task_list_data_t data = {0};
-        mmcd->msg_channel_id = channel_mask;
-        mmcd->marshaller = PanicNull(MarshalInit(type_desc, num_type_desc));
-        mmcd->unmarshaller = PanicNull(UnmarshalInit(type_desc, num_type_desc));
-        data.ptr = mmcd;
-        DEBUG_LOG("MarshalInit %p for task %p", mmcd->marshaller, task);
-        PanicFalse((TaskList_AddTaskWithData(peer_sig->marshal_msg_channel_tasks, task, &data)));
-    }
+    marshal_msg_channel_data_t* mmcd = appPeerSigGetChannelData(channel);
+
+    mmcd->client_task = task;
+    mmcd->channel_task.handler = appPeerSigHandleMarshalMessage;
+    mmcd->msg_channel_id = channel;
+    mmcd->marshaller = PanicNull(MarshalInit(type_desc, num_type_desc));
+    mmcd->unmarshaller = PanicNull(UnmarshalInit(type_desc, num_type_desc));
+
+    DEBUG_LOG("MarshalInit %p for task %p", mmcd->marshaller, task);
 }
 
 /*! \brief Unregister peerSigMsgChannel(s) for the a marshalled message channel. */
-void appPeerSigMarshalledMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel_mask)
+void appPeerSigMarshalledMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel)
 {
-    peerSigTaskData *peer_sig = PeerSigGetTaskData();
-    task_list_data_t data = {0};
+    marshal_msg_channel_data_t* mmcd = appPeerSigGetChannelData(channel);
 
-    if (TaskList_GetDataForTask(peer_sig->marshal_msg_channel_tasks, task, &data))
+    PanicFalse(mmcd->client_task == task);
+
+    /* Destroy the (un)marshaller */
+    if (mmcd->marshaller)
     {
-        marshal_msg_channel_data_t* mmcd = data.ptr;
-
-        /* remove the channel(s) from the data associated with this task */
-        mmcd->msg_channel_id &= ~channel_mask;
-
-        if (mmcd->msg_channel_id)
-        {
-            /* still have some channels registered, so just update the data */
-            TaskList_SetDataForTask(peer_sig->marshal_msg_channel_tasks, task, &data);
-        }
-        else
-        {
-            /* no channels registered now, destroy the (un)marshaller, free the data
-             * and delete the task from the list. */
-            if (mmcd->marshaller)
-            {
-                MarshalDestroy(mmcd->marshaller, TRUE);
-            }
-            if (mmcd->unmarshaller)
-            {
-                UnmarshalDestroy(mmcd->unmarshaller, TRUE);
-            }
-            free(data.ptr);
-            TaskList_RemoveTask(peer_sig->marshal_msg_channel_tasks, task);
-        }
+        MarshalDestroy(mmcd->marshaller, TRUE);
     }
+    if (mmcd->unmarshaller)
+    {
+        UnmarshalDestroy(mmcd->unmarshaller, TRUE);
+    }
+    memset(mmcd, 0, sizeof(*mmcd));
 }
 
 /*! \brief Transmit a marshalled message channel message to the peer. */
@@ -2431,21 +2422,26 @@ void appPeerSigMarshalledMsgChannelTx(Task task,
                                       void* msg, marshal_type_t type)
 {
     peerSigTaskData *peer_sig = PeerSigGetTaskData();
-    MAKE_MESSAGE(PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ);
+    marshal_msg_channel_data_t* mmcd = appPeerSigGetChannelData(channel);
 
     DEBUG_LOG("appPeerSigMarshalledMsgChannelTx task %u channel %u type %u", task, channel, type);
 
+    PanicFalse(mmcd->client_task == task);
+
     checkPeerSigConnected(peer_sig, appPeerSigMarshalledMsgChannelTx);
 
-    message->client_task = task;
-    message->channel = channel;
-    message->msg_ptr = msg;
-    message->type = type;
+    /* Send to task, potentially blocked */
+    MessageSendConditionally(&mmcd->channel_task, type, msg, &peer_sig->lock);
+}
 
-    /* Send to task, potentially blocked on bringing up peer signalling channel */
-    MessageSendConditionally(&peer_sig->task,
-                             PEER_SIG_INTERNAL_MARSHALLED_MSG_CHANNEL_TX_REQ,
-                             message, &peer_sig->lock);
+void appPeerSigMarshalledMsgChannelTxCancelAll(Task task,
+                                               peerSigMsgChannel channel,
+                                               marshal_type_t type)
+{
+    marshal_msg_channel_data_t* mmcd = appPeerSigGetChannelData(channel);
+    PanicFalse(mmcd->client_task == task);
+
+    MessageCancelAll(&mmcd->channel_task, type);
 }
 
 /*! \brief Test if peer signalling is connected to a peer. */
@@ -2459,4 +2455,16 @@ Sink appPeerSigGetSink(void)
 {
     peerSigTaskData *peer_sig = PeerSigGetTaskData();
     return peer_sig->link_sink;
+}
+
+uint8 appPeerSigGetLastTxMsgSequenceNumber(void)
+{
+    peerSigTaskData *peer_sig = PeerSigGetTaskData();
+    return peer_sig->tx_seq;
+}
+
+uint8 appPeerSigGetLastRxMsgSequenceNumber(void)
+{
+    peerSigTaskData *peer_sig = PeerSigGetTaskData();
+    return peer_sig->rx_seq;
 }

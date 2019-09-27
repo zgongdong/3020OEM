@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2004 - 2015 Qualcomm Technologies International, Ltd.
+Copyright (c) 2004 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -23,7 +23,7 @@ NOTES
 
 
 /*****************************************************************************/
-void ConnectionSetRole(Task task, Sink sink, hci_role role)
+void ConnectionSetRole(Task theAppTask, Sink sink, hci_role role)
 {
 #ifdef CONNECTION_DEBUG_LIB    
     if (sink == 0)
@@ -39,13 +39,32 @@ void ConnectionSetRole(Task task, Sink sink, hci_role role)
 
     {
         MAKE_CL_MESSAGE(CL_INTERNAL_DM_SET_ROLE_REQ);
-        message->theAppTask = task;
+        message->theAppTask = theAppTask;
         message->sink = sink;
         message->role = role;
+		/* message->bd_addr does not need to be set. */
         MessageSend(connectionGetCmTask(), CL_INTERNAL_DM_SET_ROLE_REQ, message);
     }
 }
 
+void ConnectionSetRoleBdaddr(Task theAppTask, const bdaddr *bd_addr, hci_role role)
+{
+#ifdef CONNECTION_DEBUG_LIB    
+    if (role > hci_role_dont_care)
+    {
+        CL_DEBUG(("Invalid role passed in\n"));
+    }
+#endif 
+
+    {
+        MAKE_CL_MESSAGE(CL_INTERNAL_DM_SET_ROLE_REQ);
+        message->theAppTask = theAppTask;
+        message->sink = (Sink)NULL; /* make sink to NULL to use bd_addr instead */
+        message->role = role;
+        message->bd_addr = *bd_addr;
+        MessageSend(connectionGetCmTask(), CL_INTERNAL_DM_SET_ROLE_REQ, message);
+    }
+}
 
 /*****************************************************************************/
 void ConnectionSetLinkSupervisionTimeout(Sink sink, uint16 timeout)

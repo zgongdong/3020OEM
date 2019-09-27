@@ -1,5 +1,6 @@
 var structtws__topology__goal__entry__t =
 [
+    [ "concurrent_goals_mask", "structtws__topology__goal__entry__t.html#a569905a869e6998e63b0289cee2136d4", null ],
     [ "contention", "structtws__topology__goal__entry__t.html#aa9eedd6627b31a2df0d2b8bd87b4438a", null ],
     [ "exclusive_goal", "structtws__topology__goal__entry__t.html#a7d0669fa97805720cd8bcad6e73bd9ec", null ],
     [ "failed_event", "structtws__topology__goal__entry__t.html#a98d6e5125a9d934a8b13f475efe9b6c7", null ],

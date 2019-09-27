@@ -23,6 +23,7 @@
 #include "earbud_log.h"
 #include "earbud_chain_roles.h"
 #include "earbud_latency.h"
+#include "microphones.h"
 #include <opmsg_prim.h>
 
 /*! \brief Macro to help getting an operator from chain.
@@ -500,5 +501,9 @@ void appKymeraSelectSpcSwitchInput(Operator op, micSelection input);
 void OperatorsAwbsSetBitpoolValue(Operator op, uint16 bitpool, bool decoder);
 unsigned AudioConfigGetMicrophoneBiasVoltage(mic_bias_id id);
 void AudioConfigSetRawDacGain(audio_output_t channel, uint32 raw_gain);
+
+Source Kymera_GetMicrophoneSource(microphone_number_t microphone_number, Source source_to_synchronise_with, uint32 sample_rate,
+                                        microphone_user_type_t microphone_user_type);
+void Kymera_CloseMicrophone(microphone_number_t microphone_number, microphone_user_type_t microphone_user_type);
 
 #endif /* KYMERA_PRIVATE_H */

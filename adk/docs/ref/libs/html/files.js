@@ -28,6 +28,7 @@ var files =
     [ "fm_rx_api", "dir_c5cc9c3a16bd06661e23846085f4033f.html", "dir_c5cc9c3a16bd06661e23846085f4033f" ],
     [ "gaia", "dir_eefad341fb4217cea539e94fdd86d73b.html", "dir_eefad341fb4217cea539e94fdd86d73b" ],
     [ "gain_utils", "dir_6c8c262f7c3c813c543a3fb01970b3b0.html", "dir_6c8c262f7c3c813c543a3fb01970b3b0" ],
+    [ "gatt_ams_client", "dir_6fddadcffcea9c2e393ca0f8a725396a.html", "dir_6fddadcffcea9c2e393ca0f8a725396a" ],
     [ "gatt_apple_notification_client", "dir_4a1b0fe8d32fde05fe3b072283aa1bb7.html", "dir_4a1b0fe8d32fde05fe3b072283aa1bb7" ],
     [ "gatt_battery_client", "dir_c86852616926491d4ca169948069d282.html", "dir_c86852616926491d4ca169948069d282" ],
     [ "gatt_battery_server", "dir_f2204cbd8a0880f5172d905d69c37ca1.html", "dir_f2204cbd8a0880f5172d905d69c37ca1" ],

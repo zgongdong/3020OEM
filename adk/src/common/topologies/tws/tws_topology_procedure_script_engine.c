@@ -27,8 +27,6 @@
 #define NEXT_PROCEDURE(script)          ((SCRIPT_PROCEDURES(script)[NEXT_SCRIPT_STEP]))
 #define NEXT_PROCEDURE_DATA(script)     ((SCRIPT_PROCEDURES_DATA(script)[NEXT_SCRIPT_STEP]))
 
-const Message no_proc_data;
-
 typedef enum
 {
     proc_script_engine_idle,
@@ -111,17 +109,38 @@ static void twsTopology_ProcScriptEngineCompleteCfm(tws_topology_procedure proc,
     twsTopProcScriptTaskData* td = TwsTopProcScriptGetTaskData();
     DEBUG_LOG("twsTopology_ProcScriptEngineCompleteCfm proc %x, result %u", proc, result);
 
-    if (result != proc_result_success)
-    {
-        DEBUG_LOG("twsTopology_ProcScriptEngineCompleteCfm step %u failed to complete", td->next_step);
-        Panic();
-    }
-
-    /* as long as engine is still active, process next step in the script */
+    /* Only process if we're active */
     if (td->state == proc_script_engine_active)
     {
-        NEXT_SCRIPT_STEP++;
-        twsTopology_ProcScriptEngineNextStep();
+        switch (result)
+        {
+            case proc_result_success:
+                NEXT_SCRIPT_STEP++;
+                twsTopology_ProcScriptEngineNextStep();
+                return;
+
+            case proc_result_timeout:
+                {
+                    /* Script step timed out. Finish the script and forward the timeout status. 
+                       If there is an associted timeout event the goals handler will
+                       generate this */
+                    DEBUG_LOG("twsTopology_ProcScriptEngineCompleteCfm step %u timed out, ending script", td->next_step);
+
+                    twsTopology_ProcScriptEngineReset();
+                    td->complete_fn(td->proc, proc_result_timeout);
+                }
+                return;
+
+            case proc_result_failed:
+                DEBUG_LOG("twsTopology_ProcScriptEngineCompleteCfm step %u failed", td->next_step);
+                Panic();
+                return;
+        }
+        /* No default case in the switch as compilers and static analysis will
+           report if an addition proc_result_t enum is added. But we do Panic()
+           in case those warnings are missed or ignored.
+         */
+        Panic();
     }
 }
 

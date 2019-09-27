@@ -55,7 +55,7 @@ typedef struct
 twsTopProcProhibitBtTaskData twstop_proc_prohibit_bt = {twsTopology_ProcProhibitBtHandleMessage};
 
 #define TWS_TOP_PROC_PROHIBIT_BREDR_SCAN    (1 << 0)
-#define TWS_TOP_PROC_PROHIBIT_LE_SCAN       0//(1 << 1)  /*! \todo No scan message yet */
+#define TWS_TOP_PROC_PROHIBIT_LE_SCAN       (1 << 1)
 #define TWS_TOP_PROC_PROHIBIT_ADVERTISING   (1 << 2)
 
 #define TwsTopProcProhibitBtGetTaskData()     (&twstop_proc_prohibit_bt)
@@ -84,7 +84,7 @@ void TwsTopology_ProcedureProhibitBtStart(Task result_task,
 
     BredrScanManager_ScanDisable(TwsTopProcProhibitBtGetTask());
     LeAdvertisingManager_AllowAdvertising(TwsTopProcProhibitBtGetTask(), FALSE);
-//    LeScanManager_Disable();
+    LeScanManager_Disable(TwsTopProcProhibitBtGetTask());
 
     td->pending_prohibitions =   TWS_TOP_PROC_PROHIBIT_BREDR_SCAN
                                | TWS_TOP_PROC_PROHIBIT_LE_SCAN
@@ -140,6 +140,27 @@ static void twsTopology_ProcProhibitBtHandleLeAdvManagerAllowCfm(const LE_ADV_MG
 }
 
 
+static void twsTopology_ProcPermitBtHandleLeScanManagerDisableCfm(const LE_SCAN_MANAGER_DISABLE_CFM_T *cfm)
+{
+    DEBUG_LOG("twsTopology_ProcPermitBtHandleLeScanManagerDisableCfm %u", cfm->status);
+
+    switch (cfm->status)
+    {
+    case LE_SCAN_MANAGER_RESULT_SUCCESS:
+        TwsTopProcProhibitBtGetTaskData()->pending_prohibitions &= ~TWS_TOP_PROC_PROHIBIT_LE_SCAN;
+        break;
+
+    case LE_SCAN_MANAGER_RESULT_BUSY:
+        /* Retry the disable until it works. */
+        LeScanManager_Disable(TwsTopProcProhibitBtGetTask());
+        break;
+
+    default:
+        Panic();
+    }
+}
+
+
 static void twsTopology_ProcProhibitBtHandleMessage(Task task, MessageId id, Message message)
 {
     twsTopProcProhibitBtTaskData* td = TwsTopProcProhibitBtGetTaskData();
@@ -165,6 +186,10 @@ static void twsTopology_ProcProhibitBtHandleMessage(Task task, MessageId id, Mes
 
         case LE_ADV_MGR_ALLOW_ADVERTISING_CFM:
             twsTopology_ProcProhibitBtHandleLeAdvManagerAllowCfm((const LE_ADV_MGR_ALLOW_ADVERTISING_CFM_T*)message);
+            break;
+
+        case LE_SCAN_MANAGER_DISABLE_CFM:
+            twsTopology_ProcPermitBtHandleLeScanManagerDisableCfm((const LE_SCAN_MANAGER_DISABLE_CFM_T *)message);
             break;
 
         default:

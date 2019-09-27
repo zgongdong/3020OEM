@@ -300,7 +300,7 @@ static void appA2dpEnterConnectingLocal(avInstanceTaskData *theInst)
     theInst->detach_pending = FALSE;
 
     /* Set locally initiated flag */
-    theInst->a2dp.local_initiated = TRUE;
+    theInst->a2dp.bitfields.local_initiated = TRUE;
 }
 
 /*! \brief Exit A2DP_STATE_CONNECTING_LOCAL
@@ -338,7 +338,7 @@ static void appA2dpEnterConnectingRemote(avInstanceTaskData *theInst)
     theInst->detach_pending = FALSE;
 
     /* Clear locally initiated flag */
-    theInst->a2dp.local_initiated = FALSE;
+    theInst->a2dp.bitfields.local_initiated = FALSE;
 }
 
 /*! \brief Exit A2DP_STATE_CONNECTING_REMOTE
@@ -427,7 +427,7 @@ static void appA2dpEnterConnectedSignalling(avInstanceTaskData *theInst)
     theInst->a2dp.stream_id = 0;
 
     if (appAvInstanceShouldConnectMediaChannel(theInst, &seid) ||
-        (theInst->a2dp.flags & A2DP_CONNECT_MEDIA))
+        (theInst->a2dp.bitfields.flags & A2DP_CONNECT_MEDIA))
     {
         /* Connect media channel */
         MAKE_AV_MESSAGE(AV_INTERNAL_A2DP_CONNECT_MEDIA_REQ);
@@ -930,7 +930,7 @@ static void appA2dpExitDisconnected(avInstanceTaskData *theInst)
     DEBUG_LOGF("appA2dpExitDisconnected(%p)", (void *)theInst);
 
     /* Reset disconnect reason */
-    theInst->a2dp.disconnect_reason = AV_A2DP_INVALID_REASON;
+    theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_INVALID_REASON;
 
     /* Clear any queued AV_INTERNAL_A2DP_DESTROY_REQ messages, as we are exiting the
        'destroyed' state, probably due to a incoming connection */
@@ -1155,8 +1155,8 @@ static void appA2dpHandleInternalA2dpConnectRequest(avInstanceTaskData *theInst,
                 DEBUG_LOGF("appA2dpHandleInternalA2dpConnectRequest(%p), ACL connected", theInst);
 
                 /* Store connection parameters */
-                theInst->a2dp.flags = req->flags;
-                theInst->a2dp.connect_retries = req->num_retries;
+                theInst->a2dp.bitfields.flags = req->flags;
+                theInst->a2dp.bitfields.connect_retries = req->num_retries;
 
                 /* Request outgoing connection */
                 A2dpSignallingConnectRequestWithTask(&theInst->bd_addr, &theInst->av_task);
@@ -1317,7 +1317,7 @@ static void appA2dpHandleInternalA2dpDisconnectRequest(avInstanceTaskData *theIn
         case A2DP_STATE_CONNECTED_MEDIA_SUSPENDED:
         {
             /* Store flags */
-            theInst->a2dp.flags |= req->flags;
+            theInst->a2dp.bitfields.flags |= req->flags;
 
             /* Move to 'disconnecting' state */
             appA2dpSetState(theInst, A2DP_STATE_DISCONNECTING);
@@ -1470,7 +1470,7 @@ static void appA2dpHandleInternalA2dpSignallingConnectIndication(avInstanceTaskD
             theInst->a2dp.device_id = ind->device_id;
 
             /* Store connection flags */
-            theInst->a2dp.flags = ind->flags;
+            theInst->a2dp.bitfields.flags = ind->flags;
 
             /* Accept incoming connection */
             A2dpSignallingConnectResponseWithTask(theInst->a2dp.device_id, TRUE, &theInst->av_task);
@@ -1657,16 +1657,16 @@ static void appA2dpHandleA2dpSignallingConnectConfirm(avInstanceTaskData *theIns
                 else
                 {
                     /* Set disconnect reason */
-                    theInst->a2dp.disconnect_reason = AV_A2DP_CONNECT_FAILED;
+                    theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_CONNECT_FAILED;
 
                     /* Check if we should retry */
-                    if (theInst->a2dp.connect_retries)
+                    if (theInst->a2dp.bitfields.connect_retries)
                     {
                         MAKE_AV_MESSAGE(AV_INTERNAL_A2DP_CONNECT_REQ);
 
                         /* Send message to retry connecting this AV instance */
-                        message->num_retries = theInst->a2dp.connect_retries - 1;
-                        message->flags = theInst->a2dp.flags;
+                        message->num_retries = theInst->a2dp.bitfields.connect_retries - 1;
+                        message->flags = theInst->a2dp.bitfields.flags;
                         MessageCancelFirst(&theInst->av_task, AV_INTERNAL_A2DP_CONNECT_REQ);
                         MessageSendConditionally(&theInst->av_task, AV_INTERNAL_A2DP_CONNECT_REQ, message,
                                                  ConManagerCreateAcl(&theInst->bd_addr));
@@ -1728,7 +1728,7 @@ static void appA2dpHandleA2dpSignallingDisconnectInd(avInstanceTaskData *theInst
                 appAvSendUiMessageId(AV_LINK_LOSS);
 
                 /* Set disconnect reason */
-                theInst->a2dp.disconnect_reason = AV_A2DP_DISCONNECT_LINKLOSS;
+                theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_DISCONNECT_LINKLOSS;
             }
             else if (ind->status == a2dp_success)
             {
@@ -1739,7 +1739,7 @@ static void appA2dpHandleA2dpSignallingDisconnectInd(avInstanceTaskData *theInst
                 }
 
                 /* Set disconnect reason */
-                theInst->a2dp.disconnect_reason = AV_A2DP_DISCONNECT_NORMAL;
+                theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_DISCONNECT_NORMAL;
             }
             else
             {
@@ -1750,7 +1750,7 @@ static void appA2dpHandleA2dpSignallingDisconnectInd(avInstanceTaskData *theInst
                 }
 
                 /* Set disconnect reason */
-                theInst->a2dp.disconnect_reason = AV_A2DP_DISCONNECT_ERROR;
+                theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_DISCONNECT_ERROR;
             }
 
             /* Move to 'disconnected' state */
@@ -1763,13 +1763,22 @@ static void appA2dpHandleA2dpSignallingDisconnectInd(avInstanceTaskData *theInst
         case A2DP_STATE_DISCONNECTED:
         {
             /* Play disconnected UI if not the peer */
-            if (!appDeviceIsPeer(&theInst->bd_addr))
+            if (!appDeviceIsPeer(&theInst->bd_addr) && 
+                ind->status != a2dp_disconnect_transferred)
             {
                 appAvSendUiMessageId(AV_DISCONNECTED);
             }
 
-            /* Set disconnect reason */
-            theInst->a2dp.disconnect_reason = AV_A2DP_DISCONNECT_NORMAL;
+            if(ind->status == a2dp_disconnect_transferred)
+            {
+                /* Set disconnect reason for link transferred during handover */
+                theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_DISCONNECT_LINK_TRANSFERRED;
+            }
+            else
+            {
+                /* Set disconnect reason for normal disconnection */
+                theInst->a2dp.bitfields.disconnect_reason = AV_A2DP_DISCONNECT_NORMAL;
+            }
 
             /* Move to 'disconnected' state */
             appA2dpSetState(theInst, A2DP_STATE_DISCONNECTED);
@@ -2456,6 +2465,10 @@ static void appA2dpHandleA2dpMediaCloseIndication(avInstanceTaskData *theInst,
         case A2DP_STATE_DISCONNECTING:
         {
             /* Media channel disconnected, wait for signalling channel to disconnect */
+            if(ind->status == a2dp_disconnect_transferred)
+            {
+                DEBUG_LOG("appA2dpHandleA2dpMediaCloseIndication Media closed due to link transfer");
+            }
         }
         return;
 
@@ -2616,12 +2629,12 @@ void appA2dpInstanceInit(avInstanceTaskData *theAv, uint8 suspend_state)
 {
     theAv->a2dp.state = A2DP_STATE_DISCONNECTED;
     theAv->a2dp.current_seid = AV_SEID_INVALID;
-    theAv->a2dp.flags = 0;
+    theAv->a2dp.bitfields.flags = 0;
     theAv->a2dp.lock = 0;
     theAv->a2dp.sync_counter = 0;
     theAv->a2dp.suspend_state = suspend_state;
-    theAv->a2dp.local_initiated = FALSE;
-    theAv->a2dp.disconnect_reason = AV_A2DP_DISCONNECT_NORMAL;
+    theAv->a2dp.bitfields.local_initiated = FALSE;
+    theAv->a2dp.bitfields.disconnect_reason = AV_A2DP_DISCONNECT_NORMAL;
 
     /* No profile instance yet */
     theAv->a2dp.device_id = INVALID_DEVICE_ID;

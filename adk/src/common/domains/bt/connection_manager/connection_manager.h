@@ -37,20 +37,27 @@ typedef enum
     cm_transport_all = cm_transport_bredr | cm_transport_ble
 } cm_transport_t;
 
-/*! \brief QoS settings */
+/*! \brief QoS settings 
+
+    Values of settings in this enum are important. Where two
+    conflicting QoS settings are requested, the higher value
+    setting will override the lower value setting.
+*/
 typedef enum
 {
     /*! Invalid QoS */
-    cm_qos_invalid      = 0,
+    cm_qos_invalid              = 0,
     /*! Optimise for low power */
-    cm_qos_low_power    = 1,
+    cm_qos_low_power            = 1,
     /*! Optimise for low latency */
-    cm_qos_low_latency  = 2,
+    cm_qos_low_latency          = 2,
     /*! Optimise for audio data */
-    cm_qos_audio        = 3,
+    cm_qos_audio                = 3,
+    /*! Optimise for short data exchange */
+    cm_qos_short_data_exchange  = 4,
     /*! Always accept remote device's settings, use 
         cm_qos_low_power for outgoing connections */
-    cm_qos_passive      = 4,
+    cm_qos_passive              = 5,
     /*! Max QoS (always last) */
     cm_qos_max
 } cm_qos_t;
@@ -67,9 +74,16 @@ enum    av_headset_conn_manager_messages
     /*! Message ID for a \ref CON_MANAGER_TP_DISCONNECT_IND_T message sent when
         an ACL is disconnected */
     CON_MANAGER_TP_DISCONNECT_IND,
+    /*! Message ID for a \ref CON_MANAGER_TP_DISCONNECT_REQUESTED_IND_T message sent when
+        an ACL disconnect has been requested */
+    CON_MANAGER_TP_DISCONNECT_REQUESTED_IND,
     /*! Message ID sent when all ACLs have been disconnected. This message is 
         sent even if there were no ACLs to disconnect */
     CON_MANAGER_CLOSE_ALL_CFM,
+    /*! Message ID sent when handset connections are allowed */
+    CON_MANAGER_HANDSET_CONNECT_ALLOW_IND,
+    /*! Message ID sent when handset connections are not allowed */
+    CON_MANAGER_HANDSET_CONNECT_DISALLOW_IND,
 };
 
 /*! Definition of message sent to clients to indicate connection status. */
@@ -91,6 +105,8 @@ typedef struct
 {
     /*! Transport Bluetooth Address of connected device. */
     tp_bdaddr tpaddr;
+    /*! Whether this connection is incoming */
+    bool      incoming;
 } CON_MANAGER_TP_CONNECT_IND_T;
 
 /*! Definition of message sent to clients to indicate disconnection. */
@@ -101,6 +117,13 @@ typedef struct
     /*! Reason given for disconnection. */
     hci_status reason;
 } CON_MANAGER_TP_DISCONNECT_IND_T;
+
+/*! Definition of message sent to clients to indicate disconnect requested */
+typedef struct
+{
+    /*! Transport Bluetooth Address of disconnect requested device. */
+    tp_bdaddr tpaddr;
+} CON_MANAGER_TP_DISCONNECT_REQUESTED_IND_T;
 
 /*! \brief Initialise the connection manager module.
  */
@@ -172,6 +195,12 @@ void ConManagerQueryHandsetTwsVersion(const bdaddr *bd_addr);
  */
 void ConManagerRegisterConnectionsClient(Task client_task);
 
+/*! \brief Unregister a client task to stop receiving notifications of connections.
+
+    \param[in] client_task Task to unregister.
+ */
+void ConManagerUnregisterConnectionsClient(Task client_task);
+
 /*! \brief Query if a device is currently connected.
 
     \param[in] addr Pointer to a BT address.
@@ -187,6 +216,14 @@ bool ConManagerIsConnected(const bdaddr *addr);
     \return bool TRUE ACL to device was locally initiated, FALSE is remotely initiated.
  */
 bool ConManagerIsAclLocal(const bdaddr *addr);
+
+/*! \brief Query if a ACL to device was locally initiated.
+
+    \param[in] tpaddr Pointer to a BT address.
+
+    \return bool TRUE ACL to device was locally initiated, FALSE is remotely initiated.
+ */
+bool ConManagerIsTpAclLocal(const tp_bdaddr *tpaddr);
 
 /*! \brief Set the link policy per-connection state.
 
@@ -278,6 +315,40 @@ void ConManagerReleaseTpAcl(const tp_bdaddr *tpaddr);
     \param[in] client_task Task which will receive notifications
  */
 void ConManagerRegisterTpConnectionsObserver(cm_transport_t transport_mask, Task client_task);
+
+/*! \brief Unregister a client task to stop receiving notifications of connections and disconnections.
+ 
+    Client will no longer receive:
+    - CON_MANAGER_TP_CONNECT_IND
+    - CON_MANAGER_TP_DISCONNECT_IND
+
+    \param[in] transport_mask The transport(s) to unregister from notifications.
+    \param[in] client_task Task to unregister from notifications.
+*/
+void ConManagerUnregisterTpConnectionsObserver(cm_transport_t transport_mask, Task client_task);
+
+/*! \brief Register a client task to receive notifications of 
+    connections allowed or dis-allowed
+    
+    Clients will receive:
+    - CON_MANAGER_HANDSET_CONNECT_ALLOW_IND
+    - CON_MANAGER_HANDSET_CONNECT_DISALLOW_IND
+
+    \param[in] client_task Task which will receive notifications
+ */
+
+void ConManagerRegisterAllowedConnectionsObserver(Task client_task);
+
+/*! \brief Unregister a client task to stop receiving notifications of 
+    connections allowed or dis-allowed
+    
+    Clients will receive:
+    - CON_MANAGER_HANDSET_CONNECT_ALLOW_IND
+    - CON_MANAGER_HANDSET_CONNECT_DISALLOW_IND
+
+    \param[in] client_task Task to unregister from notifications
+ */
+void ConManagerUnregisterAllowedConnectionsObserver(Task client_task);
 
 
 /*! \brief Check if there are any CONNECTED links on a given transport

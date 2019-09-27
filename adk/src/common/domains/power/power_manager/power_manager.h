@@ -50,7 +50,6 @@ typedef struct
 {
     TaskData task;                /*!< Task for Power control messages */
     task_list_with_data_t clients;/*!< List of client tasks */
-    task_list_t ui_clients;       /*!< List of ui client tasks */
     bool allow_dormant;           /*!< Flag that can be modified during testing to disable dormant */
     uint32 performance_req_count; /*!< Counts the number of requestors for VM_PERFORMANCE profile */
     powerState state;             /*!< The state */
@@ -85,17 +84,6 @@ enum powerClientMessages
         Will be sent to clients after all clients have responded to
         #POWER_SHUTDOWN_PREPARE_IND. No response required. */
     APP_POWER_SHUTDOWN_CANCELLED_IND,
-};
-
-/*! Power UI message, delivered via message broker registration to UI clients. */
-enum powerUiMessages
-{
-    /*! Powering off */
-    POWER_OFF_MSG = POWER_UI_MESSAGE_BASE,
-    /*! Going to sleep */
-    POWER_SLEEP,
-    /*! Powering on */
-    POWER_ON
 };
 
 /*! \brief Power ui provider contexts */

@@ -23,9 +23,9 @@ extern const bredr_scan_manager_parameters_t page_scan_params;
 /*! Time for Primary to wait for BR/EDR ACL connection to handset. */
 #define TwsTopologyConfig_PrimaryHandsetConnectTimeoutMs()   (5000)
 
-#ifdef INCLUDE_SHADOWING
-#define TwsTopologyConfig_PeerProfiles() (DEVICE_PROFILE_PEERSIG)
-#else
+/*! Time for Primary to wait for BR/EDR ACL connection to be made by the Secondary
+    following role selection, before falling back to retry role selection. */
+#define TwsTopologyConfig_PrimaryPeerConnectTimeoutMs()     (10240)
+
 #define TwsTopologyConfig_PeerProfiles() (DEVICE_PROFILE_A2DP | DEVICE_PROFILE_SCOFWD | DEVICE_PROFILE_PEERSIG)
-#endif
 

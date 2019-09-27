@@ -29,6 +29,13 @@ typedef enum
     profile_manager_cancelled
 } profile_manager_request_cfm_result_t;
 
+typedef enum
+{
+    profile_manager_disconnected_normal,
+    profile_manager_disconnected_link_loss,
+    profile_manager_disconnected_error
+} profile_manager_disconnected_ind_reason_t;
+
 enum profile_manager_messages
 {
     CONNECT_PROFILES_CFM = PROFILE_MANAGER_MESSAGE_BASE,
@@ -60,6 +67,7 @@ typedef struct
 {
     device_t device;
     unsigned profile;
+    profile_manager_disconnected_ind_reason_t reason;
 } DISCONNECTED_PROFILE_IND_T;
 
 typedef struct

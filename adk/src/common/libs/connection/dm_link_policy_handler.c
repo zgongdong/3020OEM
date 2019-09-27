@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2004 - 2015 Qualcomm Technologies International, Ltd.
+Copyright (c) 2004 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -35,7 +35,9 @@ static void sendRoleCfmToClient(
         Task client,
         hci_status status,
         hci_role role,
-        Sink sink
+        Sink sink,
+        bdaddr *bd_addr,
+        cl_role_cfm_type type
         )
 {
     if (client)
@@ -44,43 +46,29 @@ static void sendRoleCfmToClient(
         message->status = status;
         message->role = role;
         message->sink = sink;
+        message->bd_addr = *bd_addr;
+        message->cfmtype = type;
         MessageSend(client, CL_DM_ROLE_CFM, message);
     }
 }
 
 
 /*****************************************************************************/
-static bool sendSetRoleRequest(Sink sink, hci_role role)
+static void sendSetRoleRequest(const bdaddr* bd_addr, hci_role role)
 {
-    tp_bdaddr    tpaddr;
-
-    if (SinkGetBdAddr(sink, &tpaddr))
-    {
-        MAKE_PRIM_C(DM_HCI_SWITCH_ROLE_REQ);
-        BdaddrConvertVmToBluestack(&prim->bd_addr, &tpaddr.taddr.addr);
-        prim->role = connectionConvertHciRole_t(role);
-        VmSendDmPrim(prim);
-
-        return TRUE;
-    }
-    return FALSE;
+    MAKE_PRIM_C(DM_HCI_SWITCH_ROLE_REQ);
+    BdaddrConvertVmToBluestack(&prim->bd_addr, bd_addr);
+    prim->role = connectionConvertHciRole_t(role);
+    VmSendDmPrim(prim);
 }
 
 
 /*****************************************************************************/
-static bool sendGetRoleRequest(Sink sink)
+static void sendGetRoleRequest(const bdaddr* bd_addr)
 {
-    tp_bdaddr    tpaddr;
-
-    if (SinkGetBdAddr(sink, &tpaddr))
-    {
-        MAKE_PRIM_C(DM_HCI_ROLE_DISCOVERY_REQ);
-        BdaddrConvertVmToBluestack(&prim->bd_addr, &tpaddr.taddr.addr);
-        VmSendDmPrim(prim);
-
-        return TRUE;
-    }
-    return FALSE;
+    MAKE_PRIM_C(DM_HCI_ROLE_DISCOVERY_REQ);
+    BdaddrConvertVmToBluestack(&prim->bd_addr, bd_addr);
+    VmSendDmPrim(prim);
 }
 
 
@@ -137,18 +125,39 @@ void connectionHandleLinkPolicySetRoleReq(
 {
     if(!linkPolicyState->roleLock)
     {
-        /* Set the requested role by sending a request to Bluestack*/
-        if (!sendSetRoleRequest(req->sink, req->role))
-            /* If the client passed us an invalid sink tell it */
+        tp_bdaddr sinkaddr;
+        
+        /* If there is a sink, retrive the device address for that sink  
+           and check is valid. */
+        if (req->sink && !SinkGetBdAddr(req->sink, &sinkaddr))
+        {       
+            /* If the client passed us an invalid sink so tell it */
             sendRoleCfmToClient(
                     connectionGetAppTask(),
                     hci_error_no_connection,
                     req->role,
-                    req->sink
+                    req->sink,
+                    &req->bd_addr,
+                    cl_role_set
                     );
+        }
         else
-            /* Otherwise set the resource lock */
-            linkPolicyState->roleLock = req->sink;
+        {
+            /* Send DM prim, if sink is set use device address retrieved
+               for that sink, else used address passed in message */
+            if (req->sink)
+            {
+                sendSetRoleRequest(&sinkaddr.taddr.addr, req->role);
+                /* Set the resource lock */
+                linkPolicyState->roleLock = req->sink;
+            }
+            else
+            {
+                sendSetRoleRequest(&req->bd_addr, req->role);
+                /* Set the resource lock as unknown sink*/
+                linkPolicyState->roleLock = CL_INVALID_SINK;     
+            }
+        }
     }
     else
     {
@@ -156,11 +165,11 @@ void connectionHandleLinkPolicySetRoleReq(
            message to queue request for processing later */
         MAKE_CL_MESSAGE(CL_INTERNAL_DM_SET_ROLE_REQ);
         COPY_CL_MESSAGE(req, message);
-        MessageSendConditionallyOnTask(
+        MessageSendConditionally(
                 connectionGetCmTask(),
                 CL_INTERNAL_DM_SET_ROLE_REQ,
                 message,
-                (Task*) &linkPolicyState->roleLock
+                (uint16*) &linkPolicyState->roleLock
                 );
     }
 }
@@ -174,18 +183,39 @@ void connectionHandleLinkPolicyGetRoleReq(
 {
     if(!linkPolicyState->roleLock)
     {
-        /* Get the requested role by sending a request to Bluestack*/
-        if (!sendGetRoleRequest(req->sink))
-            /* If the client passed us an invalid sink tell it */
+        tp_bdaddr sinkaddr;
+        
+        /* If there is a sink, retrive the device address for that sink  
+           and check is valid. */
+        if (req->sink && !SinkGetBdAddr(req->sink, &sinkaddr))
+        {       
+            /* If the client passed us an invalid sink so tell it */
             sendRoleCfmToClient(
                     connectionGetAppTask(),
                     hci_error_no_connection,
                     hci_role_dont_care,
-                    req->sink
+                    req->sink,
+                    &req->bd_addr,
+                    cl_role_get
                     );
+        }
         else
-            /* Otherwise set the resource lock */
-            linkPolicyState->roleLock = req->sink;
+        {
+            /* Send DM prim, if sink is set use device address retrieved
+               for that sink, else used address passed in message */
+            if (req->sink)
+            {
+                sendGetRoleRequest(&sinkaddr.taddr.addr);
+                /* Set the resource lock */
+                linkPolicyState->roleLock = req->sink;
+            }
+            else
+            {
+                sendGetRoleRequest(&req->bd_addr);
+                /* Set the resource lock as unknown sink*/
+                linkPolicyState->roleLock = CL_INVALID_SINK;  
+            }
+        }
     }
     else
     {
@@ -193,11 +223,11 @@ void connectionHandleLinkPolicyGetRoleReq(
            message to queue request for processing later */
         MAKE_CL_MESSAGE(CL_INTERNAL_DM_GET_ROLE_REQ);
         COPY_CL_MESSAGE(req, message);
-        MessageSendConditionallyOnTask(
+        MessageSendConditionally(
                 connectionGetCmTask(),
                 CL_INTERNAL_DM_GET_ROLE_REQ,
                 message,
-                (Task*) &linkPolicyState->roleLock
+                (uint16*) &linkPolicyState->roleLock
                 );
     }
 }
@@ -209,13 +239,22 @@ void connectionHandleDmSwitchRoleComplete(
         const DM_HCI_SWITCH_ROLE_CFM_T* ind
         )
 {
+    bdaddr addr;
+    BdaddrConvertBluestackToVm(&addr, &ind->bd_addr);
     if(linkPolicyState->roleLock)
     {
+        /* This is a requested role change */
         sendRoleCfmToClient(
                 connectionGetAppTask(),
                 connectionConvertHciStatus(ind->status),
                 connectionConvertHciRole(ind->role),
-                linkPolicyState->roleLock
+                /* NULL the sink if it's invalid */
+                linkPolicyState->roleLock != CL_INVALID_SINK ?
+                                        linkPolicyState->roleLock : NULL,
+                &addr,
+                /* If the sink is invalid, this must have been a bdaddr request */
+                linkPolicyState->roleLock != CL_INVALID_SINK
+                                        ? cl_role_get : cl_role_get_bdaddr
                 );
 
         /* Reset the lock */
@@ -223,15 +262,14 @@ void connectionHandleDmSwitchRoleComplete(
     }
     else
     {
+        /* This is an unrequested role change */
         hci_status status;
-        hci_role role;
-        bdaddr addr;
+        hci_role role;        
 
         MAKE_CL_MESSAGE(CL_DM_ROLE_IND);
 
         status = connectionConvertHciStatus(ind->status);
-        role = connectionConvertHciRole(ind->role);
-        BdaddrConvertBluestackToVm(&addr, &ind->bd_addr);
+        role = connectionConvertHciRole(ind->role);        
 
         message->status = status;
         message->role = role;
@@ -249,11 +287,19 @@ void connectionHandleRoleDiscoveryComplete(
 {
     if(linkPolicyState->roleLock)
     {
+        bdaddr addr;
+        BdaddrConvertBluestackToVm(&addr, &ind->bd_addr);
         sendRoleCfmToClient(
                 connectionGetAppTask(),
                 connectionConvertHciStatus(ind->status),
                 connectionConvertHciRole(ind->role),
-                linkPolicyState->roleLock
+                /* NULL the sink if it's invalid */
+                linkPolicyState->roleLock != CL_INVALID_SINK ?
+                                        linkPolicyState->roleLock : NULL,
+                &addr,
+                /* If the sink is invalid, this must have been a bdaddr request */
+                linkPolicyState->roleLock != CL_INVALID_SINK ?
+                                        cl_role_get : cl_role_get_bdaddr
                 );
 
         /* Reset the lock */

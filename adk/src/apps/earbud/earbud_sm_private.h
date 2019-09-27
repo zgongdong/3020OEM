@@ -60,13 +60,4 @@ typedef struct
     bool primary;
 } SM_INTERNAL_ADDR_SWITCH_DELAY_T;
 
-/*! Enumeration of event types supported by the Earbud Application state machine. */
-typedef enum
-{
-    earbud_sm_req_dfu_active_when_in_case,
-    earbud_sm_req_factory_reset,
-    earbud_sm_ind_dfu_ready
-} earbud_sm_msg_type;
-
-
 #endif /* EARBUD_SM_PRIVATE_H_ */

@@ -54,49 +54,64 @@
     DISCOVER_CONNECTABLE : Looking for peer
     DISCOVER_CONNECTABLE : Also advertising
     DISCOVER_CONNECTABLE --> DISCOVERED_DEVICE : Received an advert for matching device
-    DISCOVER_CONNECTABLE --> CLIENT : GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM (success).\nRemote device connected to us.
-    DISCOVER_CONNECTABLE --> DISCOVER : GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM (failure).
+    DISCOVER_CONNECTABLE --> CLIENT : GATT Connect observer notification.\nRemote device connected to us.
     DISCOVER_CONNECTABLE --> DISCOVER : No longer streaming/in call.\n(re)start scanning.
     DISCOVER_CONNECTABLE --> DISCOVER_CONNECTABLE : streaming/in call.\nstop scanning.
 
     DISCOVERED_DEVICE: Found a peer device. 
-    DISCOVERED_DEVICE: Waiting to ensure scaning and advertising completed and we don't connect
+    DISCOVERED_DEVICE: Advertising continues until we get a connection
     DISCOVERED_DEVICE --> CONNECTING_TO_DISCOVERED : Scanning/Advertising ended
-    DISCOVERED_DEVICE --> CLIENT : GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM (success).\nRemote device connected to us.
-    DISCOVERED_DEVICE --> DISCOVER : GATT_MANAGER_REMOTE_CLIENT_CONNECT_CFM (failure)
+    DISCOVERED_DEVICE --> CLIENT : GATT Connect observer notification.\nRemote device connected to us.
 
     CONNECTING_TO_DISCOVERED: Connecting to the device we found
-    CONNECTING_TO_DISCOVERED --> SERVER : GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM (success)
-    CONNECTING_TO_DISCOVERED --> DISCOVER : GATT_MANAGER_REMOTE_SERVER_CONNECT_CFM (failure)
+    CONNECTING_TO_DISCOVERED: Advertising continues. Otherwise if our peer is in the same state there may be nothing to connect to
+    CONNECTING_TO_DISCOVERED --> SERVER_AWAITING_ENCRYPTION : CON_MANAGER_TP_CONNECT_IND (outgoing connection)
+    CONNECTING_TO_DISCOVERED --> CLIENT : GATT Connect observer notification.\nRemote device connected to us (crossover)
 
     CLIENT: Connected as a GATT client
-    CLIENT --> AWAITING_ENCRYPTION : Connected to the peers server
+    CLIENT --> CLIENT_AWAITING_ENCRYPTION : Connected to the peers server
     CLIENT --> DISCOVER : Link disconnected\nConnection manager
 
-    SERVER : Connected as a GATT server
-    SERVER : Encrypt the link on entry
-    SERVER : Wait for client to finish
-    SERVER --> AWAITING_DISCONNECT : Commanded to change state.
-    SERVER --> DISCOVER : Link disconnected\nConnection manager
-    SERVER --> INITIALISED : Error encrypting the link
+    SERVER_AWAITING_ENCRYPTION : Encrypt the link on entry
+    SERVER_AWAITING_ENCRYPTION : Wait for encryption to complete
+    SERVER_AWAITING_ENCRYPTION --> SERVER : Link encrypted successfully
+    SERVER_AWAITING_ENCRYPTION --> DISCOVER : Link disconnected\nConnection manager
+    SERVER_AWAITING_ENCRYPTION --> INITIALISED : Error encrypting the link
 
-    AWAITING_ENCRYPTION : Connected as a GATT client, link not yet encrypted
-    AWAITING_ENCRYPTION --> DECIDING : Link encrypted successfully
-    AWAITING_ENCRYPTION --> DISCOVER : Link disconnected\nConnection manager
+    SERVER : Connected as a GATT server
+    SERVER : Request the app to prepare on entry
+    SERVER : Wait for client to finish
+    SERVER --> AWAITING_COMPLETION_SERVER : Commanded to change state.
+    SERVER --> DISCOVER : Link disconnected\nConnection manager
+
+    CLIENT_AWAITING_ENCRYPTION : Connected as a GATT client, link not yet encrypted
+    CLIENT_AWAITING_ENCRYPTION --> CLIENT_PREPARING : Link encrypted successfully
+    CLIENT_AWAITING_ENCRYPTION --> DISCOVER : Link disconnected\nConnection manager
+    
+    CLIENT_PREPARING : Request & wait for system to be ready for role selection
+    CLIENT_PREPARING --> DECIDING : Received "prepared" response from client
+    CLIENT_PREPARING --> DECIDING : No client registered to receive prepare indication
+    CLIENT_PREPARING --> DISCOVER : Link disconnected\nConnection manager
 
     DECIDING : Deciding which role we should assume
-    DECIDING : Read score from server
+    DECIDING : Wait for score from server
     DECIDING --> AWAITING_CONFIRM : Have score, informed peer of requested state
     DECIDING --> DISCOVER : Link disconnected\nConnection manager
 
     AWAITING_CONFIRM : Awaiting confirmation of role
-    AWAITING_CONFIRM --> INITIALISED : Server confirmed change. Change our own state.
+    AWAITING_CONFIRM --> COMPLETED : Server confirmed change.
     AWAITING_CONFIRM --> DISCOVER : Link disconnected\nConnection manager
 
-    AWAITING_DISCONNECT : We have informed client of new state (we were server)
-    AWAITING_DISCONNECT : Waiting for a disconnect or timeout
-    AWAITING_DISCONNECT --> INITIALISED : Link disconnected (by client)
-    AWAITING_DISCONNECT --> INITIALISED : Time out expired\nDisconnected ourselves
+    AWAITING_COMPLETION_SERVER : We have informed client of new state (we were server)
+    AWAITING_COMPLETION_SERVER : Waiting for external notification that we have completed
+    AWAITING_COMPLETION_SERVER --> COMPLETED : Link disconnected
+    AWAITING_COMPLETION_SERVER --> AWAITING_COMPLETION_SERVER : Time out expired\nDisconnected ourselves.
+
+    COMPLETED : Transition state when we have finished role selection
+    COMPLETED : May wait here for the link to be disconnected
+    COMPLETED : Decide whether to enter INITIALISED or DISCOVER state
+    COMPLETED --> INITIALISED : Did not complete with a primary role
+    COMPLETED --> DISCOVER : Completed with a primary role
 
     \enduml
 
@@ -116,23 +131,30 @@ typedef enum
         /*! Scanning - but also using connectable advertising for 
             other devices to connect */
     PEER_FIND_ROLE_STATE_DISCOVER_CONNECTABLE,
-        /*! We have discovered a device while scanning. Waiting while we
-            cancel scanning and advertising */
+        /*! We have discovered a device while scanning. Waiting a short
+            time then will cancel scanning */
     PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE,
-        /*! Trying to connect to the device we discovered */
+        /*! Trying to connect to the device we discovered (still
+            advertising) */
     PEER_FIND_ROLE_STATE_CONNECTING_TO_DISCOVERED,
+        /*! Waiting for confirmation the link is encrypted. */
+    PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION,
         /*! Connected as a GATT client (someone connected to us) */
     PEER_FIND_ROLE_STATE_CLIENT,
         /*! Connected as a GATT server */
     PEER_FIND_ROLE_STATE_SERVER,
-        /*! Waiting for confirmation the link is encrypted */
-    PEER_FIND_ROLE_STATE_AWAITING_ENCRYPTION,
+        /*! Waiting for indication the link is encrypted */
+    PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION,
+        /*! Waiting for the response to a "prepare for role selection" indication */
+    PEER_FIND_ROLE_STATE_CLIENT_PREPARING,
         /*! Deciding which role to use */
     PEER_FIND_ROLE_STATE_DECIDING,
         /*! Waiting for the role to be confirmed */
     PEER_FIND_ROLE_STATE_AWAITING_CONFIRM,
-        /*! Completed, but waiting for client to disconnect */
-    PEER_FIND_ROLE_STATE_AWAITING_DISCONNECT,
+        /*! Completed role selection, but waiting for acknowledgment that rolw now active */
+    PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER,
+        /*! Completed role selection decide next state */
+    PEER_FIND_ROLE_STATE_COMPLETED,
 } PEER_FIND_ROLE_STATE;
 
 
