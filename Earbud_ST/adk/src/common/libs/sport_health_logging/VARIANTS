@@ -1,4 +1,0 @@
-
-VARIANTS := logging_compress
-
-CFLAGS_logging_compress := -DSPORT_HEALTH_LOG_COMPRESS

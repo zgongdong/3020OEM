@@ -1,4 +1,0 @@
-VARIANTS :=  debug
-
-# Include DEBUG
-CFLAGS_debug := -DGATT_MANAGER_DEBUG_LIB

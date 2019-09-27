@@ -1,3 +1,0 @@
-Download Capability BUILD ID = 7960
-ELF File ID = 0xCFFF2059
-Base Build ID = 7953

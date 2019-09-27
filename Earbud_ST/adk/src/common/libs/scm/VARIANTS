@@ -1,3 +1,0 @@
-VARIANTS := debug
-
-CFLAGS_debug := -DSCM_DEBUG_LIB

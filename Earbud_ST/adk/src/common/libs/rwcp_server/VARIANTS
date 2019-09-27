@@ -1,5 +1,0 @@
-#  debug          enables debug logs
-
-VARIANTS := debug
-
-CFLAGS_debug := -DDEBUG_RWCP_SERVER
