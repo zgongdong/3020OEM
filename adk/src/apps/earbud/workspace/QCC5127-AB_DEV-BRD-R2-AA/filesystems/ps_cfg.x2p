@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project path="">
+    <file path="../../QCC5127-AB_DEV-BRD-R2-AA/filesystems/anc_tuning_config.htf"/>
+    <file path="../../QCC5127-AB_DEV-BRD-R2-AA/filesystems/subsys7_psflash.htf"/>
+    <configurations>
+        <configuration name="filesystem" options="build|deploy">
+            <devkitConfiguration>filesystem</devkitConfiguration>
+            <devkitGroup>kitres://{885B2E62-D6DE-4472-8989-51ED1537BF28}</devkitGroup>
+            <deployProject>deploy</deployProject>
+            <property name="BUILD_TYPE"></property>
+            <property name="DBG_CORE"></property>
+            <property name="DEFS"></property>
+            <property name="FS_ROOT"></property>
+            <property name="HW_VARIANT"></property>
+            <property name="INCPATHS"></property>
+            <property name="LIBPATHS"></property>
+            <property name="LIBS"></property>
+            <property name="OUTPUT"></property>
+            <property name="OUTPUT_TYPE"></property>
+            <property name="PRESERVED_LIBS"></property>
+            <property name="STRIP_SYMBOLS"></property>
+            <property name="SW_VARIANT"></property>
+            <property name="TYPE">user_ps</property>
+            <property name="system_label">QCC512X_ROM_V21_CONFIG</property>
+        </configuration>
+    </configurations>
+</project>

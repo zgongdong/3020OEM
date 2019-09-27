@@ -1,0 +1,26 @@
+var structpeer_sync_task_data =
+[
+    [ "peer_a2dp_connected", "structpeer_sync_task_data.html#a76b230f8875cf03c6a5fd20dd80e6aa6", null ],
+    [ "peer_a2dp_streaming", "structpeer_sync_task_data.html#a44d8009ab1eff5e90d0f64a7b72de28d", null ],
+    [ "peer_advertising", "structpeer_sync_task_data.html#a76477b5cd8f8b4acae7371083e9fb99f", null ],
+    [ "peer_avrcp_connected", "structpeer_sync_task_data.html#a8d93b79458ba56d54688d46479518b2c", null ],
+    [ "peer_battery_level", "structpeer_sync_task_data.html#a3ebe36c8670d097e3f96d6d8a68196bd", null ],
+    [ "peer_ble_connected", "structpeer_sync_task_data.html#a00a7c66f283ec5debcdd3610b843f975", null ],
+    [ "peer_dfu_in_progress", "structpeer_sync_task_data.html#a08418456e6fb03d7d9e5bfbbb9d9d1ab", null ],
+    [ "peer_handset_addr", "structpeer_sync_task_data.html#adc5970ea037fcd7ca404c5c768e59a19", null ],
+    [ "peer_handset_tws", "structpeer_sync_task_data.html#a7951e19c7307e0f86213d9dfce34177a", null ],
+    [ "peer_has_handset_pairing", "structpeer_sync_task_data.html#ad5961c48743ec808fa4452a910491f4c", null ],
+    [ "peer_hfp_connected", "structpeer_sync_task_data.html#af88faf375ba887886df974e306b8e82e", null ],
+    [ "peer_in_case", "structpeer_sync_task_data.html#a67b2c5f6db46a93a14c30d6399522e67", null ],
+    [ "peer_in_ear", "structpeer_sync_task_data.html#a1ae85668335d77d336ea973280ee95ef", null ],
+    [ "peer_is_pairing", "structpeer_sync_task_data.html#a12057d6cbc125837b04fd77e8881f523", null ],
+    [ "peer_rules_in_progress", "structpeer_sync_task_data.html#af29fcb888b4fcd7a1b7fce8e653611a1", null ],
+    [ "peer_sco_active", "structpeer_sync_task_data.html#ad3510240a8b89caaa52df13d1adc419f", null ],
+    [ "peer_sync_rx_seqnum", "structpeer_sync_task_data.html#a088d2c4ef415fa24794f3fdafbfce89d", null ],
+    [ "peer_sync_state", "structpeer_sync_task_data.html#a33957597e4157975c4512764d054f0c6", null ],
+    [ "peer_sync_status_tasks", "structpeer_sync_task_data.html#a7b31a24411c0f979a6118c196e552629", null ],
+    [ "peer_sync_tx_seqnum", "structpeer_sync_task_data.html#ae7d4f019c322aad97cdae1ff4b95228a", null ],
+    [ "sent_in_progress", "structpeer_sync_task_data.html#a092e59af2906272471e7718cffa5fcb4", null ],
+    [ "sync_battery_level", "structpeer_sync_task_data.html#a4d3da0f1ca3d43651ba7dcef659ea754", null ],
+    [ "task", "structpeer_sync_task_data.html#aba8d7e5c1906844fdb6e47953d3518fc", null ]
+];

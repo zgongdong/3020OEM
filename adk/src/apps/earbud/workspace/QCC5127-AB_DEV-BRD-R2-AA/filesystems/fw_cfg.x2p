@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project path="">
+    <file path="../../QCC5127-AB_DEV-BRD-R2-AA/filesystems/subsys1_config1.htf"/>
+    <file path="../../QCC5127-AB_DEV-BRD-R2-AA/filesystems/subsys3_config1.htf"/>
+    <file path="../../QCC5127-AB_DEV-BRD-R2-AA/filesystems/subsys7_config1.hcf"/>
+    <file path="../../QCC5127-AB_DEV-BRD-R2-AA/filesystems/subsys7_config2.htf"/>
+    <file path="../../../../../../bin/qcc512x_rom_v21/audio/kalimba_ROM_5951/kymera/output/stre_rom_v21_release/build/patchbin/subsys3_patch0_fw0000173F.hcf"/>
+    <file path="../../../../../../bin/qcc512x_rom_v21/bluetooth/patches/vfbga124/subsys1_patch0_fw00003743.hcf"/>
+    <configurations>
+        <configuration name="filesystem" options="build|deploy">
+            <devkitConfiguration>filesystem</devkitConfiguration>
+            <devkitGroup>kitres://{885B2E62-D6DE-4472-8989-51ED1537BF28}</devkitGroup>
+            <deployProject>deploy</deployProject>
+            <property name="FS_ROOT"></property>
+            <property name="OUTPUT"></property>
+            <property name="TYPE">firmware_config</property>
+            <property name="system_label">QCC512X_ROM_V21_CONFIG</property>
+        </configuration>
+    </configurations>
+</project>
