@@ -1,0 +1,83 @@
+/*!
+\copyright  Copyright (c) 2019 Qualcomm Technologies International, Ltd.
+            All Rights Reserved.
+            Qualcomm Technologies International, Ltd. Confidential and Proprietary.
+\file
+\brief      Implementation of the audio_sources_audio composite.
+*/
+
+#include "audio_sources.h"
+
+#include <logging.h>
+#include <panic.h>
+
+#include "audio_sources_interface_registry.h"
+
+void AudioSources_RegisterAudioInterface(audio_source_t source, const audio_source_audio_interface_t * interface)
+{
+    PanicNull((void *)interface);
+    DEBUG_LOG("AudioSources_RegisterAudioInterface source=%d interface=%p", source, interface);
+    AudioInterface_Register(source, audio_interface_type_audio_source_registry, interface);
+}
+
+bool AudioSources_GetConnectParameters(audio_source_t source, source_defined_params_t * source_params)
+{
+    bool return_value = FALSE;
+    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+
+    if ((interface != NULL) && (interface->GetConnectParameters))
+    {
+        DEBUG_LOG("AudioSources_GetConnectParameters calling interface->GetConnectParameters(%d, %p)", source, source_params);
+        return_value = interface->GetConnectParameters(source, source_params);
+    }
+    return return_value;
+}
+
+void AudioSources_ReleaseConnectParameters(audio_source_t source, source_defined_params_t * source_params)
+{
+    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+
+    if ((interface != NULL) && (interface->ReleaseConnectParameters))
+    {
+        DEBUG_LOG("AudioSources_ReleaseConnectParameters calling interface->ReleaseConnectParameters(%d, %p)", source, source_params);
+        interface->ReleaseConnectParameters(source, source_params);
+    }
+}
+
+bool AudioSources_GetDisconnectParameters(audio_source_t source, source_defined_params_t * source_params)
+{
+    bool return_value = FALSE;
+    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+
+    if ((interface != NULL) && (interface->GetDisconnectParameters))
+    {
+        DEBUG_LOG("AudioSources_GetDisconnectParameters calling interface->GetDisconnectParameters(%d, %p)", source, source_params);
+        return_value = interface->GetDisconnectParameters(source, source_params);
+    }
+    return return_value;
+}
+
+void AudioSources_ReleaseDisconnectParameters(audio_source_t source, source_defined_params_t * source_params)
+{
+    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+
+    if ((interface != NULL) && (interface->ReleaseDisconnectParameters))
+    {
+        DEBUG_LOG("AudioSources_ReleaseDisconnectParameters calling interface->ReleaseDisconnectParameters(%d, %p)", source, source_params);
+        interface->ReleaseDisconnectParameters(source, source_params);
+    }
+}
+
+bool AudioSources_IsAudioAvailable(audio_source_t source)
+{
+    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    bool is_available = FALSE;
+
+    if ((interface != NULL) && (interface->IsAudioAvailable))
+    {
+        is_available = interface->IsAudioAvailable(source);
+        DEBUG_LOG("AudioSources_IsAudioAvailable source=%d, available=%d", source, is_available);
+    }
+    return is_available;
+}
+

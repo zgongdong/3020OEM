@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project path="">
+    <file path="../../../../../../bin/qcc512x_rom_v21/apps0/image/apps_p0_firmware.xuv"/>
+    <configurations>
+        <configuration name="prebuilt_image" options="deploy">
+            <devkitGroup>kitres://{885B2E62-D6DE-4472-8989-51ED1537BF28}</devkitGroup>
+            <deployProject>deploy</deployProject>
+            <devkitConfiguration>prebuilt_image</devkitConfiguration>
+            <property name="SUBSYSTEM_NAME">apps0</property>
+        </configuration>
+    </configurations>
+</project>
