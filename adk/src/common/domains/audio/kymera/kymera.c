@@ -156,6 +156,12 @@ void appKymeraTonePlay(const ringtone_note *tone, bool interruptible,
     theKymera->tone_count++;
 }
 
+void appKymeraCancelA2dpStart(void)
+{
+    kymeraTaskData *theKymera = KymeraGetTaskData();
+    MessageCancelAll(&theKymera->task, KYMERA_INTERNAL_A2DP_START);
+}
+
 void appKymeraA2dpStart(uint16 *client_lock, uint16 client_lock_mask,
                         const a2dp_codec_settings *codec_settings,
                         int16 volume_in_db, uint8 master_pre_start_delay)
@@ -485,6 +491,7 @@ static void kymera_msg_handler(Task task, MessageId id, Message msg)
                 MAKE_KYMERA_MESSAGE(KYMERA_INTERNAL_A2DP_START);
                 *message = *m;
                 MessageSend(&theKymera->task, KYMERA_INTERNAL_A2DP_STARTING, message);
+                appKymeraSetStartingLock(theKymera);
             }
         }
         break;

@@ -140,9 +140,9 @@ static void twsTopology_ProcProhibitBtHandleLeAdvManagerAllowCfm(const LE_ADV_MG
 }
 
 
-static void twsTopology_ProcPermitBtHandleLeScanManagerDisableCfm(const LE_SCAN_MANAGER_DISABLE_CFM_T *cfm)
+static void twsTopology_ProcProhibitBtHandleLeScanManagerDisableCfm(const LE_SCAN_MANAGER_DISABLE_CFM_T *cfm)
 {
-    DEBUG_LOG("twsTopology_ProcPermitBtHandleLeScanManagerDisableCfm %u", cfm->status);
+    DEBUG_LOG("twsTopology_ProcProhibitBtHandleLeScanManagerDisableCfm %u", cfm->status);
 
     switch (cfm->status)
     {
@@ -189,7 +189,7 @@ static void twsTopology_ProcProhibitBtHandleMessage(Task task, MessageId id, Mes
             break;
 
         case LE_SCAN_MANAGER_DISABLE_CFM:
-            twsTopology_ProcPermitBtHandleLeScanManagerDisableCfm((const LE_SCAN_MANAGER_DISABLE_CFM_T *)message);
+            twsTopology_ProcProhibitBtHandleLeScanManagerDisableCfm((const LE_SCAN_MANAGER_DISABLE_CFM_T *)message);
             break;
 
         default:

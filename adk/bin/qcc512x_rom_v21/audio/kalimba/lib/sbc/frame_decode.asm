@@ -132,12 +132,20 @@
 
 
    r0 = M[r5 + $codec.DECODER_IN_BUFFER_FIELD];
+
+#ifdef INSTALL_CBUFFER_EX
+   // We can get the number of octets (including all the first word) directly
+   call $cbuffer.calc_amount_data_ex;
+   r10 = r0;
+#else
    call $cbuffer.calc_amount_data_in_words;
 #ifdef DATAFORMAT_32
    r10 = r0 LSHIFT LOG2_ADDR_PER_WORD;
 #else
    r10 = r0 + r0;
-#endif
+#endif // DATAFORMAT_32
+#endif // INSTALL_CBUFFER_EX
+
    r10 = r10 - $sbc.OCTETS_PER_WORD;
    if LE jump buffer_underflow;
    r4 = r10;
@@ -193,12 +201,20 @@
 
    // -- Store number of bytes of data available in the SBC stream --
    r0 = M[r5 + $codec.DECODER_IN_BUFFER_FIELD];
+
+
+#ifdef INSTALL_CBUFFER_EX
+   call $cbuffer.calc_amount_data_ex;
+#else
    call $cbuffer.calc_amount_data_in_words;
 #ifdef DATAFORMAT_32
    r0 = r0 LSHIFT LOG2_ADDR_PER_WORD;
 #else
    r0 = r0 + r0;
-#endif
+#endif // DATAFORMAT_32
+#endif // INSTALL_CBUFFER_EX
+
+
    r0 = r0 - r4;
    // "+2": adjust by the number of bits we've currently read
    Null = r0 - ($sbc.MIN_SBC_FRAME_SIZE_IN_BYTES + 2);

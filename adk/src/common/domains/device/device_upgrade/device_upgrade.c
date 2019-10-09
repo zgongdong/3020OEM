@@ -30,6 +30,7 @@ This is a minimal implementation of upgrade.
 #include <ctype.h>
 #include <stdio.h>
 #include <upgrade.h>
+#include <ps.h>
 
 
 /*!< Task information for UPGRADE support */
@@ -63,10 +64,12 @@ static const UPGRADE_UPGRADABLE_PARTITION_T logicalPartitions[]
 #define VARIANT_BUFFER_SIZE (7)
 
 /*!@{ \name Details of the Persistent Store Key that is used to track status
-   of the upgrdae, such that it can be resumed.
+   of the upgrade, such that it can be resumed.
  */
 #define EARBUD_UPGRADE_CONTEXT_KEY              7   /*!< User PSKEY Identifier */
-#define EARBUD_UPGRADE_LIBRARY_CONTEXT_OFFSET   2   /*!< Offset with that key */
+#define EARBUD_UPGRADE_LIBRARY_CONTEXT_OFFSET   2   /*!< Offset with that key to area for upgrade library */
+#define APP_UPGRADE_CONTEXT_OFFSET              0   /*!< Offset within that key to the context */
+#define PSKEY_MAX_STORAGE_LENGTH                32  /*!< Maximum PSKEY length in uint16 */
 /*!@} */
 
 
@@ -75,31 +78,31 @@ static void appUpgradeMessageHandler(Task task, MessageId id, Message message);
 
 static void appUpgradeNotifyStartedNeedConfirm(void)
 {
-    TaskList_MessageSendId(UpgradeGetTaskData()->client_list, APP_UPGRADE_REQUESTED_TO_CONFIRM);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(UpgradeGetClientList()), APP_UPGRADE_REQUESTED_TO_CONFIRM);
 }
 
 
 static void appUpgradeNotifyStartedWithInProgress(void)
 {
-    TaskList_MessageSendId(UpgradeGetTaskData()->client_list, APP_UPGRADE_REQUESTED_IN_PROGRESS);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(UpgradeGetClientList()), APP_UPGRADE_REQUESTED_IN_PROGRESS);
 }
 
 
 static void appUpgradeNotifyActivity(void)
 {
-    TaskList_MessageSendId(UpgradeGetTaskData()->client_list, APP_UPGRADE_ACTIVITY);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(UpgradeGetClientList()), APP_UPGRADE_ACTIVITY);
 }
 
 
 static void appUpgradeNotifyStart(void)
 {
-    TaskList_MessageSendId(UpgradeGetTaskData()->client_list, APP_UPGRADE_STARTED);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(UpgradeGetClientList()), APP_UPGRADE_STARTED);
 }
 
 
 static void appUpgradeNotifyCompleted(void)
 {
-    TaskList_MessageSendId(UpgradeGetTaskData()->client_list, APP_UPGRADE_COMPLETED);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(UpgradeGetClientList()), APP_UPGRADE_COMPLETED);
 }
 
 
@@ -176,7 +179,7 @@ bool appUpgradeInit(Task init_task)
     char variant[VARIANT_BUFFER_SIZE];
 
     the_upgrade->upgrade_task.handler = appUpgradeMessageHandler;
-    the_upgrade->client_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(UpgradeGetClientList(), THE_UPGRADE_CLIENT_LIST_INIT_CAPACITY);
 
     appUpgradeClientRegister(SmGetTask());
 
@@ -439,8 +442,40 @@ bool appUpgradeAllowUpgrades(bool allow)
 
 void appUpgradeClientRegister(Task tsk)
 {
-    upgradeTaskData* current_upgrade = UpgradeGetTaskData();
-    TaskList_AddTask(current_upgrade->client_list, tsk);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(UpgradeGetClientList()), tsk);
+}
+
+void appUpgradeSetContext(app_upgrade_context_t context)
+{
+    uint16 actualLength = PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, NULL, 0);
+    if ((actualLength > 0) && (actualLength < PSKEY_MAX_STORAGE_LENGTH))
+    {
+        uint16 keyCache[PSKEY_MAX_STORAGE_LENGTH];
+        PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, keyCache, actualLength);
+        keyCache[APP_UPGRADE_CONTEXT_OFFSET] = (uint16) context;
+        PsStore(EARBUD_UPGRADE_CONTEXT_KEY, keyCache, actualLength);
+    }
+}
+
+app_upgrade_context_t appUpgradeGetContext(void)
+{
+    app_upgrade_context_t context = APP_UPGRADE_CONTEXT_UNUSED;
+    uint16 actualLength = PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, NULL, 0);
+    if ((actualLength > 0) && (actualLength < PSKEY_MAX_STORAGE_LENGTH))
+    {
+        uint16 keyCache[PSKEY_MAX_STORAGE_LENGTH];
+        PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, keyCache, actualLength);
+        context = (app_upgrade_context_t) keyCache[APP_UPGRADE_CONTEXT_OFFSET];
+    }
+
+    return context;
+}
+
+/*! Abort the ongoing Upgrade if the device is disconnected from GAIA app */
+void appUpgradeAbortDuringDeviceDisconnect(void)
+{
+    DEBUG_LOG("appUpgradeAbortDuringDeviceDisconnect()\n");
+    UpgradeAbortDuringDeviceDisconnect();
 }
 
 #endif /* INCLUDE_DFU */

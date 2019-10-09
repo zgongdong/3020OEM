@@ -98,6 +98,7 @@ var upgrade_8h =
       [ "UPGRADE_TRANSPORT_DATA_CFM", "upgrade_8h.html#a0a221dfdae3f8abae8645ae636e94044a7109e55b3f87fb65252db77672180fa1", null ],
       [ "UPGRADE_DOWNSTREAM_MESSAGE_TOP", "upgrade_8h.html#a0a221dfdae3f8abae8645ae636e94044a5c2b280183bd6aff7b2e15d50000fc47", null ]
     ] ],
+    [ "UpgradeAbortDuringDeviceDisconnect", "upgrade_8h.html#a8ea7f99bdd4f2f7eda6680abd9770ede", null ],
     [ "UpgradeApplicationValidationStatus", "upgrade_8h.html#ad5f154b94c2c3ec8c1b3b5e35dc0c1bc", null ],
     [ "UpgradeApplyAudioCopyFailed", "upgrade_8h.html#a49d82a07d5c4737a30f0043367d112c5", null ],
     [ "UpgradeApplyAudioShutDown", "upgrade_8h.html#a302f35cc3c99966669ab19c51de7e59a", null ],
@@ -114,6 +115,7 @@ var upgrade_8h =
     [ "UpgradeGetPartitionInUse", "upgrade_8h.html#a6caf9855fa2ece36a87725a03a268b52", null ],
     [ "UpgradeGetPartitionSizeInPartitionDataState", "upgrade_8h.html#a99df3ca1f7ba78a11194f158ffa4f7b5", null ],
     [ "UpgradeGetVersion", "upgrade_8h.html#a995e2c5cd2d544472ab2c60e2183ddce", null ],
+    [ "UpgradeHandleAbortDuringUpgrade", "upgrade_8h.html#afcf701463292cfa2cc7a831934024761", null ],
     [ "UpgradeHandleMsg", "upgrade_8h.html#a0fede515626ae660a7ac6429e7b3d214", null ],
     [ "UpgradeHashAllSectionsUpdateStatus", "upgrade_8h.html#a3ac138168286d6ea495353abcf8fe165", null ],
     [ "UpgradeImageSwap", "upgrade_8h.html#a5ccc0ccc77d79bfa0d06338889429388", null ],

@@ -276,15 +276,15 @@ static void appHfpEnterInitialisingHfp(void)
     if (appConfigHfpBatteryIndicatorEnabled())
         hfp_params.hf_indicators = hfp_battery_level_mask;
     else
-        hfp_params.hf_indicators = hfp_indicator_mask_none;    
+        hfp_params.hf_indicators = hfp_indicator_mask_none;
 
-#ifdef INCLUDE_SWB    
+#ifdef INCLUDE_SWB
     if (appConfigScoSwbEnabled())
         hfp_params.hf_codec_modes = CODEC_64_2_EV3;
-    else                                        
+    else
         hfp_params.hf_codec_modes = 0;
 #endif
-    
+
     HfpInit(appGetHfpTask(), &hfp_params, NULL);
 }
 
@@ -303,7 +303,7 @@ static void appHfpEnterConnectingLocal(void)
     appHfpSetLock(TRUE);
 
     if (!appGetHfp()->bitfields.flags & HFP_CONNECT_NO_UI)
-        TaskList_MessageSendId(appGetHfp()->status_notify_list, PAGING_START);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), PAGING_START);
 
     /* Clear detach pending flag */
     appGetHfp()->bitfields.detach_pending = FALSE;
@@ -335,7 +335,7 @@ static void appHfpExitConnectingLocal(void)
     appHfpSetLock(FALSE);
 
     if (!appGetHfp()->bitfields.flags & HFP_CONNECT_NO_UI)
-        TaskList_MessageSendId(appGetHfp()->status_notify_list, PAGING_STOP);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), PAGING_STOP);
 
     /* We have finished (successfully or not) attempting to connect, so
      * we can relinquish our lock on the ACL.  Bluestack will then close
@@ -396,7 +396,15 @@ static bool hfpProfile_FindClientSendConnectCfm(Task task, task_list_data_t *dat
         found_client_task = TRUE;
         MESSAGE_MAKE(msg, APP_HFP_CONNECT_CFM_T);
         msg->device = params->device;
-        msg->successful = params->result;
+
+        if(params->result == profile_manager_success)
+        {
+            msg->successful = TRUE;
+        }
+        else
+        {
+            msg->successful = FALSE;
+        }
 
         DEBUG_LOG("hfpProfile_FindClientSendConnectCfm toTask=%x success=%d", task, params->result);
         MessageSend(task, APP_HFP_CONNECT_CFM, msg);
@@ -417,7 +425,15 @@ static bool hfpProfile_FindClientSendDisconnectCfm(Task task, task_list_data_t *
         found_client_task = TRUE;
         MESSAGE_MAKE(msg, APP_HFP_DISCONNECT_CFM_T);
         msg->device = params->device;
-        msg->successful = params->result;
+
+        if(params->result == profile_manager_success)
+        {
+            msg->successful = TRUE;
+        }
+        else
+        {
+            msg->successful = FALSE;
+        }
 
         DEBUG_LOG("hfpProfile_FindClientSendDisconnectCfm toTask=%x success=%d", task, params->result);
         MessageSend(task, APP_HFP_DISCONNECT_CFM, msg);
@@ -474,7 +490,7 @@ static void appHfpEnterConnected(void)
     /* Tell clients we have connected */
     MAKE_HFP_MESSAGE(APP_HFP_CONNECTED_IND);
     message->bd_addr = appGetHfp()->ag_bd_addr;
-    TaskList_MessageSend(appGetHfp()->status_notify_list, APP_HFP_CONNECTED_IND, message);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_CONNECTED_IND, message);
 
 #if defined(HFP_CONNECT_AUTO_ANSWER) || defined(HFP_CONNECT_AUTO_TRANSFER)
     if (appGetHfp()->profile != hfp_headset_profile)
@@ -592,7 +608,7 @@ static void appHfpEnterConnectedIncoming(void)
 {
     DEBUG_LOG("appHfpEnterConnectedIncoming");
 
-    TaskList_MessageSendId(appGetHfp()->status_notify_list, APP_HFP_SCO_INCOMING_RING_IND);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_SCO_INCOMING_RING_IND);
 
     Telephony_NotifyCallIncoming(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 }
@@ -613,7 +629,7 @@ static void appHfpExitConnectedIncoming(void)
     /* TODO: Cancel any ring-tones */
     /* AudioStopTone();*/
 
-    TaskList_MessageSendId(appGetHfp()->status_notify_list, APP_HFP_SCO_INCOMING_ENDED_IND);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_SCO_INCOMING_ENDED_IND);
     Telephony_NotifyCallIncomingEnded(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
 
     /* Cancel HSP incoming call timeout */
@@ -725,7 +741,7 @@ static void appHfpEnterDisconnected(void)
     MAKE_HFP_MESSAGE(APP_HFP_DISCONNECTED_IND);
     message->bd_addr = appGetHfp()->ag_bd_addr;
     message->reason =  appGetHfp()->bitfields.disconnect_reason;
-    TaskList_MessageSend(appGetHfp()->status_notify_list, APP_HFP_DISCONNECTED_IND, message);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_DISCONNECTED_IND, message);
 
 #ifdef INCLUDE_AV
     /* Resume AV streaming if HFP disconnects for any reason */
@@ -965,7 +981,7 @@ static void appHfpSendSlcStatus(bool connected, hfp_link_priority priority,const
 {
     Task next_client = 0;
 
-    while (TaskList_Iterate(appGetHfp()->slc_status_notify_list, &next_client))
+    while (TaskList_Iterate(TaskList_GetFlexibleBaseTaskList(appHfpGetSlcStatusNotifyList()), &next_client))
     {
         MAKE_HFP_MESSAGE(APP_HFP_SLC_STATUS_IND);
         message->slc_connected = connected;
@@ -1208,7 +1224,7 @@ static void appHfpHandleHfpAudioConnectConfirmation(const HFP_AUDIO_CONNECT_CFM_
             if (cfm->status == hfp_audio_connect_success)
             {
                 /* Inform client tasks SCO is active */
-                TaskList_MessageSendId(appGetHfp()->status_notify_list, APP_HFP_SCO_CONNECTED_IND);
+                TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_SCO_CONNECTED_IND);
 
                 /* Store sink associated with SCO */
                 appGetHfp()->sco_sink = cfm->audio_sink;
@@ -1282,6 +1298,13 @@ static void appHfpHandleHfpAudioDisconnectIndication(const HFP_AUDIO_DISCONNECT_
 {
     DEBUG_LOGF("appHfpHandleHfpAudioDisconnectIndication(%d)", ind->status);
 
+    /* The SCO has been transferred to the secondary earbud. Ignore this message.
+       The SLC disconnection will clean up the hfp state */
+    if (ind->status == hfp_audio_disconnect_transferred)
+    {
+        return;
+    }
+
     switch (appHfpGetState())
     {
         case HFP_STATE_CONNECTED_IDLE:
@@ -1292,7 +1315,7 @@ static void appHfpHandleHfpAudioDisconnectIndication(const HFP_AUDIO_DISCONNECT_
         case HFP_STATE_DISCONNECTED:
         {
             /* Inform client tasks SCO is inactive */
-            TaskList_MessageSendId(appGetHfp()->status_notify_list, APP_HFP_SCO_DISCONNECTED_IND);
+            TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_SCO_DISCONNECTED_IND);
 
             /* Check if have SCO link */
             if (appGetHfp()->sco_sink)
@@ -1648,7 +1671,7 @@ void appHfpVolumeNotifyClients(uint8 new_volume)
 {
     MAKE_HFP_MESSAGE(APP_HFP_VOLUME_IND);
     message->volume = new_volume;
-    TaskList_MessageSend(appGetHfp()->status_notify_list, APP_HFP_VOLUME_IND, message);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), APP_HFP_VOLUME_IND, message);
 }
 
 /*! \brief Handle volume indication
@@ -2504,10 +2527,10 @@ bool appHfpInit(Task init_task)
     appGetHfp()->sco_supported_packets = sync_all_sco;
 
     /* create list for SLC notification clients */
-    appGetHfp()->slc_status_notify_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(appHfpGetSlcStatusNotifyList(), HFP_SLC_STATUS_NOTIFY_LIST_INIT_CAPACITY);
 
     /* create list for general status notification clients */
-    appGetHfp()->status_notify_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(appHfpGetStatusNotifyList(), HFP_STATUS_NOTIFY_LIST_INIT_CAPACITY);
 
     /* create lists for connection/disconnection requests */
     TaskList_WithDataInitialise(&appGetHfp()->connect_request_clients);
@@ -2554,7 +2577,7 @@ bool appHfpConnectHandset(void)
     {
         device_t device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_bdaddr, &bd_addr, sizeof(bdaddr));
         if (device)
-        { 
+        {
             uint8 our_hfp_profile = 0;
             Device_GetPropertyU8(device, device_property_hfp_profile, &our_hfp_profile);
             return appHfpConnectWithBdAddr(&bd_addr, our_hfp_profile);
@@ -2957,8 +2980,7 @@ void appHfpTransferToAg(void)
  */
 void appHfpClientRegister(Task task)
 {
-    hfpTaskData* hfp = appGetHfp();
-    TaskList_AddTask(hfp->slc_status_notify_list, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(appHfpGetSlcStatusNotifyList()), task);
 }
 
 /*! \brief Register with HFP to receive notifications of state changes.
@@ -2967,8 +2989,7 @@ void appHfpClientRegister(Task task)
  */
 void appHfpStatusClientRegister(Task task)
 {
-    hfpTaskData* hfp = appGetHfp();
-    TaskList_AddTask(hfp->status_notify_list, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(appHfpGetStatusNotifyList()), task);
 }
 
 /*! \brief Register task to handle custom AT commands.

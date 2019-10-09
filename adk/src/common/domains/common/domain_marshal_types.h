@@ -14,6 +14,7 @@
 #include "a2dp_marshal_typedef.h"
 #include "connection_manager_list_marshal_typedef.h"
 #include "hfp_profile_marshal_typedef.h"
+#include "bt_device_marshal_typedef.h"
 #include "marshal_common.h"
 #include <hydra_macros.h>
 
@@ -38,6 +39,7 @@ enum
     AVRCP_MARSHAL_TYPES_TABLE(EXPAND_AS_ENUMERATION)
     CONNECTION_MANAGER_LIST_MARSHAL_TYPES_TABLE(EXPAND_AS_ENUMERATION)
     HFP_PROFILE_MARSHAL_TYPES_TABLE(EXPAND_AS_ENUMERATION)
+    BT_DEVICE_MARSHAL_TYPES_TABLE(EXPAND_AS_ENUMERATION)
     NUMBER_OF_DOMAIN_MARSHAL_OBJECT_TYPES
 };
 #undef EXPAND_AS_ENUMERATION

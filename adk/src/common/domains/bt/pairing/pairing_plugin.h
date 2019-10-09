@@ -52,5 +52,12 @@ bool Pairing_PluginHandleUserConfirmationRequest(const CL_SM_USER_CONFIRMATION_R
  */
 void Pairing_PluginPairingComplete(void);
 
+/*! 
+    \brief Determine if any plugin is registered with the Pairing component
+    
+    \returns TRUE if a plugin is registered, FALSE if no plugin is registered
+ */
+bool Pairing_PluginIsRegistered(void);
+
 #endif
 

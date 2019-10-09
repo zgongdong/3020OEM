@@ -31,9 +31,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 ".html",
-"earbud__sm_8h.html#a16038f9492d3f871bb10009123ad37d0",
-"earbud__test_8h.html#aa45f65218f979982c0e4b4add710c0cd",
-"unionvncl3020__interrupt__control__register.html#ac842b28384300fc31607e79871349d16"
+"earbud__sm_8h.html#a05260ed8fe4bef15a3dfb6b230da8270",
+"earbud__test_8h.html#a74f835b08877581b7ac1ce1b0b995e8d",
+"unionadxl362__power__control__register.html#ac644bb65c4b0f03ee17771a24540cf1b"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

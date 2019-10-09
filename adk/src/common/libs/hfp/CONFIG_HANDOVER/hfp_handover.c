@@ -61,7 +61,6 @@ typedef struct
     {
         HFP_MARSHAL_STATE_BITFIELDS,        /* Bitfields of hfp_task_data */
         HFP_MARSHAL_STATE_SERVER_CHANNEL,   /* Marshal remote server channel */
-        HFP_MARSHAL_STATE_ADDRESS,          /* Marshal remote device address */
         HFP_MARSHAL_STATE_LINK,             /* Marshal connection information */
     } state;
 
@@ -71,10 +70,11 @@ typedef struct
         unmarshaller_t unmarshaller;
     } marshal;
 
-    uint8 link_index;
 
     uint8 *server_channel;
-    bdaddr *bd_addr;
+    uint8 channel;
+    hfp_link_data *link;
+
 } hfp_marshal_instance_t;
 
 static hfp_marshal_instance_t *hfp_marshal_inst = NULL;
@@ -89,81 +89,59 @@ DESCRIPTION
 RETURNS
     void
 */    
-static void stitchLink(hfp_link_data *unmarshalled_link)
+static void stitchLink(hfp_link_data *unmarshalled_link, const tp_bdaddr *tp_bd_addr)
 {
-    uint16 scoHandle, channel;
-    tp_bdaddr tp_addr;
+    uint16 conn_id;
     hfp_link_data *link = hfpGetIdleLink();
 
     PanicNull(link);
 
-    BdaddrTpFromBredrBdaddr(&tp_addr, &unmarshalled_link->identifier.bd_addr);
-
-    unmarshalled_link->identifier.bd_addr = *(hfp_marshal_inst->bd_addr);
-    unmarshalled_link->identifier.sink = StreamRfcommSinkFromServerChannel(&tp_addr,
+    unmarshalled_link->identifier.bd_addr = tp_bd_addr->taddr.addr;
+    unmarshalled_link->identifier.sink = StreamRfcommSinkFromServerChannel(tp_bd_addr,
                                                                            *(hfp_marshal_inst->server_channel));
-
     *link = *unmarshalled_link;
-    
-    /* Initialize the connection context for the relevant connection id */
-    if(link->audio_sink)
-    {
-        scoHandle = SinkGetScoHandle(link->audio_sink);
-        PanicZero(scoHandle);  /* Invalid SCO Handle */
-        VmOverrideSyncConnContext(scoHandle, (conn_context_t)&theHfp->task);
-        /* Stitch the SCO sink and the task */
-        MessageStreamTaskFromSink(link->audio_sink, &theHfp->task);
-        /* Configure SCO sink messages */
-        SinkConfigure(link->audio_sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
-    }
-    
-    channel = SinkGetRfcommServerChannel(link->identifier.sink);
-    PanicZero(channel);   /* Invalid server channel */
-    VmOverrideRfcommConnContext(channel, (conn_context_t)&theHfp->task);
+    /* The sink should always be valid, do the state copy first, so its easier
+       to debug by looking at appHfp state */
+    PanicNull(unmarshalled_link->identifier.sink);
+
+    conn_id = SinkGetRfcommConnId(link->identifier.sink);
+    PanicFalse(VmOverrideRfcommConnContext(conn_id, (conn_context_t)&theHfp->task));
     /* Stitch the RFCOMM sink and the task */
     MessageStreamTaskFromSink(link->identifier.sink, &theHfp->task);
     /* Configure RFCOMM sink messages */
     SinkConfigure(link->identifier.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);    
 
     free(unmarshalled_link);
-    free(hfp_marshal_inst->bd_addr);
     free(hfp_marshal_inst->server_channel);
 
-    hfp_marshal_inst->bd_addr = NULL;
     hfp_marshal_inst->server_channel = NULL;
 }
 
+
 /****************************************************************************
 NAME    
-    getNextRemoteServerChannel
+    getRemoteServerChannel
 
 DESCRIPTION
-    Returns remote server channel of connected link. If none of further links
-    are connected, then it returns RFC_INVALID_SERV_CHANNEL
+    Returns remote server channel of the specified link. If it does not exist
+    or is idle or disabled then it returns RFC_INVALID_SERV_CHANNEL
 
 RETURNS
     uint8 Remote server channel
 */
-static uint8 getNextRemoteServerChannel(void)
+static uint8 getRemoteServerChannel(hfp_link_data *link)
 {
     uint8 channel = RFC_INVALID_SERV_CHANNEL;
-
-    while (hfp_marshal_inst->link_index < theHfp->num_links)
+                            
+    if (link->bitfields.ag_slc_state == hfp_slc_idle ||
+        link->bitfields.ag_slc_state == hfp_slc_disabled)
     {
-        hfp_link_data *link = &theHfp->links[hfp_marshal_inst->link_index];
-
-        if (link->bitfields.ag_slc_state == hfp_slc_idle ||
-            link->bitfields.ag_slc_state == hfp_slc_disabled)
-        {
-            /* Not connected, try next link */
-        }
-        else
-        {
-            /* Connected */
-            channel = SinkGetRfcommServerChannel(link->identifier.sink);
-            break;
-        }
-        hfp_marshal_inst->link_index++;
+        /* Not connected */
+    }
+    else
+    {
+        /* Connected */
+        channel = SinkGetRfcommServerChannel(link->identifier.sink);
     }
 
     return channel;
@@ -204,16 +182,47 @@ static bool hfpMarshal(const tp_bdaddr *tp_bd_addr,
                        uint16 length,
                        uint16 *written)
 {
-    bool marshalled = TRUE;
+    bool marshalled = TRUE;   
 
     if (!hfp_marshal_inst)
-    { /* Initiating marshalling, initialize the instance */
-        hfp_marshal_inst = PanicUnlessNew(hfp_marshal_instance_t);
-        hfp_marshal_inst->marshal.marshaller = MarshalInit(mtd_hfp,
-                                                           HFP_MARSHAL_OBJ_TYPE_COUNT);
+    { 
+        bool validLink = TRUE;
+        uint8 channel = RFC_INVALID_SERV_CHANNEL;
 
-        hfp_marshal_inst->state = HFP_MARSHAL_STATE_BITFIELDS;
-        hfp_marshal_inst->link_index = 0;
+        /* Check we have a valid link */
+        hfp_link_data *link = hfpGetLinkFromBdaddr(&tp_bd_addr->taddr.addr);
+
+        if(link)
+        {
+            /* check for a valid RFC channel */
+            channel = getRemoteServerChannel(link);
+            if (channel == RFC_INVALID_SERV_CHANNEL)
+            {
+                validLink = FALSE;
+            }
+        }
+        else
+        {
+            validLink = FALSE;
+        }
+            
+        if(validLink)
+        {
+            /* Initiating marshalling, initialize the instance */
+            hfp_marshal_inst = PanicUnlessNew(hfp_marshal_instance_t);
+            hfp_marshal_inst->marshal.marshaller = MarshalInit(mtd_hfp,
+                                                               HFP_MARSHAL_OBJ_TYPE_COUNT);
+
+            hfp_marshal_inst->state = HFP_MARSHAL_STATE_BITFIELDS;
+            hfp_marshal_inst->link = link;
+            hfp_marshal_inst->channel = channel;
+        }
+        else
+        {
+            /* Link not valid, nothing to marshal */
+            *written = 0;
+            return TRUE;
+        }
     }
     else
     {
@@ -244,36 +253,9 @@ static bool hfpMarshal(const tp_bdaddr *tp_bd_addr,
 
             case HFP_MARSHAL_STATE_SERVER_CHANNEL:
             {
-                uint8 channel = getNextRemoteServerChannel();
-
                 if (Marshal(hfp_marshal_inst->marshal.marshaller,
-                            &channel,
+                            &hfp_marshal_inst->channel,
                             MARSHAL_TYPE(uint8)))
-                {
-                    if (channel == RFC_INVALID_SERV_CHANNEL)
-                    { /* All connections have been marshalled */
-                        *written = MarshalProduced(hfp_marshal_inst->marshal.marshaller);
-                        hfpMarshalAbort();
-
-                        return TRUE;
-                    }
-                    else
-                    {
-                        hfp_marshal_inst->state = HFP_MARSHAL_STATE_ADDRESS;
-                    }
-                }
-                else
-                { /* Insufficient buffer */
-                    marshalled = FALSE;
-                }
-
-                break;
-            }
-
-            case HFP_MARSHAL_STATE_ADDRESS:
-                if (Marshal(hfp_marshal_inst->marshal.marshaller,
-                            &theHfp->links[hfp_marshal_inst->link_index].identifier.bd_addr,
-                            MARSHAL_TYPE(bdaddr)))
                 {
                     hfp_marshal_inst->state = HFP_MARSHAL_STATE_LINK;
                 }
@@ -283,20 +265,25 @@ static bool hfpMarshal(const tp_bdaddr *tp_bd_addr,
                 }
 
                 break;
+            }
 
             case HFP_MARSHAL_STATE_LINK:
+            {
                 if (Marshal(hfp_marshal_inst->marshal.marshaller,
-                            &theHfp->links[hfp_marshal_inst->link_index],
+                            hfp_marshal_inst->link,
                             MARSHAL_TYPE(hfp_link_data)))
                 {
-                    hfp_marshal_inst->link_index++;
-                    hfp_marshal_inst->state = HFP_MARSHAL_STATE_SERVER_CHANNEL;
+                    /* Done marshalling this link */
+                    *written = MarshalProduced(hfp_marshal_inst->marshal.marshaller);
+                    hfpMarshalAbort();
+
+                    return TRUE;
                 }
                 else
                 { /* Insufficient buffer */
                     marshalled = FALSE;
                 }
-
+            }
                 break;
 
             default: /* Unexpected state */
@@ -306,8 +293,6 @@ static bool hfpMarshal(const tp_bdaddr *tp_bd_addr,
 
         *written = MarshalProduced(hfp_marshal_inst->marshal.marshaller);
     } while (marshalled && *written <= length);
-
-    UNUSED(tp_bd_addr);
 
     return marshalled;
 }
@@ -337,8 +322,9 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
                                                                HFP_MARSHAL_OBJ_TYPE_COUNT);
 
         hfp_marshal_inst->state = HFP_MARSHAL_STATE_BITFIELDS;
-        hfp_marshal_inst->bd_addr = NULL;
         hfp_marshal_inst->server_channel = NULL;
+        hfp_marshal_inst->link =  NULL;
+        hfp_marshal_inst->channel = 0;
     }
     else
     {
@@ -383,39 +369,14 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
                 {
                     PanicFalse(type == MARSHAL_TYPE(uint8));
 
-                    if (*(uint8 *) hfp_marshal_inst->server_channel == RFC_INVALID_SERV_CHANNEL)
-                    { /* No more links to be unmarshalled */
-                        *consumed = UnmarshalConsumed(hfp_marshal_inst->marshal.unmarshaller);
-
-                        UnmarshalDestroy(hfp_marshal_inst->marshal.unmarshaller,
-                                         FALSE);
-
-                        free(hfp_marshal_inst->server_channel);
-                        free(hfp_marshal_inst);
-                        hfp_marshal_inst = NULL;
-
-                        return TRUE;
+                    if (*hfp_marshal_inst->server_channel == RFC_INVALID_SERV_CHANNEL)
+                    { /* Should not have marshalled an invalid server channel */
+                        Panic();
                     }
                     else
                     {
-                        hfp_marshal_inst->state = HFP_MARSHAL_STATE_ADDRESS;
+                        hfp_marshal_inst->state = HFP_MARSHAL_STATE_LINK;
                     }
-                }
-                else
-                { /* Insufficient buffer */
-                    unmarshalled = FALSE;
-                }
-
-                break;
-
-            case HFP_MARSHAL_STATE_ADDRESS:
-                if (Unmarshal(hfp_marshal_inst->marshal.unmarshaller,
-                              (void **) &hfp_marshal_inst->bd_addr,
-                              &type))
-                {
-                    PanicFalse(type == MARSHAL_TYPE(bdaddr));
-
-                    hfp_marshal_inst->state = HFP_MARSHAL_STATE_LINK;
                 }
                 else
                 { /* Insufficient buffer */
@@ -434,9 +395,18 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
                 {
                     PanicFalse(type == MARSHAL_TYPE(hfp_link_data));
 
-                    stitchLink(link);
+                    stitchLink(link, tp_bd_addr);
 
-                    hfp_marshal_inst->state = HFP_MARSHAL_STATE_SERVER_CHANNEL;
+                    /* Unmarshalling link complete */
+                    *consumed = UnmarshalConsumed(hfp_marshal_inst->marshal.unmarshaller);
+
+                    UnmarshalDestroy(hfp_marshal_inst->marshal.unmarshaller,
+                                     FALSE);
+
+                    free(hfp_marshal_inst);
+                    hfp_marshal_inst = NULL;
+
+                    return TRUE;
                 }
                 else
                 { /* Insufficient buffer */
@@ -453,8 +423,6 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
 
         *consumed = UnmarshalConsumed(hfp_marshal_inst->marshal.unmarshaller);
     } while (unmarshalled && *consumed <= length);
-
-    UNUSED(tp_bd_addr);
 
     return unmarshalled;
 }

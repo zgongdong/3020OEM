@@ -38,6 +38,14 @@ NOTES
 #include "upgrade_fw_if.h"
 #include "upgrade_peer.h"
 
+static uint8 is_validated = 0;
+
+static void upgradeSmConfig_ResetValidation(void)
+{
+    PRINT(("upgradeSmConfig_ResetValidation()\n"));
+    is_validated = 0;
+}
+
 /*
 NAME
     IsValidatedToTrySwap - Ensures all data are validated before trying to swap image.
@@ -48,12 +56,9 @@ DESCRIPTION
 */
 static void IsValidatedToTrySwap(bool reset)
 {
-    static uint8 is_validated = 0;
-
     if(reset)
     {
-        is_validated = 0;
-        PRINT(("IsValidatedToTrySwap() is_validated is reset\n"));
+        upgradeSmConfig_ResetValidation();
         return;
     }
 	
@@ -97,14 +102,12 @@ bool UpgradeSMHandleValidated(MessageId id, Message message)
         
     case UPGRADE_INTERNAL_CONTINUE:
 
-        if(UPGRADE_PEER_IS_SUPPORTED)
+         /* Check if UPGRADE_HOST_IS_CSR_VALID_DONE_REQ message is received */
+        if(ctx->isCsrValidDoneReqReceived)
         {
-            /* Check if Validation is completed */
-            if(ctx->isCsrValidDoneReqReceived)
+            /* If Peer DFU is supported, then start the DFU of Peer Device */
+            if(UPGRADE_PEER_IS_SUPPORTED)
             {
-                /* Send UPGRADE_HOST_TRANSFER_COMPLETE_IND later once peer
-                 * upgrade is done.
-                 */
                 if(!UPGRADE_PEER_IS_STARTED)
                 {
                     if(UpgradePeerStartDfu()== FALSE)
@@ -112,15 +115,14 @@ bool UpgradeSMHandleValidated(MessageId id, Message message)
                         /* TODO: An error has occured, fail the DFU */
                     }
                 }
-                else
-                {
-                    UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
-                }
             }
-        }
-        else
-        {
-            UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+            /* Send UPGRADE_HOST_TRANSFER_COMPLETE_IND once standalone upgrade
+             * is done.
+             */
+            else
+            {
+                UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+            }
         }
         break;
 
@@ -174,9 +176,40 @@ bool UpgradeSMHandleValidated(MessageId id, Message message)
         break;
 
     case UPGRADE_HOST_IS_CSR_VALID_DONE_REQ:
-        PRINT(("UPGRADE_HOST_IS_CSR_VALID_DONE_REQ\n"));
-        UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+        {
+            PRINT(("UPGRADE_HOST_IS_CSR_VALID_DONE_REQ\n"));
+
+            /* If Peer DFU is supported, then start the DFU of Peer Device */
+            if(UPGRADE_PEER_IS_SUPPORTED)
+            {
+                if(!UPGRADE_PEER_IS_STARTED)
+                {
+                    if(UpgradePeerStartDfu()== FALSE)
+                    {
+                    /* TODO: An error has occured, failed the DFU */
+                    }
+                }
+            }
+            /* Send UPGRADE_HOST_TRANSFER_COMPLETE_IND later once upgrade is
+             * done during standalone DFU.
+             */
+            else
+            {
+                UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+            }
+        }
         break;
+
+    case UPGRADE_HOST_TRANSFER_COMPLETE_IND:
+        /* Receive the UPGRADE_HOST_TRANSFER_COMPLETE_IND message from Peer
+         * device once the DFU data is successfully transferred and validated
+         * in Peer device. Then, send UPGRADE_HOST_TRANSFER_COMPLETE_IND
+         * to Host now.
+         */
+        {
+            UpgradeCtxGet()->funcs->SendShortMsg(UPGRADE_HOST_TRANSFER_COMPLETE_IND);
+            break;
+        }
 
     /* application finally gave permission, warm reboot */
     case UPGRADE_INTERNAL_REBOOT:
@@ -227,6 +260,8 @@ DESCRIPTION
 */
 bool UpgradeSMAbort(void)
 {
+    upgradeSmConfig_ResetValidation();
+
     /* If peer upgrade is supported then inform UpgradePeer lib as well */
     if(UPGRADE_PEER_IS_SUPPORTED && UPGRADE_PEER_IS_STARTED)
     {

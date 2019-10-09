@@ -14,6 +14,7 @@
 #include <hfp.h>
 #include <task_list.h>
 #include "domain_message.h"
+#include "bt_device_typedef.h"
 
 /*! \brief Device Manager UI Provider contexts */
 typedef enum
@@ -43,6 +44,8 @@ typedef enum
 /*! \brief Device supports Handover profile. */
 #define DEVICE_PROFILE_HANDOVER (1 << 5)
 
+/*! \brief Device supports Shadow profile. */
+#define DEVICE_PROFILE_SHADOW   (1 << 6)
 
 /*! Bit in handset flags defining if we need to send the link key to the peer earbud. */
 #define DEVICE_FLAGS_HANDSET_LINK_KEY_TX_REQD       (1 << 0)
@@ -66,6 +69,9 @@ typedef enum
 #define DEVICE_FLAGS_SECONDARY_ADDR                 (1 << 9)
 /*! Define that can be used when not setting any flags */
 #define DEVICE_FLAGS_NO_FLAGS                       0
+/*! Define the initial capacity of the device version client data task list */
+#define DEVICE_VERSION_CLIENT_TASKS_LIST_INIT_CAPACITY      1
+
 
 typedef enum
 {
@@ -88,7 +94,7 @@ typedef struct
 {
     TaskData task;                /*!< Device Manager task */
 
-    task_list_t *device_version_client_tasks; /*!< List of tasks interested in device version changes */
+    TASK_LIST_WITH_INITIAL_CAPACITY(DEVICE_VERSION_CLIENT_TASKS_LIST_INIT_CAPACITY) device_version_client_tasks; /*!< List of tasks interested in device version changes */
 
     uint8 pdd_len;                /*!< The length of the Persistent Device Data frame used by the Device Manager. */
 
@@ -115,6 +121,7 @@ extern deviceTaskData  app_device;
 
 /*! Get pointer to Device Management data structure */
 #define DeviceGetTaskData()  (&app_device)
+#define DeviceGetVersionClientTasks() (task_list_flexible_t *)(&app_device.device_version_client_tasks)
 
 /*! \brief Initialse the device manager application module. */
 bool appDeviceInit(Task init_task);
@@ -267,6 +274,14 @@ bool appDeviceIsHandset(const bdaddr *bd_addr);
     or to the remote peer earbud.
  */
 bool appDeviceIsPeer(const bdaddr *bd_addr);
+
+/*! \brief Determine if a BLE device is our bonded peer.
+
+    \param tpaddr Pointer to read-only device BT address.
+
+    \return TRUE if device is peer, FALSE otherwise.
+*/
+bool BtDevice_LeDeviceIsPeer(const tp_bdaddr *tpaddr);
 
 /*! \brief Determine if a device supports a particular profile
 
@@ -636,5 +651,24 @@ bool BtDevice_SwapAddresses(const bdaddr *bd_addr_1, const bdaddr *bd_addr_2);
 bool BtDevice_SetMyAddress(const bdaddr *new_bd_addr);
 
 void BtDevice_PrintAllDevices(void);
+
+/*! \brief Get the device data for the provided device handle.
+
+    \param device Device handle.
+    \param device_data[out] Data associated with the device handle.
+*/
+void BtDevice_GetDeviceData(device_t device, bt_device_pdd_t *device_data);
+
+/*! \brief Set the device data for the provided device handle.
+
+    \param device Device handle.
+    \param device_data Data associated with the device handle.
+*/
+void BtDevice_SetDeviceData(device_t device, const bt_device_pdd_t *device_data);
+
+/*! \brief Stores device data in ps after some delay
+
+*/
+void BtDevice_StorePsDeviceDataWithDelay(void);
 
 #endif /* BT_DEVICE_H_ */

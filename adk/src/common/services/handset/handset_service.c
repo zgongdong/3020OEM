@@ -7,32 +7,92 @@
 */
 
 #include <bdaddr.h>
+#include <vm.h>
 #include <logging.h>
 #include <task_list.h>
 
 #include <bt_device.h>
+#include <pairing.h>
 #include <bredr_scan_manager.h>
 #include <connection_manager.h>
 #include <device_properties.h>
 #include <profile_manager.h>
+#include <pairing.h>
+#include <timestamp_event.h>
 
 #include "handset_service.h"
 #include "handset_service_sm.h"
 #include "handset_service_protected.h"
 
-
-
 /*! Handset Service module data. */
 handset_service_data_t handset_service;
-
 
 /*
     Helper functions
 */
 
-/*! Try to find an active handset state machine for a device_t.
+/*! Get if the handset service is in pairing mode. */
+#define HandsetService_IsPairing() (HandsetService_Get()->pairing)
 
-    Note: handset_service currently supports only one handset sm.
+/*! Get if the handset service has a BLE connection. */
+#define HandsetService_IsBleConnected() (HandsetService_Get()->ble_connected)
+
+/*! Stores if the Handset can be paired.
+
+    \param pairing The headset pairing state.
+*/
+static void HandsetService_SetPairing(bool pairing)
+{ 
+    HandsetService_Get()->pairing = pairing;
+}
+
+/*! Stores if the Handset has a BLE connection.
+
+    \param ble_connected The BLE connected state.
+*/
+static void HandsetService_SetBleConnected(bool ble_connected)
+{ 
+    HandsetService_Get()->ble_connected = ble_connected;
+}
+
+/*! Updates the BLE advertising data.
+*/
+static void handsetService_UpdateAdvertisingData(void)
+{
+    handset_service_data_t *hs = HandsetService_Get();
+    le_adv_select_params_t adv_select_params;
+    le_adv_data_set_handle adv_handle = NULL;
+    
+    if (hs->le_advert_handle != NULL)
+    {
+        HS_LOG("handsetService_UpdateAdvertisingData. Release set with handle=%p", hs->le_advert_handle);
+        
+        PanicFalse(LeAdvertisingManager_ReleaseAdvertisingDataSet(hs->le_advert_handle));
+    }
+    else if (!HandsetService_IsBleConnected())
+    {
+        HS_LOG("handsetService_UpdateAdvertisingData. pairing=%d", HandsetService_IsPairing());
+        
+        if (HandsetService_IsPairing())
+        {
+            adv_select_params.set = le_adv_data_set_handset_identifiable;
+        }
+        else
+        {
+            adv_select_params.set = le_adv_data_set_handset_unidentifiable;
+        }
+        
+        adv_handle = LeAdvertisingManager_SelectAdvertisingDataSet(HandsetService_GetTask(), &adv_select_params);
+        
+        if (adv_handle != NULL)
+        {
+            hs->le_advert_handle = adv_handle;
+            HS_LOG("handsetService_UpdateAdvertisingData. Selected set with handle=%p", hs->le_advert_handle);
+        }
+    }
+}
+
+/*! Try to find an active handset state machine for a device_t.
 
     \param device Device to search for.
     \return Pointer to the matching state machine, or NULL if no match.
@@ -41,11 +101,51 @@ static handset_service_state_machine_t *handsetService_GetSmForDevice(device_t d
 {
     handset_service_state_machine_t *sm_match = NULL;
     handset_service_state_machine_t *sm = HandsetService_GetSm();
+    uint16 index;
 
-    if (sm && (sm->state != HANDSET_SERVICE_STATE_NULL)
-        && (sm->handset_device == device))
+    for (index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
     {
-        sm_match = sm;
+        if (sm && (sm->state != HANDSET_SERVICE_STATE_NULL)
+            && (sm->handset_device == device))
+        {
+            sm_match = sm;
+            break;
+        }
+        sm++;
+    }
+
+    return sm_match;
+}
+
+/*! Try to find an active LE handset state machine for an address.
+
+    \param device Device to search for.
+    \return Pointer to the matching state machine, or NULL if no match.
+*/
+static handset_service_state_machine_t *handsetService_GetLeSmForBdAddr(const bdaddr *addr)
+{
+    handset_service_state_machine_t *sm_match = NULL;
+    handset_service_state_machine_t *sm = HandsetService_GetSm();
+    uint16 index;
+    bdaddr le_bdaddr;
+
+    for (index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
+    {
+        HS_LOG("handsetService_GetLeSmForBdAddr Check index[%d] sm [%p] addr [%04x,%02x,%06lx]", index, sm, addr->nap, addr->uap, addr->lap);
+        if (sm)
+        {
+            le_bdaddr = HandsetServiceSm_GetLeBdaddr(sm);
+            
+            HS_LOG("handsetService_GetLeSmForBdAddr Check state [%d] addr [%04x,%02x,%06lx]",sm->state, le_bdaddr.nap, le_bdaddr.uap, le_bdaddr.lap);
+
+            if ((sm->state != HANDSET_SERVICE_STATE_NULL)
+                && BdaddrIsSame(&le_bdaddr, addr))
+            {
+                sm_match = sm;
+                break;
+            }
+        }
+        sm++;
     }
 
     return sm_match;
@@ -60,8 +160,20 @@ static handset_service_state_machine_t *handsetService_GetSmForDevice(device_t d
 */
 static handset_service_state_machine_t *handsetService_GetSmForBdAddr(const bdaddr *addr)
 {
+    handset_service_state_machine_t *sm = NULL;
     device_t dev = BtDevice_GetDeviceForBdAddr(addr);
-    return handsetService_GetSmForDevice(dev);
+    
+    if (dev)
+    {
+        sm = handsetService_GetSmForDevice(dev);
+    }
+    
+    if (!sm)
+    {
+        sm = handsetService_GetLeSmForBdAddr(addr);
+    }
+    
+    return sm;
 }
 
 /*! \brief Create a new instance of a handset state machine.
@@ -77,15 +189,51 @@ static handset_service_state_machine_t *handsetService_CreateSm(device_t device)
 {
     handset_service_state_machine_t *new_sm = NULL;
     handset_service_state_machine_t *sm = HandsetService_GetSm();
+    uint16 index;
 
-    /* Only one handset sm is supported at the moment. */
-    if (sm->state == HANDSET_SERVICE_STATE_NULL)
+    for (index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
     {
-        new_sm = sm;
-        HandsetServiceSm_Init(new_sm);
-        new_sm->handset_device = device;
-        HandsetServiceSm_SetState(new_sm, HANDSET_SERVICE_STATE_DISCONNECTED);
+        if (sm->state == HANDSET_SERVICE_STATE_NULL)
+        {
+            new_sm = sm;
+            HandsetServiceSm_Init(new_sm);
+            new_sm->handset_device = device;
+            BdaddrTpSetEmpty(&new_sm->le_addr);
+            HandsetServiceSm_SetState(new_sm, HANDSET_SERVICE_STATE_DISCONNECTED);
+            break;
+        }
+        sm++;
+    }
 
+    return new_sm;
+}
+
+/*! \brief Create a new instance of a handset state machine for a LE connection.
+
+    This will return NULL if a new state machine cannot be created,
+    for example if the maximum number of handsets already exists.
+
+    \param addr Address to create state machine for.
+
+    \return Pointer to new state machine, or NULL if it couldn't be created.
+*/
+static handset_service_state_machine_t *handsetService_CreateLeSm(const tp_bdaddr *addr)
+{
+    handset_service_state_machine_t *new_sm = NULL;
+    handset_service_state_machine_t *sm = HandsetService_GetSm();
+    uint16 index;
+
+    for (index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
+    {
+        if (sm->state == HANDSET_SERVICE_STATE_NULL)
+        {
+            new_sm = sm;
+            HandsetServiceSm_Init(new_sm);
+            new_sm->le_addr = *addr;
+            HandsetServiceSm_SetState(new_sm, HANDSET_SERVICE_STATE_DISCONNECTED);
+            break;
+        }
+        sm++;
     }
 
     return new_sm;
@@ -101,10 +249,10 @@ static void handsetService_InternalConnectReq(handset_service_state_machine_t *s
 }
 
 /*! \brief Send a HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ to a state machine. */
-static void handsetService_InternalDisconnectReq(handset_service_state_machine_t *sm)
+static void handsetService_InternalDisconnectReq(handset_service_state_machine_t *sm, const bdaddr *addr)
 {
     MESSAGE_MAKE(req, HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ_T);
-    req->device = sm->handset_device;
+    req->addr = *addr;
     MessageSend(&sm->task_data, HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ, req);
 }
 
@@ -120,18 +268,23 @@ static void handsetService_InternalConnectStopReq(handset_service_state_machine_
 static void handsetService_ConnectReq(Task task, const bdaddr *addr, uint8 profiles)
 {
     handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(addr);
+    device_t dev = BtDevice_GetDeviceForBdAddr(addr);
+
+    TimestampEvent(TIMESTAMP_EVENT_HANDSET_CONNECTION_START);
 
     /* If state machine doesn't exist yet, need to create a new one */
     if (!sm)
     {
-        device_t dev = BtDevice_GetDeviceForBdAddr(addr);
-
         HS_LOG("handsetService_ConnectReq creating new handset sm");
         sm = handsetService_CreateSm(dev);
     }
 
     if (sm)
     {
+        if (!sm->handset_device)
+        {
+            sm->handset_device = dev;
+        }
         HandsetServiceSm_CompleteDisconnectRequests(sm, handset_service_status_cancelled);
         handsetService_InternalConnectReq(sm, profiles);
         TaskList_AddTask(&sm->connect_list, task);
@@ -147,7 +300,7 @@ static void handsetService_ConnectReq(Task task, const bdaddr *addr, uint8 profi
     }
 }
 
-/*! \brief Helper function for starting a connect req. */
+/*! \brief Helper function for starting a disconnect req. */
 static void handsetService_DisconnectReq(Task task, const bdaddr *addr)
 {
     handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(addr);
@@ -155,7 +308,7 @@ static void handsetService_DisconnectReq(Task task, const bdaddr *addr)
     if (sm)
     {
         HandsetServiceSm_CompleteConnectRequests(sm, handset_service_status_cancelled);
-        handsetService_InternalDisconnectReq(sm);
+        handsetService_InternalDisconnectReq(sm, addr);
         TaskList_AddTask(&sm->disconnect_list, task);
     }
     else
@@ -173,24 +326,135 @@ static void handsetService_DisconnectReq(Task task, const bdaddr *addr)
     Message handler functions
 */
 
+static void handsetService_HandlePairingActivity(const PAIRING_ACTIVITY_T* pair_activity)
+{
+    switch (pair_activity->status)
+    {
+        case pairingInProgress:
+            if (!HandsetService_IsPairing())
+            {
+                HS_LOG("handsetService_HandlePairingActivity. Pairing Active");
+                HandsetService_SetPairing(TRUE);
+                handsetService_UpdateAdvertisingData();
+            }
+            break;
+        case pairingNotInProgress:
+            if (HandsetService_IsPairing())
+            {
+                HS_LOG("handsetService_HandlePairingActivity. Pairing Inactive");
+                HandsetService_SetPairing(FALSE);
+                handsetService_UpdateAdvertisingData();
+            }
+            break;
+        
+        default:
+            break;
+    }
+}
+
+
+static void handsetService_HandleLeAdvMgrSelectDatasetCfm(const LE_ADV_MGR_SELECT_DATASET_CFM_T *cfm)
+{
+    if (cfm->status != le_adv_mgr_status_success)
+    {
+        Panic();
+    }
+}
+
+static void handsetService_HandleLeAdvMgrReleaseDatasetCfm(const LE_ADV_MGR_RELEASE_DATASET_CFM_T *cfm)
+{
+    handset_service_data_t *hs = HandsetService_Get();
+    
+    if (cfm->status == le_adv_mgr_status_success)
+    {
+        hs->le_advert_handle = NULL;
+        handsetService_UpdateAdvertisingData();
+    }
+    else
+    {
+        Panic();
+    }
+}
+
 /* \brief Handle a CON_MANAGER_CONNECTION_IND */
 static void handsetService_HandleConManagerConnectionInd(const CON_MANAGER_CONNECTION_IND_T *ind)
 {
     handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(&ind->bd_addr);
 
-    HS_LOG("handsetService_HandleConManagerConnectionInd addr [%04x,%02x,%06lx] connected %d ble %d",
-           ind->bd_addr.nap, ind->bd_addr.uap, ind->bd_addr.lap, ind->connected, ind->ble);
+    HS_LOG("handsetService_HandleConManagerConnectionInd sm [%p] addr [%04x,%02x,%06lx] connected %d ble %d",
+           sm, ind->bd_addr.nap, ind->bd_addr.uap, ind->bd_addr.lap, ind->connected, ind->ble);
 
     if (sm)
     {
-        HS_LOG("handsetService_HandleConManagerConnectionInd received for managed handset");
         HandsetServiceSm_HandleConManagerConnectionInd(sm, ind);
     }
-    else
+}
+
+/* \brief Handle a CON_MANAGER_TP_CONNECT_IND for BLE connections */
+static void handsetService_HandleConManagerBleTpConnectInd(const CON_MANAGER_TP_CONNECT_IND_T *ind)
+{
+    handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(&ind->tpaddr.taddr.addr);
+
+    HS_LOG("handsetService_HandleConManagerBleTpConnectInd sm [%p] type[%d] addr [%04x,%02x,%06lx]",
+           sm, 
+           ind->tpaddr.taddr.type, 
+           ind->tpaddr.taddr.addr.nap, 
+           ind->tpaddr.taddr.addr.uap, 
+           ind->tpaddr.taddr.addr.lap);
+
+    if (ind->incoming && (ind->tpaddr.transport == TRANSPORT_BLE_ACL))
     {
-        /* TBD: Create a new state machine for a newly connected device? */
+        /* Do not initiate pairing unless peer pairing has completed or we can't tell if device is our peer or a handset */
+        if (BtDevice_IsPairedWithPeer() && !BtDevice_LeDeviceIsPeer(&ind->tpaddr))
+        {
+            HS_LOG("handsetService_HandleConManagerBleTpConnectInd received for LE handset");
+            
+            Pairing_PairLeAddress(HandsetService_GetTask(), &ind->tpaddr.taddr);
+            
+            HandsetService_SetBleConnected(TRUE);
+        
+            handsetService_UpdateAdvertisingData();
+            
+            if (sm)
+            {
+                HandsetServiceSm_HandleConManagerBleTpConnectInd(sm, ind);
+            }
+            else
+            {
+                sm = handsetService_CreateLeSm(&ind->tpaddr);
+                HandsetServiceSm_HandleConManagerBleTpConnectInd(sm, ind);
+            }
+        }
     }
+}
+
+/* \brief Handle a CON_MANAGER_TP_DISCONNECT_IND for BLE disconnections */
+static void handsetService_HandleConManagerBleTpDisconnectInd(const CON_MANAGER_TP_DISCONNECT_IND_T *ind)
+{
+    bdaddr le_bdaddr = ind->tpaddr.taddr.addr;
+    handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(&le_bdaddr);
+
+    HS_LOG("handsetService_HandleConManagerBleTpDisconnectInd sm [%p] type[%d] addr [%04x,%02x,%06lx]",
+           sm, 
+           ind->tpaddr.taddr.type, 
+           le_bdaddr.nap, 
+           le_bdaddr.uap, 
+           le_bdaddr.lap);
+
+    if (ind->tpaddr.transport == TRANSPORT_BLE_ACL)
+    {
+        if (BtDevice_IsPairedWithPeer() && !BtDevice_LeDeviceIsPeer(&ind->tpaddr))
+        {
+            HandsetService_SetBleConnected(FALSE);
+        
+            handsetService_UpdateAdvertisingData();
     
+            if (sm)
+            {
+                HandsetServiceSm_HandleConManagerBleTpDisconnectInd(sm, ind);
+            }
+        }
+    }
 }
 
 static void handsetService_HandleProfileManagerConnectedInd(const CONNECTED_PROFILE_IND_T *ind)
@@ -203,7 +467,7 @@ static void handsetService_HandleProfileManagerConnectedInd(const CONNECTED_PROF
 
     if (is_handset)
     {
-        handset_service_state_machine_t *sm = handsetService_GetSmForDevice(ind->device);
+        handset_service_state_machine_t *sm = handsetService_GetSmForBdAddr(&addr);
 
         /* If state machine doesn't exist yet, need to create a new one */
         if (!sm)
@@ -215,6 +479,11 @@ static void handsetService_HandleProfileManagerConnectedInd(const CONNECTED_PROF
         /* TBD: handset_service currently only supports one active handset, 
                 so what should happen if a new device can't be created? */
         assert(sm);
+        
+        if (!sm->handset_device)
+        {
+            sm->handset_device = ind->device;
+        }
 
         /* Forward the connect ind to the state machine */
         HandsetServiceSm_HandleProfileManagerConnectedInd(sm, ind);
@@ -241,6 +510,11 @@ static void handsetService_HandleProfileManagerDisconnectedInd(const DISCONNECTE
     }
 }
 
+static void handsetService_HandlePairingPairCfm(void)
+{
+    DEBUG_LOG("handsetService_HandlePairingPairCfm");
+}
+
 static void handsetService_MessageHandler(Task task, MessageId id, Message message)
 {
     UNUSED(task);
@@ -251,7 +525,13 @@ static void handsetService_MessageHandler(Task task, MessageId id, Message messa
     case CON_MANAGER_CONNECTION_IND:
         handsetService_HandleConManagerConnectionInd((const CON_MANAGER_CONNECTION_IND_T *)message);
         break;
-
+    case CON_MANAGER_TP_CONNECT_IND:
+        handsetService_HandleConManagerBleTpConnectInd((const CON_MANAGER_TP_CONNECT_IND_T *)message);
+        break;
+    case CON_MANAGER_TP_DISCONNECT_IND:
+        handsetService_HandleConManagerBleTpDisconnectInd((const CON_MANAGER_TP_DISCONNECT_IND_T *)message);
+        break;
+        
     /* Profile Manager messages */
     case CONNECTED_PROFILE_IND:
         handsetService_HandleProfileManagerConnectedInd((const CONNECTED_PROFILE_IND_T *)message);
@@ -267,6 +547,24 @@ static void handsetService_MessageHandler(Task task, MessageId id, Message messa
         /* These are informational so no need to act on them. */
         break;
 
+    /* Pairing messages */
+    case PAIRING_ACTIVITY:
+        handsetService_HandlePairingActivity((PAIRING_ACTIVITY_T*)message);
+        break;
+        
+    case PAIRING_PAIR_CFM:
+        handsetService_HandlePairingPairCfm();
+        break;
+
+    /* LE Advertising Manager messages */
+    case LE_ADV_MGR_SELECT_DATASET_CFM:
+        handsetService_HandleLeAdvMgrSelectDatasetCfm((LE_ADV_MGR_SELECT_DATASET_CFM_T*)message);
+        break;
+        
+    case LE_ADV_MGR_RELEASE_DATASET_CFM:
+        handsetService_HandleLeAdvMgrReleaseDatasetCfm((LE_ADV_MGR_RELEASE_DATASET_CFM_T*)message);
+        break;
+        
     default:
         HS_LOG("handsetService_MessageHandler unhandled id 0x%x", id);
         break;
@@ -284,12 +582,15 @@ bool HandsetService_Init(Task task)
     hs->task_data.handler = handsetService_MessageHandler;
 
     ConManagerRegisterConnectionsClient(&hs->task_data);
+    ConManagerRegisterTpConnectionsObserver(cm_transport_ble, &hs->task_data);
 
     ProfileManager_ClientRegister(&hs->task_data);
 
-    HandsetServiceSm_Init(&hs->state_machine);
+    Pairing_ActivityClientRegister(&hs->task_data);
 
-    TaskList_Initialise(&hs->client_list);
+    HandsetServiceSm_Init(hs->state_machine);
+
+    TaskList_InitialiseWithCapacity(HandsetService_GetClientList(), HANDSET_SERVICE_CLIENT_LIST_INIT_CAPACITY);
 
     UNUSED(task);
     return TRUE;
@@ -297,14 +598,12 @@ bool HandsetService_Init(Task task)
 
 void HandsetService_ClientRegister(Task client_task)
 {
-    handset_service_data_t *hs = HandsetService_Get();
-    TaskList_AddTask(&hs->client_list, client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(HandsetService_GetClientList()), client_task);
 }
 
 void HandsetService_ClientUnregister(Task client_task)
 {
-    handset_service_data_t *hs = HandsetService_Get();
-    TaskList_RemoveTask(&hs->client_list, client_task);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(HandsetService_GetClientList()), client_task);
 }
 
 void HandsetService_ConnectAddressRequest(Task task, const bdaddr *addr, uint8 profiles)
@@ -369,12 +668,18 @@ void HandsetService_StopConnect(Task task, const bdaddr *addr)
 
 void HandsetService_ConnectableRequest(Task task)
 {
+    HS_LOG("HandsetService_ConnectableRequest");
+     
     UNUSED(task);
     BredrScanManager_PageScanRequest(HandsetService_GetTask(), SCAN_MAN_PARAMS_TYPE_SLOW);
+    
+    handsetService_UpdateAdvertisingData();
 }
 
 void HandsetService_CancelConnectableRequest(Task task)
 {
+    HS_LOG("HandsetService_CancelConnectableRequest");
+    
     UNUSED(task);
     BredrScanManager_PageScanRelease(HandsetService_GetTask());
 }
@@ -382,21 +687,51 @@ void HandsetService_CancelConnectableRequest(Task task)
 void HandsetService_SendConnectedIndNotification(device_t device,
     uint8 profiles_connected)
 {
-    handset_service_data_t *hs = HandsetService_Get();
-
     MESSAGE_MAKE(ind, HANDSET_SERVICE_CONNECTED_IND_T);
     ind->addr = DeviceProperties_GetBdAddr(device);
     ind->profiles_connected = profiles_connected;
-    TaskList_MessageSend(&hs->client_list, HANDSET_SERVICE_CONNECTED_IND, ind);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(HandsetService_GetClientList()), HANDSET_SERVICE_CONNECTED_IND, ind);
 }
 
-void HandsetService_SendDisconnectedIndNotification(device_t device,
+void HandsetService_SendDisconnectedIndNotification(const bdaddr *addr,
     handset_service_status_t status)
 {
-    handset_service_data_t *hs = HandsetService_Get();
-
     MESSAGE_MAKE(ind, HANDSET_SERVICE_DISCONNECTED_IND_T);
-    ind->addr = DeviceProperties_GetBdAddr(device);
+    ind->addr = *addr;
     ind->status = status;
-    TaskList_MessageSend(&hs->client_list, HANDSET_SERVICE_DISCONNECTED_IND, ind);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(HandsetService_GetClientList()), HANDSET_SERVICE_DISCONNECTED_IND, ind);
+}
+
+bool HandsetService_Connected(device_t device)
+{
+    handset_service_state_machine_t *sm = handsetService_GetSmForDevice(device);
+
+    if (sm)
+    {
+        return (HANDSET_SERVICE_STATE_CONNECTED_BREDR == sm->state);
+    }
+
+    return FALSE;
+}
+bool HandsetService_GetConnectedLeHandsetAddress(bdaddr *addr)
+{
+    handset_service_state_machine_t *sm = HandsetService_GetSm();
+    uint16 index;
+    bool le_handset = FALSE;
+
+    for (index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
+    {
+        if (sm->state != HANDSET_SERVICE_STATE_NULL)
+        {
+            if (HandsetServiceSm_IsLeConnected(sm))
+            {
+                *addr = HandsetServiceSm_GetLeBdaddr(sm);
+                le_handset = TRUE;
+                break;
+            }
+        }
+        sm++;
+    }
+
+    return le_handset;
 }

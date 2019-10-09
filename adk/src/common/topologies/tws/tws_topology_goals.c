@@ -9,38 +9,47 @@
 
 #include "tws_topology.h"
 #include "tws_topology_private.h"
+
+#include "tws_topology_dfu_rules.h"
 #include "tws_topology_primary_rules.h"
 #include "tws_topology_secondary_rules.h"
-#include "tws_topology_dfu_rules.h"
+
 #include "tws_topology_goals.h"
 #include "tws_topology_rule_events.h"
+
 #include "tws_topology_procedures.h"
-#include "tws_topology_procedure_pair_peer.h"
-#include "tws_topology_procedure_find_role.h"
-#include "tws_topology_procedure_pri_connect_peer_profiles.h"
-#include "tws_topology_procedure_sec_connect_peer.h"
-#include "tws_topology_procedure_pri_connectable_peer.h"
-#include "tws_topology_procedure_disconnect_peer_profiles.h"
-#include "tws_topology_procedure_connectable_handset.h"
-#include "tws_topology_procedure_permit_bt.h"
-#include "tws_topology_procedure_prohibit_bt.h"
-#include "tws_topology_procedure_set_address.h"
-#include "tws_topology_procedure_set_role.h"
-#include "tws_topology_procedure_no_role_idle.h"
-#include "tws_topology_procedure_connect_handset.h"
-#include "tws_topology_procedure_disconnect_handset.h"
-#include "tws_topology_procedure_primary_role.h"
 #include "tws_topology_procedure_acting_primary_role.h"
-#include "tws_topology_procedure_secondary_role.h"
-#include "tws_topology_procedure_primary_addr_find_role.h"
-#include "tws_topology_procedure_switch_to_secondary.h"
-#include "tws_topology_procedure_no_role_find_role.h"
 #include "tws_topology_procedure_cancel_find_role.h"
-#include "tws_topology_procedure_primary_find_role.h"
+#include "tws_topology_procedure_connect_handset.h"
+#include "tws_topology_procedure_connectable_handset.h"
+#include "tws_topology_procedure_disconnect_handset.h"
+#include "tws_topology_procedure_disconnect_peer_profiles.h"
 #include "tws_topology_procedure_disconnect_peer_find_role.h"
 #include "tws_topology_procedure_dfu_role.h"
 #include "tws_topology_procedure_dfu_secondary_after_boot.h"
 #include "tws_topology_procedure_dfu_primary_after_boot.h"
+#include "tws_topology_procedure_find_role.h"
+#include "tws_topology_procedure_no_role_find_role.h"
+#include "tws_topology_procedure_no_role_idle.h"
+#include "tws_topology_procedure_pair_peer.h"
+#include "tws_topology_procedure_permit_bt.h"
+#include "tws_topology_procedure_pri_connect_peer_profiles.h"
+#include "tws_topology_procedure_pri_connectable_peer.h"
+#include "tws_topology_procedure_primary_addr_find_role.h"
+#include "tws_topology_procedure_primary_find_role.h"
+#include "tws_topology_procedure_primary_role.h"
+#include "tws_topology_procedure_prohibit_bt.h"
+#include "tws_topology_procedure_release_peer.h"
+#include "tws_topology_procedure_sec_connect_peer.h"
+#include "tws_topology_procedure_secondary_role.h"
+#include "tws_topology_procedure_set_address.h"
+#include "tws_topology_procedure_set_role.h"
+#include "tws_topology_procedure_switch_to_secondary.h"
+#include "tws_topology_procedure_handover.h"
+#include "tws_topology_procedure_handover_entering_case.h"
+#include "tws_topology_procedure_handover_entering_case_timeout.h"
+#include "tws_topology_procedure_sec_forced_role_switch.h"
+#include "tws_topology_procedure_pri_forced_role_switch.h"
 
 #include <logging.h>
 
@@ -56,9 +65,11 @@ static tws_topology_goal twsTopology_FindGoalForProcedure(tws_topology_procedure
 static void twsTopology_QueueGoal(MessageId rule_id, Message goal_data, size_t goal_data_size, tws_topology_goal wait_mask, tws_topology_goal new_goal);
 static void twsTopology_DequeGoal(tws_topology_goal goal);
 static void TwsTopology_ClearGoal(tws_topology_goal goal);
+static tws_topology_goal twstopology_GetHandoverGoal(hdma_handover_reason_t reason);
 
 #define ADD_GOAL_TO_MASK(goal_mask, goal)           ((goal_mask) |= (goal))
 #define REMOVE_GOAL_FROM_MASK(goal_mask, goal)      ((goal_mask) &= (~goal))
+
 
 /*! \brief This table defines each goal supported by the topology.
     Each entry links the goal set by a topology rule decision with the procedure required to achieve it.
@@ -84,8 +95,9 @@ const tws_topology_goal_entry_t goals[] =
     GOAL(tws_topology_goal_find_role, tws_topology_procedure_find_role,
          &proc_find_role_fns, tws_topology_goal_none),
 
-    GOAL_TIMEOUT(tws_topology_goal_secondary_connect_peer, tws_topology_procedure_sec_connect_peer,
-                 &proc_sec_connect_peer_fns, tws_topology_goal_none, TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT),
+    GOAL_WITH_TIMEOUT_AND_FAIL(tws_topology_goal_secondary_connect_peer, tws_topology_procedure_sec_connect_peer,
+                 &proc_sec_connect_peer_fns, tws_topology_goal_none, 
+                 TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT,TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT),
 
     GOAL_WITH_CONCURRENCY(tws_topology_goal_primary_connect_peer_profiles, tws_topology_procedure_pri_connect_peer_profiles,
                           &proc_pri_connect_peer_profiles_fns, tws_topology_goal_primary_disconnect_peer_profiles,
@@ -163,6 +175,20 @@ const tws_topology_goal_entry_t goals[] =
     SCRIPT_GOAL(tws_topology_goal_disconnect_peer_find_role, tws_topology_procedure_disconnect_peer_find_role,
                 &disconnect_peer_find_role_script, tws_topology_goal_none),
 
+    GOAL(tws_topology_goal_release_peer, tws_topology_procedure_release_peer, 
+         &proc_release_peer_fns, tws_topology_goal_none),
+         
+    SCRIPT_GOAL_TIMEOUT_OR_FAILED(tws_topology_goal_handover_entering_case, tws_topology_procedure_handover_entering_case,
+                        &handover_entering_case_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_HANDOVER_INCASE_TIMEOUT, TWSTOP_RULE_EVENT_HANDOVER_INCASE_FAILED),
+
+    SCRIPT_GOAL_TIMEOUT_OR_FAILED(tws_topology_goal_handover_incase_timeout, tws_topology_procedure_handover_entering_case_timeout,
+                &handover_entering_case_timeout_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_HANDOVER_INCASE_TIMEOUT, TWSTOP_RULE_EVENT_HANDOVER_INCASE_FAILED),
+
+    SCRIPT_GOAL_CANCEL_SUCCESS_FAILED(tws_topology_goal_secondary_forced_role_switch, tws_topology_procedure_secondary_forced_role_switch,
+                               &secondary_forced_role_switch_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH, TWSTOP_RULE_EVENT_FORCED_ROLE_SWITCH_FAILED),
+
+    SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_primary_forced_role_switch, tws_topology_procedure_primary_forced_role_switch,
+                       &primary_forced_role_switch_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_FORCED_ROLE_SWITCH_FAILED),
 };
 
 /******************************************************************************
@@ -667,6 +693,29 @@ static void TwsTopology_ClearGoal(tws_topology_goal goal)
     }
 }
 
+/*! \brief Find and return the relevant handover goal,by mapping the 
+           HDMA reason code to topology goal. 
+    \param[in] HDMA reason code
+*/
+tws_topology_goal twstopology_GetHandoverGoal(hdma_handover_reason_t reason)
+{
+    DEBUG_LOG("Twstopology_GetHandoverGoal for: %d",reason);
+    tws_topology_goal goal = tws_topology_goal_none;
+
+    switch(reason)
+    {
+        case HDMA_HANDOVER_REASON_IN_CASE:
+            goal = tws_topology_goal_handover_entering_case;
+        break;
+        default:
+            DEBUG_LOG("twstopology_GetHandoverGoal invalid HDMA handover reason code 0x%x", reason);
+            Panic();
+        break;
+    }
+
+    return goal;
+}
+
 /*! \brief Determine if a goal is currently being executed. */
 bool TwsTopology_IsGoalActive(tws_topology_goal goal)
 {
@@ -690,6 +739,10 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
 
     switch (id)
     {
+        case TWSTOP_PRIMARY_GOAL_FORCED_ROLE_SWITCH:
+            TwsTopology_AddGoal(tws_topology_goal_primary_forced_role_switch, id, NULL, 0, new_goal);
+            break;
+
         case TWSTOP_PRIMARY_GOAL_PAIR_PEER:
             TwsTopology_AddGoal(tws_topology_goal_pair_peer, id, NULL, 0, new_goal);
             break;
@@ -764,6 +817,10 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
             TwsTopology_AddGoal(tws_topology_goal_primary_disconnect_peer_profiles, id, message, sizeof(TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_PROFILES_T), new_goal);
             break;
 
+        case TWSTOP_PRIMARY_GOAL_RELEASE_PEER:
+            TwsTopology_AddGoal(tws_topology_goal_release_peer, id, NULL, 0, new_goal);
+            break;
+
         case TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET:
             TwsTopology_AddGoal(tws_topology_goal_connectable_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET_T), new_goal);
             break;
@@ -775,7 +832,14 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_FIND_ROLE:
             TwsTopology_AddGoal(tws_topology_goal_disconnect_peer_find_role, id, NULL, 0, new_goal);
             break;
+        
+        case TWSTOP_PRIMARY_GOAL_HANDOVER_START:
+            TwsTopology_AddGoal(twstopology_GetHandoverGoal(td->handover_info.hdma_message.reason), id, NULL, 0, new_goal);
+            break;
 
+        case TWSTOP_PRIMARY_GOAL_HANDOVER_INCASE_TIMEOUT:
+            TwsTopology_AddGoal(tws_topology_goal_handover_incase_timeout, id, NULL, 0, new_goal);
+            break;
 #if 0
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_HANDSET:
             TwsTopology_AddGoal(tws_topology_goal_disconnect_handset, id, message, new_goal);
@@ -793,6 +857,10 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
 
         case TWSTOP_DFU_GOAL_PRIMARY:
             TwsTopology_AddGoal(tws_topology_goal_dfu_primary, id, message, 0, new_goal);
+            break;
+
+        case TWSTOP_SECONDARY_GOAL_FORCE_SECONDARY_ROLE_SWITCH:
+            TwsTopology_AddGoal(tws_topology_goal_secondary_forced_role_switch, TWSTOP_SECONDARY_GOAL_FORCE_SECONDARY_ROLE_SWITCH, NULL, 0, new_goal);
             break;
 
         default:

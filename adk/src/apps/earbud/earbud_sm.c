@@ -42,7 +42,7 @@
 #include <key_sync.h>
 #include <gatt_server_gatt.h>
 #include <device_list.h>
-#include<device_properties.h>
+#include <device_properties.h>
 #include <profile_manager.h>
 #include <tws_topology.h>
 #include <peer_find_role.h>
@@ -69,6 +69,7 @@ static void appSmHandleInternalDeleteHandsets(void);
 #ifdef INCLUDE_DFU
 static void appSmEnterDfuOnStartup(bool upgrade_reboot);
 static void appSmNotifyUpgradeStarted(void);
+static void appSmSetPeerDfuFlag(bool flag);
 static void appSmStartDfuTimer(void);
 #endif /* INCLUDE_DFU */
 
@@ -199,20 +200,33 @@ static smDisconnectBits appSmDisconnectLinks(smDisconnectBits links_to_disconnec
     }
     if (links_to_disconnect & SM_DISCONNECT_HANDSET)
     {
-        /* \todo just commented out for the time being, this is a work-in-progress */
-//        if (!appDeviceIsHandsetHfpDisconnected())
+        bool disconnect_av = FALSE;
+
+        if (!appDeviceIsHandsetHfpDisconnected())
         {
-//            DEBUG_LOG("appSmDisconnectLinks HANDSET HFP IS CONNECTED");
+            DEBUG_LOG("appSmDisconnectLinks HANDSET HFP IS NOT DISCONNECTED");
             appHfpDisconnectInternal();
             disconnecting_links |= SM_DISCONNECT_HANDSET;
         }
-        /* \todo just commented out for the time being, this is a work-in-progress */
-//        if (appDeviceIsHandsetA2dpConnected() || appDeviceIsHandsetAvrcpConnected())
+
+        if (!appDeviceIsHandsetA2dpDisconnected())
         {
-//            DEBUG_LOG("appSmDisconnectLinks HANDSET AV IS CONNECTED");
+            DEBUG_LOG("appSmDisconnectLinks HANDSET A2DP IS NOT DISCONNECTED");
+            disconnect_av = TRUE;
+        }
+
+        if(!appDeviceIsHandsetAvrcpDisconnected())
+        {
+            DEBUG_LOG("appSmDisconnectLinks HANDSET AVRCP IS NOT DISCONNECTED");
+            disconnect_av = TRUE;
+        }
+
+        if(disconnect_av)
+        {
             appAvDisconnectHandset();
             disconnecting_links |= SM_DISCONNECT_HANDSET;
         }
+
     }
     return disconnecting_links;
 }
@@ -1542,6 +1556,22 @@ static void appSm_DisconnectAndSwitchRole(bool become_primary)
     appSetState(appSetSubState(APP_SUBSTATE_DISCONNECTING));
 }
 
+/*! \brief Handle message from peer notifying of update of MRU handset. */
+static void appSm_HandlePeerMruHandsetUpdate(earbud_sm_ind_mru_handset_t *msg)
+{
+    DEBUG_LOG("appSm_HandlePeerMruHandsetUpdate");
+
+    if(msg)
+    {
+        DEBUG_LOG("appSm_HandlePeerMruHandsetUpdate address %04x,%02x,%06lx", 
+                    msg->bd_addr.lap,
+                    msg->bd_addr.uap,
+                    msg->bd_addr.nap);
+
+        appDeviceUpdateMruDevice(&msg->bd_addr);
+    }
+}
+
 /*! \brief Handle SM->SM marshalling messages.
     
     Currently the only handling is to make the Primary/Secondary role switch
@@ -1572,6 +1602,16 @@ static void appSm_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_CHANNE
         case MARSHAL_TYPE(earbud_sm_req_mono_audio_mix_t):
             DEBUG_LOG("earbud_sm_req_mono_audio_mix_t received from Peer");
             appKymeraSetStereoLeftRightMix(FALSE);
+            break;
+
+        case MARSHAL_TYPE(earbud_sm_ind_mru_handset_t):
+            DEBUG_LOG("earbud_sm_ind_mru_handset_t received from Peer");
+            appSm_HandlePeerMruHandsetUpdate((earbud_sm_ind_mru_handset_t*)ind->msg);
+            break;
+
+        case MARSHAL_TYPE(earbud_sm_req_delete_handsets_t):
+            DEBUG_LOG("earbud_sm_req_delete_handsets_t received from Peer");
+            appSmDeleteHandsets();
             break;
 
         default:
@@ -1832,13 +1872,13 @@ static void appSmHandleHfpScoDisconnectedInd(void)
 
 static void appSmHandleInternalPairHandset(void)
 {
-    if (appSmStateIsIdle(appGetState()))
+    if (appSmStateIsIdle(appGetState()) && appSmIsPrimary())
     {
         appSmSetUserPairing();
         appSetState(APP_STATE_HANDSET_PAIRING);
     }
     else
-        DEBUG_LOG("appSmHandleInternalPairHandset can only pair in IDLE state");
+        DEBUG_LOG("appSmHandleInternalPairHandset can only pair once role has been decided and is in IDLE state");
 }
 
 /*! \brief Delete pairing for all handsets.
@@ -1854,7 +1894,8 @@ static void appSmHandleInternalDeleteHandsets(void)
         case APP_STATE_IN_EAR_IDLE:
         case APP_STATE_FACTORY_RESET:
         {
-            BtDevice_DeleteAllHandsetDevices();
+            appSmInitiateLinkDisconnection(SM_DISCONNECT_HANDSET, appConfigLinkDisconnectionTimeoutTerminatingMs(),
+                                                POST_DISCONNECT_ACTION_DELETE_HANDSET_PAIRING);
             break;
         }
         default:
@@ -1953,6 +1994,8 @@ static void appSmHandleDfuEnded(bool error)
 {
     DEBUG_LOGF("appSmHandleDfuEnded(%d)",error);
 
+    SmGetTaskData()->dfu_in_progress = FALSE;
+
     if (appGetState() == APP_STATE_IN_CASE_DFU)
     {
         appSetState(APP_STATE_STARTUP);
@@ -2001,6 +2044,7 @@ static void appSmHandleUpgradeConnected(void)
 static void appSmHandleUpgradeDisconnected(void)
 {
     DEBUG_LOG("appSmHandleUpgradeDisconnected");
+    smTaskData* sm = SmGetTaskData();;
 
     if (MessageCancelAll(SmGetTask(), SM_INTERNAL_TIMEOUT_DFU_AWAIT_DISCONNECT))
     {
@@ -2008,7 +2052,12 @@ static void appSmHandleUpgradeDisconnected(void)
 
         appSmStartDfuTimer();
     }
-
+    /* Abort the upgrade of Initiator and Peer device if GAIA app disconnection
+     * indication comes */
+    if(sm->peer_dfu_in_progress)
+    {
+        appUpgradeAbortDuringDeviceDisconnect();
+    }
 }
 
 #endif
@@ -2049,6 +2098,9 @@ static void appSmHandleInternalAllRequestedLinksDisconnected(SM_INTERNAL_LINK_DI
         case POST_DISCONNECT_ACTION_HANDSET_PAIRING:
             Pairing_Pair(SmGetTask(), appSmIsUserPairing());
         break;
+        case POST_DISCONNECT_ACTION_DELETE_HANDSET_PAIRING:
+            BtDevice_DeleteAllHandsetDevices();
+            break;
         case POST_DISCONNECT_ACTION_NONE:
         default:
         break;
@@ -2238,6 +2290,7 @@ static void appSmHandleUiInput(MessageId  ui_input)
             appSmPairHandset();
             break;
         case ui_input_sm_delete_handsets:
+            earbudSm_SendCommandToPeer(MARSHAL_TYPE(earbud_sm_req_delete_handsets_t));
             appSmDeleteHandsets();
             break;
         case ui_input_factory_reset_request:
@@ -2444,6 +2497,30 @@ static void appSmHandleConnRulesSetLocalAudioMix(CONN_RULES_SET_LOCAL_AUDIO_MIX_
     appSmRulesSetRuleComplete(CONN_RULES_SET_LOCAL_AUDIO_MIX);
 }
 
+/*! \brief Notify peer of MRU handset */
+static void appSm_HandleNotifyPeerMruHandset(void)
+{
+    bdaddr bd_addr;
+
+    if(appDeviceGetHandsetBdAddr(&bd_addr))
+    {
+        earbud_sm_ind_mru_handset_t* msg = PanicUnlessMalloc(sizeof(earbud_sm_ind_mru_handset_t));
+
+        DEBUG_LOG("appSmHandleNotifyPeerHandsetConnection address %04x,%02x,%06lx", bd_addr.lap, bd_addr.uap, bd_addr.nap);
+
+        msg->bd_addr = bd_addr;
+
+        appPeerSigMarshalledMsgChannelTx(SmGetTask(),
+                                         PEER_SIG_MSG_CHANNEL_APPLICATION,
+                                         msg,
+                                         MARSHAL_TYPE(earbud_sm_ind_mru_handset_t));
+    }
+    else
+    {
+        DEBUG_LOG("appSmHandleNotifyPeerHandsetConnection, No Handset registered");
+    }
+}
+
 
 /*! \brief Handle PEER_FIND_ROLE_PREPARE_FOR_ROLE_SELECTION message */
 static void appSm_HandlePeerFindRolePrepareForRoleSelection(void)
@@ -2618,6 +2695,14 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             appSmHandleConnRulesSetLocalAudioMix((CONN_RULES_SET_LOCAL_AUDIO_MIX_T*)message);
             break;
 
+        case CONN_RULES_NOTIFY_PEER_MRU_HANDSET:
+            appSm_HandleNotifyPeerMruHandset();
+            break;
+
+        case CONN_RULES_DFU_ABORT:
+            UpgradeHandleAbortDuringUpgrade();
+            break;
+
         case CONN_RULES_DFU_ALLOW:
             appSmHandleDfuAllow((const CONN_RULES_DFU_ALLOW_T*)message);
             break;
@@ -2688,11 +2773,28 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
 
         case APP_UPGRADE_COMPLETED:
             appSmHandleDfuEnded(FALSE);
+            /* Clear the Peer DFU flag once the DFU is completed */
+            appSmSetPeerDfuFlag(FALSE);
             GattServerGatt_SetGattDbChanged();
             break;
 
         case DEVICE_UPGRADE_PEER_STARTED:
-            appSmNotifyUpgradeStarted();
+        {
+            /* During ongoing DFU, for initiator device, set the Peer DFU flag 
+             * once we reach here. And for peer device, trigger
+             * appSmCancelDfuTimers() to extend the DFU timeout.
+             */
+            if(BtDevice_IsMyAddressPrimary())
+            {
+                /* Set the Peer DFU flag once the peer DFU started */
+                appSmSetPeerDfuFlag(TRUE);
+            }
+            else
+            {
+                /* Trigger appSmCancelDfuTimers() to extend DFU timeout */
+                appSmNotifyUpgradeStarted();
+            }
+        }
             break;
 #endif /* INCLUDE_DFU */
 
@@ -2902,7 +3004,14 @@ static void appSmEnterDfuOnStartup(bool upgrade_reboot)
 /*! \brief Notification to the state machine of Upgrade start */
 static void appSmNotifyUpgradeStarted(void)
 {
+    SmGetTaskData()->dfu_in_progress = TRUE;
     appSmCancelDfuTimers();
+}
+
+/*! \brief Set the Peer DFU flag during Peer DFU */
+static void appSmSetPeerDfuFlag(bool flag)
+{
+    SmGetTaskData()->peer_dfu_in_progress = flag;
 }
 #endif /* INCLUDE_DFU */
 
@@ -2957,8 +3066,7 @@ bool appSmInit(Task init_task)
     appSmRulesSetEvent(RULE_EVENT_PAGE_SCAN_UPDATE);
 
     /* get remote phy state events */
-    StateProxy_EventRegisterClient(&sm->task, appConfigStateProxyRegisteredEventsDefault() |
-                                              appConfigStateProxyRegisteredEventsOptional());
+    StateProxy_EventRegisterClient(&sm->task, appConfigStateProxyRegisteredEventsDefault());
 
     /* Register with peer signalling to use the State Proxy msg channel */
     appPeerSigMarshalledMsgChannelTaskRegister(SmGetTask(), 

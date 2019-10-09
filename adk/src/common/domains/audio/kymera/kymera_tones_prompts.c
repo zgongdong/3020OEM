@@ -125,8 +125,9 @@ void appKymeraHandleInternalTonePromptPlay(const KYMERA_INTERNAL_TONE_PROMPT_PLA
     switch (appKymeraGetState())
     {
         case KYMERA_STATE_IDLE:
+            theKymera->output_rate = msg->rate;
             /* Need to set up audio output chain to play tone from scratch */
-            appKymeraCreateOutputChain(msg->rate, KICK_PERIOD_TONES, 0, 0);
+            appKymeraCreateOutputChain(KICK_PERIOD_TONES, 0, 0);
             appKymeraExternalAmpControl(TRUE);
             ChainStart(theKymera->chainu.output_vol_handle);
             op = ChainGetOperatorByRole(theKymera->chainu.output_vol_handle, OPR_VOLUME_CONTROL);
@@ -134,7 +135,6 @@ void appKymeraHandleInternalTonePromptPlay(const KYMERA_INTERNAL_TONE_PROMPT_PLA
 
             /* Update state variables */
             appKymeraSetState(KYMERA_STATE_TONE_PLAYING);
-            theKymera->output_rate = msg->rate;
 
         // fall-through
         case KYMERA_STATE_SCO_ACTIVE:
@@ -228,9 +228,8 @@ void appKymeraTonePromptStop(void)
 
                 /* Disable external amplifier if required */
                 appKymeraExternalAmpControl(FALSE);
-                ChainStop(theKymera->chainu.output_vol_handle);
-                ChainDestroy(theKymera->chainu.output_vol_handle);
-                theKymera->chainu.output_vol_handle = NULL;
+
+                appKymeraDestroyOutputChain();
 
                 /* Move back to idle state */
                 appKymeraSetState(KYMERA_STATE_IDLE);

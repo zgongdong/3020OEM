@@ -23,6 +23,8 @@
 #define ISCHIP_AURA_MASK        CHIPVSN_MAJOR
 #define ISCHIP_AURAPLUS     (0x004b)
 #define ISCHIP_AURAPLUS_MASK    CHIPVSN_MAJOR
+#define ISCHIP_MORA         (0x0050)
+#define ISCHIP_MORA_MASK        CHIPVSN_MAJOR
 
 /* Variant chips */
 #define ISCHIP_CRESCENDOA04 (0x3046)

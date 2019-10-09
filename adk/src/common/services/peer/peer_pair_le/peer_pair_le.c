@@ -69,6 +69,10 @@ static void peerPairLe_orderScannedDevices(void)
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
 
     peerPairLe_orderTwoScans(&ppl->scanned_devices[0], &ppl->scanned_devices[1]);
+
+    DEBUG_LOG("peerPairLe_orderScannedDevices scanned_devices:");
+    DEBUG_LOG("  0: lap:0x%04x rssi:%d", ppl->scanned_devices[0].addr.lap, ppl->scanned_devices[0].rssi);
+    DEBUG_LOG("  1: lap:0x%04x rssi:%d", ppl->scanned_devices[1].addr.lap, ppl->scanned_devices[1].rssi);
 }
 
 static bool peerPairLe_updateScannedDevices(const CL_DM_BLE_ADVERTISING_REPORT_IND_T *scan)
@@ -92,8 +96,10 @@ static bool peerPairLe_updateScannedDevices(const CL_DM_BLE_ADVERTISING_REPORT_I
 static bool peerPairLe_UuidMatches(const CL_DM_BLE_ADVERTISING_REPORT_IND_T *scan)
 {
     uint8 uuid[] = {UUID_128_FORMAT_uint8(UUID128_ROOT_KEY_SERVICE)};
-    return ((scan->size_advertising_data >= 22) &&
-            (0 == memcmp(uuid, scan->advertising_data + 6, sizeof(uuid))));
+
+    return (   scan->size_advertising_data >= 17
+            && ble_ad_type_complete_uuid128 == scan->advertising_data[1]
+            && 0 == memcmp(uuid, scan->advertising_data + 2, sizeof(uuid)));
 
 
     /*! \todo Will only want random - but public for now */
@@ -115,27 +121,34 @@ void PeerPairLe_HandleFoundDeviceScan(const CL_DM_BLE_ADVERTISING_REPORT_IND_T *
 
         return;
     }
+
+    DEBUG_LOG("peerPairLehandleFoundDeviceScan state %d lap 0x%04x rssi %d",
+              state, scan->current_taddr.addr.lap, scan->rssi);
     
     /* Eliminate scan results that we are not interested in */
     if (   TYPED_BDADDR_PUBLIC != scan->current_taddr.type
         || 0 == scan->num_reports)
     {
+        DEBUG_LOG("peerPairLehandleFoundDeviceScan ignore - not public addr");
         return;
     }
 
     if (!peerPairLe_UuidMatches(scan))
     {
+        DEBUG_LOG("peerPairLehandleFoundDeviceScan ignore - UUID");
         return;
     }
 
     if (scan->rssi < appConfigPeerPairLeMinRssi())
     {
+        DEBUG_LOG("peerPairLehandleFoundDeviceScan ignore - rssi %d", scan->rssi);
         return;
     }
 
     /* See if it a fresh scan for an existing device */
     if (peerPairLe_updateScannedDevices(scan))
     {
+        DEBUG_LOG("peerPairLehandleFoundDeviceScan ignore - existing device");
         return;
     }
 

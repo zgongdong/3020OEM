@@ -101,9 +101,9 @@ acl_handover_prepare_status AclHandoverPrepared(uint16 handle);
  *  role.
  *         
  * On the primary device, this trap should be called after successful device role
- *  switch and slave address change confirmation. 
+ *  switch.
  * On the secondary device, this trap should be called after slave address change
- *  confirmation.
+ *  indication.
  * This trap should not be used on primary or secondary if AclHandoverPrepared()
  *  trap on primary returned failure status.
  *         
@@ -122,10 +122,9 @@ bool AclHandoverCommit(uint16 handle);
  *  \brief  This trap may be called by the primary  and the secondary devices to cancel
  *  the handover operation. 
  *         
- * On the primary side this trap may be called after calling AclHandoverPrepare()
- *  and before initiating a remote slave bdaddr change.
- * On the secondary side this trap may be called before initiating a remote slave
- *  bdaddr change.
+ * On the primary side this trap may be called after calling AclHandoverPrepared().
+ * On the secondary side this trap may be called before getting remote slave
+ *  bdaddr change indication.
  *         
  *  \param handle On the primary device, this will be the handle value returned by
  *  "AclHandoverPrepare()". On the secondary device, this will be

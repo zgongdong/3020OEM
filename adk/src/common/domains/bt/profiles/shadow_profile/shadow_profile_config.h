@@ -26,6 +26,6 @@
 /*! Set to TRUE to enable A2DP shadowing.
     A2DP shadowing is currently not supported.
 */
-#define shadowProfileConfig_EnableA2DPShadowing() (FALSE)
+#define shadowProfileConfig_EnableA2DPShadowing() (TRUE)
 
 #endif /* SHADOW_PROFILE_CONFIG_H_ */

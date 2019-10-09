@@ -232,11 +232,14 @@ static void peer_pair_le_handle_primary_service_discovery(const GATT_DISCOVER_PR
     DEBUG_LOG("peer_pair_le_handle_primary_service_discovery. sts:%d more:%d",
                 discovery->status, discovery->more_to_come);
 
+    DEBUG_LOG("peer_pair_le_handle_primary_service_discovery. cid:%d start:%d end:%d client %p",
+                discovery->cid, discovery->handle, discovery->end, &ppl->root_key_client);
+
     if (gatt_status_success == discovery->status)
     {
-        GattRootKeyClientInit(&ppl->root_key_client, 
+        PanicFalse(GattRootKeyClientInit(&ppl->root_key_client,
                               PeerPairLeGetTask(), 
-                              discovery->cid, discovery->handle, discovery->end);
+                              discovery->cid, discovery->handle, discovery->end));
     }
 }
 
@@ -593,7 +596,6 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
             break;
 
         case LE_SCAN_MANAGER_ADV_REPORT_IND:
-            DEBUG_LOG("Receiving LE Adverts!!!");
             peer_pair_le_handle_advertisement_ind((CL_DM_BLE_ADVERTISING_REPORT_IND_T*)message);
             break;
 
@@ -607,14 +609,24 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
     }
 } 
 
+/* Return the number of items in the advert.
+   For simplicity/safety don't make the same check when getting data items.
+ */
 static unsigned int peer_pair_le_NumberOfAdvItems(const le_adv_data_params_t * params)
 {
-    if((le_adv_data_set_peer == params->data_set) && \
-        (le_adv_data_completeness_full == params->completeness) && \
-        (le_adv_data_placement_advert == params->placement))
-        return NUMBER_OF_ADVERT_DATA_ITEMS;
-    else
-        return 0;
+    unsigned int items = 0;
+
+    if (peer_pair_le_is_in_advertising_state())
+    {
+        if((le_adv_data_set_peer == params->data_set) && \
+           (le_adv_data_completeness_full == params->completeness) && \
+           (le_adv_data_placement_advert == params->placement))
+        {
+            items = NUMBER_OF_ADVERT_DATA_ITEMS;
+        }
+    }
+
+    return items;
 }
 
 static le_adv_data_item_t peer_pair_le_GetAdvDataItems(const le_adv_data_params_t * params, unsigned int id)
@@ -624,7 +636,9 @@ static le_adv_data_item_t peer_pair_le_GetAdvDataItems(const le_adv_data_params_
     if((le_adv_data_set_peer == params->data_set) && \
         (le_adv_data_completeness_full == params->completeness) && \
         (le_adv_data_placement_advert == params->placement))
+    {
         return peer_pair_le_advert;
+    }
     else
     {
         Panic();
@@ -645,10 +659,13 @@ static void peer_pair_le_GattConnect(uint16 cid)
     tp_bdaddr tpaddr;
     PEER_PAIR_LE_STATE state = peer_pair_le_get_state();
 
+    DEBUG_LOG("peer_pair_le_GattConnect. state 0x%x cid:0x%x", state, cid);
+
     switch(state)
     {
         case PEER_PAIR_LE_STATE_SELECTING:
         case PEER_PAIR_LE_STATE_DISCOVERY:
+        case PEER_PAIR_LE_STATE_PAIRING_AS_SERVER:
             DEBUG_LOG("peer_pair_le_GattConnect. cid:0x%x", cid);
 
             ppl->gatt_cid = cid;
@@ -658,7 +675,11 @@ static void peer_pair_le_GattConnect(uint16 cid)
                 /*! \todo Check to see if ACL addr and GATT addr is the same */
                 Panic();
             }
-            peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_SERVER);
+
+            if (PEER_PAIR_LE_STATE_PAIRING_AS_SERVER != state)
+            {
+                peer_pair_le_set_state(PEER_PAIR_LE_STATE_PAIRING_AS_SERVER);
+            }
             break;
 
         case PEER_PAIR_LE_STATE_UNINITIALISED:
@@ -750,10 +771,8 @@ void peer_pair_le_disconnect(void)
         if (!BdaddrIsZero(&ppl->peer))
         {
             ConManagerReleaseTpAcl(&tp_addr);
-            return;
         }
     }
-    peer_pair_le_set_state(PEER_PAIR_LE_STATE_INITIALISED);
 }
 
 

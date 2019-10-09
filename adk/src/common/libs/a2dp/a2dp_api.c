@@ -641,6 +641,19 @@ bool A2dpDeviceIsInLinkloss (uint16 device_id)
     return FALSE ;
 }
 
+bool A2dpSetAppTask (uint8 device_id, Task new_task)
+{
+    if ((a2dp == NULL) || (device_id >= A2DP_MAX_REMOTE_DEVICES))
+    {
+        return FALSE;
+    }
+    else
+    {
+        a2dp->remote_conn[device_id].clientTask = new_task;
+        return TRUE;
+    }
+}
+
 bool A2dpMediaOpenRequest (uint8 device_id, uint16 size_seid_list, uint8 *seid_list)
 {
     if ((a2dp == NULL) || (device_id >= A2DP_MAX_REMOTE_DEVICES))

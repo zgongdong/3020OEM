@@ -1,5 +1,11 @@
 var NAVTREEINDEX4 =
 {
+"stream_8h.html#ab9b4144438226d6e65588aaf0c5a468f":[3,0,54,16],
+"struct_task_data.html":[2,0,3],
+"struct_task_data.html#abba51586a23ce67ec0934edeea1a4917":[2,0,3,0],
+"structbdaddr.html":[2,0,0],
+"structbdaddr.html#a2a7be24f971a87656b686c9e8d521d60":[2,0,0,1],
+"structbdaddr.html#a815f2568ef74b4d8e419fb00390dc0fc":[2,0,0,0],
 "structbdaddr.html#a90af7bff6a0e2060f7e452f0997f9de0":[2,0,0,2],
 "structpacked__irk.html":[2,0,1],
 "structpacked__irk.html#a7fe20012d624f3adee6af21bde2e4617":[2,0,1,0],

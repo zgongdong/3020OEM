@@ -7,3 +7,4 @@ RTP_DECODE
 # List of libraries to build
 %list CFG_LIBS
 capabilities/rtp_decode/rtp_decode
+support_lib/ttp/ttp

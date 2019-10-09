@@ -235,4 +235,10 @@ void UpgradeSMHandleAudioDFU(void);
 */
 void UpgradeSMHostRspSwap(bool is_primary);
 
+/*!
+    @brief Abort the ongoing DFU.
+    @return Nothing
+*/
+void FatalError(UpgradeHostErrorCode ec);
+
 #endif /* UPGRADE_SM_H_ */

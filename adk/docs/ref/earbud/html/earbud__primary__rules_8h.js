@@ -42,6 +42,8 @@ var earbud__primary__rules_8h =
       [ "CONN_RULES_MEDIA_PLAY", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226af9f30a50e06514c1eb0ef6e9333dae6a", null ],
       [ "CONN_RULES_SET_REMOTE_AUDIO_MIX", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a3bec77b23705bc5130d027bf02603292", null ],
       [ "CONN_RULES_SET_LOCAL_AUDIO_MIX", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a4f67d3ef3ed87832084f497f04fa8413", null ],
+      [ "CONN_RULES_NOTIFY_PEER_MRU_HANDSET", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226ad4fcfa9ac5a95548e2e36e211ac9f5be", null ],
+      [ "CONN_RULES_DFU_ABORT", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a6492ea3b7a539df700363b95a4c84b14", null ],
       [ "CONN_RULES_NOP", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226aa6f484eeabdb6e34400b9acefc748376", null ]
     ] ],
     [ "rulePostHandsetConnectAction", "earbud__primary__rules_8h.html#a8d38c1d551c40dd38ad030c7b42c0b04", [

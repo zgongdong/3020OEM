@@ -42,6 +42,7 @@
 /*! Sizeof a flexible task list */
 #define taskList_FlexibleSizeof(flexible_tasks) (sizeof(task_list_flexible_t) + ((flexible_tasks) * sizeof(Task)))
 
+
 /******************************************************************************
  * Internal functions
  ******************************************************************************/

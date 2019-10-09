@@ -1,5 +1,5 @@
-# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1907171737/kalimba/kymera/build/gen_config.py
-# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1907171737/kalimba/kymera/build/config/config.stre_rom_v02_release
+# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/build/gen_config.py
+# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/build/config/config.stre_rom_v02_release
 # Any changes will be lost the next time the configuration is generated.
 
 CONFIG = stre_rom_v02_release
@@ -241,7 +241,6 @@ CFG_CAPABILITIES = AAC_DECODE \
 	CELT_ENCODE \
 	CHANNEL_MIXER \
 	COMPANDER \
-	CONVERT_FROM_AUDIO \
 	CVC_HEADSET_BINAURAL \
 	CVC_HEADSET_1MIC \
 	CVC_HEADSET_2MIC_MONO \
@@ -282,7 +281,6 @@ CFG_LIBS = capabilities/aac_decode/aac_decode \
 	capabilities/celt_encode/celt_encode \
 	capabilities/common/common \
 	capabilities/compander/compander \
-	capabilities/convert_from_audio/convert_from_audio \
 	capabilities/cvc_receive/cvc_receive \
 	capabilities/cvc_send/cvc_send \
 	capabilities/database/database \

@@ -152,4 +152,11 @@ void peer_pair_le_set_state(PEER_PAIR_LE_STATE state);
 bool peer_pair_le_in_pairing_state(void);
 
 
+/*! Check if the module is in an advertising state
+
+    \return TRUE if in an advertising state, otherwise FALSE
+ */
+bool peer_pair_le_is_in_advertising_state(void);
+
+
 #endif /* PEER_PAIR_LE_SM_H_ */

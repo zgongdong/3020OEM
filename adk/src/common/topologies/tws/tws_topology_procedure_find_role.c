@@ -9,6 +9,7 @@
 
 #include "tws_topology_procedure_find_role.h"
 #include "tws_topology_procedures.h"
+#include "tws_topology_config.h"
 #include "tws_topology_procedure_permit_connection_le.h"
 #include "tws_topology_procedure_permit_bt.h"
 
@@ -18,7 +19,7 @@
 
 #include <message.h>
 
-const FIND_ROLE_PARAMS_T proc_find_role_timeout = {5};
+const FIND_ROLE_PARAMS_T proc_find_role_timeout = {TwsTopologyConfig_InitialPeerFindRoleTimeoutS()};
 const FIND_ROLE_PARAMS_T proc_find_role_continuous = {0};
 
 static void twsTopology_ProcFindRoleHandleMessage(Task task, MessageId id, Message message);

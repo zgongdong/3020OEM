@@ -267,6 +267,7 @@ var group__a2dp =
     [ "A2dpMediaStartRequest", "group__a2dp.html#ga2db9ff944c18054769a3277b835021d7", null ],
     [ "A2dpMediaStartResponse", "group__a2dp.html#ga59b1e4a54d3a56d04d98a5c290eefbb7", null ],
     [ "A2dpMediaSuspendRequest", "group__a2dp.html#gae9de499cf830d2d57feefd1d702417e7", null ],
+    [ "A2dpSetAppTask", "group__a2dp.html#gaf414371cc5f238d7df9a961e37bc5c4d", null ],
     [ "A2dpSignallingConnectRequest", "group__a2dp.html#ga6a06a87bf0156bda89c186c3a1049c96", null ],
     [ "A2dpSignallingConnectRequestWithTask", "group__a2dp.html#ga22d5079d84e621c293489f34afe6294c", null ],
     [ "A2dpSignallingConnectResponse", "group__a2dp.html#ga196977960e85b5680406ae7b87f54686", null ],

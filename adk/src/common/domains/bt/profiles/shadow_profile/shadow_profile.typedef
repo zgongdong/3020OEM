@@ -29,6 +29,7 @@
         <member marshal="true" doc="Audio sample rate (/25Hz)">uint16 sample_rate</member>
         <member marshal="true" doc="Audio sample bit width">uint8 sample_width</member>
         <member marshal="true" doc="Audio channel type">uint8 channel_type</member>
+        <member marshal="true" doc="A2DP volume">uint8 volume</member>
         <member marshal="true" doc="Other flags">uint8 flags</member>
         <member marshal="true" doc="Content protection type">uint16 content_protection_type</member>
         <member marshal="true" doc="Length of extra CPI (always 0)">uint8 content_protection_information_length</member>

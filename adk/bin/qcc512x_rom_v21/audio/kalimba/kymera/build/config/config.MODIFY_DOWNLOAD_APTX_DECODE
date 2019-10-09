@@ -12,7 +12,6 @@
 # Which components do we want to include on this chip?
 #
 INSTALL_A2DP
-APTX_OFFLOAD
 
 #
 # for APTx library (equivalent to aptx_base_regs_no_security_external_memory variant)

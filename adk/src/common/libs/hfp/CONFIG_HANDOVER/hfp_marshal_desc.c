@@ -87,8 +87,8 @@ static const marshal_type_descriptor_t mtd_sync_pkt_type =
 /* Read/Write callbacks for marshalling hfp_service_data_alias */
 static const marshal_custom_copy_cbs read_write_cb_hfp_service_data_alias =
 {
-    convertChannelToService,
-    convertServiceToChannel
+    convertServiceToChannel,
+    convertChannelToService
 };
 
 const marshal_type_descriptor_t mtd_hfp_service_data_alias =
@@ -117,6 +117,8 @@ static const marshal_member_descriptor_t mmd_hfp_link_data[] =
     MAKE_MARSHAL_MEMBER(hfp_link_data, hfp_audio_params, audio_params),
     MAKE_MARSHAL_MEMBER(hfp_link_data, sync_pkt_type, audio_packet_type),
     MAKE_MARSHAL_MEMBER(hfp_link_data, sync_pkt_type, audio_packet_type_to_try),
+    MAKE_MARSHAL_MEMBER(hfp_link_data, uint16, ag_codec_modes),
+    MAKE_MARSHAL_MEMBER(hfp_link_data, uint16, qce_codec_mode_id),    
 };
 
 static const marshal_type_descriptor_t mtd_hfp_link_data =

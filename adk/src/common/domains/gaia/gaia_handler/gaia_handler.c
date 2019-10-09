@@ -15,10 +15,8 @@ This is a minimal implementation that only supports upgrade.
 
 #include "earbud_init.h"
 #include "earbud_log.h"
-#include "domain_message.h"
 #include "earbud_sm.h"
 #include "gatt_handler.h"
-#include "gatt_connect.h"
 #include "gatt_handler_db.h"
 
 #include <panic.h>
@@ -34,9 +32,13 @@ typedef enum gaia_handler_internal_messages
     APP_GAIA_INTERNAL_DISCONNECT = INTERNAL_MESSAGE_BASE,
 };
 
+#define appGaiaGetDisconnectResponseCallbackFn()    GaiaGetTaskData()->disconnect.response
+#define appGaiaGetDisconnectResponseCallbackCid()   GaiaGetTaskData()->disconnect.cid
+
 
 static void appGaiaGattConnect(uint16 cid);
 static void appGaiaGattDisconnect(uint16 cid);
+static void appGaiaGattDisconnectRequested(uint16 cid, gatt_connect_disconnect_req_response response);
 static void appGaiaMessageHandler(Task task, MessageId id, Message message);
 static void appGaiaHandleCommand(Task task, const GAIA_UNHANDLED_COMMAND_IND_T *command);
 static bool appGaiaHandleStatusCommand(Task task, const GAIA_UNHANDLED_COMMAND_IND_T *command);
@@ -49,7 +51,8 @@ static void appGaiaSendPacket(uint16 vendor_id, uint16 command_id, uint16 status
 static const gatt_connect_observer_callback_t gatt_gaia_observer_callback =
 {
     .OnConnection = appGaiaGattConnect,
-    .OnDisconnection = appGaiaGattDisconnect
+    .OnDisconnection = appGaiaGattDisconnect,
+    .OnDisconnectRequested = appGaiaGattDisconnectRequested
 };
 
 
@@ -61,7 +64,7 @@ bool appGaiaInit(Task init_task)
     gaiaTaskData *this = GaiaGetTaskData();
 
     this->gaia_task.handler = appGaiaMessageHandler;
-    this->client_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(GaiaGetClientList(), GAIA_CLIENT_TASK_LIST_INIT_CAPACITY);
     this->connections_allowed = TRUE;
 
     appGaiaClientRegister(SmGetTask());
@@ -75,8 +78,7 @@ bool appGaiaInit(Task init_task)
 
 void appGaiaClientRegister(Task task)
 {
-    gaiaTaskData* current_gaia = GaiaGetTaskData();
-    TaskList_AddTask(current_gaia->client_list, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(GaiaGetClientList()), task);
 }
 
 
@@ -85,34 +87,45 @@ static void appGaiaSendInitCfm(void)
     MessageSend(appInitGetInitTask(), APP_GAIA_INIT_CFM, NULL);
 }
 
+static void appGaiaSetDisconnectResponseCallback(uint16 cid, gatt_connect_disconnect_req_response response)
+{
+    GaiaGetTaskData()->disconnect.response = response;
+    GaiaGetTaskData()->disconnect.cid = cid;
+}
 
 static void appGaiaNotifyGaiaConnected(void)
 {
-    TaskList_MessageSendId(GaiaGetTaskData()->client_list, APP_GAIA_CONNECTED);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GaiaGetClientList()), APP_GAIA_CONNECTED);
 }
 
 
 static void appGaiaNotifyGaiaDisconnected(void)
 {
-    TaskList_MessageSendId(GaiaGetTaskData()->client_list, APP_GAIA_DISCONNECTED);
+    gatt_connect_disconnect_req_response response = appGaiaGetDisconnectResponseCallbackFn();
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GaiaGetClientList()), APP_GAIA_DISCONNECTED);
+    if (response)
+    {
+        response(appGaiaGetDisconnectResponseCallbackCid());
+        appGaiaSetDisconnectResponseCallback(0, NULL);
+    }
 }
 
 
 static void appGaiaNotifyUpgradeActivity(void)
 {
-    TaskList_MessageSendId(GaiaGetTaskData()->client_list, APP_GAIA_UPGRADE_ACTIVITY);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GaiaGetClientList()), APP_GAIA_UPGRADE_ACTIVITY);
 }
 
 
 static void appGaiaNotifyUpgradeConnection(void)
 {
-    TaskList_MessageSendId(GaiaGetTaskData()->client_list, APP_GAIA_UPGRADE_CONNECTED);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GaiaGetClientList()), APP_GAIA_UPGRADE_CONNECTED);
 }
 
 
 static void appGaiaNotifyUpgradeDisconnection(void)
 {
-    TaskList_MessageSendId(GaiaGetTaskData()->client_list, APP_GAIA_UPGRADE_DISCONNECTED);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GaiaGetClientList()), APP_GAIA_UPGRADE_DISCONNECTED);
 }
 
 
@@ -233,6 +246,7 @@ static void appGaiaMessageHandler(Task task, MessageId id, Message message)
             /* We probably want to take note of this to send an event to the state
                machine, but it is mainly upgrade we care about. Not gaia connections. */
             DEBUG_LOG("appGaiaMessageHandler GAIA_DISCONNECT_CFM");
+            appGaiaNotifyGaiaDisconnected();
             GaiaSetTransport(NULL);
             break;
 
@@ -416,6 +430,12 @@ static void appGaiaGattConnect(uint16 cid)
 
 static void appGaiaGattDisconnect(uint16 cid)
 {
+    GaiaDisconnectGatt(cid);
+}
+
+static void appGaiaGattDisconnectRequested(uint16 cid, gatt_connect_disconnect_req_response response)
+{
+    appGaiaSetDisconnectResponseCallback(cid, response);
     GaiaDisconnectGatt(cid);
 }
 

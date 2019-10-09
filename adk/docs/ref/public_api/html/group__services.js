@@ -5,5 +5,7 @@ var group__services =
     [ "Media Player", "group__media__player.html", "group__media__player" ],
     [ "Peer Service", "group__peer__service.html", "group__peer__service" ],
     [ "Telephony Service", "group__telephony__service.html", "group__telephony__service" ],
-    [ "Volume Service", "group__volume__service.html", "group__volume__service" ]
+    [ "Voice_ui", "group__voice__ui.html", "group__voice__ui" ],
+    [ "Volume Service", "group__volume__service.html", "group__volume__service" ],
+    [ "audio if", "group__voice__assistant.html", "group__voice__assistant" ]
 ];

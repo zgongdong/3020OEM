@@ -16,6 +16,7 @@
 #include <peer_signalling.h>
 #include <handover_profile.h>
 #include <scofwd_profile.h>
+#include <shadow_profile.h>
 #include <av.h>
 #include <connection_manager.h>
 
@@ -73,6 +74,9 @@ static void twsTopology_ProcedureDisconnectPeerProfilesStopProfile(uint8 profile
 
     TwsTopology_GetPeerBdAddr(&peer_addr);
 
+    /* If the profiles did not come up originally, the ACL may be held open */
+    ConManagerReleaseAcl(&peer_addr);
+
     /* start the procedure */
     if (profiles & DEVICE_PROFILE_A2DP)
     {
@@ -90,11 +94,6 @@ static void twsTopology_ProcedureDisconnectPeerProfilesStopProfile(uint8 profile
     {
         DEBUG_LOG("twsTopology_ProcedureDisconnectPeerProfilesStopProfile PEERSIG");
         appPeerSigDisconnect(TwsTopProcDisconnectPeerProfilesGetTask());
-    }
-    if (profiles & DEVICE_PROFILE_HANDOVER)
-    {
-        DEBUG_LOG("twsTopology_ProcedureDisconnectPeerProfilesStopProfile HANDPVER");
-        HandoverProfile_Disconnect(TwsTopProcDisconnectPeerProfilesGetTask());
     }
 }
 
@@ -238,12 +237,13 @@ static void twsTopology_ProcDisconnectPeerProfilesHandleMessage(Task task, Messa
             twsTopology_ProcDisconnectPeerProfilesStatus(DEVICE_PROFILE_SCOFWD);
         }
         break;
-        
+
         case CON_MANAGER_CONNECTION_IND:
         {
             twsTopology_ProcDisconnectPeerProfilesHandleConManagerConnectionInd((CON_MANAGER_CONNECTION_IND_T*)message);
         }
         break;
+
 
         default:
         break;

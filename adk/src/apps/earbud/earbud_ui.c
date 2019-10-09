@@ -9,6 +9,7 @@
 
 #include "earbud_ui.h"
 
+#include "logging.h"
 #include "av.h"
 #include "charger_monitor.h"
 #include <earbud_rules_config.h>
@@ -17,6 +18,7 @@
 #include "pairing.h"
 #include "power_manager.h"
 #include "scofwd_profile.h"
+#include "voice_ui.h"
 #include "ui.h"
 #include "telephony_messages.h"
 #include "volume_service.h"
@@ -50,6 +52,7 @@ const message_group_t indication_interested_msg_groups[] =
     SFWD_MESSAGE_GROUP,
     VOLUME_SERVICE_MESSAGE_GROUP,
     TELEPHONY_MESSAGE_GROUP,
+    VOICE_UI_SERVICE_MESSAGE_GROUP,
 };
 
 /*! \brief Report a generic error on LEDs and play tone */
@@ -309,6 +312,27 @@ static void earbudUi_IndicatePowerClientEvents(MessageId id)
     }
 }
 
+static void earbudUI_IndicateVoiceAssistantUIEvents(MessageId id)
+{
+    switch(id)
+    {
+        case VOICE_UI_IDLE:
+            DEBUG_LOG("VOICE_UI_IDLE");
+            break;
+        case VOICE_UI_CONNECTED:
+            DEBUG_LOG("VOICE_UI_CONNECTED");
+            break;
+        case VOICE_UI_CAPTURE_START:
+            DEBUG_LOG("VOICE_UI_CAPTURE_START");
+            break;
+        case VOICE_UI_CAPTURE_END:
+            DEBUG_LOG("VOICE_UI_CAPTURE_END");
+            break;
+         default:
+            break;
+    }
+}
+
 static void earbudUi_IndicateUiEvent(MessageId id, Message message)
 {
     switch (ID_TO_MSG_GRP(id))
@@ -335,6 +359,9 @@ static void earbudUi_IndicateUiEvent(MessageId id, Message message)
     case VOLUME_SERVICE_MESSAGE_GROUP:
         earbudUI_IndicateVolumeServiceUIEvents(id);
         break;
+    case VOICE_UI_SERVICE_MESSAGE_GROUP:
+        earbudUI_IndicateVoiceAssistantUIEvents(id);
+        break;
     default:
         break;
     }
@@ -353,6 +380,8 @@ static void earbudUi_ConsumeContext(MessageId id, Message message)
     case ui_provider_media_player:
         appUiAvState(msg->context);
         break;
+    case ui_provider_voice_ui:
+        appUiVaState(msg->context);
     default:
         break;
     }
@@ -416,6 +445,10 @@ bool EarbudUi_Init(Task init_task)
 
     Ui_RegisterContextConsumers(
                 ui_provider_hfp,
+                EarbudUi_GetTask());
+
+    Ui_RegisterContextConsumers(
+                ui_provider_voice_ui,
                 EarbudUi_GetTask());
 
     Ui_RegisterContextConsumers(

@@ -17,6 +17,9 @@
 
 #include <domain_message.h>
 
+/*! Defines the upgrade client task list initial capacity */
+#define THE_UPGRADE_CLIENT_LIST_INIT_CAPACITY 1
+
 /*! Messages that are sent by the device_upgrade module */
 typedef enum {
                                             /*! Message sent after the device has restarted. This
@@ -32,6 +35,12 @@ typedef enum {
     APP_UPGRADE_COMPLETED,                  /*!< An upgrade has been completed */
 } av_headet_upgrade_messages;
 
+/*! Types of upgrade context used with appUpgradeSetContext and appUpgradeGetContext */
+typedef enum {
+    APP_UPGRADE_CONTEXT_UNUSED = 0,
+    APP_UPGRADE_CONTEXT_GAIA,
+    APP_UPGRADE_CONTEXT_BISTO_OTA
+} app_upgrade_context_t;
 
 /*! Structure holding data for the Upgrade module */
 typedef struct
@@ -39,7 +48,7 @@ typedef struct
         /*! Task for handling messaging from upgrade library */
     TaskData        upgrade_task;
         /*! List of tasks to notify of UPGRADE activity. */
-    task_list_t    *client_list;
+    TASK_LIST_WITH_INITIAL_CAPACITY(THE_UPGRADE_CLIENT_LIST_INIT_CAPACITY) client_list;
 } upgradeTaskData;
 
 /*!< Task information for UPGRADE support */
@@ -50,6 +59,9 @@ extern upgradeTaskData app_upgrade;
 
 /*! Get the Task info for the applications Upgrade task */
 #define UpgradeGetTask()         (&app_upgrade.upgrade_task)
+
+/*! Get the client list for the applications Upgrade task */
+#define UpgradeGetClientList()         (task_list_flexible_t *)(&app_upgrade.client_list)
 
 
 bool appUpgradeInit(Task init_task);
@@ -95,11 +107,38 @@ bool appUpgradeHandleSystemMessages(MessageId id, Message message, bool already_
  */
 void appUpgradeClientRegister(Task task);
 
+/*! Set the context of the UPGRADE module
+
+    The value is stored in the UPGRADE PsKey and hence is non-volatile
+
+    \param app_upgrade_context_t Upgrade context to set
+ */
+void appUpgradeSetContext(app_upgrade_context_t context);
+
+/*! Get the context of the UPGRADE module
+
+    The value is stored in the UPGRADE PsKey and hence is non-volatile
+
+    \returns The non-volatile context of the UPGRADE module from the UPGRADE PsKey
+
+ */
+app_upgrade_context_t appUpgradeGetContext(void);
+
+/*! Abort the ongoing Upgrade if the device is disconnected from GAIA app
+
+    This function is called to abort the device upgrade in both initiator and
+    peer device if the initiator device is disconnected from GAIA app
+
+    \param None
+ */
+void appUpgradeAbortDuringDeviceDisconnect(void);
 #else
 #define appUpgradeEnteredDfuMode() ((void)(0))
 #define appUpgradeHandleSystemMessages(_id, _msg, _handled) (_handled)
 #define appUpgradeClientRegister(tsk) ((void)0)
-
+#define appUpgradeSetContext(ctx) ((void)0)
+#define appUpgradeAbortDuringDeviceDisconnect() ((void)(0))
+#define appUpgradeGetContext() (APP_UPGRADE_CONTEXT_UNUSED)
 #endif /* INCLUDE_DFU */
 
 #endif /* DEVICE_UPGRADE_H_ */

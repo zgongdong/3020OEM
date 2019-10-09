@@ -880,7 +880,9 @@ static void appA2dpEnterDisconnecting(avInstanceTaskData *theInst)
 
     /* Set operation lock */
     appA2dpSetTransitionLockBit(theInst);
-
+    /* Cancel any pending KYMERA_INTERNAL_A2DP_START message that migh otherwise
+       be delivered after the A2DP instance has been destroyed. */
+    appKymeraCancelA2dpStart();
     /* Make sure AVRCP isn't doing something important, send internal message blocked on
        AVRCP lock */
     MessageSendConditionally(&theInst->av_task, AV_INTERNAL_AVRCP_UNLOCK_IND, NULL, &appAvrcpGetLock(theInst));
@@ -913,7 +915,6 @@ static void appA2dpEnterDisconnected(avInstanceTaskData *theInst)
 
     /* Clear A2DP device ID */
     theInst->a2dp.device_id = INVALID_DEVICE_ID;
-
     /* Send ourselves a destroy message so that any other messages waiting on the
        operation lock can be handled */
     MessageSendConditionally(&theInst->av_task, AV_INTERNAL_A2DP_DESTROY_REQ, NULL, &appA2dpGetLock(theInst));

@@ -84,8 +84,8 @@ const marshal_type_descriptor_t mtd_tp_bdaddr = MAKE_MARSHAL_TYPE_DEFINITION(tp_
 /* Read/Write callbacks for marshalling L2CAP Sink */
 static const marshal_custom_copy_cbs read_write_cb_L2capSink =
 {
-    convertL2capCidToSink,
-    convertSinkToL2capCid
+    convertSinkToL2capCid,
+    convertL2capCidToSink
 };
 
 const marshal_type_descriptor_t mtd_L2capSink =
@@ -104,40 +104,33 @@ const marshal_type_descriptor_t mtd_L2capSink =
 /* Converts CID to L2CAP Sink */
 static void *convertL2capCidToSink(void *dest, const void *src, size_t n)
 {
-    Sink *sink = dest;
-    const uint16 *cid = src;
+    Sink sink = NULL;
+    uint16 cid = 0;
 
-    PanicFalse(n == sizeof(*sink));
+    PanicFalse(n == sizeof(sink));
 
-    if (*cid == L2CA_CID_INVALID)
+    memcpy (&cid, src, sizeof(uint16));
+
+    if (cid != L2CA_CID_INVALID)
     {
-        *sink = StreamL2capSink(*cid);
-    }
-    else
-    {
-        *sink = NULL;
+        sink = StreamL2capSink(cid);
     }
 
-    return dest;
+    return memcpy(dest, &sink, sizeof(sink));
 }
 
 /* Converts L2CAP Sink to CID */
 static void *convertSinkToL2capCid(void *dest, const void *src, size_t n)
 {
     const Sink *sink = src;
-    uint16 *cid = dest;
+    uint16 cid = L2CA_CID_INVALID;
 
     PanicFalse(n == sizeof(*sink));
 
     if (SinkIsValid(*sink))
     {
-        *cid = SinkGetL2capCid(*sink);
-    }
-    else
-    {
-        *cid = L2CA_CID_INVALID;
+        cid = SinkGetL2capCid(*sink);
     }
 
-    return dest;
+    return memcpy(dest, &cid, sizeof(cid));
 }
-

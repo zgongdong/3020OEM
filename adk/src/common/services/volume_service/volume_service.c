@@ -20,16 +20,20 @@
 #include <task_list.h>
 #include <message_broker.h>
 #include <logging.h>
+#include <stdio.h>
 
 #define INTERNAL_MSG_APPLY_AUDIO_VOLUME    0
+#define VOLUME_SERVICE_CLIENT_TASK_LIST_INIT_CAPACITY 1
 
 typedef struct
 {
-    task_list_t * client_list;
+    TASK_LIST_WITH_INITIAL_CAPACITY(VOLUME_SERVICE_CLIENT_TASK_LIST_INIT_CAPACITY)  client_list;
     TaskData volume_message_handler_task;
 } volume_service_data;
 
 static volume_service_data the_volume_service;
+
+#define VolumeServiceGetClientLIst() (task_list_flexible_t *)(&the_volume_service.client_list)
 
 static void volumeService_InternalMessageHandler( Task task, MessageId id, Message message );
 static void volumeService_RefreshAudioVolume(event_origin_t origin);
@@ -58,11 +62,11 @@ static void volumeService_NotifyMinOrMaxVolume(volume_t volume)
 {
     if(volume.value >= volume.config.range.max)
     {
-        TaskList_MessageSendId(the_volume_service.client_list, VOLUME_SERVICE_MAX_VOLUME);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(VolumeServiceGetClientLIst()), VOLUME_SERVICE_MAX_VOLUME);
     }
     if(volume.value <= volume.config.range.min)
     {
-        TaskList_MessageSendId(the_volume_service.client_list, VOLUME_SERVICE_MIN_VOLUME);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(VolumeServiceGetClientLIst()), VOLUME_SERVICE_MIN_VOLUME);
     }
 }
 
@@ -144,7 +148,7 @@ void VolumeService_SetAudioSourceVolume(audio_source_t source, event_origin_t or
     volume_t source_volume = AudioSources_GetVolume(source);
     DEBUG_LOGF("VolumeService_SetAudioSourceVolume, source %u, origin %u, volume %u", source, origin, new_volume.value);
     source_volume.value = VolumeUtils_ConvertToVolumeConfig(new_volume, source_volume.config);
-    
+
     if(AudioSources_IsVolumeControlRegistered(source) && (origin == event_origin_local))
     {
         AudioSources_VolumeSetAbsolute(source, source_volume);
@@ -214,7 +218,7 @@ void VolumeService_SetVoiceSourceVolume(voice_source_t source, event_origin_t or
     volume_t source_volume = VoiceSources_GetVolume(source);
     DEBUG_LOGF("VolumeService_SetVoiceSourceVolume, source %u, origin %u, volume %u", source, origin, new_volume.value);
     source_volume.value = VolumeUtils_ConvertToVolumeConfig(new_volume, source_volume.config);
-    
+
     if(VoiceSources_IsVolumeControlRegistered(source) && (origin == event_origin_local))
     {
         VoiceSources_VolumeSetAbsolute(source, source_volume);
@@ -333,7 +337,7 @@ static void volumeMessageHandler(Task task, MessageId id, Message message)
 bool VolumeService_Init(Task init_task)
 {
     UNUSED(init_task);
-    the_volume_service.client_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(VolumeServiceGetClientLIst(), VOLUME_SERVICE_CLIENT_TASK_LIST_INIT_CAPACITY);
 
     the_volume_service.volume_message_handler_task.handler = volumeMessageHandler;
     Volume_RegisterForMessages(&the_volume_service.volume_message_handler_task);
@@ -344,7 +348,7 @@ bool VolumeService_Init(Task init_task)
 static void volumeService_RegisterMessageGroup(Task task, message_group_t group)
 {
     PanicFalse(group == VOLUME_SERVICE_MESSAGE_GROUP);
-    TaskList_AddTask(the_volume_service.client_list, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(VolumeServiceGetClientLIst()), task);
 }
 
 MESSAGE_BROKER_GROUP_REGISTRATION_MAKE(VOLUME_SERVICE, volumeService_RegisterMessageGroup, NULL);

@@ -227,6 +227,7 @@ SECTIONS
         *.o(PM_MAXIM\?*__maxim)
         *.o(*PM_FLASH\?*__maxim)
         *.o(*PM\?*__maxim)
+        *.o(*pm*\?*__maxim)
     }
     .text_maxim_private ALIGN(4):
     {

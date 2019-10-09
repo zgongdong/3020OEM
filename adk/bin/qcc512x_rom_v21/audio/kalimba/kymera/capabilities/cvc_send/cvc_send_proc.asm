@@ -14,6 +14,7 @@
 #include "patch_library.h"
 #include "cvc_modules.h"
 
+
 #if !defined(CAPABILITY_DOWNLOAD_BUILD)
 
 #define $M.CVC_SEND_CAP.auto_data_1mic.dyn_table_main       $M.CVC_SEND_CAP.auto_data_1mic.DynTable_Main
@@ -41,6 +42,11 @@
 #define $M.CVC_SEND_CAP.speaker_circ_data_3mic.dyn_table_linker      $M.CVC_SEND_CAP.speaker_circ_data_3mic.DynTable_Linker
 #define $M.CVC_SEND_CAP.speaker_circ_data_3mic_va.dyn_table_linker   $M.CVC_SEND_CAP.speaker_circ_data_3mic_va.DynTable_Linker
 #define $M.CVC_SEND_CAP.speaker_circ_data_3mic_va4b.dyn_table_linker $M.CVC_SEND_CAP.speaker_circ_data_3mic_va4b.DynTable_Linker
+
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.dyn_table_main     $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.DynTable_Main
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.dyn_table_main    $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.DynTable_Main
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.dyn_table_linker $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.DynTable_Linker
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.dyn_table_linker $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.DynTable_Linker
 
 #else
 
@@ -70,9 +76,23 @@
 #define $M.CVC_SEND_CAP.speaker_circ_data_3mic_va.dyn_table_linker   $M.CVC_SEND_CAP.speaker_circ_data_3mic_va.Downloadable.DynTable_Linker
 #define $M.CVC_SEND_CAP.speaker_circ_data_3mic_va4b.dyn_table_linker $M.CVC_SEND_CAP.speaker_circ_data_3mic_va4b.Downloadable.DynTable_Linker
 
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.dyn_table_main     $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.Downloadable.DynTable_Main
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.dyn_table_main    $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.Downloadable.DynTable_Main
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.dyn_table_linker $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.Downloadable.DynTable_Linker
+#define $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.dyn_table_linker $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.Downloadable.DynTable_Linker
+
 #endif
 
+#define $cvc_send.mic_config.ONE_MIC               MIC_CONFIG_DEFAULT
+#define $cvc_send.mic_config.AUTO_2MIC             MIC_CONFIG_DEFAULT
+#define $cvc_send.mic_config.HEADSET_MONO          MIC_CONFIG_ENDFIRE
+#define $cvc_send.mic_config.HEADSET_BINAURAL      MIC_CONFIG_BROADSIDE
+#define $cvc_send.mic_config.SPEAKER_2MIC          MIC_CONFIG_BROADSIDE + MIC_CONFIG_ENDFIRE
+#define $cvc_send.mic_config.SPEAKER_MULTI_MIC     MIC_CONFIG_BROADSIDE
+#define $cvc_send.mic_config.SPEAKER_CIRCULAR_MIC  MIC_CONFIG_CIRCULAR
 
+
+#ifndef CVC_HEADSET_2MIC_MONO_VA_ENABLE
 
 // *****************************************************************************
 // MODULE:
@@ -104,14 +124,6 @@
 //
 // CPU USAGE:
 // *****************************************************************************
-#define $cvc_send.mic_config.ONE_MIC               MIC_CONFIG_DEFAULT
-#define $cvc_send.mic_config.AUTO_2MIC             MIC_CONFIG_DEFAULT
-#define $cvc_send.mic_config.HEADSET_MONO          MIC_CONFIG_ENDFIRE
-#define $cvc_send.mic_config.HEADSET_BINAURAL      MIC_CONFIG_BROADSIDE
-#define $cvc_send.mic_config.SPEAKER_2MIC          MIC_CONFIG_BROADSIDE + MIC_CONFIG_ENDFIRE
-#define $cvc_send.mic_config.SPEAKER_MULTI_MIC     MIC_CONFIG_BROADSIDE
-#define $cvc_send.mic_config.SPEAKER_CIRCULAR_MIC  MIC_CONFIG_CIRCULAR
-
 .MODULE $M.CVC_SEND_CAP.config.auto_1mic;
    .CODESEGMENT PM;
 
@@ -817,5 +829,101 @@ exit:
 
 .ENDMODULE;
 
-// headest 2mic VA capabilities: WakeOn and Bargein
-#include "cvc_send_headset_2mic_va.asm"
+#endif /*CVC_HEADSET_2MIC_MONO_VA_ENABLE*/
+
+// *****************************************************************************
+// MODULE:
+//    void CVC_SEND_CAP_Config_headset_2mic_wakeon(CVC_SEND_OP_DATA *op_extra_data, unsigned data_variant);
+//    void CVC_SEND_CAP_Config_headset_2mic_bargein(CVC_SEND_OP_DATA *op_extra_data, unsigned data_variant);
+//
+// DESCRIPTION:
+//    CVC SEND Configuration (per capability) (C-callable)
+//
+// MODIFICATIONS:
+//
+// INPUTS:
+//    r0 - Extended Data
+//    r1 - data_variant
+//
+// OUTPUTS:
+//    - cVc send configuration data
+//
+// TRASHED REGISTERS:
+//
+// CPU USAGE:
+// *****************************************************************************
+.MODULE $M.CVC_SEND_CAP_Config_headset_2mic_wakeon;
+   .CODESEGMENT PM;
+$_CVC_SEND_CAP_Config_headset_2mic_wakeon:
+   r2 = $cvc_send.mic_config.HEADSET_MONO;
+   r3 = $cvc_send.HEADSET;
+   I3 = $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.dyn_table_main;
+   I7 = $M.CVC_SEND_CAP.headset_2mic_data_va_wakeon.dyn_table_linker;
+   r10 = 2;
+   jump $cvc_send.dyn_config;
+.ENDMODULE;
+
+.MODULE $M.CVC_SEND_CAP_Config_headset_2mic_bargein;
+   .CODESEGMENT PM;
+$_CVC_SEND_CAP_Config_headset_2mic_bargein:
+   r2 = $cvc_send.mic_config.HEADSET_MONO;
+   r3 = $cvc_send.HEADSET;
+   I3 = $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.dyn_table_main;
+   I7 = $M.CVC_SEND_CAP.headset_2mic_data_va_bargein.dyn_table_linker;
+   r10 = 2;
+   jump $cvc_send.dyn_config;
+.ENDMODULE;
+
+
+// *****************************************************************************
+// MODULE:
+//    $cvc.init.hs2mic_va
+//    $cvc.event.echo_flag.hs2mic_va
+//
+// DESCRIPTION:
+//    Echo_Flag = VAD_REF
+//
+// MODIFICATIONS:
+//
+// INPUTS:
+//    - r7 - AEC_NLP data object
+//    - r8 - rcv_vad flag pointer
+//    - r9 - cvc data root object
+//
+// OUTPUTS:
+//
+// TRASHED REGISTERS:
+//
+// CPU USAGE:
+//
+// NOTE:
+// *****************************************************************************
+.MODULE $M.CVC_SEND.hs2mic_va;
+
+   .CODESEGMENT PM;
+
+$cvc.init.hs2mic_va:
+   r0 = M[r9 + $cvc_send.data.hfk_config];
+   r0 = r0 OR ($M.GEN.CVC_SEND.CONFIG.HFK.BYP_WNR | $M.GEN.CVC_SEND.CONFIG.HFK.BYP_RER);
+   M[r9 + $cvc_send.data.hfk_config] = r0;
+
+   r0 = M[r9 + $cvc_send.data.dmss_config];
+   r0 = r0 OR $M.GEN.CVC_SEND.CONFIG.DMSS.BYP_SPP;
+   M[r9 + $cvc_send.data.dmss_config] = r0;
+   rts;
+
+$cvc.event.echo_flag.hs2mic_va:
+   // VAD_AEC
+   r0 = M[r8];
+   // HD_mode
+   Null = r7;
+   if Z jump save_echo_flag;
+      r1 = M[r7 + $aec520.nlp.FLAG_HD_MODE_FIELD];
+      r0 = r0 OR r1;
+   save_echo_flag:
+   // Echo_Flag
+   M[r9 + $cvc_send.data.echo_flag] = r0;
+   rts;
+
+.ENDMODULE;
+

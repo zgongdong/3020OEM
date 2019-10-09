@@ -22,17 +22,7 @@
 #include <gatt_manager.h>
 #include <gatt_gap_server.h>
 #include <panic.h>
-
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
 #include <app\bluestack\l2cap_prim.h>
-
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
-
-#define L2CA_DISCONNECT_LINK_TRANSFERRED 0xFF
 
 /*!< App GATT component task */
 gattTaskData    app_gatt;

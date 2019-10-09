@@ -1,5 +1,11 @@
 var NAVTREEINDEX15 =
 {
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_p_o_r_t___i_d___m_a_p___c_f_m.html#a99da61f545f71d43f8a4a44cd75e0942":[4,0,50,0],
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_p_o_r_t___i_d___m_a_p___c_f_m.html#aa7e6f1e21878fd0697f4aaf82f84f558":[4,0,50,1],
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___p_r_o_t_o_c_o_l___c_f_m.html":[4,0,51],
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___p_r_o_t_o_c_o_l___c_f_m.html#a9b00eba84669d02f0717f0bbd36b18c2":[4,0,51,0],
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___p_r_o_t_o_c_o_l___c_f_m.html#aa7e6f1e21878fd0697f4aaf82f84f558":[4,0,51,1],
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___r_e_p_o_r_t.html":[4,0,52],
 "struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___r_e_p_o_r_t.html#a0bf3d4e53ae5e54c3d04b32203ffc2e8":[4,0,52,0],
 "struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___r_e_p_o_r_t.html#aa6a6a39e8a6ce5f87cad430113ea5255":[4,0,52,1],
 "struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___s_e_t___r_e_p_o_r_t___c_f_m.html":[4,0,53],
@@ -118,7 +124,7 @@ var NAVTREEINDEX15 =
 "struct____gatt__manager__server__registration__params.html#af14daa3bcd2d7a52b98eaa072c703217":[4,0,73,0],
 "struct____packet__master.html":[4,0,93],
 "struct____packet__master.html#a178c968ebb5583c1e0bcba3edd66d430":[4,0,93,0],
-"struct____packet__master.html#a2e7c0a819af2c0359cfc93e4b37a5b9d":[4,0,93,1],
+"struct____packet__master.html#a80c7f6cd4be4ad8e46fdff28727a7c5f":[4,0,93,1],
 "struct____packet__master__functions.html":[4,0,94],
 "struct____packet__master__functions.html#a0873c506bbb679f3bf56a12ac2145225":[4,0,94,0],
 "struct____packet__master__functions.html#a102a2b7232f54aa75b6cdc1d0b9d9659":[4,0,94,4],
@@ -129,8 +135,8 @@ var NAVTREEINDEX15 =
 "struct____packet__master__functions.html#aa2884dc34e6e0b0164871b37017bbff0":[4,0,94,5],
 "struct____packet__master__functions.html#aaaf9c534da0fdfc0c8427ff411cd7f94":[4,0,94,2],
 "struct____packet__slave.html":[4,0,95],
+"struct____packet__slave.html#a20347e4019898a404391e5f551bdcde0":[4,0,95,1],
 "struct____packet__slave.html#a4b0fe68e4a0ac340bdac8bdf7529e141":[4,0,95,0],
-"struct____packet__slave.html#ae26b7a2299122a7506131ace9219daea":[4,0,95,1],
 "struct____packet__slave__functions.html":[4,0,96],
 "struct____packet__slave__functions.html#a11e3b6003133f5705572c9fa990cd02f":[4,0,96,4],
 "struct____packet__slave__functions.html#a1200980b1c18b3912efda1f03707d4c6":[4,0,96,6],
@@ -153,7 +159,7 @@ var NAVTREEINDEX15 =
 "struct____scm__transport.html":[4,0,98],
 "struct____scm__transport.html#a0c87a47b438ccbfb36249be5d5494786":[4,0,98,1],
 "struct____scm__transport.html#a2956aefa68c8a5272fba9fa37b0e5f33":[4,0,98,2],
-"struct____scm__transport.html#ab9723606801065a2810ff140e9f05d00":[4,0,98,0],
+"struct____scm__transport.html#a9415d42f6e2fc96d7ed06d5c7a7d0ed8":[4,0,98,0],
 "struct____ttp__bytes.html":[4,0,99],
 "struct____tws__packet__master.html":[4,0,100],
 "struct____tws__packet__master.html#a0f876c9adccd97b38e4807ee39efc24a":[4,0,100,6],
@@ -243,11 +249,5 @@ var NAVTREEINDEX15 =
 "struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a386f211a93343540ce1f4e11bccc5227":[4,0,134,3],
 "struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a7657e1893002235af64adfb076bfb5fd":[4,0,134,4],
 "struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a88eda54435015e42d44107f28589b545":[4,0,134,1],
-"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#acd6796fd5fa2f3431c9a15bedac27c86":[4,0,134,7],
-"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#acdad827716ff7e04c3d7749f09ced3fd":[4,0,134,5],
-"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#ad1a318d9c731878f1ce2c6f2067b774e":[4,0,134,8],
-"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___i_n_d___t.html":[4,0,135],
-"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___i_n_d___t.html#a336f6394473b8a579eb74a950c24dc35":[4,0,135,0],
-"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___i_n_d___t.html#adecb590e3c4caac9afa1bba8cda63897":[4,0,135,1],
-"struct_a_g_h_f_p___a_u_d_i_o___d_i_s_c_o_n_n_e_c_t___i_n_d___t.html":[4,0,136]
+"struct_a_g_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#acd6796fd5fa2f3431c9a15bedac27c86":[4,0,134,7]
 };

@@ -27,6 +27,7 @@
 #include <bredr_scan_manager.h>
 #include <connection_manager.h>
 #include <profile_manager.h>
+#include <gatt.h>
 
 #include <panic.h>
 #include <connection.h>
@@ -55,7 +56,6 @@ pairingTaskData pairing_task_data;
 /*! \brief Notify clients of pairing activity. */
 static void pairing_MsgActivity(pairingStatus status, bdaddr* device_addr, uint16 tws_version)
 {
-    pairingTaskData *thePairing = PairingGetTaskData();
     MAKE_PAIRING_MESSAGE(PAIRING_ACTIVITY);
     message->status = status;
 
@@ -69,7 +69,7 @@ static void pairing_MsgActivity(pairingStatus status, bdaddr* device_addr, uint1
     }
 
     message->tws_version = tws_version;
-    TaskList_MessageSend(thePairing->pairing_activity, PAIRING_ACTIVITY, message);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(PairingGetPairingActivity()), PAIRING_ACTIVITY, message);
 }
 
 static void pairing_EirSetupCompleteCallback(bool success)
@@ -155,14 +155,17 @@ static void pairing_EnterDiscoverable(pairingTaskData *thePairing)
     else if (!thePairing->is_user_initiated && appConfigAutoHandsetPairingTimeout())
         MessageSendLater(&thePairing->task, PAIRING_INTERNAL_TIMEOUT_IND, 0, D_SEC(appConfigAutoHandsetPairingTimeout()));
 
+    /* Not initially pairing with BLE Handset */
+    thePairing->pair_le_task = NULL;
+
     /* Indicate pairing active */
     if (thePairing->is_user_initiated)
     {
-        TaskList_MessageSendId(thePairing->client_list, PAIRING_ACTIVE_USER_INITIATED);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), PAIRING_ACTIVE_USER_INITIATED);
     }
     else
     {
-        TaskList_MessageSendId(thePairing->client_list, PAIRING_ACTIVE);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), PAIRING_ACTIVE);
     }
 
     /* notify clients that pairing is in progress */
@@ -183,11 +186,11 @@ static void pairing_ExitDiscoverable(pairingTaskData *thePairing)
     /* Stop pairing indication */
     if (thePairing->is_user_initiated)
     {
-        TaskList_MessageSendId(thePairing->client_list, PAIRING_INACTIVE_USER_INITIATED);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), PAIRING_INACTIVE_USER_INITIATED);
     }
     else
     {
-        TaskList_MessageSendId(thePairing->client_list, PAIRING_INACTIVE);
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), PAIRING_INACTIVE);
     }
 }
 
@@ -287,9 +290,16 @@ static pairingState pairing_GetState(pairingTaskData *thePairing)
     return thePairing->state;
 }
 
+static void pairing_SendNotReady(Task task)
+{
+    MAKE_PAIRING_MESSAGE(PAIRING_PAIR_CFM);
+    message->status = pairingNotReady;
+    MessageSend(task, PAIRING_PAIR_CFM, message);
+}
+
 static void pairing_Complete(pairingTaskData *thePairing, pairingStatus status, const bdaddr *bd_addr)
 {
-    DEBUG_LOG("pairing_Complete");
+    DEBUG_LOG("pairing_Complete: status=%d", status);
 
     if (thePairing->client_task)
     {
@@ -307,15 +317,15 @@ static void pairing_Complete(pairingTaskData *thePairing, pairingStatus status, 
     }
     if (pairingSuccess == status)
     {
-        TaskList_MessageSendId(thePairing->client_list, PAIRING_COMPLETE);
-        /* notify clients that pairing is not in progress */
+        TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), PAIRING_COMPLETE);
+        /* notify clients that pairing succeeded */
         pairing_MsgActivity(pairingSuccess, (bdaddr*)bd_addr, DEVICE_TWS_UNKNOWN);
     }
     else
     {
         if (status != pairingStopped)
         {
-            TaskList_MessageSendId(thePairing->client_list, PAIRING_FAILED);
+            TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), PAIRING_FAILED);
         }
     }
 
@@ -423,7 +433,7 @@ static void pairing_HandleClSmAuthenticateConfirm(const CL_SM_AUTHENTICATE_CFM_T
     DEBUG_LOG("pairing_HandleClSmAuthenticateConfirm, state %d, status %d, bonded %d", pairing_GetState(thePairing), cfm->status, cfm->bonded);
 
     Pairing_PluginPairingComplete();
-    
+
     switch (pairing_GetState(thePairing))
     {
         case PAIRING_STATE_PENDING_AUTHENTICATION:
@@ -557,8 +567,8 @@ static bool pairing_HandleClSmAuthoriseIndication(const CL_SM_AUTHORISE_IND_T *i
 static void pairing_HandleClSmIoCapabilityReqIndication(const CL_SM_IO_CAPABILITY_REQ_IND_T *ind)
 {
     pairingTaskData *thePairing = PairingGetTaskData();
-    
-    pairing_io_capability_rsp_t response = 
+
+    pairing_io_capability_rsp_t response =
     {
         .io_capability = cl_sm_reject_request,
         .mitm = mitm_not_required,
@@ -569,9 +579,12 @@ static void pairing_HandleClSmIoCapabilityReqIndication(const CL_SM_IO_CAPABILIT
         .oob_rand_r = NULL
     };
 
-    DEBUG_LOG("pairing_HandleClSmIoCapabilityReqIndication Pairing state %d. Type:%d Transp:%d sm_over_BREDR:%d",
+    DEBUG_LOG("pairing_HandleClSmIoCapabilityReqIndication state=%d type=%d trans=%d sm_over_BREDR=%d addr=%04x %02x %06x",
                     pairing_GetState(thePairing), ind->tpaddr.taddr.type,
-                    ind->tpaddr.transport,ind->sm_over_bredr);
+                    ind->tpaddr.transport,ind->sm_over_bredr,
+                    ind->tpaddr.taddr.addr.nap,
+                    ind->tpaddr.taddr.addr.uap,
+                    ind->tpaddr.taddr.addr.lap);
 
     if(Pairing_PluginHandleIoCapabilityRequest(ind, &response))
     {
@@ -581,13 +594,25 @@ static void pairing_HandleClSmIoCapabilityReqIndication(const CL_SM_IO_CAPABILIT
     {
         switch (pairing_GetState(thePairing))
         {
-            case PAIRING_STATE_PENDING_AUTHENTICATION:
+        case PAIRING_STATE_PENDING_AUTHENTICATION:
                 response.io_capability = cl_sm_io_cap_no_input_no_output;
                 break;
 
             case PAIRING_STATE_DISCOVERABLE:
-                response.io_capability = cl_sm_io_cap_no_input_no_output;
-                pairing_SetState(thePairing, PAIRING_STATE_PENDING_AUTHENTICATION);
+                if (ind->tpaddr.transport == TRANSPORT_BLE_ACL)
+                {
+                    response.io_capability = cl_sm_io_cap_no_input_no_output;
+
+                    response.key_distribution = KEY_DIST_RESPONDER_ENC_CENTRAL |
+                                                KEY_DIST_RESPONDER_ID |
+                                                KEY_DIST_INITIATOR_ENC_CENTRAL |
+                                                KEY_DIST_INITIATOR_ID;
+                }
+                else
+                {
+                    response.io_capability = cl_sm_io_cap_no_input_no_output;
+                    pairing_SetState(thePairing, PAIRING_STATE_PENDING_AUTHENTICATION);
+                }
                 break;
 
             case PAIRING_STATE_IDLE:
@@ -656,7 +681,7 @@ static void pairing_HandleClSmRemoteIoCapabilityIndication(const CL_SM_REMOTE_IO
                                                                        ind->authentication_requirements,
                                                                        ind->io_capability,
                                                                        ind->oob_data_present);
-    
+
     if(Pairing_PluginHandleRemoteIoCapability(ind))
     {
         DEBUG_LOG("pairing_HandleClSmRemoteIoCapabilityIndication handled by plugin");
@@ -686,8 +711,8 @@ static void pairing_HandleInternalPairRequest(pairingTaskData *thePairing, PAIR_
             }
             else
             {
-                /* Address of device known, just start authentication with 90 second timeout */
-                ConnectionSmAuthenticate(appGetAppTask(), &req->addr, 90);
+                /* Address of device known, just start authentication using configured timeout */
+                ConnectionSmAuthenticate(appGetAppTask(), &req->addr, appConfigAuthenticationTimeout());
                 pairing_SetState(thePairing, PAIRING_STATE_PENDING_AUTHENTICATION);
             }
         }
@@ -695,16 +720,11 @@ static void pairing_HandleInternalPairRequest(pairingTaskData *thePairing, PAIR_
 
         default:
         {
-            MAKE_PAIRING_MESSAGE(PAIRING_PAIR_CFM);
-
-            /* Send confirmation with error to main task */
-            message->status = pairingNotReady;
-            MessageSend(req->client_task, PAIRING_PAIR_CFM, message);
+            pairing_SendNotReady(req->client_task);
         }
         break;
     }
 }
-
 
 static void pairing_HandleInternalPairLePeerRequest(pairingTaskData *thePairing, PAIR_LE_PEER_REQ_T *req)
 {
@@ -715,14 +735,14 @@ static void pairing_HandleInternalPairLePeerRequest(pairingTaskData *thePairing,
         /* Store client task */
         thePairing->client_task = req->client_task;
 
-        thePairing->pending_ble_address = req->typed_addr; 
+        thePairing->pending_ble_address = req->typed_addr;
 
         thePairing->pairing_lock = TRUE;
 
         if(req->le_peer_server)
         {
             ConnectionDmBleSecurityReq(&thePairing->task,
-                                        &req->typed_addr, 
+                                        &req->typed_addr,
                                         ble_security_authenticated_bonded,
                                         ble_connection_slave_directed);
         }
@@ -730,10 +750,7 @@ static void pairing_HandleInternalPairLePeerRequest(pairingTaskData *thePairing,
     }
     else
     {
-        MAKE_PAIRING_MESSAGE(PAIRING_PAIR_CFM);
-        /* Send confirmation with error to main task */
-        message->status = pairingNotReady;
-        MessageSend(req->client_task, PAIRING_PAIR_CFM, message);
+        pairing_SendNotReady(req->client_task);
     }
 }
 
@@ -873,14 +890,14 @@ static void pairing_HandleClPinCodeIndication(const CL_SM_PIN_CODE_IND_T *ind)
 static void pairing_HandleClSmUserConfirmationReqIndication(const CL_SM_USER_CONFIRMATION_REQ_IND_T *ind)
 {
     pairing_user_confirmation_rsp_t response;
-    
+
     DEBUG_LOG("pairing_HandleClSmUserConfirmationReqIndication");
 
     if(!Pairing_PluginHandleUserConfirmationRequest(ind, &response))
     {
         response = pairing_user_confirmation_reject;
     }
-    
+
     if(response != pairing_user_confirmation_wait)
     {
         bool accept = response != pairing_user_confirmation_reject;
@@ -911,61 +928,85 @@ static void pairing_HandleClSmBleSimplePairingCompleteInd(const CL_SM_BLE_SIMPLE
 
     DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd Any:%d Matches:%d Permission %d",
                     any_pending, current_request, permission);
-    
+
     Pairing_PluginPairingComplete();
 
-    if (any_pending && current_request && permission > pairingBleDisallowed)
+    if (current_request && thePairing->pair_le_task != NULL)
     {
-        bool hset = appDeviceIsHandset(&ind->permanent_taddr.addr);
-        bool permanent = !BdaddrTypedIsEmpty(&ind->permanent_taddr);
+    /*  Indicate pairing status to client and remain in Discoverable state  */
+        MAKE_PAIRING_MESSAGE(PAIRING_PAIR_CFM);
 
-        DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd Handset:%d Permanent:%d",
-                    hset, permanent);
+        DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd: LE handset status %d", ind->status);
 
-        if (!hset)
+        if (ind->status == success)
         {
-            hset = appDeviceTypeIsHandset(&ind->permanent_taddr.addr);
-            if(hset)
-            {
-                DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd. Note device is a handset, but no TWS information");
-            }
-            else
-            {
-                DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd. Note device is NOT a handset");
-            }
-        }
-
-        if (   (permission == pairingBleOnlyPairedHandsets && hset)
-            || (permission == pairingBleAllowOnlyResolvable && permanent)
-            || (permission == pairingBleAllowAll))
-        {
-            DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd Link is expected");
+            message->status = pairingSuccess;
         }
         else
         {
-            uint16 cid = GattGetCidForBdaddr(&ind->tpaddr.taddr);
+            message->status = pairingFailed;
+        }
 
-            if (cid && cid != INVALID_CID)
+        message->device_bd_addr = ind->tpaddr.taddr.addr;
+        MessageSend(thePairing->pair_le_task, PAIRING_PAIR_CFM, message);
+
+        thePairing->pair_le_task = NULL;
+    }
+    else
+    {
+        if (any_pending && current_request && permission > pairingBleDisallowed)
+        {
+            bool hset = appDeviceIsHandset(&ind->permanent_taddr.addr);
+            bool permanent = !BdaddrTypedIsEmpty(&ind->permanent_taddr);
+
+            DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd Handset:%d Permanent:%d",
+                        hset, permanent);
+
+            if (!hset)
             {
-                DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd disconnect GATT cid %d",cid);
-                GattDisconnectRequest(cid);
+                hset = appDeviceTypeIsHandset(&ind->permanent_taddr.addr);
+                if(hset)
+                {
+                    DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd. Note device is a handset, but no TWS information");
+                }
+                else
+                {
+                    DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd. Note device is NOT a handset");
+                }
             }
 
-            if (permanent)
+            if (   (permission == pairingBleOnlyPairedHandsets && hset)
+                || (permission == pairingBleAllowOnlyResolvable && permanent)
+                || (permission == pairingBleAllowAll))
             {
-                ConnectionSmDeleteAuthDeviceReq(ind->permanent_taddr.type, &ind->permanent_taddr.addr);
+                DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd Link is expected");
             }
             else
             {
-                ConnectionSmDeleteAuthDeviceReq(ind->tpaddr.taddr.type, &ind->tpaddr.taddr.addr);
+                uint16 cid = GattGetCidForBdaddr(&ind->tpaddr.taddr);
+
+                if (cid && cid != INVALID_CID)
+                {
+                    DEBUG_LOG("pairing_HandleClSmBleSimplePairingCompleteInd disconnect GATT cid %d",cid);
+                    GattDisconnectRequest(cid);
+                }
+
+                if (permanent)
+                {
+                    ConnectionSmDeleteAuthDeviceReq(ind->permanent_taddr.type, &ind->permanent_taddr.addr);
+                }
+                else
+                {
+                    ConnectionSmDeleteAuthDeviceReq(ind->tpaddr.taddr.type, &ind->tpaddr.taddr.addr);
+                }
             }
+            pairing_status = pairingSuccess;
+
+            memset(&thePairing->pending_ble_address,0,sizeof(thePairing->pending_ble_address));
         }
-        pairing_status = pairingSuccess;
 
-        memset(&thePairing->pending_ble_address,0,sizeof(thePairing->pending_ble_address));
+        pairing_Complete(thePairing, pairing_status, &ind->tpaddr.taddr.addr);
     }
-
-    pairing_Complete(thePairing, pairing_status, &ind->tpaddr.taddr.addr);
 }
 
 static void pairing_handleClSmEncryptionChangeInd(const CL_SM_ENCRYPTION_CHANGE_IND_T *ind)
@@ -983,8 +1024,9 @@ static void pairing_handleClSmBleLinkSecurityInd(const CL_SM_BLE_LINK_SECURITY_I
 
 static void pairing_handleDmBleSecurityCfm(const CL_DM_BLE_SECURITY_CFM_T *ble_security_cfm)
 {
-    DEBUG_LOG("peerPairLe_handleDmBleSecurityCfm: CL_DM_BLE_SECURITY_CFM. sts:%d x%4x",
-                    ble_security_cfm->status, ble_security_cfm->taddr.addr.lap);
+    DEBUG_LOG("peerPairLe_handleDmBleSecurityCfm: state=%d sts=%d lap=%06x",
+              PairingGetTaskData()->state,
+              ble_security_cfm->status, ble_security_cfm->taddr.addr.lap);
 
     switch (ble_security_cfm->status)
     {
@@ -1089,6 +1131,7 @@ bool Pairing_HandleConnectionLibraryMessages(MessageId id,Message message, bool 
         case CL_SM_BLE_SIMPLE_PAIRING_COMPLETE_IND:
             pairing_HandleClSmBleSimplePairingCompleteInd((const CL_SM_BLE_SIMPLE_PAIRING_COMPLETE_IND_T *)message);
             break;
+
         case CL_DM_BLE_SECURITY_CFM:
             pairing_handleDmBleSecurityCfm((CL_DM_BLE_SECURITY_CFM_T*)message);
             break;
@@ -1143,6 +1186,10 @@ static void pairing_HandleMessage(Task task, MessageId id, Message message)
             pairing_HandleClSmAddAuthDeviceConfirm((CL_SM_ADD_AUTH_DEVICE_CFM_T*)message);
             break;
 
+        case CL_DM_BLE_SECURITY_CFM:
+            pairing_handleDmBleSecurityCfm((CL_DM_BLE_SECURITY_CFM_T*)message);
+            break;
+
         default:
             appHandleUnexpected(id);
             break;
@@ -1159,7 +1206,7 @@ bool Pairing_Init(Task init_task)
     /* Set up task handler */
     thePairing->task.handler = pairing_HandleMessage;
 
-    thePairing->client_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(PairingGetClientList(), PAIRING_CLIENT_TASK_LIST_INIT_CAPACITY);
 
     /* Initialise state */
     thePairing->state = PAIRING_STATE_NULL;
@@ -1167,8 +1214,8 @@ bool Pairing_Init(Task init_task)
     pairing_SetState(thePairing, PAIRING_STATE_INITIALISING);
     thePairing->ble_permission = pairingBleAllowAll;
     thePairing->stop_task = NULL;
-    thePairing->pairing_activity = TaskList_Create();
-    
+    TaskList_InitialiseWithCapacity(PairingGetPairingActivity(), PAIRING_ACTIVITY_LIST_INIT_CAPACITY);
+
     Pairing_PluginInit();
 
     /* register pairing as a client of the peer signalling task, it means
@@ -1221,7 +1268,7 @@ void Pairing_PairLePeer(Task client_task, typed_bdaddr* device_addr, bool server
     MAKE_PAIRING_MESSAGE(PAIR_LE_PEER_REQ);
     pairingTaskData *thePairing = PairingGetTaskData();
 
-    DEBUG_LOG("Pairing_PairLePeer");
+    DEBUG_LOG("Pairing_PairLePeer state %d", pairing_GetState(thePairing));
 
     message->client_task = client_task;
     message->le_peer_server = server;
@@ -1237,6 +1284,34 @@ void Pairing_PairLePeer(Task client_task, typed_bdaddr* device_addr, bool server
 
     MessageSendConditionally(&thePairing->task, PAIRING_INTERNAL_LE_PEER_PAIR_REQ,
                              message, &thePairing->pairing_lock);
+}
+
+void Pairing_PairLeAddress(Task client_task, const typed_bdaddr* device_addr)
+{
+    pairingTaskData *thePairing = PairingGetTaskData();
+
+    DEBUG_LOG("Pairing_PairLeAddress state %d addr %04x %02x %06x",
+              pairing_GetState(thePairing),
+              device_addr->addr.nap,
+              device_addr->addr.uap,
+              device_addr->addr.lap);
+
+    /*  Only supported in Discoverable state
+     *  Pairing plugin handles handset pairing so don't interfere if one is set up */
+    if ((pairing_GetState(thePairing) == PAIRING_STATE_DISCOVERABLE) && !Pairing_PluginIsRegistered())
+    {
+        thePairing->pair_le_task = client_task;
+        thePairing->pending_ble_address = *device_addr;
+
+        ConnectionDmBleSecurityReq(&thePairing->task,
+                        device_addr,
+                        ble_security_authenticated_bonded,
+                        ble_connection_slave_directed);
+    }
+    else
+    {
+        pairing_SendNotReady(client_task);
+    }
 }
 
 /*! @brief Stop a pairing.
@@ -1257,11 +1332,9 @@ void Pairing_PairStop(Task client_task)
 /*! brief Register to receive #PAIRING_ACTIVITY messages. */
 void Pairing_ActivityClientRegister(Task task)
 {
-    pairingTaskData *thePairing = PairingGetTaskData();
-
     DEBUG_LOG("Pairing_ActivityClientRegister");
 
-    TaskList_AddTask(thePairing->pairing_activity, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(PairingGetPairingActivity()), task);
 }
 
 /*! brief Add a device to the PDL. */
@@ -1283,9 +1356,8 @@ void Pairing_AddAuthDevice(const bdaddr* address, const uint16 key_length, const
 
 static void pairing_RegisterMessageGroup(Task task, message_group_t group)
 {
-    pairingTaskData *thePairing = PairingGetTaskData();
     PanicFalse(group == PAIRING_MESSAGE_GROUP);
-    TaskList_AddTask(thePairing->client_list, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(PairingGetClientList()), task);
 }
 
 /*

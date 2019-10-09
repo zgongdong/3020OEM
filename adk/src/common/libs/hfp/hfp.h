@@ -488,7 +488,9 @@ typedef enum
     /*! Unsuccessful due to an audio disconnect already being attempted.*/
     hfp_audio_disconnect_in_progress,
     /*! Unsuccessful due to library being in incorrect state.*/
-    hfp_audio_disconnect_error
+    hfp_audio_disconnect_error,
+    /*! Disconnected due to the connection being transferred.*/
+    hfp_audio_disconnect_transferred
 } hfp_audio_disconnect_status;
 
 
@@ -2359,6 +2361,20 @@ RETURNS
     hfp_link_priority
 */
 hfp_link_priority HfpGetFirstIncomingCallPriority(void);
+
+/*!
+    @brief Overrides the Audio Sink of the specified link and 'stitches' 
+           it in. I.e. Initializes the DM Sync connection context for
+           the relevant SCO handle, stitch the SCO sink and the task
+           and configure SCO sink messages.
+
+    @param bd_addr address of the link to override the audio sink
+    @param sink new sink
+
+    @returns TRUE if sink successfully changed.
+*/
+bool HfpOverideSinkBdaddr(const bdaddr *bd_addr, Sink sink);
+
 
 extern const hfp_audio_params default_s4_esco_audio_params;
 extern const hfp_audio_params default_esco_audio_params;

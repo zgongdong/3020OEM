@@ -2,30 +2,37 @@
 \copyright  Copyright (c) 2018 Qualcomm Technologies International, Ltd.\n
             All Rights Reserved.\n
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
-\version    
-\file       le_advertising_manager_private.h
+\file       
 \brief      Internal defines used by the advertising manager
 */
 
-#ifdef LE_ADVERTISING_MANAGER_PRIVATE_H_
-#error "Private header file should only be included in the using module"
-#endif
+#ifndef LE_ADVERTISING_MANAGER_PRIVATE_H_
 
 #define LE_ADVERTISING_MANAGER_PRIVATE_H_
+
+#include "le_advertising_manager.h"
+#include "logging.h"
 
 /*! Macro to make a message based on type. */
 #define MAKE_MESSAGE(TYPE) TYPE##_T *message = PanicUnlessNew(TYPE##_T);
 /*! Macro to make a variable length message based on type. */
 #define MAKE_MESSAGE_VAR(VAR, TYPE) TYPE##_T *VAR = PanicUnlessNew(TYPE##_T);
 
+/*! Logging Macros */
+#if defined DEBUG_LOG_EXTRA
 
-/*! Helper macro to check if a pointer to advert settings is valid
+#define DEBUG_LOG_LEVEL_1 DEBUG_LOG /* Additional Failure Logs */
+#define DEBUG_LOG_LEVEL_2 DEBUG_LOG /* Additional Information Logs */
 
-    At present checks that the pointer matches the single supported advert
+#else
 
-    \param[in]  x   Pointer to advert to check
-*/
-#define VALID_ADVERT_POINTER(x) ((x)== &advertData[0])
+#define DEBUG_LOG_LEVEL_1(...) ((void)(0))
+#define DEBUG_LOG_LEVEL_2(...) ((void)(0))
+
+#endif
+
+/* Number of clients supported that can register callbacks for advertising data */
+#define MAX_NUMBER_OF_CLIENTS 10
 
 /*! Size of a data element header in advertising data
 
@@ -134,22 +141,6 @@ length of advertising data.
  */
 #define SERVICE128_DATA_LENGTH(num_services) ((num_services) * OCTETS_PER_128BIT_SERVICE)
 
-/*! Write a single value to the advertising data buffer
-
-    This macro adds a single value into the buffer, incrementing the pointer
-    into the buffer and reducing the space available.
-
-    \param[in,out] ad_data Pointer to the next position in the advertising data
-    \param[in,out] space   Variable with the amount of remaining space in buffer
-    \param[in]     value   Value (octet) to add to the advertising data
-*/
-#define WRITE_AD_DATA(ad_data, space, value) do \
-                                                { \
-                                                    *ad_data = value; \
-                                                    ad_data++; \
-                                                    (*space)--; \
-                                                } while(0)
-
 typedef struct
 {
     bool   action;
@@ -174,6 +165,8 @@ enum adv_mgr_internal_messages_t
     LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE,
     LE_ADV_MGR_INTERNAL_START
 };
+
+#define MAX_RAW_DATA 10
 
 /*! Implementation of the anonymous structure for advertisements.
 
@@ -229,6 +222,10 @@ struct _adv_mgr_advert_t
     ble_adv_params_t    interval_and_filter;
             /*! The type of advertising to use, when advertising is started */
     ble_adv_type        advertising_type;
+    /*! Number of raw data entries */
+    uint16              num_raw_data;
+    /*! Array of raw data entries */
+    uint8*              raw_data[MAX_RAW_DATA];
 };
 
 /*! The anonymous structure for scan response data.
@@ -250,13 +247,16 @@ struct _le_adv_mgr_scan_response_t
     uint16              num_services_uuid128;
             /*! Array of GATT services to be included in the scan response */
     le_advertising_manager_uuid128 services_uuid128[MAX_SERVICES_UUID128];
+    /*! Number of raw data entries */
+    uint16              num_raw_data;
+    /*! Array of raw data entries */
+    uint8*              raw_data[MAX_RAW_DATA];
 };
 
 typedef enum
 {
     _le_adv_mgr_packet_type_advert,
     _le_adv_mgr_packet_type_scan_response
-    
 }_le_adv_mgr_packet_type_t;
 
 struct _le_adv_mgr_packet_t
@@ -267,7 +267,6 @@ struct _le_adv_mgr_packet_t
         struct _adv_mgr_advert_t * advert;
         struct _le_adv_mgr_scan_response_t * scan_response;        
     }u;
-    
 };
 
 struct _le_adv_data_set
@@ -284,13 +283,6 @@ struct _le_adv_params_set
     le_adv_preset_advertising_interval_t active_params_set;
 };
 
-struct _le_adv_mgr_register
-{
-    bool in_use;
-    Task task;
-    le_adv_data_callback_t callback;
-};
-
 /*! Generic message used for messages sent by the advertising manager */
 typedef struct {
     adv_mgr_advert_t    *advert;        /*!< The advert that the message applies to */
@@ -300,6 +292,7 @@ typedef struct {
 typedef struct
 {
     le_adv_data_set_t set;
+    bool is_select_cfm_msg_needed;
 }
 LE_ADV_MGR_INTERNAL_START_T;
 
@@ -341,3 +334,6 @@ typedef struct
     le_adv_event_type_t event;    
 }le_advert_start_params_t;
 
+void sendBlockingResponse(connection_lib_status sts);
+
+#endif

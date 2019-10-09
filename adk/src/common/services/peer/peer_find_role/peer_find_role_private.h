@@ -23,6 +23,9 @@
 #include "peer_find_role_scoring.h"
 #include "peer_find_role_sm.h"
 
+/*! Defines the  */
+#define PEER_FIND_ROLE_REGISTERED_TASKS_LIST_INIT_CAPACITY 2
+
 
 /*! Enumerated type (bit mask) to record scanning operations.
     These take time to cancel 
@@ -56,7 +59,7 @@ typedef struct
     TaskData                    _task;
 
     /*! List of tasks to send messages to */
-    task_list_t                *registered_tasks;
+    TASK_LIST_WITH_INITIAL_CAPACITY(PEER_FIND_ROLE_REGISTERED_TASKS_LIST_INIT_CAPACITY)  registered_tasks;
 
     /*! address of this device 
         \todo Will be removed once RRA working */
@@ -141,7 +144,7 @@ extern peerFindRoleTaskData peer_find_role;
 #define PeerFindRoleGetTask()       (&peer_find_role._task)
 
 /*! Access the list of tasks registered with the peer find role service */
-#define PeerFindRoleGetTaskList()   (peer_find_role.registered_tasks)
+#define PeerFindRoleGetTaskList()   (task_list_flexible_t *)(&peer_find_role.registered_tasks)
 
 /*! Access the scoring information for the peer find role service */
 #define PeerFindRoleGetScoring()    (&peer_find_role.scoring_info)
@@ -271,6 +274,9 @@ void peer_find_role_message_cancel_inactive(MessageId id);
 
 /*! Stop scanning if in progress */
 void peer_find_role_stop_scan_if_active(void);
+
+/*! Start scanning if not in progress */
+void peer_find_role_start_scanning_if_inactive(void);
 
 /*! Override the score used in role selection.
  

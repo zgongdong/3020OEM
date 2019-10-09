@@ -10,7 +10,7 @@ csr_subwoofer_plugin debongle display_example_plugin display_plugin_cns10010 fir
 fm_rx_api fm_rx_plugin leds_flash leds_manager leds_manager_if leds_rom obex_parse swat \
  wbs csr_cvc_common_plugin \
 broadcast_msg_interface broadcast_status_msg_structures erasure_code_common erasure_code_input_stats \
-csr_broadcast_audio_plugin csr_broadcast_receiver_plugin marshal_common_desc
+csr_broadcast_audio_plugin csr_broadcast_receiver_plugin 
 
 # Pull in the Kymera build configuration
 path := $(subst hydracore.mak,,$(abspath $(lastword $(MAKEFILE_LIST))))

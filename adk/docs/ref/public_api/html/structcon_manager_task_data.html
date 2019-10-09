@@ -76,13 +76,8 @@ $(document).ready(function(){initNavTree('structcon_manager_task_data.html','');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:ad5a4815bda61739debb729324c3b5a6d"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:a022e5f66ee942dc01c80c6f83e9a0202"><td class="memItemLeft" >&#160;&#160;&#160;bdaddr&#160;&#160;&#160;<a class="el" href="structcon_manager_task_data.html#a022e5f66ee942dc01c80c6f83e9a0202">acl</a></td></tr>
-<tr class="separator:a022e5f66ee942dc01c80c6f83e9a0202"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6877cce6509d7355b37765f94ae0abf4"><td class="memItemLeft" >&#160;&#160;&#160;Task&#160;&#160;&#160;<a class="el" href="structcon_manager_task_data.html#a6877cce6509d7355b37765f94ae0abf4">requesting_task</a></td></tr>
-<tr class="separator:a6877cce6509d7355b37765f94ae0abf4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad5a4815bda61739debb729324c3b5a6d"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcon_manager_task_data.html#ad5a4815bda61739debb729324c3b5a6d">forced_disconnect</a></td></tr>
-<tr class="separator:ad5a4815bda61739debb729324c3b5a6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4bc0e0824d6b98eb71aa0ee50958b28c"><td class="memItemLeft" align="right" valign="top">Task&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcon_manager_task_data.html#a4bc0e0824d6b98eb71aa0ee50958b28c">forced_disconnect</a></td></tr>
+<tr class="separator:a4bc0e0824d6b98eb71aa0ee50958b28c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa140872e9c4880415e70e3f82ea22b9d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcon_manager_task_data.html#aa140872e9c4880415e70e3f82ea22b9d">handset_connect_allowed</a>:1</td></tr>
 <tr class="separator:aa140872e9c4880415e70e3f82ea22b9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aba8d7e5c1906844fdb6e47953d3518fc"><td class="memItemLeft" align="right" valign="top">TaskData&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structcon_manager_task_data.html#aba8d7e5c1906844fdb6e47953d3518fc">task</a></td></tr>
@@ -91,29 +86,16 @@ Data Fields</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Connection Manager module task data. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
-<a class="anchor" id="a022e5f66ee942dc01c80c6f83e9a0202"></a>
+<a class="anchor" id="a4bc0e0824d6b98eb71aa0ee50958b28c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">bdaddr acl</td>
+          <td class="memname">Task forced_disconnect</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Address being disconnected. Note that the disconnect API does not have address type information </p>
-
-</div>
-</div>
-<a class="anchor" id="ad5a4815bda61739debb729324c3b5a6d"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... }   forced_disconnect</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Structure grouping data for forced disconnect </p>
+<p>Task that has requested a forced disconnect </p>
 
 </div>
 </div>
@@ -127,19 +109,6 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Flag indicating if incoming handset connections are allowed </p>
-
-</div>
-</div>
-<a class="anchor" id="a6877cce6509d7355b37765f94ae0abf4"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">Task requesting_task</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Task requesting the forced disconnect </p>
 
 </div>
 </div>

@@ -16,9 +16,9 @@ Copyright (c) 2019 Qualcomm Technologies International, Ltd.
 #ifndef _SDM_PRIM_H_
 #define _SDM_PRIM_H_
 
-#include "bluestack/hci.h"
-#include "bluestack/dm_prim.h"
-#include "bluestack/l2cap_prim.h"
+#include "hci.h"
+#include "dm_prim.h"
+#include "l2cap_prim.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -329,15 +329,16 @@ typedef struct
 /*! \brief Confirmation of shadow ACL or eSCO link disconnection
 
     This confirmation provides status of shadow link disconnection request from
-    the application. 
-
+    the application. HCI_SUCCESS status indicates that disconnection of the 
+    link is successful.
+    
 */
 typedef struct
 {
     sdm_prim_t              type;        /*!< Always SDM_SHADOW_LINK_DISCONNECT_CFM */
     phandle_t               phandle;     /*!< Destination phandle */
     hci_connection_handle_t conn_handle; /*!< Connection handle of a eSCO/ACL shadow link */
-    sdm_reason_t            reason;      /*!< Disconnection reason */
+    sdm_return_t            status;      /*!< Disconnection status, success or failure */
     link_type_t             link_type;   /*!< Type of shadow link, eSCO/ACL */
     shadow_role_t           role;        /*!< Role of the local device for the shadow link, Primary/Secondary */
 } SDM_SHADOW_LINK_DISCONNECT_CFM_T;
@@ -583,14 +584,18 @@ typedef struct
 } SDM_SHADOW_L2CAP_DISCONNECT_RSP_T;
 
 /* 
- *  Confirmation of Shadow L2CAP disconnection request. 
+ *  Confirmation of Shadow L2CAP disconnection request.
+ *
+ *  HCI_SUCCESS status indicates that disconnection of shadow L2CAP is 
+ *  successful.
+ *
  */
 typedef struct
 {
     sdm_prim_t          type;              /*!< Always SDM_SHADOW_L2CAP_DISCONNECT_CFM */
     phandle_t           phandle;           /*!< Destination phandle */
     l2ca_cid_t          cid;               /*!< cid of L2CAP channel being shadowed */
-    l2ca_disc_result_t  result;            /*!< Successful or timed out */
+    sdm_return_t        status;            /*!< Success or failure to disconnect */
 } SDM_SHADOW_L2CAP_DISCONNECT_CFM_T;
 
 typedef struct

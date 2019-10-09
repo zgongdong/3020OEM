@@ -29,6 +29,8 @@
 /*! Maximum number of connections supported by state proxy */
 #define STATE_PROXY_MAX_CONNECTIONS 2
 
+#define STATE_PROXY_EVENTS_TASK_LIST_INIT_CAPACITY 1
+
 /*! Flags for boolean state monitored by state proxy for a device. */
 typedef struct
 {
@@ -49,7 +51,7 @@ typedef struct
     bool advertising:1;             /*!< The device earbud is BLE advertising. */
     /* \todo initial state supported but not changes yet. */
     bool ble_connected:1;           /*!< The device earbud has a BLE connection. */
-} state_proxy_data_flags_t;            
+} state_proxy_data_flags_t;
 
 /*! Data supplied to clients when state changes. */
 typedef struct
@@ -107,7 +109,7 @@ typedef struct
      *  messages with type specific event updates */
     task_list_t* event_tasks;
 
-    task_list_t* state_proxy_events;
+    TASK_LIST_WITH_INITIAL_CAPACITY(STATE_PROXY_EVENTS_TASK_LIST_INIT_CAPACITY)  state_proxy_events;
 
     /*! Combined local state tracked in a single entity suitable for
      *  being marshalled during handover. */
@@ -135,6 +137,7 @@ extern state_proxy_task_data_t state_proxy;
 #define stateProxy_SetMeasuringMicQuality(value)  (stateProxy_GetTaskData()->measuring_mic_quality = (value))
 #define stateProxy_GetRemoteFlag(flag_name)       (stateProxy_GetRemoteData()->flags.##flag_name)
 #define stateProxy_GetLocalFlag(flag_name)        (stateProxy_GetLocalData()->flags.##flag_name)
+#define stateProxy_GetEvents()                    (task_list_flexible_t *)(&state_proxy.state_proxy_events)
 
 /*! Internal messages sent by state_proxy to iteself. */
 enum state_proxy_internal_messages

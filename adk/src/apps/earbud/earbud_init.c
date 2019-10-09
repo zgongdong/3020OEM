@@ -25,6 +25,10 @@
 #include "earbud_ui.h"
 #include "earbud_sm.h"
 #include "earbud_handover.h"
+#include "voice_ui.h"
+#ifdef ENABLE_AUDIO_TUNING_MODE
+#include "audio_tuning_mode.h"
+#endif
 #include "gaia_handler.h"
 #include "gatt_handler.h"
 #include "gatt_connect.h"
@@ -41,6 +45,7 @@
 #include "le_scan_manager.h"
 #include "link_policy.h"
 #include "logical_input_switch.h"
+#include "local_addr.h"
 #include "local_name.h"
 #include "connection_message_dispatcher.h"
 #include "ui.h"
@@ -205,6 +210,8 @@ static void appHandleClMessage(Task task, MessageId id, Message message)
         handled |= appTestHandleConnectionLibraryMessages(id, message, handled);
         handled |= PeerFindRole_HandleConnectionLibraryMessages(id, message, handled);
         handled |= HandoverProfile_HandleConnectionLibraryMessages(id, message, handled);
+        handled |= LocalAddr_HandleConnectionLibraryMessages(id, message, handled);
+        handled |= ShadowProfile_HandleConnectionLibraryMessages(id, message, handled);
 
         if (handled)
         {
@@ -334,6 +341,7 @@ static const init_table_entry_t appInitTable[] =
     {appConfigInit,         CL_DM_LOCAL_BD_ADDR_CFM, appInitHandleClDmLocalBdAddrCfm},
 #endif
     {appLinkPolicyInit,     0, NULL},
+    {LocalAddr_Init,        0, NULL},
     {ConManagerInit,        0, NULL},
     {PrimaryRules_Init,     0, NULL},
     {SecondaryRules_Init,   0, NULL},
@@ -366,11 +374,11 @@ static const init_table_entry_t appInitTable[] =
     {GattConnect_Init,      0, NULL},   // GATT functionality is initialised by calling GattConnect_Init then GattConnect_ServerInitComplete.
     // All GATT Servers MUST be initialised after GattConnect_Init and before GattConnect_ServerInitComplete.
     {GattHandlerInit,      0, NULL}, 
-    {PeerFindRole_Init,     0, PEER_FIND_ROLE_INIT_CFM},
     {PeerPairLe_Init,       0, NULL},
     {KeySync_Init,          0, NULL},
     {ProfileManager_Init,   0, NULL},
     {HandsetService_Init,   0, NULL},
+    {PeerFindRole_Init,     0, PEER_FIND_ROLE_INIT_CFM},
     {TwsTopology_Init,      TWS_TOPOLOGY_INIT_CFM, NULL},
     {PeerLinkKeys_Init,     0, NULL},
 #ifdef INCLUDE_GATT_BATTERY_SERVER
@@ -388,6 +396,10 @@ static const init_table_entry_t appInitTable[] =
 #endif
 #ifdef INCLUDE_DFU_PEER
     {appDeviceUpgradePeerInit,  DEVICE_UPGRADE_PEER_INIT_CFM, NULL},
+#endif
+    {VoiceUi_Init,   0, NULL},
+#ifdef ENABLE_AUDIO_TUNING_MODE
+    {AudioTuningMode_Init, 0, NULL}, 
 #endif
     {EarbudUi_Init,      0, NULL},
     {TelephonyService_Init, 0, NULL},
@@ -414,12 +426,15 @@ void appInit(void)
                        registrations_array_dim);
 
     AppsCommon_StartInit(appGetAppTask(), appInitTable, ARRAY_DIM(appInitTable));
+}
 
+void appInitSetInitialised(void)
+{
 #if defined(HAVE_6_BUTTONS) || defined(HAVE_9_BUTTONS)
-    LogicalInputSwitch_SetLogicalInputIdRange(APP_MFB_BUTTON_PRESS,
-                                              APP_BUTTON_HELD_FACTORY_RESET);
+    LogicalInputSwitch_SetLogicalInputIdRange(APP_MFB_BUTTON_SINGLE_CLICK,
+                                              APP_BUTTON_LAST);
 #else
-    LogicalInputSwitch_SetLogicalInputIdRange(APP_MFB_BUTTON_PRESS,
+    LogicalInputSwitch_SetLogicalInputIdRange(APP_MFB_BUTTON_SINGLE_CLICK,
                                               APP_BUTTON_FACTORY_RESET);
 #endif
 
@@ -428,10 +443,7 @@ void appInit(void)
      * the target platform. Connect to the logical Input Switch component */
     InputEventManagerInit(LogicalInputSwitch_GetTask(), InputEventActions,
                           sizeof(InputEventActions), &InputEventConfig);
-}
 
-void appInitSetInitialised(void)
-{
     InitGetTaskData()->initialised = APP_INIT_COMPLETED_MAGIC;
 }
 

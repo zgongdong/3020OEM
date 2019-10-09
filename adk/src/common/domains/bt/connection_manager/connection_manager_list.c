@@ -369,3 +369,21 @@ const tp_bdaddr* ConManagerGetConnectionTpAddr(cm_connection_t* connection)
     }
     return NULL;
 }
+
+void ConManagerSetConnectionTpAddr(cm_connection_t* connection, const tp_bdaddr* new_addr)
+{
+    if (connection && new_addr)
+    {
+        connection->tpaddr = *new_addr;
+    }
+}
+
+void ConManagerConnectionCopy(cm_connection_t* dest, const cm_connection_t* src)
+{
+    dest->task_data.handler = ConManagerConnectionHandleMessage;
+    dest->tpaddr = src->tpaddr;
+    dest->lock = src->lock;
+    dest->bitfields = src->bitfields;
+    dest->lp_state = src->lp_state;
+    memmove(dest->qos_list, src->qos_list, sizeof(src->qos_list[0]) * cm_qos_max);
+}

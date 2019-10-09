@@ -12,8 +12,10 @@
 #include <panic.h>
 #include <vmtypes.h>
 #include <stdlib.h>
-#include "task_list.h"
 
+#include "task_list.h"
+#include "local_addr.h"
+#include "bdaddr.h"
 
 #define leScanManagerConfigEnableScanning()  FALSE
 #define leScanManagerConfigEnableWhiteList()  FALSE
@@ -22,6 +24,8 @@
 /*! Macro to make a message based on type. */
 #define MAKE_MESSAGE(TYPE) TYPE##_T *message = PanicUnlessNew(TYPE##_T);
 #define MAKE_CL_MESSAGE_WITH_LEN(TYPE, LEN) TYPE##_T *message = (TYPE##_T *) PanicUnlessMalloc(sizeof(TYPE##_T) + LEN);
+#define MAKE_CL_MESSAGE_WITH_LEN_TO_TASK(TYPE, LEN) TYPE##_T *message_task = (TYPE##_T *) PanicUnlessMalloc(sizeof(TYPE##_T) + LEN);
+
 
 /*!< SM data structure */
 le_scan_manager_data_t  scan_sm;
@@ -229,6 +233,17 @@ static bool leScanManager_isDuplicate(Task requester)
     }
     return FALSE;
 }
+
+static void leScanManager_FreeScanHandle(le_scan_handle_t scan_handle)
+{
+    if(scan_handle->filter.find_tpaddr != NULL)
+    {
+        free(scan_handle->filter.find_tpaddr);
+    }
+    free(scan_handle->filter.pattern);
+    free(scan_handle);
+}
+
 static bool leScanManager_ClearScanOnTask(Task requester)
 {
     le_scan_manager_data_t* sm_data = LeScanManagerGetTaskData();
@@ -238,8 +253,7 @@ static bool leScanManager_ClearScanOnTask(Task requester)
     {
         if ((sm_data->active_handle[handle_index]!= NULL)&&(sm_data->active_handle[handle_index]->scan_task == requester))
         {
-            free(sm_data->active_handle[handle_index]->filter.pattern);
-            free(sm_data->active_handle[handle_index]);
+            leScanManager_FreeScanHandle(sm_data->active_handle[handle_index]);
             sm_data->active_handle[handle_index] = NULL;
 
             return TRUE;
@@ -272,6 +286,16 @@ static le_scan_handle_t leScanManager_AcquireScan(le_scan_interval_t scan_interv
         sm_data->active_handle[handle_index]->filter.pattern = PanicUnlessMalloc(filter->size_pattern);
 
         memcpy(sm_data->active_handle[handle_index]->filter.pattern , filter->pattern , sizeof(uint8)*(filter->size_pattern));
+        if(filter->find_tpaddr != NULL)
+        {
+            sm_data->active_handle[handle_index]->filter.find_tpaddr = PanicUnlessMalloc(sizeof(tp_bdaddr));
+            memcpy(sm_data->active_handle[handle_index]->filter.find_tpaddr , filter->find_tpaddr , sizeof(tp_bdaddr));
+        }
+        else
+        {
+            sm_data->active_handle[handle_index]->filter.find_tpaddr = NULL;
+        }
+        
         sm_data->active_handle[handle_index]->scan_task = task;
 
         handle = sm_data->active_handle[handle_index];
@@ -292,9 +316,9 @@ static void leScanManager_SetScanAndAddAdvertisingReport(le_scan_interval_t scan
 {
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
     leScanManager_SetScanParameters(scan_interval);
-
+    
     ConnectionDmBleSetScanParametersReq(leScanManagerConfigEnableScanning(),
-                                        OWN_ADDRESS_PUBLIC,
+                                        LocalAddr_GetBleType(),
                                         leScanManagerConfigEnableWhiteList(),
                                         sm_data->scan_parameters.scan_interval,
                                         sm_data->scan_parameters.scan_window);
@@ -337,9 +361,8 @@ static bool leScanManager_ReleaseScan(le_scan_handle_t handle)
     if ((handle_index < MAX_ACTIVE_SCANS) && (handle != NULL))
     {
         DEBUG_LOG("leScanManager_ReleaseScan handle released");
-
-        free(sm_data->active_handle[handle_index]->filter.pattern);
-        free(sm_data->active_handle[handle_index]);
+             
+        leScanManager_FreeScanHandle(sm_data->active_handle[handle_index]);
         sm_data->active_handle[handle_index] = NULL;
    
         released = TRUE;
@@ -404,6 +427,40 @@ void leScanManager_Handler(Task task, MessageId id, Message message)
     }
 }
 
+static bool leScanManager_FilterAddress(const typed_bdaddr* scan_taddr)
+{
+    tp_bdaddr current_addr;
+    tp_bdaddr public_addr;
+    le_scan_manager_data_t *sm_data = LeScanManagerGetTaskData();
+
+    /* If client task is interested in finding specific device then resolve all RPA devices to check for a match */
+    if(sm_data->confirmation_handle->filter.find_tpaddr != NULL)
+    {
+        memset(&public_addr, 0, sizeof(tp_bdaddr));
+        
+        current_addr.transport = TRANSPORT_BLE_ACL;
+        memcpy(&(current_addr.taddr), scan_taddr, sizeof(typed_bdaddr));
+        
+        /* Retrieve permanent address if this is a random address */
+        if(current_addr.taddr.type == TYPED_BDADDR_RANDOM)
+        {
+            if(!VmGetPublicAddress(&current_addr, &public_addr))
+                return FALSE;
+        }
+        else
+        {
+            /* Provided address is PUBLIC address, copy it */
+            public_addr.transport = TRANSPORT_BLE_ACL;
+            memcpy(&(public_addr.taddr), scan_taddr, sizeof(typed_bdaddr));
+        }
+
+        /* If matching address is found send the message only to requested task */
+        if(BdaddrTpIsSame(sm_data->confirmation_handle->filter.find_tpaddr, &public_addr))
+            return TRUE;        
+    }
+    return FALSE;
+}
+
 static void leScanManager_HandleAdverts(const CL_DM_BLE_ADVERTISING_REPORT_IND_T* scan)
 {
     scanState current_state = LeScanManagerGetState();
@@ -417,9 +474,7 @@ static void leScanManager_HandleAdverts(const CL_DM_BLE_ADVERTISING_REPORT_IND_T
                    scan->current_taddr.addr.nap,scan->current_taddr.addr.uap,scan->current_taddr.addr.lap);
 
         /* Eliminate scan results that we are not interested in */
-        if (TYPED_BDADDR_PUBLIC != scan->current_taddr.type
-           || 0 == scan->num_reports
-           || scan->rssi < scanManagerMinRssi())
+        if (0 == scan->num_reports || scan->rssi < scanManagerMinRssi())
         {
            return;
         }
@@ -443,8 +498,35 @@ static void leScanManager_HandleAdverts(const CL_DM_BLE_ADVERTISING_REPORT_IND_T
         message->permanent_taddr.addr.nap =  scan->permanent_taddr.addr.nap;
         message->permanent_taddr.addr.uap =  scan->permanent_taddr.addr.uap;
         message->permanent_taddr.addr.lap =  scan->permanent_taddr.addr.lap;
-
+        
         TaskList_MessageSendWithSize(sm_data->client_list, LE_SCAN_MANAGER_ADV_REPORT_IND, message,size);
+
+        /* If client task is interested in finding specific device then resolve all RPA devices to check for a match */
+        if(leScanManager_FilterAddress(&(scan->current_taddr)))
+        {
+            MAKE_CL_MESSAGE_WITH_LEN_TO_TASK(LE_SCAN_MANAGER_ADV_REPORT_IND,size);
+
+            message_task->num_reports = scan->num_reports;
+            message_task->event_type =  scan->event_type;
+            message_task->rssi = scan->rssi;
+            message_task->size_advertising_data = scan->size_advertising_data;
+            
+            memcpy(message_task->advertising_data, scan->advertising_data, scan->size_advertising_data);
+
+            message_task->current_taddr.type =  scan->current_taddr.type;
+            message_task->current_taddr.addr.nap =  scan->current_taddr.addr.nap;
+            message_task->current_taddr.addr.uap =  scan->current_taddr.addr.uap;
+            message_task->current_taddr.addr.lap =  scan->current_taddr.addr.lap;
+        
+            message_task->permanent_taddr.type =  sm_data->confirmation_handle->filter.find_tpaddr->taddr.type;
+            message_task->permanent_taddr.addr.nap = sm_data->confirmation_handle->filter.find_tpaddr->taddr.addr.nap;
+            message_task->permanent_taddr.addr.uap = sm_data->confirmation_handle->filter.find_tpaddr->taddr.addr.uap;
+            message_task->permanent_taddr.addr.lap = sm_data->confirmation_handle->filter.find_tpaddr->taddr.addr.lap;
+
+            MessageSend(sm_data->confirmation_handle->scan_task, LE_SCAN_MANAGER_ADV_REPORT_IND, message_task);
+            free(sm_data->confirmation_handle->filter.find_tpaddr);
+            sm_data->confirmation_handle->filter.find_tpaddr = NULL;
+        }
     }
 }
 
@@ -1010,13 +1092,16 @@ bool LeScanManager_HandleConnectionLibraryMessages(MessageId id, Message message
                                                           bool already_handled)
 {
     UNUSED(already_handled);
+
     switch (id)
     {
         case CL_DM_BLE_ADVERTISING_REPORT_IND:
             leScanManager_HandleAdverts((const CL_DM_BLE_ADVERTISING_REPORT_IND_T *)message);
-            break;
+            return TRUE;
+
         case CL_DM_BLE_SET_SCAN_PARAMETERS_CFM:
             break;
+
         default:
             break;
     }

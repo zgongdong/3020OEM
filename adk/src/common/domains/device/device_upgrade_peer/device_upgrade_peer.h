@@ -21,6 +21,9 @@ DESCRIPTION
 #include <upgrade.h>
 #include <task_list.h>
 
+/*! Defines the the peer upgrade client task list initial capacity */
+#define PEER_UPGRADE_CLIENT_LIST_INIT_CAPACITY 1
+
 /*! \brief Message IDs from Upgrade Peer to main application task */
 enum DeviceUpgradePeer_messages
 {
@@ -61,7 +64,7 @@ typedef struct
     TaskData        task;
 
     /*! List of tasks to notify of DEVICE UPGRADE activity. */
-    task_list_t    *client_list;
+    TASK_LIST_WITH_INITIAL_CAPACITY(PEER_UPGRADE_CLIENT_LIST_INIT_CAPACITY) client_list;
 
     DeviceUpgradePeerState     state; /*!< Current state of the state machine */
 

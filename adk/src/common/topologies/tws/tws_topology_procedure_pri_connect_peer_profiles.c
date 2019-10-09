@@ -14,6 +14,7 @@
 #include <bt_device.h>
 #include <peer_signalling.h>
 #include <scofwd_profile.h>
+#include <shadow_profile.h>
 #include <av.h>
 #include <handover_profile.h>
 #include <connection_manager.h>
@@ -84,11 +85,6 @@ static void twsTopology_ProcedurePriConnectPeerProfilesStartProfile(uint8 profil
         /*! \todo temporary fix as AV does not yet support CFMs */
         td->profiles_status &= ~DEVICE_PROFILE_A2DP;
     }
-    if(profiles & DEVICE_PROFILE_HANDOVER)
-    {
-        DEBUG_LOG("twsTopology_ProcedurePriConnectPeerProfilesStartProfile HANDOVER");
-        HandoverProfile_Connect(TwsTopProcPriConnectPeerProfilesGetTask(), &secondary_addr);
-    }
 }
 
 void TwsTopology_ProcedurePriConnectPeerProfilesStart(Task result_task,
@@ -118,7 +114,13 @@ void TwsTopology_ProcedurePriConnectPeerProfilesStart(Task result_task,
 
 void TwsTopology_ProcedurePriConnectPeerProfilesCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn)
 {
+    bdaddr secondary_addr;
+
     DEBUG_LOG("TwsTopology_ProcedurePriConnectPeerProfilesCancel");
+
+    appDeviceGetSecondaryBdAddr(&secondary_addr);
+    ConManagerReleaseAcl(&secondary_addr);
+
     twsTopology_ProcedurePriConnectPeerProfilesReset();
     TwsTopology_DelayedCancelCfmCallback(proc_cancel_cfm_fn, tws_topology_procedure_pri_connect_peer_profiles, proc_result_success);
 }
@@ -137,9 +139,14 @@ static void twsTopology_ProcPriConnectPeerProfilesStatus(uint8 profile)
     /* clear the connected profile */
     td->profiles_status &= ~profile;
 
-    /* report start complete if all done */
+    /* report start complete if all done and release the ACL (now held open by L2CAP)*/
     if (!td->profiles_status)
     {
+        bdaddr secondary_addr;
+
+        appDeviceGetSecondaryBdAddr(&secondary_addr);
+        ConManagerReleaseAcl(&secondary_addr);
+
         twsTopology_ProcedurePriConnectPeerProfilesReset();
         td->complete_fn(tws_topology_procedure_pri_connect_peer_profiles, proc_result_success);
     }
@@ -148,11 +155,9 @@ static void twsTopology_ProcPriConnectPeerProfilesStatus(uint8 profile)
 static void twsTopology_ProcPriConnectPeerProfilesHandleMessage(Task task, MessageId id, Message message)
 {
     twsTopProcPriConnectPeerProfilesTaskData* td = TwsTopProcPriConnectPeerProfilesGetTaskData();
-    bdaddr secondary_addr;
 
     UNUSED(task);
     UNUSED(message);
-
     /* if no longer active then ignore any CFM messages,
      * they'll be connect_cfm(cancelled) */
     if (!td->active)
@@ -160,15 +165,12 @@ static void twsTopology_ProcPriConnectPeerProfilesHandleMessage(Task task, Messa
         return;
     }
 
-    appDeviceGetSecondaryBdAddr(&secondary_addr);
-
     switch (id)
     {
         /*! \todo handle PEERSIG connect CFM */
         case PEER_SIG_CONNECT_CFM:
         {
             DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesHandleMessage PEERSIG");
-            ConManagerReleaseAcl(&secondary_addr);
             twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_PEERSIG);
         }
         break;
@@ -176,12 +178,12 @@ static void twsTopology_ProcPriConnectPeerProfilesHandleMessage(Task task, Messa
         case SFWD_CONNECT_CFM:
         {
             DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesHandleMessage SCOFWD");
-            ConManagerReleaseAcl(&secondary_addr);
             twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_SCOFWD);
         }
         break;
-        /*! \todo handle AV connect CFM */
 
+
+        /*! \todo handle AV connect CFM */
         default:
         break;
     }

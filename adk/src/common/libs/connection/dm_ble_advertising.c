@@ -156,7 +156,7 @@ void connectionHandleDmBleSetAdvertiseEnableCfm(
     if (state->bleScanAdLock != NO_CFM_MESSAGE)
     {
         MAKE_CL_MESSAGE(CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM);
-        message->status = (cfm->status == HCI_SUCCESS) ? success : fail;
+        message->status = connectionConvertHciStatus(cfm->status);
         MessageSend(
                     state->bleScanAdLock,
                     CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM,

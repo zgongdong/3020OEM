@@ -67,6 +67,7 @@
     CONNECTING_TO_DISCOVERED: Advertising continues. Otherwise if our peer is in the same state there may be nothing to connect to
     CONNECTING_TO_DISCOVERED --> SERVER_AWAITING_ENCRYPTION : CON_MANAGER_TP_CONNECT_IND (outgoing connection)
     CONNECTING_TO_DISCOVERED --> CLIENT : GATT Connect observer notification.\nRemote device connected to us (crossover)
+    CONNECTING_TO_DISCOVERED --> DISCOVER : Link disconnected\nConnection manager
 
     CLIENT: Connected as a GATT client
     CLIENT --> CLIENT_AWAITING_ENCRYPTION : Connected to the peers server
@@ -175,5 +176,10 @@ void peer_find_role_set_state(PEER_FIND_ROLE_STATE state);
 #define peer_find_role_get_state() (PeerFindRoleGetTaskData()->state)
 
 
+/*! Indicate whether peer find role should currently be advertising.
+
+    \return TRUE if in a state that represents advertising, FALSE otherwise
+*/
+bool peer_find_role_is_in_advertising_state(void);
 
 #endif /* PEER_FIND_ROLE_SM_H_ */

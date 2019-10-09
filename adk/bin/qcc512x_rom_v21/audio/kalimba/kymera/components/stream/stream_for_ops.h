@@ -311,6 +311,23 @@ extern bool stream_anc_connect_feedback_monitor(ENDPOINT *endpoint,
  * \param transform_id transform extrenal ID
  *
  * \return cbuffer associated with the transfor or NULL if not found
+ *
+ * Important notes:
+ *
+ * - Operators shall not use this function to retreive their own terminal
+ *   buffer (which they receive it at connection time). The main purpose 
+ *   of this function is to allow peeking the status and/or content of a
+ *   connection buffer.
+ *
+ * - Note that the return value is read only, caller shall never try to modify
+ *   the status or content of the connection buffer using returned handle.
+ *
+ * - Do not use this function for inter-core transforms (connection between
+ *   operators running in different audio cores).
+ *
+ * - The return of this function shall always NULL checked and if you wanted
+ *   to peek the content of the buffer do that only if it is local SW or
+ *   local MMU buffer.
  */
 extern tCbuffer* stream_get_buffer_from_external_transform_id(TRANSFORM_ID transform_id);
 

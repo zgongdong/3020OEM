@@ -627,6 +627,7 @@ void appAvInstanceA2dpDisconnected(avInstanceTaskData *theInst);
 void appAvInstanceAvrcpConnected(avInstanceTaskData *theInst);
 void appAvInstanceAvrcpDisconnected(avInstanceTaskData *theInst);
 
+void appAvInstanceHandleMessage(Task task, MessageId id, Message message);
 
 bool appAvHasAConnection(void);
 bool appAvIsConnectedMaster(void);

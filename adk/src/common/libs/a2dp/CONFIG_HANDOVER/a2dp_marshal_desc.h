@@ -21,7 +21,19 @@ NOTES
 #include "marshal_common_desc.h"
 #include "types.h"
 #include "app/marshal/marshal_if.h"
+#include "a2dp_private.h"
 
+/* This structure is marshalled, its components are unpacked and copied/moved
+   to the appropriate location when unmarshalling */
+typedef struct
+{
+    /* The remote connection state */
+    remote_device *remote_conn;
+
+    /* The data related to the remote connection */
+    data_block_header *data_blocks;
+
+} a2dp_marshal_data;
 
 #define A2DP_MARSHAL_TYPES_TABLE(ENTRY) \
     ENTRY(sep_info) \
@@ -37,7 +49,9 @@ NOTES
     ENTRY(signalling_channel_status) \
     ENTRY(signalling_channel) \
     ENTRY(remote_device) \
+    ENTRY(remote_device_bitfields) \
     ENTRY(data_block_header) \
+    ENTRY(a2dp_marshal_data) \
 
 
 /* Use xmacro to expand type table as enumeration of marshal types */

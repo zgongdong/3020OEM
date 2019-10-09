@@ -4,6 +4,7 @@
 //
 //   
 // *****************************************************************************
+#ifndef CVC_HEADSET_2MIC_MONO_VA_ENABLE
 
 #include "cvc_send_data.h"
 
@@ -216,3 +217,5 @@ $cvc_send.mute_control:
    jump $cvc.stream_mute;
 
 .ENDMODULE;
+
+#endif /*CVC_HEADSET_2MIC_MONO_VA_ENABLE */

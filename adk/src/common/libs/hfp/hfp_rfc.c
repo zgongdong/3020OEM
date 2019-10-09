@@ -282,7 +282,7 @@ static void hfpHandleRfcommDisconnect(Sink sink, rfcomm_disconnect_status status
         if (link->audio_sink)
         {
             /* We have a SCO/eSCO active - tidy up and inform app of that disappearing first */
-            hfpManageSyncDisconnect(link);
+            hfpManageSyncDisconnect(link, status == rfcomm_disconnect_transferred );
         }
 
         switch (status)

@@ -17,7 +17,7 @@ DESCRIPTION
 #include <byte_utils.h>
 #include <print.h>
 #include <panic.h>
-
+#include <logging.h>
 #include "upgrade_ctx.h"
 #include "upgrade_private.h"
 #include "upgrade_sm.h"
@@ -772,5 +772,29 @@ void UpgradeImageSwap(void)
 {
     PRINT(("UpgradeImageSwap()\n"));
     UpgradeSMHandleValidated(UPGRADE_VM_DFU_COPY_VALIDATION_SUCCESS, NULL);
+}
+
+/****************************************************************************
+NAME
+    UpgradeAbortDuringDeviceDisconnect
+
+DESCRIPTION
+     This function will eventually call UpgradeSMAbort() to initiate abort of
+     the ongoing DFU due to disconnection between host and device
+
+RETURNS
+    None
+*/
+void UpgradeAbortDuringDeviceDisconnect(void)
+{
+    DEBUG_LOG("UpgradeAbortDuringDeviceDisconnect()\n");
+    UpgradeSMAbort();
+}
+
+void UpgradeHandleAbortDuringUpgrade(void)
+{
+    DEBUG_LOG("UpgradeHandleAbortDuringUpgrade()\n");
+    /* TODO: ? SmGetTaskData()->dfu_in_progress = FALSE; */
+    FatalError(UPGRADE_HOST_ERROR_APP_NOT_READY);
 }
 

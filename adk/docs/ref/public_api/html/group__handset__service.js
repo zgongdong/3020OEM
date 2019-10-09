@@ -28,8 +28,10 @@ var group__handset__service =
     [ "HandsetService_ClientUnregister", "group__handset__service.html#gaa1361c217d4aea3548ad69b51b5f0ffb", null ],
     [ "HandsetService_ConnectableRequest", "group__handset__service.html#ga1bd844c6fc617075d67a0d3c4567886d", null ],
     [ "HandsetService_ConnectAddressRequest", "group__handset__service.html#gab61c439ec382b996e59b2b7955de98b6", null ],
+    [ "HandsetService_Connected", "group__handset__service.html#ga96b9fd0b32936f066ac7cd337e7e7c03", null ],
     [ "HandsetService_ConnectMruRequest", "group__handset__service.html#ga0f73c0fd6269be49ca492c2648a504d5", null ],
     [ "HandsetService_DisconnectRequest", "group__handset__service.html#gafa1a698ea3799c3c069660e71712be49", null ],
+    [ "HandsetService_GetConnectedLeHandsetAddress", "group__handset__service.html#ga9bd1f06e7d4ce3ec41612f873c3f889c", null ],
     [ "HandsetService_Init", "group__handset__service.html#ga9900bdcdffd47b2707c84b6a585314e3", null ],
     [ "HandsetService_StopConnect", "group__handset__service.html#gad8ae089bbcc4f3517007cddb4db4b585", null ]
 ];

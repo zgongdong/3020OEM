@@ -76,12 +76,38 @@ static void gattConnect_HandleConManagerDisconnection(const CON_MANAGER_TP_DISCO
     UNUSED(ind);
 }
 
+static void gattConnect_DisconnectRequestedResponse(uint16 cid)
+{
+    gatt_connection_t* connection = GattConnect_FindConnectionFromCid(cid);
+    if (connection)
+    {
+        DEBUG_LOG("gattConnect_DisconnectRequestedResponse, cid 0x%04x pending_disconnects %d", cid, connection->pending_disconnects);
+        if (connection->pending_disconnects)
+        {
+            connection->pending_disconnects--;
+            if (connection->pending_disconnects == 0)
+            {
+                GattManagerDisconnectRequest(connection->cid);
+            }
+        }
+    }
+}
+
 static void gattConnect_HandleConManagerDisconnectRequested(const CON_MANAGER_TP_DISCONNECT_REQUESTED_IND_T *ind)
 {
     gatt_connection_t* connection = GattConnect_FindConnectionFromTpaddr(&ind->tpaddr);
     if (connection)
     {
-        GattManagerDisconnectRequest(connection->cid);
+        connection->pending_disconnects = GattConnect_ObserverGetNumberDisconnectReqCallbacksRegistered();
+        DEBUG_LOG("gattConnect_HandleConManagerDisconnectRequested, cid 0x%04x pending_disconnects %d", connection->cid, connection->pending_disconnects);
+        if (connection->pending_disconnects)
+        {
+            GattConnect_ObserverNotifyOnDisconnectRequested(connection->cid, gattConnect_DisconnectRequestedResponse);
+        }
+        else
+        {
+            GattManagerDisconnectRequest(connection->cid);
+        }
     }
 }
 

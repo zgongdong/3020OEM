@@ -32,6 +32,12 @@ const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_stereo_aud
 const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_mono_audio_mix_t =
     MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_req_mono_audio_mix_t);
 
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_req_delete_handsets_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_req_delete_handsets_t);
+
+const marshal_type_descriptor_t marshal_type_descriptor_earbud_sm_ind_mru_handset_t =
+    MAKE_MARSHAL_TYPE_DEFINITION_BASIC(earbud_sm_ind_mru_handset_t);
+	
 /*! X-Macro generate earbud SM marshal type descriptor set that can be passed to a (un)marshaller
  *  to initialise it.
  *  */

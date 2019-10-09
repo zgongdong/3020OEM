@@ -73,7 +73,7 @@ void TwsTopology_ProcedureCancelFindRoleStart(Task result_task,
 
 void TwsTopology_ProcedureCancelFindRoleCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn)
 {
-    DEBUG_LOG("TwsTopology_ProcedureFindRoleCancel");
+    DEBUG_LOG("TwsTopology_ProcedureCancelFindRoleCancel");
 
     /* nothing to do for cancel, except ignore any pending messages */
     twsTopology_ProcedureCancelFindRoleReset();

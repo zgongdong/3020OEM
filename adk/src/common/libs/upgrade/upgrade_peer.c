@@ -164,8 +164,8 @@ static void AskForConfirmation(upgrade_confirmation_type_t type)
     switch (type)
     {
         case UPGRADE_TRANSFER_COMPLETE:
-            /* Send message to UpgradeSm */
-            UpgradeHandleMsg(NULL, HOST_MSG(UPGRADE_PEER_IS_VALIDATION_DONE_REQ), NULL);
+            /* Send message to UpgradeSm indicating TRANSFER_COMPLETE_IND */
+            UpgradeHandleMsg(NULL, HOST_MSG(UPGRADE_PEER_TRANSFER_COMPLETE_IND), NULL);
             break;
         case UPGRADE_COMMIT:
             /* Send message to UpgradeSm */
@@ -997,7 +997,18 @@ void UpgradePeerProcessHostMsg(upgrade_peer_msg_t msgid,
             SendConfirmationToPeer(upgrade_peer->confirm_type, status);
             break;
         case UPGRADE_PEER_ABORT_REQ:
-            AbortPeerDfu();
+            if(upgradePeerInfo->SmCtx->peerState == UPGRADE_PEER_STATE_ABORTING)
+            {
+                /* Peer Disconnection already occured. It's time to stop upgrade
+                 */
+                DEBUG_LOGF("Upgrade_peer: StopUpgrade()");
+                StopUpgrade();
+            }
+            else
+            {
+                /* Abort the DFU */
+                AbortPeerDfu();
+            }
             break;
         default:
             DEBUG_LOGF("unhandled msg\n");
@@ -1076,7 +1087,7 @@ bool UpgradePeer_IsPrimaryDevice(void)
 
         UpgradePeerLoadPSStore(EARBUD_UPGRADE_CONTEXT_KEY, EARBUD_UPGRADE_CONTEXT_OFFSET);
 
-        is_primary_device = upgradePeerInfo->UpgradePSKeys.is_primary_device;
+        is_primary_device = !(upgradePeerInfo->UpgradePSKeys.is_secondary_device);
 
         free(peerInfo);
 
@@ -1084,7 +1095,7 @@ bool UpgradePeer_IsPrimaryDevice(void)
     }
     else
     {
-        is_primary_device = upgradePeerInfo->UpgradePSKeys.is_primary_device;
+        is_primary_device = !(upgradePeerInfo->UpgradePSKeys.is_secondary_device);
     }
 
     DEBUG_LOGF("UpgradePeer: UpgradePeer_IsPrimaryDevice %d\n", is_primary_device);
@@ -1248,7 +1259,11 @@ bool UpgradePeerStartDfu(void)
 
 void UpgradePeerSetDeviceRole(bool is_primary)
 {
+    DEBUG_LOGF("UpgradePeerSetDeviceRole is_primary %d\n", is_primary);
     upgradePeerInfo->is_primary_device = is_primary;
+    upgradePeerInfo->UpgradePSKeys.is_secondary_device =
+                                        !(upgradePeerInfo->is_primary_device);
+    SavePSKeys();
     UpgradeSMHostRspSwap(is_primary);
 }
 
@@ -1291,8 +1306,6 @@ void UpgradePeerProcessDataRequest(upgrade_peer_app_msg_t Id, uint8 *data,
                                         UPGRADE_PEER_RESUME_POINT_POST_REBOOT;
                         upgradePeerInfo->UpgradePSKeys.currentState =
                                                upgradePeerInfo->SmCtx->peerState;
-                        upgradePeerInfo->UpgradePSKeys.is_primary_device =
-                                               upgradePeerInfo->is_primary_device;
                         SavePSKeys();
                         UpgradeHandleMsg(NULL,
                                          HOST_MSG(UPGRADE_PEER_TRANSFER_COMPLETE_RES),
@@ -1333,6 +1346,7 @@ void UpgradePeerProcessDataRequest(upgrade_peer_app_msg_t Id, uint8 *data,
                  */
                 upgradePeerInfo->SmCtx->upgrade_status =
                                       UPGRADE_PEER_ERROR_UPDATE_FAILED;
+                UpgradePeerSetState(UPGRADE_PEER_STATE_ABORTING);
                 UpgradePeerSendErrorMsg(upgradePeerInfo->SmCtx->upgrade_status);
             }
             break;

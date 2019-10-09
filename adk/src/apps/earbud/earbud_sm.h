@@ -211,6 +211,9 @@ typedef struct
                                             reboots into the upgraded image during a DFU session. */
     bool dfu_has_been_restarted:1;
 
+    bool dfu_in_progress:1;             /*!< Set this flag when DFU started */
+    bool peer_dfu_in_progress:1;        /*!< Set this flag when Peer DFU started */
+
     tws_topology_role role;             /*!< Current primary/secondary/none role of the earbud */
     rule_set_t primary_rules;
     rule_set_t secondary_rules;

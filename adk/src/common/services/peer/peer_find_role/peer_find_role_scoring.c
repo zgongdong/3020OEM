@@ -84,14 +84,12 @@ grss_figure_of_merit_t peer_find_role_score(void)
     return scoring->last_local_score;
 }
 
-void peer_find_role_update_server_score(void)
+static void peer_find_role_set_server_score(grss_figure_of_merit_t score)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
     bool server_score_set;
-    grss_figure_of_merit_t score;
 
-    peer_find_role_calculate_score();
-    score = peer_find_role_score();
+    DEBUG_LOG("peer_find_role_set_server_score cid 0x%x", pfr->gatt_cid);
 
     server_score_set = GattRoleSelectionServerSetFigureOfMerit(&pfr->role_selection_server,
                                                                pfr->gatt_cid,
@@ -99,14 +97,30 @@ void peer_find_role_update_server_score(void)
 
     if (!server_score_set)
     {
-        DEBUG_LOG("peer_find_role_update_score. Unable to set. Try again");
+        DEBUG_LOG("peer_find_role_set_server_score. Unable to set. Try again");
         peer_find_role_request_score_update_later();
     }
 }
 
+void peer_find_role_update_server_score(void)
+{
+    grss_figure_of_merit_t score;
+
+    peer_find_role_calculate_score();
+    score = peer_find_role_score();
+
+    DEBUG_LOG("peer_find_role_update_server_score score 0x%x", score);
+
+    peer_find_role_set_server_score(score);
+}
+
+/*  Reset the figure of merit in the gatt server by setting it to
+    GRSS_FIGURE_OF_MERIT_INVALID. */
 void peer_find_role_reset_server_score(void)
 {
     peer_find_role_scoring_t *scoring = PeerFindRoleGetScoring();
+    DEBUG_LOG("peer_find_role_reset_server_score");
+
     scoring->last_local_score = GRSS_FIGURE_OF_MERIT_INVALID;
-    peer_find_role_update_server_score();
+    peer_find_role_set_server_score(scoring->last_local_score);
 }

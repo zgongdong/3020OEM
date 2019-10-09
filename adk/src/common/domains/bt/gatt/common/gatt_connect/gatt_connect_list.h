@@ -14,6 +14,7 @@ typedef struct
 {
     unsigned cid;
     unsigned mtu;
+    unsigned pending_disconnects;
 } gatt_connection_t;
 
 /*! @brief Find a GATT connection using GATT connection ID

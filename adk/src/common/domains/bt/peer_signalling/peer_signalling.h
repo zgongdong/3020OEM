@@ -201,6 +201,9 @@ typedef enum
     /*! Channel ID for Peer UI messages. */
     PEER_SIG_MSG_CHANNEL_PEER_UI,
 
+    /*! Channel ID for Topology messages. */
+    PEER_SIG_MSG_CHANNEL_TOPOLOGY,
+
     /* Number of peer sig channels */
     PEER_SIG_MSG_CHANNEL_MAX
 } peerSigMsgChannel;
@@ -504,6 +507,12 @@ void appPeerSigMarshalledMsgChannelTxCancelAll(Task task,
     \return TRUE if connected; FALSE otherwise.
 */
 bool appPeerSigIsConnected(void);
+
+/*! \brief Test if peer signalling is disconnected from a peer.
+
+    \return TRUE if disconnected; FALSE otherwise.
+*/
+bool appPeerSigIsDisconnected(void);
 
 /*! \brief Get the peer signalling link sink.
     \return The sink.

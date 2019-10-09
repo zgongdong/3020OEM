@@ -51,6 +51,8 @@ DEFINE_RULE(ruleTwsTopSecRoleSwitchPeerConnect);
 DEFINE_RULE(ruleTwsTopSecNoRoleIdle);
 DEFINE_RULE(ruleTwsTopSecSwitchToDfuRole);
 DEFINE_RULE(ruleTwsTopSecFailedConnectFindRole);
+DEFINE_RULE(ruleTwsTopSecForcedRoleSwitchCommand);
+DEFINE_RULE(ruleTwsTopSecForcedRoleSwitchFailureOutCase);
 /*! @} */
 
 /*! \brief TWS Topology rules deciding behaviour in a Secondary role. */
@@ -74,6 +76,12 @@ const rule_entry_t twstop_secondary_rules_set[] =
     /* When requested to select DFU rules, select them */
     RULE(TWSTOP_RULE_EVENT_DFU_ROLE,        ruleTwsTopSecSwitchToDfuRole,       TWSTOP_SECONDARY_GOAL_DFU_ROLE),
     
+    /* When commanded to role switch by Primary, decide if we should do it */
+    RULE(TWSTOP_RULE_EVENT_FORCED_ROLE_SWITCH, ruleTwsTopSecForcedRoleSwitchCommand, TWSTOP_SECONDARY_GOAL_FORCE_SECONDARY_ROLE_SWITCH),
+
+    /* If role switch fails, and out of the case start role selection */
+    RULE(TWSTOP_RULE_EVENT_FORCED_ROLE_SWITCH_FAILED, ruleTwsTopSecForcedRoleSwitchFailureOutCase, TWSTOP_SECONDARY_GOAL_NO_ROLE_FIND_ROLE),
+
     /*! \todo Handset connect after commanded by peer - TWS+ Secondary rule */
 };
 
@@ -84,6 +92,11 @@ const rule_entry_t twstop_secondary_rules_set[] =
 /*! \brief Rule to decide if Secondary should start role selection on peer linkloss. */
 static rule_action_t ruleTwsTopSecPeerLostFindRole(void)
 {
+    if (TwsTopology_IsGoalActive(tws_topology_goal_secondary_forced_role_switch))
+    {
+        TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecPeerLostFindRole, ignore as already running secondary forced role switch");
+        return rule_action_ignore;
+    }
     if (appPhyStateGetState() == PHY_STATE_IN_CASE)
     {
         TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecPeerLostFindRole, ignore as in case");
@@ -173,6 +186,30 @@ static rule_action_t ruleTwsTopSecFailedConnectFindRole(void)
     }
 
     TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecFailedConnectFindRole, run as secondary out of case with no peer link");
+    return rule_action_run;
+}
+
+static rule_action_t ruleTwsTopSecForcedRoleSwitchCommand(void)
+{
+    if (appPhyStateGetState() == PHY_STATE_IN_CASE)
+    {
+        TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecForcedRoleSwitchCommand, ignore as in the case");
+        return rule_action_ignore;
+    }
+    
+    TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecForcedRoleSwitchCommand, run as out of case");
+    return rule_action_run;
+}
+
+static rule_action_t ruleTwsTopSecForcedRoleSwitchFailureOutCase(void)
+{
+    if (appPhyStateGetState() == PHY_STATE_IN_CASE)
+    {
+        TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecForcedRoleSwitchFailureOutCase, ignore as in the case");
+        return rule_action_ignore;
+    }
+    
+    TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecForcedRoleSwitchFailureOutCase, run as out of case");
     return rule_action_run;
 }
 

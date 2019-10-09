@@ -79,6 +79,8 @@ $(document).ready(function(){initNavTree('structhandset__service__state__machine
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
+<tr class="memitem:a8b871aac99b08d1e1cbbb0173aaa762d"><td class="memItemLeft" align="right" valign="top">uint8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#a8b871aac99b08d1e1cbbb0173aaa762d">acl_attempts</a></td></tr>
+<tr class="separator:a8b871aac99b08d1e1cbbb0173aaa762d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d074ea9f37c24a110fce819c7e1abe7"><td class="memItemLeft" align="right" valign="top">task_list_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#a5d074ea9f37c24a110fce819c7e1abe7">connect_list</a></td></tr>
 <tr class="separator:a5d074ea9f37c24a110fce819c7e1abe7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a63d34d58d51e853363377cbc661b5818"><td class="memItemLeft" align="right" valign="top">Task&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#a63d34d58d51e853363377cbc661b5818">connect_stop_task</a></td></tr>
@@ -87,6 +89,8 @@ Data Fields</h2></td></tr>
 <tr class="separator:aef31333b3549024b52c47f78223b03ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af9c31af9af9526e641a1576c53f23f80"><td class="memItemLeft" align="right" valign="top">device_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#af9c31af9af9526e641a1576c53f23f80">handset_device</a></td></tr>
 <tr class="separator:af9c31af9af9526e641a1576c53f23f80"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acd37cbb35aca014270e69d0e83ce8503"><td class="memItemLeft" align="right" valign="top">tp_bdaddr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#acd37cbb35aca014270e69d0e83ce8503">le_addr</a></td></tr>
+<tr class="separator:acd37cbb35aca014270e69d0e83ce8503"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5af77b8f72058b3dc5d396d95c492535"><td class="memItemLeft" align="right" valign="top">uint8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#a5af77b8f72058b3dc5d396d95c492535">profiles_requested</a></td></tr>
 <tr class="separator:a5af77b8f72058b3dc5d396d95c492535"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c6e185956fcd33c8e544c0d32d83e68"><td class="memItemLeft" align="right" valign="top">handset_service_state_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structhandset__service__state__machine__t.html#a4c6e185956fcd33c8e544c0d32d83e68">state</a></td></tr>
@@ -95,6 +99,19 @@ Data Fields</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Context for an instance of a handset service state machine. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
+<a class="anchor" id="a8b871aac99b08d1e1cbbb0173aaa762d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8 acl_attempts</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Number of BR/EDR ACL connection attempts made. </p>
+
+</div>
+</div>
 <a class="anchor" id="a5d074ea9f37c24a110fce819c7e1abe7"></a>
 <div class="memitem">
 <div class="memproto">
@@ -144,6 +161,19 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Device instance this state machine represents </p>
+
+</div>
+</div>
+<a class="anchor" id="acd37cbb35aca014270e69d0e83ce8503"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">tp_bdaddr le_addr</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Address of LE connected device. </p>
 
 </div>
 </div>

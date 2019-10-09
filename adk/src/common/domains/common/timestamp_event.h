@@ -55,6 +55,42 @@ typedef enum
     /*! Peer Find Role has notified registered tasks of role  */
     TIMESTAMP_EVENT_PEER_FIND_ROLE_NOTIFIED_ROLE,
 
+    /*! Handset has connected */
+    TIMESTAMP_EVENT_HANDSET_CONNECTION_START,
+
+    /*! Handset has connected */
+    TIMESTAMP_EVENT_HANDSET_CONNECTED_ACL,
+
+    /*! Connection of handset profiles have completed */
+    TIMESTAMP_EVENT_HANDSET_CONNECTED_PROFILES,
+
+    /*! Address swap procedure has been started */
+    TIMESTAMP_EVENT_ADDRESS_SWAP_STARTED,
+
+    /*! Address swap procedure has completed */
+    TIMESTAMP_EVENT_ADDRESS_SWAP_COMPLETED,
+
+    /*! Role swap command received on Secondary Earbud */
+    TIMESTAMP_EVENT_ROLE_SWAP_COMMAND_RECEIVED,
+
+    /*! HFP profile connected to handset */
+    TIMESTAMP_EVENT_PROFILE_CONNECTED_HFP,
+
+    /*! A2DP profile connected to handset */
+    TIMESTAMP_EVENT_PROFILE_CONNECTED_A2DP,
+
+    /*! AVRCP profile connected to handset */
+    TIMESTAMP_EVENT_PROFILE_CONNECTED_AVRCP,
+
+    /*! HFP profile disconnected from handset */
+    TIMESTAMP_EVENT_PROFILE_DISCONNECTED_HFP,
+
+    /*! A2DP profile disconnected from handset */
+    TIMESTAMP_EVENT_PROFILE_DISCONNECTED_A2DP,
+
+    /*! AVRCP profile disconnected from handset */
+    TIMESTAMP_EVENT_PROFILE_DISCONNECTED_AVRCP,
+
     /*! Always the final event id */
     NUMBER_OF_TIMESTAMP_EVENTS,
 

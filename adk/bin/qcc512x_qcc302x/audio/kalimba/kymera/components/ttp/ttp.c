@@ -278,6 +278,9 @@ void ttp_get_msg_params(ttp_params *params, void *message_data)
     params->err_scale = get_msg_fractional(OPMSG_FIELD_GET(message_data, OPMSG_COMMON_MSG_SET_TTP_PARAMS, ERROR_SCALE_MS),
                                            OPMSG_FIELD_GET(message_data, OPMSG_COMMON_MSG_SET_TTP_PARAMS, ERROR_SCALE_LS));
     params->startup_period = (TIME_INTERVAL)(OPMSG_FIELD_GET(message_data, OPMSG_COMMON_MSG_SET_TTP_PARAMS, STARTUP_TIME) * MILLISECOND);
+
+    /* Sample rate is in the params structure but not part of this message */
+    params->nominal_sample_rate = 0;
 }
 
 /**

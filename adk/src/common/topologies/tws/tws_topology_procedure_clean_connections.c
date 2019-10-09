@@ -17,6 +17,12 @@
 #include <message.h>
 #include <panic.h>
 
+#define TWSTOP_PROC_CLOSE_ALL_CFM_TIMEOUT_MS    (150)
+
+typedef enum
+{
+    TWSTOP_PROC_INTERNAL_TIMEOUT,
+};
 
 typedef struct
 {
@@ -64,6 +70,7 @@ void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
     td->active = TRUE;
 
     ConManagerTerminateAllAcls(TwsTopProcCleanConnectionsGetTask());
+    MessageSendLater(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT, NULL, TWSTOP_PROC_CLOSE_ALL_CFM_TIMEOUT_MS);
 
     proc_start_cfm_fn(tws_topology_procedure_clean_connections, proc_result_success);
 }
@@ -73,8 +80,9 @@ void TwsTopology_ProcedureCleanConnectionsCancel(twstop_proc_cancel_cfm_func_t p
 {
     DEBUG_LOG("TwsTopology_ProcedureCleanConnectionsCancel");
 
-    proc_cancel_cfm_fn(tws_topology_procedure_clean_connections, proc_result_success);
+    MessageCancelFirst(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT);
     TwsTopProcCleanConnectionsGetTaskData()->active = FALSE;
+    proc_cancel_cfm_fn(tws_topology_procedure_clean_connections, proc_result_success);
 }
 
 
@@ -84,6 +92,8 @@ static void twsTopology_ProcCleanConnectionsHandleCloseAllCfm(void)
 
     if (TwsTopProcCleanConnectionsGetTaskData()->active)
     {
+        MessageCancelFirst(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT);
+        TwsTopProcCleanConnectionsGetTaskData()->active = FALSE;
         TwsTopProcCleanConnectionsGetTaskData()->complete_fn(tws_topology_procedure_clean_connections, 
                                                              proc_result_success);
     }
@@ -104,6 +114,9 @@ static void twsTopology_ProcCleanConnectionsHandleMessage(Task task, MessageId i
 
     switch (id)
     {
+    case TWSTOP_PROC_INTERNAL_TIMEOUT:
+        DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleMessage ******************************** TIMEOUT waiting on CON_MANAGER_CLOSE_ALL_CFM");
+        // fall-thru
     case CON_MANAGER_CLOSE_ALL_CFM:
         twsTopology_ProcCleanConnectionsHandleCloseAllCfm();
         break;

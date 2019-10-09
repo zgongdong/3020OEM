@@ -37,6 +37,8 @@ void bredrScanManager_ConnectionWriteScanEnable(void)
         enable = inquiry ? hci_scan_enable_inq : hci_scan_enable_off;
     }
 
+    DEBUG_LOG("bredrScanManager_ConnectionWriteScanEnable enable %d", enable);
+
     ConnectionWriteScanEnable(enable);
 }
 

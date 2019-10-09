@@ -46,15 +46,15 @@ REGISTER_HANDOVER_INTERFACE(HANDSET_SERVICE, NULL, handsetService_Veto, handsetS
 */
 static bool handsetService_Veto(void)
 {
-    bool i_veto = FALSE;
+    bool veto = FALSE;
     handset_service_state_machine_t *sm = HandsetService_GetSm();
-    if(sm && (sm->state != HANDSET_SERVICE_STATE_CONNECTED))
+    if(sm && (sm->state != HANDSET_SERVICE_STATE_CONNECTED_BREDR))
     {
-        i_veto = TRUE;
-        DEBUG_LOG("handsetService_veto returns true");
+        veto = TRUE;
+        DEBUG_LOG("handsetService_Veto, Not in connected state(%d)", sm->state);
     }
 
-    return i_veto;
+    return veto;
 }
 
 /*!
@@ -122,7 +122,7 @@ static void handsetService_Commit(bool is_primary)
         /* Panic if there is no device. This could happen if BT Device list is not restored on secondary. */
         PanicNull(mru_device);
         sm->handset_device = mru_device;
-        sm->state = HANDSET_SERVICE_STATE_CONNECTED;
+        sm->state = HANDSET_SERVICE_STATE_CONNECTED_BREDR;
     }
     else
     {

@@ -67,27 +67,6 @@ Task PowerGetTask(void)
     return &app_power.task;
 }
 
-/*! \brief handles power module specific ui inputs
-
-    Invokes routines based on ui input received from ui module.
-
-    \param[in] id - ui input
-
-    \returns void
- */
-static void appPowerHandleUiInput(MessageId  ui_input)
-{
-    switch (ui_input)
-    {
-        case ui_input_power_off:
-            appPowerOffRequest();
-            break;
-
-        default:
-            break;
-    }
-}
-
 /*! \brief provides power module current context to ui module
 
     \param[in]  void
@@ -522,10 +501,7 @@ static void appPowerHandleMessage(Task task, MessageId id, Message message)
     UNUSED(message);
 
     if (isMessageUiInput(id))
-    {
-        appPowerHandleUiInput(id);
         return;
-    }
 
     switch (id)
     {

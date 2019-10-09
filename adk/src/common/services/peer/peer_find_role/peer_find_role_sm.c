@@ -66,6 +66,12 @@ static bool peer_find_role_advertising_state(PEER_FIND_ROLE_STATE state)
 }
 
 
+bool peer_find_role_is_in_advertising_state(void)
+{
+    return peer_find_role_advertising_state(peer_find_role_get_state());
+}
+
+
 /*! Internal function for entering the state #PEER_FIND_ROLE_STATE_INITIALISED
 
     This state can be entered in response to errors elsewhere, so if 
@@ -163,7 +169,7 @@ static void peer_find_role_calculate_backoff(bool reconnecting)
     DEBUG_LOG("peer_find_role_calculate_backoff. reconnecting:%d a2dp/sco:%d",
                 reconnecting , peer_find_role_media_active());
 
-    if (/*reconnecting &&*/ !peer_find_role_media_active())
+    if (reconnecting && !peer_find_role_media_active())
     {
         if (appDeviceIsHandsetConnected())
         {
@@ -197,7 +203,7 @@ static void peer_find_role_calculate_backoff(bool reconnecting)
 
     If needed scanning is then enabled using \ref le_scan_manager
  */
-static void peer_find_role_start_scanning_if_inactive(void)
+void peer_find_role_start_scanning_if_inactive(void)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
     le_advertising_report_filter_t filter;
@@ -208,6 +214,7 @@ static void peer_find_role_start_scanning_if_inactive(void)
         filter.ad_type = ble_ad_type_complete_uuid16;
         filter.interval = filter.size_pattern = sizeof(uuid);
         filter.pattern = (uint8*)&uuid;
+        filter.find_tpaddr = NULL;
 
         peer_find_role_scan_activity_set(PEER_FIND_ROLE_ACTIVE_SCANNING);
 
@@ -234,7 +241,7 @@ static void peer_find_role_enter_discover(PEER_FIND_ROLE_STATE old_state)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    DEBUG_LOG("peer_find_role_enter_discover");
+    DEBUG_LOG("peer_find_role_enter_discover encrypted %d", pfr->gatt_encrypted);
 
     peer_find_role_calculate_backoff(PEER_FIND_ROLE_STATE_CHECKING_PEER != old_state);
 
@@ -499,7 +506,7 @@ static void peer_find_role_enter_client(void)
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
     gatt_uuid_t uuid = UUID_ROLE_SELECTION_SERVICE;
 
-    DEBUG_LOG("peer_find_role_enter_client");
+    DEBUG_LOG("peer_find_role_enter_client cid 0x%x", pfr->gatt_cid);
 
     /* cancel the timeout, now that peer has been seen */
     peer_find_role_cancel_initial_timeout();

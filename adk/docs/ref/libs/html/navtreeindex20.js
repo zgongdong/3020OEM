@@ -1,5 +1,11 @@
 var NAVTREEINDEX20 =
 {
+"struct_c_l___s_m___r_e_a_d___l_o_c_a_l___o_o_b___d_a_t_a___c_f_m___t.html#af05f90706937cd041876e82f78c74a56":[4,0,462,0],
+"struct_c_l___s_m___r_e_g_i_s_t_e_r___o_u_t_g_o_i_n_g___s_e_r_v_i_c_e___c_f_m___t.html":[4,0,463],
+"struct_c_l___s_m___r_e_m_o_t_e___i_o___c_a_p_a_b_i_l_i_t_y___i_n_d___t.html":[4,0,464],
+"struct_c_l___s_m___r_e_m_o_t_e___i_o___c_a_p_a_b_i_l_i_t_y___i_n_d___t.html#a2068cf2989716af21e75421437caad6b":[4,0,464,1],
+"struct_c_l___s_m___r_e_m_o_t_e___i_o___c_a_p_a_b_i_l_i_t_y___i_n_d___t.html#a2fa399859fce8374f537a0e0d1622cc2":[4,0,464,2],
+"struct_c_l___s_m___r_e_m_o_t_e___i_o___c_a_p_a_b_i_l_i_t_y___i_n_d___t.html#a4f2fd36332d634fa5a956d99cdf8c7a8":[4,0,464,0],
 "struct_c_l___s_m___r_e_m_o_t_e___i_o___c_a_p_a_b_i_l_i_t_y___i_n_d___t.html#ace03b1a8ebc6175757dce86ff87dec7a":[4,0,464,3],
 "struct_c_l___s_m___s_e_c___m_o_d_e___c_o_n_f_i_g___c_f_m___t.html":[4,0,465],
 "struct_c_l___s_m___s_e_c___m_o_d_e___c_o_n_f_i_g___c_f_m___t.html#a04380a2665199063bf6cf40ea65e8a5b":[4,0,465,3],
@@ -243,11 +249,5 @@ var NAVTREEINDEX20 =
 "struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a386f211a93343540ce1f4e11bccc5227":[3,9,1,2],
 "struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a43e1371c3590250de69ec2fdf92cd1ec":[3,9,1,1],
 "struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a73db0ed2122e598c7a6bb7423bccc573":[3,9,1,6],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a7657e1893002235af64adfb076bfb5fd":[3,9,1,5],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a88eda54435015e42d44107f28589b545":[3,9,1,0],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a953fcc1345f037e6ae5087fc3bb77e1a":[3,9,1,7],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#ad6303b0f860fde418061ba214ce2fc68":[3,9,1,4],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___i_n_d___t.html":[3,9,2],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___i_n_d___t.html#a2bd1a7ca6b08e24289540d48f44e72ba":[3,9,2,1],
-"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___i_n_d___t.html#a43e1371c3590250de69ec2fdf92cd1ec":[3,9,2,0]
+"struct_h_f_p___a_u_d_i_o___c_o_n_n_e_c_t___c_f_m___t.html#a7657e1893002235af64adfb076bfb5fd":[3,9,1,5]
 };

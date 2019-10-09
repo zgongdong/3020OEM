@@ -3,8 +3,8 @@
             All Rights Reserved.\n
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \version    
-\file       
-\brief      Miscellaneous functions for the PEER service to find peer using LE 
+\file
+\brief      Miscellaneous functions for the PEER service to find peer using LE
             and select role
 */
 
@@ -47,7 +47,7 @@ void PeerFindRole_FindRole(int32 high_speed_time_ms)
     if(peer_find_role_get_state() == PEER_FIND_ROLE_STATE_INITIALISED)
     {
         peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-        
+
         TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_STARTED);
 
         if (high_speed_time_ms < 0)
@@ -98,13 +98,13 @@ void PeerFindRole_RegisterTask(Task t)
         return;
     }
 
-    TaskList_AddTask(PeerFindRoleGetTaskList(), t);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(PeerFindRoleGetTaskList()), t);
 }
 
 
 void PeerFindRole_UnregisterTask(Task t)
 {
-    TaskList_RemoveTask(PeerFindRoleGetTaskList(), t);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(PeerFindRoleGetTaskList()), t);
 }
 
 
@@ -137,27 +137,6 @@ void PeerFindRole_PrepareResponse(void)
 
 
 
-/*! Internal handler for adverts
-
-    Check if the advert we have received is expected (matches address), 
-    changing state if so.
-
-    \param[in] advert The advertising indication from the connection library
-*/
-static void peer_find_role_handle_advertising_report_ind(const CL_DM_BLE_ADVERTISING_REPORT_IND_T *advert)
-{
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-
-    DEBUG_LOG("peer_find_role_handle_advertising_report_ind ADDR:%06x PERM:%06x",
-                    advert->current_taddr.addr.lap, advert->permanent_taddr.addr.lap);
-
-    if (BdaddrIsSame(&advert->permanent_taddr.addr, &pfr->primary_addr))
-    {
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE);
-    }
-}
-
-
 /*! Check if link to our peer is now encrypted and send ourselves a message if so 
 
     \param[in]  ind The encryption indication from connection library
@@ -170,9 +149,9 @@ static bool peer_find_role_handle_encryption_change(const CL_SM_ENCRYPTION_CHANG
 
     if (BdaddrIsSame(&ind->tpaddr.taddr.addr, &pfr->primary_addr))
     {
-        DEBUG_LOG("PeerFindRole_HandleConnectionLibraryMessages. CL_SM_ENCRYPTION_CHANGE_IND %d",
-                    ind->encrypted);
-    
+        DEBUG_LOG("peer_find_role_handle_encryption_change. CL_SM_ENCRYPTION_CHANGE_IND %d state %d",
+                    ind->encrypted, peer_find_role_get_state());
+
         pfr->gatt_encrypted = ind->encrypted;
 
         if (ind->encrypted)
@@ -213,15 +192,6 @@ bool PeerFindRole_HandleConnectionLibraryMessages(MessageId id, Message message,
                 PanicFalse(success == address_cfm->status);
 
                 MessageSend(appInitGetInitTask(), PEER_FIND_ROLE_INIT_CFM, NULL);
-                return TRUE;
-            }
-            break;
-  
-        case PEER_FIND_ROLE_STATE_DISCOVER:
-        case PEER_FIND_ROLE_STATE_DISCOVER_CONNECTABLE:
-            if (CL_DM_BLE_ADVERTISING_REPORT_IND == id)
-            {
-                peer_find_role_handle_advertising_report_ind((const CL_DM_BLE_ADVERTISING_REPORT_IND_T *)message);
                 return TRUE;
             }
             break;

@@ -11,6 +11,7 @@
 
 /* framework includes */
 #include <marshal_common.h>
+#include <ui.h>
 
 /* system includes */
 #include <marshal.h>
@@ -18,6 +19,7 @@
 typedef struct logical_input_ind
 {
     uint16 logical_input;
+    ui_input_t passthrough_ui_input;
 } logical_input_ind_t;
 
 /* Create base list of marshal types the Earbud SM will use. */
@@ -28,9 +30,7 @@ typedef struct logical_input_ind
 #define EXPAND_AS_ENUMERATION(type) MARSHAL_TYPE(type),
 enum MARSHAL_TYPES
 {
-    /* common types must be placed at the start of the enum */
-    DUMMY = NUMBER_OF_COMMON_MARSHAL_OBJECT_TYPES-1,
-    /* now expand the marshal types specific to this component. */
+    /* expand the marshal types specific to this component. */
     MARSHAL_TYPES_TABLE(EXPAND_AS_ENUMERATION)
     NUMBER_OF_MARSHAL_OBJECT_TYPES
 };

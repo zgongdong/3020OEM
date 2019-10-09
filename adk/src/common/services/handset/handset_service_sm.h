@@ -20,7 +20,7 @@
 /*@{*/
 
 /* Bitmask to signify that a state is part of the CONNECTING pseudo-state. */
-#define HANDSET_SERVICE_CONNECTING_STATE_MASK 0x10
+#define HANDSET_SERVICE_CONNECTING_BREDR_STATE_MASK 0x10
 
 /*! \brief Handset Service states.
 
@@ -65,10 +65,12 @@ typedef enum
 {
     HANDSET_SERVICE_STATE_NULL = 0,
     HANDSET_SERVICE_STATE_DISCONNECTED = 1,
-    HANDSET_SERVICE_STATE_CONNECTING_ACL = 2 + HANDSET_SERVICE_CONNECTING_STATE_MASK,
-    HANDSET_SERVICE_STATE_CONNECTING_PROFILES = 3 + HANDSET_SERVICE_CONNECTING_STATE_MASK,
-    HANDSET_SERVICE_STATE_CONNECTED = 4,
-    HANDSET_SERVICE_STATE_DISCONNECTING = 5,
+    HANDSET_SERVICE_STATE_CONNECTING_BREDR_ACL = 2 + HANDSET_SERVICE_CONNECTING_BREDR_STATE_MASK,
+    HANDSET_SERVICE_STATE_CONNECTING_BREDR_PROFILES = 3 + HANDSET_SERVICE_CONNECTING_BREDR_STATE_MASK,
+    HANDSET_SERVICE_STATE_CONNECTED_BREDR = 4,
+    HANDSET_SERVICE_STATE_DISCONNECTING_BREDR = 5,
+    HANDSET_SERVICE_STATE_CONNECTED_LE = 6,
+    HANDSET_SERVICE_STATE_DISCONNECTING_LE = 7
 } handset_service_state_t;
 
 
@@ -87,6 +89,9 @@ typedef struct
     /*! Mask of profiles that have been requested */
     uint8 profiles_requested;
 
+    /*! Number of BR/EDR ACL connection attempts made. */
+    uint8 acl_attempts;
+
     /* Was the ACL connection requested during the connection? */
     bool acl_create_called;
 
@@ -98,9 +103,13 @@ typedef struct
 
     /*! Client for connect-stop request. */
     Task connect_stop_task;
+    
+    /*! Address of LE connected device. */
+    tp_bdaddr le_addr;
 
 } handset_service_state_machine_t;
 
+#define HandsetServiceSm_GetLeBdaddr(sm) sm->le_addr.taddr.addr
 
 /*! \brief Initialise a state machine instance.
 
@@ -201,6 +210,36 @@ void HandsetServiceSm_HandleProfileManagerDisconnectedInd(
 */
 void HandsetServiceSm_HandleConManagerConnectionInd(
     handset_service_state_machine_t *sm, const CON_MANAGER_CONNECTION_IND_T *ind);
+
+/*! \brief Handle a CON_MANAGER_TP_CONNECT_IND for BLE connections
+
+    Note: This handler is called directly instead of via an internal message
+    to save on the extra message send & delivery delay.
+
+    \param sm State machine to handle the message.
+    \param ind The CON_MANAGER_TP_CONNECT_IND payload.
+*/
+void HandsetServiceSm_HandleConManagerBleTpConnectInd(handset_service_state_machine_t *sm,
+    const CON_MANAGER_TP_CONNECT_IND_T *ind);
+    
+/*! \brief Handle a CON_MANAGER_TP_DISCONNECT_IND for BLE connections
+
+    Note: This handler is called directly instead of via an internal message
+    to save on the extra message send & delivery delay.
+
+    \param sm State machine to handle the message.
+    \param ind The CON_MANAGER_TP_DISCONNECT_IND payload.
+*/
+void HandsetServiceSm_HandleConManagerBleTpDisconnectInd(handset_service_state_machine_t *sm,
+    const CON_MANAGER_TP_DISCONNECT_IND_T *ind);
+    
+/*! \brief Checks if BLE is connected.
+
+    \param sm State machine to handle the message.
+    
+    \return TRUE if BLE connected for the state machine. FALSE otherwise.
+*/
+bool HandsetServiceSm_IsLeConnected(handset_service_state_machine_t *sm);
 
 /*@}*/
 

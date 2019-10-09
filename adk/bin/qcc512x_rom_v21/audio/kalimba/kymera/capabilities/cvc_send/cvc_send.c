@@ -18,10 +18,6 @@ Include Files
 #include "../lib/audio_proc/iir_resamplev2_util.h"
 #include "cvc_processing_c.h"
 
-#if defined(CAPABILITY_DOWNLOAD_BUILD) & defined(INSTALL_OPERATOR_CVC_HEADSET_2MIC_MONO_VA_WAKEON)
-#include "cvc_send_dl.c"
-#else
-
 /****************************************************************************
 
 Local Definitions
@@ -32,7 +28,16 @@ Local Definitions
 #define CVC_SEND_NUM_OUTPUTS_MASK   0x7
 
 /* CVS send terminal mic 0*/
-#define CVC_SEND_TERMINAL_MIC0      1
+
+#ifdef CVC_HEADSET_2MIC_MONO_VA_ENABLE
+	#define CVC_SEND_IN_TERMINAL_AECREF 0
+	#define CVC_SEND_IN_TERMINAL_MIC1   1
+	#define CVC_SEND_OUT_TERMINAL_VOICE 0
+	#define CVC_SEND_OUT_TERMINAL_VA    1
+#else
+	#define CVC_SEND_TERMINAL_MIC0      1
+	#define CVC_SEND_OUT_TERMINAL_VA    0
+#endif
 
 /* Voice quality metric error code */
 #define CVC_SEND_VOICE_QUALITY_METRIC_ERROR_CODE 0xFF
@@ -1495,7 +1500,7 @@ static inline CVC_SEND_OP_DATA *get_instance_data(OPERATOR_DATA *op_data)
 Public Function Declarations
 */
 
-
+#ifndef CVC_HEADSET_2MIC_MONO_VA_ENABLE
 /* ********************************** API functions ************************************* */
 
 bool ups_state_snd(void* instance_data,PS_KEY_TYPE key,PERSISTENCE_RANK rank,
@@ -1541,6 +1546,7 @@ void cvc_send_release_constants(OPERATOR_DATA *op_data)
     NOT_USED(op_data);
 #endif
 }
+#endif /* CVC_HEADSET_2MIC_MONO_VA_ENABLE */
 
 bool cvc_send_create(OPERATOR_DATA *op_data, void *message_data, unsigned *response_id, void **response_data)
 {
@@ -1603,7 +1609,7 @@ bool cvc_send_create(OPERATOR_DATA *op_data, void *message_data, unsigned *respo
         L4_DBG_MSG("cvc_send_create - requesting callback when constants available");
         return (bool)HANDLER_INCOMPLETE;
     }
-#endif
+#endif 
 
     patch_fn_shared(cvc_send_wrapper);
 
@@ -1664,6 +1670,8 @@ bool cvc_send_create(OPERATOR_DATA *op_data, void *message_data, unsigned *respo
     base_op_change_response_status(response_data,STATUS_OK);
     return TRUE;
 }
+
+#ifndef CVC_HEADSET_2MIC_MONO_VA_ENABLE
 
 bool cvc_send_ups_set_state(void* instance_data, PS_KEY_TYPE key, PERSISTENCE_RANK rank, STATUS_KYMERA status,
                                      uint16 extra_status_info)
@@ -1946,6 +1954,7 @@ bool cvc_send_get_sched_info(OPERATOR_DATA *op_data, void *message_data, unsigne
     return TRUE;
 }
 
+#endif /* CVC_HEADSET_2MIC_MONO_VA_ENABLE */
 /* ************************************* Data processing-related functions and wrappers **********************************/
 
 void cvc_send_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
@@ -1986,7 +1995,7 @@ void cvc_send_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
 #ifdef CVC_SEND_SUPPORT_METADATA
     patch_fn_shared(cvc_send_wrapper);
 
-    if (op_extra_data->output_stream[CVC_VA_PORT]->cbuffer != NULL) {
+    if (op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer != NULL) {
        if(op_extra_data->mic_metadata_buffer!= NULL)
        {
            /* if mic inputs have metadata, then limit the amount of
@@ -1998,13 +2007,14 @@ void cvc_send_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
            samples_to_process = MIN(samples_to_process, meta_data_available);
        }
     
-       if(buff_has_metadata(op_extra_data->output_stream[CVC_VA_PORT]->cbuffer))
+       if(buff_has_metadata(op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer))
        {
            /* also check the space available */
-           unsigned space_available = cbuffer_calc_amount_space_in_words(op_extra_data->output_stream[CVC_VA_PORT]->cbuffer);
+           unsigned space_available = cbuffer_calc_amount_space_in_words(op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer);
            samples_to_process = MIN(samples_to_process, space_available);        
        }
     }
+	
 #endif /* CVC_SEND_SUPPORT_METADATA */
 
     /* Check for sufficient data and space */
@@ -2056,14 +2066,14 @@ void cvc_send_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
 #ifdef CVC_SEND_SUPPORT_METADATA
      patch_fn_shared(cvc_send_wrapper);
 
-    if (op_extra_data->output_stream[CVC_VA_PORT]->cbuffer != NULL) {
+    if (op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer != NULL) {
        if(NULL != op_extra_data->mic_metadata_buffer)
        {
            /* transport metadata from input to output */
-           metadata_strict_transport(op_extra_data->mic_metadata_buffer, op_extra_data->output_stream[CVC_VA_PORT]->cbuffer,
+           metadata_strict_transport(op_extra_data->mic_metadata_buffer, op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer,
                                  frame_size*OCTETS_PER_SAMPLE);
        }
-       else if (buff_has_metadata(op_extra_data->output_stream[CVC_VA_PORT]->cbuffer))
+       else if (buff_has_metadata(op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer))
        {
            /* input doesn't have metadata but output does,
             * Normally this shouldn't be the case but in this
@@ -2076,9 +2086,10 @@ void cvc_send_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
            {
                out_mtag->length = afteridx;
            }
-           buff_metadata_append(op_extra_data->output_stream[CVC_VA_PORT]->cbuffer, out_mtag, 0, afteridx);
+           buff_metadata_append(op_extra_data->output_stream[CVC_SEND_OUT_TERMINAL_VA]->cbuffer, out_mtag, 0, afteridx);
        }
     }
+
 #endif /* CVC_SEND_SUPPORT_METADATA */
 
     /* call the "process" assembly function */
@@ -2104,7 +2115,7 @@ void cvc_send_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
     }
 }
 
-
+#ifndef CVC_HEADSET_2MIC_MONO_VA_ENABLE
 /* **************************** Operator message handlers ******************************** */
 
 
@@ -2373,4 +2384,4 @@ bool cvc_send_opmsg_get_voice_quality(OPERATOR_DATA *op_data, void *message_data
     
     return TRUE;
 }
-#endif // defined(BLD_CVC_HS2M_VA)
+#endif /* CVC_HEADSET_2MIC_MONO_VA_ENABLE */

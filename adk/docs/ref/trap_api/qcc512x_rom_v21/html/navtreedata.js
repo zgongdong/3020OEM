@@ -41,9 +41,9 @@ var NAVTREEINDEX =
 [
 "acl_8h.html",
 "group__trapset__core.html#ga09b4b66d1e139080ef57eea9693ad2cc",
-"group__trapset__imageupgrade.html#ga28d002c79384ca1ce43806191cccccb5",
-"group__trapset__stream.html#ga01baa25079f1ed9fa9adb5ce4a0ff715",
-"structbdaddr.html#a90af7bff6a0e2060f7e452f0997f9de0"
+"group__trapset__imageupgrade.html#ga0b1370fc3f7a2ace5860b80a864487f8",
+"group__trapset__status.html#gaa73667e552cfb8659bf7c63f37e5784b",
+"stream_8h.html#ab9b4144438226d6e65588aaf0c5a468f"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

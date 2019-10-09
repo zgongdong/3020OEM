@@ -78,12 +78,16 @@ $(document).ready(function(){initNavTree('struct__le__adv__mgr__scan__response__
 Data Fields</h2></td></tr>
 <tr class="memitem:abf8c45740a140bf38bb071c698824e92"><td class="memItemLeft" align="right" valign="top">uint8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#abf8c45740a140bf38bb071c698824e92">local_name</a> [MAX_AD_NAME_SIZE_OCTETS+1]</td></tr>
 <tr class="separator:abf8c45740a140bf38bb071c698824e92"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f0a2590d4bd841670674648594fb9b4"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#a1f0a2590d4bd841670674648594fb9b4">num_raw_data</a></td></tr>
+<tr class="separator:a1f0a2590d4bd841670674648594fb9b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ab4d0c6770ed24f44f1c6fea58e332e"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#a7ab4d0c6770ed24f44f1c6fea58e332e">num_services_uuid128</a></td></tr>
 <tr class="separator:a7ab4d0c6770ed24f44f1c6fea58e332e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6664a15a22c4a7f98e37f6e8cc72bb06"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#a6664a15a22c4a7f98e37f6e8cc72bb06">num_services_uuid16</a></td></tr>
 <tr class="separator:a6664a15a22c4a7f98e37f6e8cc72bb06"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa2eebdaa0cd7798b24f73f05d8f9a664"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#aa2eebdaa0cd7798b24f73f05d8f9a664">num_services_uuid32</a></td></tr>
 <tr class="separator:aa2eebdaa0cd7798b24f73f05d8f9a664"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8204f2df9b4a1804a3b175ace2864c6d"><td class="memItemLeft" align="right" valign="top">uint8 *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#a8204f2df9b4a1804a3b175ace2864c6d">raw_data</a> [MAX_RAW_DATA]</td></tr>
+<tr class="separator:a8204f2df9b4a1804a3b175ace2864c6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a27f6855242218e536e8e92eb956f3854"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structle__advertising__manager__uuid128.html">le_advertising_manager_uuid128</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#a27f6855242218e536e8e92eb956f3854">services_uuid128</a> [MAX_SERVICES_UUID128]</td></tr>
 <tr class="separator:a27f6855242218e536e8e92eb956f3854"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abcb139b3afb6c167d14a735d17e6672c"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__le__adv__mgr__scan__response__t.html#abcb139b3afb6c167d14a735d17e6672c">services_uuid16</a> [MAX_SERVICES_UUID16]</td></tr>
@@ -105,6 +109,19 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>The name to use in the scan response </p>
+
+</div>
+</div>
+<a class="anchor" id="a1f0a2590d4bd841670674648594fb9b4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint16 num_raw_data</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Number of raw data entries </p>
 
 </div>
 </div>
@@ -144,6 +161,19 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Number of GATT services (uuid32) that are to be included in the scan response </p>
+
+</div>
+</div>
+<a class="anchor" id="a8204f2df9b4a1804a3b175ace2864c6d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint8* raw_data[MAX_RAW_DATA]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Array of raw data entries </p>
 
 </div>
 </div>

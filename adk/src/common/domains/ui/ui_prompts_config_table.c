@@ -26,6 +26,7 @@ const ui_prompts_config_table_t ui_prompts_config_table[] =
      { TELEPHONY_CONNECTED,            ui_input_prompt_connected           },
      { AV_CONNECTED,                   ui_input_prompt_connected           },
      { TELEPHONY_DISCONNECTED,         ui_input_prompt_disconnected        },
+     { AV_DISCONNECTED,                ui_input_prompt_disconnected        },
 };
 
 unsigned UiPrompts_GetConfigTableSize(void)

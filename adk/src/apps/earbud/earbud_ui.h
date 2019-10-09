@@ -109,6 +109,11 @@ do \
 #define appUiChargerConnected()
 #endif
 
+
+/*! \brief Handle UI changes for VA state change */
+#define appUiVaState(state)
+    /* Add any VA state indication here */
+
 /*! brief Initialise indicator module */
 bool EarbudUi_Init(Task init_task);
 

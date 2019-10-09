@@ -120,12 +120,18 @@ Functions</h2></td></tr>
 <tr class="memitem:gab61c439ec382b996e59b2b7955de98b6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__handset__service.html#gab61c439ec382b996e59b2b7955de98b6">HandsetService_ConnectAddressRequest</a> (Task task, const bdaddr *addr, uint8 profiles)</td></tr>
 <tr class="memdesc:gab61c439ec382b996e59b2b7955de98b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connect to a handset specified by a bdaddr.  <a href="#gab61c439ec382b996e59b2b7955de98b6">More...</a><br /></td></tr>
 <tr class="separator:gab61c439ec382b996e59b2b7955de98b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga96b9fd0b32936f066ac7cd337e7e7c03"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__handset__service.html#ga96b9fd0b32936f066ac7cd337e7e7c03">HandsetService_Connected</a> (device_t device)</td></tr>
+<tr class="memdesc:ga96b9fd0b32936f066ac7cd337e7e7c03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if the device is connected.  <a href="#ga96b9fd0b32936f066ac7cd337e7e7c03">More...</a><br /></td></tr>
+<tr class="separator:ga96b9fd0b32936f066ac7cd337e7e7c03"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0f73c0fd6269be49ca492c2648a504d5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__handset__service.html#ga0f73c0fd6269be49ca492c2648a504d5">HandsetService_ConnectMruRequest</a> (Task task, uint8 profiles)</td></tr>
 <tr class="memdesc:ga0f73c0fd6269be49ca492c2648a504d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connect to the most recently used (MRU) handset.  <a href="#ga0f73c0fd6269be49ca492c2648a504d5">More...</a><br /></td></tr>
 <tr class="separator:ga0f73c0fd6269be49ca492c2648a504d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafa1a698ea3799c3c069660e71712be49"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__handset__service.html#gafa1a698ea3799c3c069660e71712be49">HandsetService_DisconnectRequest</a> (Task task, const bdaddr *addr)</td></tr>
 <tr class="memdesc:gafa1a698ea3799c3c069660e71712be49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disconnect a handset with the given bdaddr.  <a href="#gafa1a698ea3799c3c069660e71712be49">More...</a><br /></td></tr>
 <tr class="separator:gafa1a698ea3799c3c069660e71712be49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga9bd1f06e7d4ce3ec41612f873c3f889c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__handset__service.html#ga9bd1f06e7d4ce3ec41612f873c3f889c">HandsetService_GetConnectedLeHandsetAddress</a> (bdaddr *addr)</td></tr>
+<tr class="memdesc:ga9bd1f06e7d4ce3ec41612f873c3f889c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the BT address of a handset with an LE connection.  <a href="#ga9bd1f06e7d4ce3ec41612f873c3f889c">More...</a><br /></td></tr>
+<tr class="separator:ga9bd1f06e7d4ce3ec41612f873c3f889c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9900bdcdffd47b2707c84b6a585314e3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__handset__service.html#ga9900bdcdffd47b2707c84b6a585314e3">HandsetService_Init</a> (Task task)</td></tr>
 <tr class="memdesc:ga9900bdcdffd47b2707c84b6a585314e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise the handset_service module.  <a href="#ga9900bdcdffd47b2707c84b6a585314e3">More...</a><br /></td></tr>
 <tr class="separator:ga9900bdcdffd47b2707c84b6a585314e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -135,6 +141,7 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>A service that provides procedures for connecting and managing connections to handset(s). </p>
+<p>Configurable values for the Handset Service.</p>
 <h1>Overview</h1>
 <p>This service is mainly concerned with managing the connection to a handset. That includes both remote (initiated by the handset) and local (initiated by a call to one of the connect APIs) connections.</p>
 <h2>Remote Connections</h2>
@@ -372,6 +379,34 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="ga96b9fd0b32936f066ac7cd337e7e7c03"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool HandsetService_Connected </td>
+          <td>(</td>
+          <td class="paramtype">device_t&#160;</td>
+          <td class="paramname"><em>device</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;adk/src/common/services/handset/handset_service.h&gt;</code></p>
+
+<p>Check if the device is connected. </p>
+<p>This function is mostly intended for use in tests. Applications should be able to request connections or register as clients.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">device[in]</td><td>The device to be checked</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if the device passed is a handset and is completely connected. FALSE is returned in all other cased, including connecting and disconnecting. </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="ga0f73c0fd6269be49ca492c2648a504d5"></a>
 <div class="memitem">
 <div class="memproto">
@@ -449,6 +484,33 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a class="anchor" id="ga9bd1f06e7d4ce3ec41612f873c3f889c"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool HandsetService_GetConnectedLeHandsetAddress </td>
+          <td>(</td>
+          <td class="paramtype">bdaddr *&#160;</td>
+          <td class="paramname"><em>addr</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;adk/src/common/services/handset/handset_service.h&gt;</code></p>
+
+<p>Get the BT address of a handset with an LE connection. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">addr</td><td>Set to the BT address of a handset with an LE connection, if the function return value is TRUE.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if a handset with an LE connection is found; FALSE if no handset LE connection. </dd></dl>
 
 </div>
 </div>

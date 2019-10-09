@@ -91,6 +91,9 @@ DEFINE_RULE(ruleInCaseAncTuning);
 
 DEFINE_RULE(ruleSelectRemoteAudioMix);
 DEFINE_RULE(ruleSelectLocalAudioMix);
+
+DEFINE_RULE(ruleNotifyPeerMruHandset);
+DEFINE_RULE(ruleNotifyDFUAbort);
 /*! \} */
 
 /*! \brief Set of rules to run on Earbud startup. */
@@ -195,6 +198,20 @@ const rule_entry_t primary_rules_set[] =
     RULE(RULE_EVENT_PEER_IN_CASE,               ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
     RULE(RULE_EVENT_PEER_OUT_CASE,              ruleSelectLocalAudioMix,            CONN_RULES_SET_LOCAL_AUDIO_MIX),
     /*! \} */
+
+    /*! \{
+        Rules to notify peer of MRU handset. */
+    RULE(RULE_EVENT_HANDSET_A2DP_CONNECTED,     ruleNotifyPeerMruHandset,           CONN_RULES_NOTIFY_PEER_MRU_HANDSET),
+    RULE(RULE_EVENT_HANDSET_HFP_CONNECTED,      ruleNotifyPeerMruHandset,           CONN_RULES_NOTIFY_PEER_MRU_HANDSET),
+    RULE(RULE_EVENT_PEER_CONNECTED,             ruleNotifyPeerMruHandset,           CONN_RULES_NOTIFY_PEER_MRU_HANDSET),
+    /*! \} */
+
+    /*! \{
+        Rules to notify peer out case/in ear to abort DFU. */
+    RULE(RULE_EVENT_PEER_OUT_CASE,              ruleNotifyDFUAbort,                 CONN_RULES_DFU_ABORT),
+    RULE(RULE_EVENT_PEER_IN_EAR,                ruleNotifyDFUAbort,                 CONN_RULES_DFU_ABORT),
+    /*! \} */
+
 };
 
 /*! \brief Types of event that can cause connect rules to run. */
@@ -680,6 +697,12 @@ static rule_action_t ruleCheckUpgradable(void)
             return RULE_ACTION_RUN_PARAM(block_dfu);
         }
 
+        if (!StateProxy_IsPeerInCase())
+        {
+            PRIMARY_RULE_LOG("ruleCheckUpgradable, block as peer is not in-case and not permitted");
+            return RULE_ACTION_RUN_PARAM(block_dfu);
+        }
+
         PRIMARY_RULE_LOG("ruleCheckUpgradable, allow as in case");
         return RULE_ACTION_RUN_PARAM(allow_dfu);
     }
@@ -822,6 +845,36 @@ static rule_action_t ruleSelectRemoteAudioMix(void)
     {
         return rule_action_ignore;
     }
+}
+
+/*! @brief Rule to determine if we send MRU handset update to peer */
+static rule_action_t ruleNotifyPeerMruHandset(void)
+{
+    rule_action_t action = rule_action_ignore;
+
+    if (appPeerSigIsConnected() && BtDevice_IsPairedWithHandset())
+    {
+        action = rule_action_run;
+    }
+
+    PRIMARY_RULE_LOG("ruleNotifyPeerMruHandset result = %d", action);
+
+    return action;
+}
+
+/*! @brief Rule to determine if we abort DFU if peer state changes */
+static rule_action_t ruleNotifyDFUAbort(void)
+{
+    rule_action_t action = rule_action_ignore;
+
+    if (SmGetTaskData()->dfu_in_progress)
+    {
+        action = rule_action_run;
+    }
+
+    PRIMARY_RULE_LOG("ruleNotifyDFUAbort result = %d", action);
+
+    return action;
 }
 
 /*****************************************************************************

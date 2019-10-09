@@ -27,6 +27,11 @@ void Pairing_PluginInit(void)
     pending_confirmation_ind = NULL;
 }
 
+bool Pairing_PluginIsRegistered(void)
+{
+    return pairing_plugin.handle_remote_io_capability != NULL;
+}
+
 void Pairing_PluginRegister(pairing_plugin_t plugin)
 {
     PanicNull((void*)plugin.handle_remote_io_capability);

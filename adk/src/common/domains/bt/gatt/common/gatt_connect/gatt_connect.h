@@ -27,17 +27,23 @@ typedef enum
     GATT_CONNECT_SERVER_INIT_COMPLETE_CFM = APP_GATT_MESSAGE_BASE  /*!< GattConnect_ServerInitComplete confirmation */
 } gatt_connect_message_t;
 
+/*! \brief Callback for disconnect requested response */
+typedef void (*gatt_connect_disconnect_req_response)(uint16);
+
 /*! Callback structure used when an observer registers with the GATT connect module.
 
 A callback is used here (instead of TaskList), to ensure that the connection indications
 are delivered before any server access messages.
-All callback functions MUST be supplied when an observer registers. 
+The connections and disconnection callback functions MUST be supplied when an observer registers. 
+The disconnect requested callback is optional for those observers that must do some additional processing
+before calling the response callback to say that GATT disconnection can proceed.
 It is assumed an observer will need to know about connections and disconnections.
  */
 typedef struct
 {
     void (*OnConnection)(uint16 cid);
     void (*OnDisconnection)(uint16 cid);
+    void (*OnDisconnectRequested)(uint16 cid, gatt_connect_disconnect_req_response response);
 } gatt_connect_observer_callback_t;
 
 /*! \brief Initialise the gatt_connect module.
@@ -76,5 +82,6 @@ unsigned GattConnect_GetMtu(unsigned cid);
     \param callback     Callback funtions to register
 */
 void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t *callback);
+
 
 #endif 

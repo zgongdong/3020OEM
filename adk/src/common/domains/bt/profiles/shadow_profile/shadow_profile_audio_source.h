@@ -24,8 +24,10 @@ const audio_source_audio_interface_t *ShadowProfile_GetAudioInterface(void);
         shadow profile a2dp state.
 
     \param source The audio source.
+
+    \return TRUE if connect parameters were valid, else FALSE.
  */
-void ShadowProfile_StoreAudioSourceParameters(audio_source_t source);
+bool ShadowProfile_StoreAudioSourceParameters(audio_source_t source);
 
 /*! \brief Clear stored connect parameters for the source from the shadow profile
         a2dp state.

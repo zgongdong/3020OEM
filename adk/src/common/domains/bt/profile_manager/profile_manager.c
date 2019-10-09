@@ -23,6 +23,7 @@
 #include <device_properties.h>
 #include <hfp_profile.h>
 #include <task_list.h>
+#include <timestamp_event.h>
 
 #define PROFILE_MANAGER_LOG(...)   DEBUG_LOG(__VA_ARGS__)
 
@@ -66,21 +67,19 @@ typedef struct
 
 static void profileManager_SendConnectedInd(device_t device, unsigned profile)
 {
-    profile_manager_task_data * pm = ProfileManager_GetTaskData();
     MESSAGE_MAKE(msg, CONNECTED_PROFILE_IND_T);
     msg->device = device;
     msg->profile = profile;
-    TaskList_MessageSendWithSize(&pm->client_tasks, CONNECTED_PROFILE_IND, msg, sizeof(*msg));
+    TaskList_MessageSendWithSize(TaskList_GetFlexibleBaseTaskList(ProfileManager_GetClientTasks()), CONNECTED_PROFILE_IND, msg, sizeof(*msg));
 }
 
 static void profileManager_SendDisconnectedInd(device_t device, unsigned profile, profile_manager_disconnected_ind_reason_t reason)
 {
-    profile_manager_task_data * pm = ProfileManager_GetTaskData();
     MESSAGE_MAKE(msg, DISCONNECTED_PROFILE_IND_T);
     msg->device = device;
     msg->profile = profile;
     msg->reason = reason;
-    TaskList_MessageSendWithSize(&pm->client_tasks, DISCONNECTED_PROFILE_IND, msg, sizeof(*msg));
+    TaskList_MessageSendWithSize(TaskList_GetFlexibleBaseTaskList(ProfileManager_GetClientTasks()), DISCONNECTED_PROFILE_IND, msg, sizeof(*msg));
 }
 
 static task_list_t* profileManager_GetRequestTaskList(profile_manager_request_type_t type)
@@ -439,6 +438,25 @@ static void profileManager_UpdateConnectedProfilesProperty(device_t device, unsi
     (type == profile_manager_connect) ? (connected_mask |= profile) : (connected_mask &= ~profile);
     BtDevice_SetConnectedProfiles(device, connected_mask);
 
+    switch (profile)
+    {
+        case DEVICE_PROFILE_A2DP:
+            TimestampEvent(type == profile_manager_connect ? TIMESTAMP_EVENT_PROFILE_CONNECTED_A2DP :
+                                                             TIMESTAMP_EVENT_PROFILE_DISCONNECTED_A2DP);
+            break;
+        case DEVICE_PROFILE_AVRCP:
+            TimestampEvent(type == profile_manager_connect ? TIMESTAMP_EVENT_PROFILE_CONNECTED_AVRCP :
+                                                             TIMESTAMP_EVENT_PROFILE_DISCONNECTED_AVRCP);
+            break;
+        case DEVICE_PROFILE_HFP:
+            TimestampEvent(type == profile_manager_connect ? TIMESTAMP_EVENT_PROFILE_CONNECTED_HFP :
+                                                             TIMESTAMP_EVENT_PROFILE_DISCONNECTED_HFP);
+            break;
+        default:
+            DEBUG_LOG("profileManager_UpdateConnectedProfilesProperty unrecorded profile %u timestmap", profile);
+            break;
+    }
+
     DEBUG_LOG("profileManager_UpdateConnectedProfilesProperty type=%d connected_mask=%x", type, connected_mask );
 }
 
@@ -722,7 +740,7 @@ bool ProfileManager_Init(Task init_task)
     DEBUG_LOG("ProfileManager_Init");
 
     pm->task.handler = profileManager_HandleMessage;
-    TaskList_Initialise(&pm->client_tasks);
+    TaskList_InitialiseWithCapacity(ProfileManager_GetClientTasks(), PROFILE_MANAGER_CLIENT_LIST_INIT_CAPACITY);
     TaskList_WithDataInitialise(&pm->pending_connect_reqs);
     TaskList_WithDataInitialise(&pm->pending_disconnect_reqs);
 
@@ -737,12 +755,10 @@ bool ProfileManager_Init(Task init_task)
 
 void ProfileManager_ClientRegister(Task client_task)
 {
-    profile_manager_task_data * pm = ProfileManager_GetTaskData();
-    TaskList_AddTask(&pm->client_tasks, client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ProfileManager_GetClientTasks()), client_task);
 }
 
 void ProfileManager_ClientUnregister(Task client_task)
 {
-    profile_manager_task_data * pm = ProfileManager_GetTaskData();
-    TaskList_RemoveTask(&pm->client_tasks, client_task);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(ProfileManager_GetClientTasks()), client_task);
 }

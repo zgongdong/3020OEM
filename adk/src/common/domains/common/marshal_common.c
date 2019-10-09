@@ -45,15 +45,21 @@ static Sink marshalCommon_GetSink(void)
 */
 static void *marshalCommon_MarshalRtimeMarshal(void *dest, const void *src, size_t n)
 {
-    marshal_rtime_t local_time, wallclock_time;
+    marshal_rtime_t local_time, wallclock_time = 0;
     wallclock_state_t state;
 
     PanicFalse(n == sizeof(marshal_rtime_t));
 
     memcpy(&local_time, src, n);
 
-    PanicFalse(RtimeWallClockGetStateForSink(&state, marshalCommon_GetSink()));
-    PanicFalse(RtimeLocalToWallClock(&state, local_time, &wallclock_time));
+    /* the link may have disconnected, but upper layer code calling in here may
+     * not yet be aware, so the sink may no longer be valid. Only attempt the
+     * conversion if the sink is still valid and the attempt to get the wallclock
+     * state succeeded. */
+    if (RtimeWallClockGetStateForSink(&state, marshalCommon_GetSink()))
+    {
+        RtimeLocalToWallClock(&state, local_time, &wallclock_time);
+    }
 
     return memcpy(dest, &wallclock_time, n);
 }

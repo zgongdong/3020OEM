@@ -239,7 +239,7 @@ typedef struct
     /* Upgrade status information */
     upgrade_peer_resume_point_t upgradeResumePoint;
     upgrade_peer_state_t currentState;
-    bool is_primary_device;
+    bool is_secondary_device;
 } UPGRADE_PEER_LIB_PSKEY;
 
 /* Use sizeof to make sure we get the right size under Windows and final build */

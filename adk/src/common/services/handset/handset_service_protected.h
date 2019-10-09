@@ -13,10 +13,10 @@
 #include <logging.h>
 #include <panic.h>
 #include <task_list.h>
+#include <le_advertising_manager.h>
 
 #include "handset_service.h"
 #include "handset_service_sm.h"
-
 
 /*! \{
     Macros for diagnostic output that can be suppressed.
@@ -27,6 +27,10 @@
 /*! Code assertion that can be checked at run time. This will cause a panic. */
 #define assert(x) PanicFalse(x)
 
+/*! Client task list initial list */
+#define HANDSET_SERVICE_CLIENT_LIST_INIT_CAPACITY 1
+
+#define HANDSET_SERVICE_MAX_SM      2
 
 /*! \brief The global data for the handset_service */
 typedef struct
@@ -35,10 +39,19 @@ typedef struct
     TaskData task_data;
 
     /* Handset Service state machine */
-    handset_service_state_machine_t state_machine;
+    handset_service_state_machine_t state_machine[HANDSET_SERVICE_MAX_SM];
 
     /*! Client list for notifications */
-    task_list_t client_list;
+    TASK_LIST_WITH_INITIAL_CAPACITY(HANDSET_SERVICE_CLIENT_LIST_INIT_CAPACITY) client_list;
+
+    /* Flag to store if handset can be paired */
+    bool pairing;
+    
+    /* Flag to store if handset has a BLE connection */
+    bool ble_connected;
+    
+    /* Handle for LE advertising */
+    le_adv_data_set_handle le_advert_handle;
 
 } handset_service_data_t;
 
@@ -56,6 +69,9 @@ typedef enum
 
     /*! Request to cancel any in-progress connect to handset. */
     HANDSET_SERVICE_INTERNAL_CONNECT_STOP_REQ,
+
+    /*! Request to re-try the ACL connection after a failure. */
+    HANDSET_SERVICE_INTERNAL_CONNECT_ACL_RETRY_REQ,
 } handset_service_internal_msg_t;
 
 typedef struct
@@ -69,8 +85,8 @@ typedef struct
 
 typedef struct
 {
-    /* Handset device to disconnect. */
-    device_t device;
+    /* Address of handset device to disconnect. */
+    bdaddr addr;
 } HANDSET_SERVICE_INTERNAL_DISCONNECT_REQ_T;
 
 typedef struct
@@ -92,10 +108,10 @@ void HandsetService_SendConnectedIndNotification(device_t device,
 
 /*! \brief Send a HANDSET_SERVICE_DISCONNECTED_IND to registered clients.
 
-    \param device Device that represents the handset
+    \param addr Address of the handset
     \param status Status of the connection.
 */
-void HandsetService_SendDisconnectedIndNotification(device_t device,
+void HandsetService_SendDisconnectedIndNotification(const bdaddr *addr,
     handset_service_status_t status);
 
 /*! Handset Service module data. */
@@ -108,6 +124,8 @@ extern handset_service_data_t handset_service;
 #define HandsetService_GetTask() (&HandsetService_Get()->task_data)
 
 /*! Get the state machine for the handset service. */
-#define HandsetService_GetSm() (&HandsetService_Get()->state_machine)
+#define HandsetService_GetSm() (HandsetService_Get()->state_machine)
 
+/*! Get the client list for the handset service. */
+#define HandsetService_GetClientList() (task_list_flexible_t *)(&HandsetService_Get()->client_list)
 #endif /* HANDSET_SERVICE_PROTECTED_H_ */

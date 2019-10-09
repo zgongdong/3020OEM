@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2004 - 2018 Qualcomm Technologies International, Ltd.
+Copyright (c) 2004 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -236,7 +236,7 @@ static void startAudioConnectRequest(AGHFP *aghfp)
                 if (codec_mode_bit & aghfp->ag_codec_modes & aghfp->hf_codec_modes)
                 {
                     aghfpQceSendCodecSelection(aghfp, codec_mode_bit);
-                    aghfp->audio_connection_state = aghfp_audio_codec_connect;
+                    aghfp->audio_connection_state = aghfp_audio_connecting_qce;
                     return;
                 }
             }
@@ -855,6 +855,7 @@ void aghfpHandleAudioConnectReq(AGHFP *aghfp, const AGHFP_INTERNAL_AUDIO_CONNECT
         case aghfp_audio_codec_connect:
             audioConnectRequest(aghfp, req->packet_type, &req->audio_params);
             break;
+        case aghfp_audio_connecting_qce:
         case aghfp_audio_connecting_esco:
         case aghfp_audio_connecting_sco:
         case aghfp_audio_accepting:
@@ -916,6 +917,7 @@ void aghfpHandleAudioConnectRes(AGHFP *aghfp, const AGHFP_INTERNAL_AUDIO_CONNECT
             case aghfp_audio_accepting:
                 audioConnectResponse(aghfp, res->response, res->packet_type, &res->audio_params);
                 break;
+            case aghfp_audio_connecting_qce:
             case aghfp_audio_connecting_esco:
             case aghfp_audio_connecting_sco:
                 /* Already attempting to create an audio connection - indicate a fail for this attempt */
@@ -978,6 +980,7 @@ void aghfpHandleAudioDisconnectReq(AGHFP *aghfp)
         case aghfp_audio_disconnected:
         case aghfp_audio_connecting_esco:  /* Until connect is complete, assume we don't have a connection */
         case aghfp_audio_connecting_sco:
+        case aghfp_audio_connecting_qce:
         case aghfp_audio_accepting:
             /* Audio already with AG - indicate a fail for this attempt */
             sendAudioDisconnectIndToApp(aghfp, aghfp_audio_disconnect_no_audio);
@@ -1039,6 +1042,7 @@ void aghfpHandleAudioTransferReq(AGHFP *aghfp, const AGHFP_INTERNAL_AUDIO_TRANSF
 
                         audioConnectRequest(aghfp, req->packet_type, &req->audio_params);
                         break;
+                    case aghfp_audio_connecting_qce:
                     case aghfp_audio_connecting_esco:
                     case aghfp_audio_connecting_sco:
                     case aghfp_audio_accepting:
@@ -1062,6 +1066,7 @@ void aghfpHandleAudioTransferReq(AGHFP *aghfp, const AGHFP_INTERNAL_AUDIO_TRANSF
                     case aghfp_audio_disconnected:
                     case aghfp_audio_connecting_esco:  /* Until connect is complete, assume we don't have a connection */
                     case aghfp_audio_connecting_sco:
+                    case aghfp_audio_connecting_qce:
                     case aghfp_audio_accepting:
                         /* Audio already with AG - indicate a fail for this attempt */
                         sendAudioDisconnectIndToApp(aghfp, aghfp_audio_disconnect_no_audio);
@@ -1086,6 +1091,7 @@ void aghfpHandleAudioTransferReq(AGHFP *aghfp, const AGHFP_INTERNAL_AUDIO_TRANSF
                     case aghfp_audio_codec_connect:
                         audioConnectRequest(aghfp, req->packet_type, &req->audio_params);
                         break;
+                    case aghfp_audio_connecting_qce:
                     case aghfp_audio_connecting_esco:
                     case aghfp_audio_connecting_sco:
                     case aghfp_audio_accepting:

@@ -45,6 +45,9 @@ typedef enum
     APTX_LOWLATENCY,
     APTX_CLASSIC_MONO,
 
+    APTX_ADAPTIVE_DECODE = 40,
+    APTX_ADAPTIVE_MONO_DECODE,
+
     /* VAD/SVA */
     VAD = 48,
     SVA,
@@ -59,8 +62,11 @@ typedef enum
     ANC_FEED_FORWARD_EARBUD,
     ANC_FEED_BACK_EARBUD,
     ANC_HYBRID_EARBUD,
-
-    MAX_FEATURES_NUMBER
+    
+    /* Misc feature bits. */
+    QHS = 110,
+    
+    MAX_FEATURES_NUMBER = 112
 } feature_id;
 
 #endif /* __FEATURE_IF_H__  */

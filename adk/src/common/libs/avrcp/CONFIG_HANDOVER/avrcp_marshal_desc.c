@@ -19,27 +19,9 @@ NOTES
 #include "avrcp_init.h"
 #include <panic.h>
 
-/* Dummy union structure to mimic combined allocation of AVRCP and AVBP structures */
-typedef union
-{
-    AVRCP_AVBP_INIT shared_block;
-    AVRCP avrcp;
-} avrcp_union_t;
-
-typedef struct
-{
-    avrcp_union_t avrcp_union;
-} avrcp_dummy_struct_t;
-
-
 static uint32 dynArrElemsAvrcp(const void *parent,
                                const marshal_member_descriptor_t *member_descriptor,
                                uint32 array_element);
-
-static uint32 unionMemberAvrcpDummyStruct(const void *parent,
-                                          const marshal_member_descriptor_t *member_descriptor,
-                                          uint32 array_element);
-
 
 static const marshal_type_descriptor_t mtd_AvbpBitfields =
     MAKE_MARSHAL_TYPE_DEFINITION_BASIC(AvbpBitfields);
@@ -86,7 +68,7 @@ static const marshal_member_descriptor_t mmd_AVRCP[] =
     MAKE_MARSHAL_MEMBER(AVRCP, AvrcpBitfields, bitfields),
     MAKE_MARSHAL_MEMBER(AVRCP, uint16, av_max_data_size),
  /* MAKE_MARSHAL_MEMBER(AVRCP, uint8, avctp_packets_remaining), Invalid during marshalling */
-    MAKE_MARSHAL_MEMBER(AVRCP, bdaddr, bd_addr),
+ /* MAKE_MARSHAL_MEMBER(AVRCP, bdaddr, bd_addr), known by both devices, so marshalling not required */
 };
 
 static const marshal_type_descriptor_dynamic_t mtd_AVRCP =
@@ -104,29 +86,6 @@ static const marshal_member_descriptor_t mmd_AVRCP_AVBP_INIT[] =
 static const marshal_type_descriptor_t mtd_AVRCP_AVBP_INIT =
     MAKE_MARSHAL_TYPE_DEFINITION(AVRCP_AVBP_INIT,
                                  mmd_AVRCP_AVBP_INIT);
-
-
-static const marshal_member_descriptor_t mmd_avrcp_union_t[] =
-{
-    MAKE_MARSHAL_MEMBER(avrcp_union_t, AVRCP_AVBP_INIT, shared_block),
-    MAKE_MARSHAL_MEMBER(avrcp_union_t, AVRCP, avrcp),
-};
-
-static const marshal_type_descriptor_t mtd_avrcp_union_t =
-    MAKE_MARSHAL_TYPE_DEFINITION_UNION(avrcp_union_t,
-                                       mmd_avrcp_union_t);
-
-
-static const marshal_member_descriptor_t mmd_avrcp_dummy_struct_t[] =
-{
-    MAKE_MARSHAL_MEMBER(avrcp_dummy_struct_t, avrcp_union_t, avrcp_union),
-};
-
-static const marshal_type_descriptor_dynamic_t mtd_avrcp_dummy_struct_t =
-    MAKE_MARSHAL_TYPE_DEFINITION_HAS_DYNAMIC_UNION(avrcp_dummy_struct_t,
-                                                   mmd_avrcp_dummy_struct_t,
-                                                   unionMemberAvrcpDummyStruct);
-
 
 /* Use xmacro to expand type table as array of type descriptors */
 #define EXPAND_AS_TYPE_DEFINITION(type) (const marshal_type_descriptor_t *) &mtd_##type,
@@ -151,24 +110,3 @@ static uint32 dynArrElemsAvrcp(const void *parent,
 
     return obj->av_msg_len;
 }
-
-static uint32 unionMemberAvrcpDummyStruct(const void *parent,
-                                          const marshal_member_descriptor_t *member_descriptor,
-                                          uint32 array_element)
-{
-    const avrcp_dummy_struct_t *obj = parent;
-
-    PanicFalse(obj && member_descriptor);
-    PanicFalse(array_element == 0);
-    PanicFalse(member_descriptor->offset == offsetof(avrcp_dummy_struct_t, avrcp_union));
-
-    if (avrcpMarshalBrowsingChannelExists())
-    {
-        return 0; /* Marshal the complete AVRCP_AVBP_INIT structure */
-    }
-    else
-    {
-        return 1; /* Marshal just the AVRCP structure */
-    }
-}
-

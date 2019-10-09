@@ -310,26 +310,30 @@ class KCSMaker(object):
             bundle_defs = bundles_for_config.get_bundle_definitions(self.bdl_json_path)
             if self.bundle_name not in [os.path.splitext(x)[0] for x in bundle_defs]:
                 raise Exception(
-                    "Error. Bundle {b} couldn't be found in {p}. Please manually add \
-                    an entry for this bundle".format(
+                    "Error. Bundle {b} couldn't be found in {p}. Please manually add an entry for this bundle".format(
                         b = self.bundle_name,
                         p = self.bdl_json_path
                     )
                 )
 
-                bundle_list = bundles_for_config.determine_bundles_for_config(
-                    self.download_config, self.bundle_defs)
-                if self.bundle_name not in bundle_list:
-                    raise Exception(
-                        "Error. The bundle registry {p} explicitly excludes {b} for the \
-                        configuration {c}. If you don't think this is correct, please fix \
-                        the registry".format(
-                            p = self.bdl_json_path,
-                            b = self.bundle_name,
-                            c = self.download_config
-                        )
+            bundle_list = bundles_for_config.determine_bundles_for_config(
+                self.download_config, bundle_defs)
+            if self.bundle_name not in bundle_list:
+                raise Exception(
+                    "Error. The bundle registry {p} explicitly excludes {b} for the configuration {c}. If you don't think this is correct, please fix the registry".format(
+                        p = self.bdl_json_path,
+                        b = self.bundle_name,
+                        c = self.download_config
                     )
-
+                )
+            # Do we have any build options to override?
+            if "build_options" in bundle_defs[self.bundle_name+".bdl"]:
+                if "use_internal_ELF" in bundle_defs[self.bundle_name+".bdl"]["build_options"]:
+                    if bundle_defs[self.bundle_name+".bdl"]["build_options"]["use_internal_ELF"]:
+                        build_name_previous = self.build_name
+                        self.build_name = self.build_name.split("_external")[0]
+                        logging.info("Overriding BUILD_NAME from {j}: {b1} -> {b2}".format(j=os.path.basename(self.bdl_json_path),b1=build_name_previous,b2=self.build_name))
+                    
     def get_base_build_id_from_kymera_src_path(self):
         base_build_timestamp = re.search(r'kymera_\d+', self.kcsmaker_path).group()
 

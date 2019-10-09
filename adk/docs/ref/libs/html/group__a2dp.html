@@ -405,6 +405,9 @@ const <a class="el" href="structhandover__interface.html">handover_interface</a>
 <tr class="memitem:gaa7d14b6f28aef8cb1b98a49dd0e01916"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__a2dp.html#gaa7d14b6f28aef8cb1b98a49dd0e01916">A2dpDeviceIsInLinkloss</a> (uint16 device_id)</td></tr>
 <tr class="memdesc:gaa7d14b6f28aef8cb1b98a49dd0e01916"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read the linkloss flag of a given device.  <a href="#gaa7d14b6f28aef8cb1b98a49dd0e01916">More...</a><br /></td></tr>
 <tr class="separator:gaa7d14b6f28aef8cb1b98a49dd0e01916"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf414371cc5f238d7df9a961e37bc5c4d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__a2dp.html#gaf414371cc5f238d7df9a961e37bc5c4d">A2dpSetAppTask</a> (uint8 device_id, Task new_task)</td></tr>
+<tr class="memdesc:gaf414371cc5f238d7df9a961e37bc5c4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the client task for the given device_id.  <a href="#gaf414371cc5f238d7df9a961e37bc5c4d">More...</a><br /></td></tr>
+<tr class="separator:gaf414371cc5f238d7df9a961e37bc5c4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1195e3e93c1b9d48d438dacf822c5be5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__a2dp.html#ga1195e3e93c1b9d48d438dacf822c5be5">A2dpCodecConfigureResponse</a> (uint8 device_id, bool accept, uint8 local_seid, uint16 size_codec_service_caps, uint8 *codec_service_caps)</td></tr>
 <tr class="memdesc:ga1195e3e93c1b9d48d438dacf822c5be5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Choose to accept, with configuration parameters, or reject a remote codec.  <a href="#ga1195e3e93c1b9d48d438dacf822c5be5">More...</a><br /></td></tr>
 <tr class="separator:ga1195e3e93c1b9d48d438dacf822c5be5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1648,6 +1651,44 @@ INTRODUCTION</h1>
 </dl>
 <p>The call to A2dpMediaSuspendRequest attempts to return the specified Media channel, connected to the specified remote device, from a streaming state back to an open state.</p>
 <p>A2DP_MEDIA_SUSPEND_CFM message will be sent to the client indicating the result of the suspend request. </p>
+
+</div>
+</div>
+<a class="anchor" id="gaf414371cc5f238d7df9a961e37bc5c4d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool A2dpSetAppTask </td>
+          <td>(</td>
+          <td class="paramtype">uint8&#160;</td>
+          <td class="paramname"><em>device_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Task&#160;</td>
+          <td class="paramname"><em>new_task</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;a2dp/a2dp.h&gt;</code></p>
+
+<p>Set the client task for the given device_id. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">device_id</td><td>The identifier of the remote device. </td></tr>
+    <tr><td class="paramname">new_task</td><td>New client task to receive messages from A2DP library.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>The call to A2dpSetAppTask will, on success, return immediately with TRUE if device_id is valid and able to set clientTask If the device_id provided is not valid, the function will return FALSE. </p>
 
 </div>
 </div>

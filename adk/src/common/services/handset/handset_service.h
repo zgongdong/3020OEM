@@ -265,6 +265,28 @@ void HandsetService_ConnectableRequest(Task task);
 */
 void HandsetService_CancelConnectableRequest(Task task);
 
+/*! \brief Check if the device is connected
+
+    This function is mostly intended for use in tests. Applications should
+    be able to request connections or register as clients.
+
+    \param device[in] The device to be checked
+
+    \return TRUE if the device passed is a handset and is completely
+        connected. FALSE is returned in all other cased, including connecting
+        and disconnecting.
+*/
+bool HandsetService_Connected(device_t device);
+
+/*! \brief Get the BT address of a handset with an LE connection.
+
+    \param addr Set to the BT address of a handset with an LE connection, 
+    if the function return value is TRUE.
+    
+    \return TRUE if a handset with an LE connection is found; FALSE if no handset LE connection.
+*/
+bool HandsetService_GetConnectedLeHandsetAddress(bdaddr *addr);
+
 /*@}*/
 
 #endif /* HANDSET_SERVICE_H_ */

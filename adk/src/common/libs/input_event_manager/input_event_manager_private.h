@@ -13,6 +13,8 @@ Copyright (c) 2018  Qualcomm Technologies International, Ltd.
 #define IEM_DEBUG(x)
 #endif
 
+#define SINGLE_CLICK_TIMEOUT 500
+
 typedef struct InputEventClient
 {
     struct InputEventClient *next;
@@ -21,6 +23,11 @@ typedef struct InputEventClient
     unsigned state:1;
 } InputEventClient_t;
 
+typedef struct InputPressTracker
+{
+    input_event_bits_t short_press;
+    input_event_bits_t long_press;
+} InputPressTracker_t;
 
 typedef struct
 {
@@ -32,17 +39,18 @@ typedef struct
     const InputEventConfig_t *config;
     const InputActionMessage_t *action_table;
     uint8 num_action_messages;
+    
+    /* Separate trackers for the two press types so they can be configured
+       independent of one another */
+    InputPressTracker_t single_click_tracker;
+    InputPressTracker_t double_click_tracker;
 
     /* The input event bits as last read or indicated */
     input_event_bits_t input_event_bits;
 
-    /* The input event bits whose release message is to be suppressed */
-    input_event_bits_t input_event_release_disabled;
-
     /* PAM state stored for timers */
-    const InputActionMessage_t *held_release;
     const InputActionMessage_t *repeat;
-    const InputActionMessage_t *double_tap;
+    const InputActionMessage_t *held_release;
 
     /* PIO deep sleep wake up state PS Key setting */
     uint32 pio_state[IEM_NUM_BANKS];
@@ -54,7 +62,8 @@ enum
     IEM_INTERNAL_HELD_TIMER,
     IEM_INTERNAL_REPEAT_TIMER,
     IEM_INTERNAL_HELD_RELEASE_TIMER,
-    IEM_INTERNAL_DOUBLE_TIMER
+    IEM_INTERNAL_SINGLE_CLICK_TIMER,
+    IEM_INTERNAL_DOUBLE_CLICK_TIMER
 };
 
 #endif    /* INPUT_EVENT_MANAGER_PRIVATE_H_ */

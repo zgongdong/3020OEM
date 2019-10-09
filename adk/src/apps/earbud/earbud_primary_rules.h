@@ -115,6 +115,12 @@ enum earbud_primary_rules_messages
     /*! Set the local audio mix */
     CONN_RULES_SET_LOCAL_AUDIO_MIX,
 
+    /*! Notify peer of MRU handset */
+    CONN_RULES_NOTIFY_PEER_MRU_HANDSET,
+
+    /*! Abort DFU */
+    CONN_RULES_DFU_ABORT,
+
     /*! Any rules with RULE_FLAG_PROGRESS_MATTERS are no longer in progress. */
     CONN_RULES_NOP,
 };

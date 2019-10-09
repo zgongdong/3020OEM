@@ -268,7 +268,8 @@ var group__hfp =
       [ "hfp_audio_disconnect_failure", "group__hfp.html#ggaca7d99c101fde4d531106e4a16579d24a6e4e029bc157479850d208f82f9c74f2", null ],
       [ "hfp_audio_disconnect_no_audio", "group__hfp.html#ggaca7d99c101fde4d531106e4a16579d24af32a577bd4f6b5d614b66e3a350a35f6", null ],
       [ "hfp_audio_disconnect_in_progress", "group__hfp.html#ggaca7d99c101fde4d531106e4a16579d24a6a7bf8af1e0fcbfbac90dfa435a93b36", null ],
-      [ "hfp_audio_disconnect_error", "group__hfp.html#ggaca7d99c101fde4d531106e4a16579d24a8345411092bb11a73a34a88a78619ed7", null ]
+      [ "hfp_audio_disconnect_error", "group__hfp.html#ggaca7d99c101fde4d531106e4a16579d24a8345411092bb11a73a34a88a78619ed7", null ],
+      [ "hfp_audio_disconnect_transferred", "group__hfp.html#ggaca7d99c101fde4d531106e4a16579d24a0250184de17a29fbe484cbc9b3b1ec83", null ]
     ] ],
     [ "hfp_audio_transfer_direction", "group__hfp.html#gaac7d7488cf58aaf642328df25e12722b", [
       [ "hfp_audio_to_hfp", "group__hfp.html#ggaac7d7488cf58aaf642328df25e12722ba1717b8f0b05720f228c37109a5a25576", null ],
@@ -464,6 +465,7 @@ var group__hfp =
     [ "HfpLinkSetMaxConnections", "group__hfp.html#gad05dfefe23d1dea54557b60aaf2bb1a0", null ],
     [ "HfpManageLinkLoss", "group__hfp.html#gaeadffdca04b74d4dfe30fff570e37797", null ],
     [ "HfpNetworkOperatorRequest", "group__hfp.html#gaee7ce2ca8230bd3d077fa379d390e75a", null ],
+    [ "HfpOverideSinkBdaddr", "group__hfp.html#gab3b663d60334ae4cfa773390a8c156d7", null ],
     [ "HfpResponseHoldActionRequest", "group__hfp.html#ga4975a158c6fd78c938ad50a8251f6470", null ],
     [ "HfpSetSupportedQceCodecModeIds", "group__hfp.html#ga9795c46a31ab1992610ce9b963b446d3", null ],
     [ "hfpShowServiceRecords", "group__hfp.html#ga10a6b3e60f16f57226531d1f3ea8da12", null ],

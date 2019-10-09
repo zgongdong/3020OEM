@@ -40,11 +40,11 @@
     </typedef_struct>
 
     <typedef_struct name="cm_connection_t" basic="true" doc="Structure used to hold information about a single device, managed by the connection manager. This structure should not be accessed directly.">
-        <member marshal="false" doc="Bluetooth address of the device">TaskData task_data</member>
+        <member marshal="false" doc="The connection's task">TaskData task_data</member>
         <member marshal="true" doc="Bluetooth address of the device">tp_bdaddr tpaddr</member>
-        <member marshal="false" doc="A non-zero value indicates that a procedure is operational on the device. It will clear to 0 when complete">uint16 lock</member>
+        <member marshal="true" doc="A non-zero value indicates that a procedure is operational on the device. It will clear to 0 when complete">uint16 lock</member>
         <member marshal="true" doc="Connection Manager Device bitfields">cm_con_bitfields_t bitfields</member>
         <member marshal="true" doc="The current link policy for this connection">lpPerConnectionState lp_state</member>
-        <member marshal="false" doc="The most recently requested QoS for this connection">uint8 qos_list[cm_qos_max]</member>
+        <member marshal="true" doc="The most recently requested QoS for this connection">uint8 qos_list[cm_qos_max]</member>
     </typedef_struct>
 </types>

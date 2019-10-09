@@ -101,6 +101,8 @@ typedef enum chain_operator_roles
     /*! Mixes left and right stereo decode to a mono mix (100% L, 100% R, 50% L 50% R) */
     OPR_LEFT_RIGHT_MIXER,
 
+    /*! AEC reference */
+    OPR_AEC,
 } chain_operator_role_t;
 
 /*! These names may be used in chain endpoint definitions.
@@ -149,6 +151,25 @@ typedef enum chain_endpoint_roles
 
     /*! Input to the prompt chain */
     EPR_PROMPT_IN,
+
+    /*! Inputs to the voice capture chain */
+    EPR_VOICE_CAPTURE_AEC_IN,
+    EPR_VOICE_CAPTURE_MIC1_IN,
+    EPR_VOICE_CAPTURE_MIC2_IN,
+
+    /*! Output to the voice capture chain */
+    EPR_VOICE_CAPTURE_OUT,
+
+    /*! Inputs to the AEC reference chain */
+    EPR_AEC_INPUT1,
+    EPR_AEC_MIC1_IN,
+    EPR_AEC_MIC2_IN,
+
+    /*! Outputs to the AEC reference chain */
+    EPR_AEC_REFERENCE_OUT,
+    EPR_AEC_SPEAKER1_OUT,
+    EPR_AEC_MIC1_OUT,
+    EPR_AEC_MIC2_OUT,
 } chain_endpoint_role_t;
 
 

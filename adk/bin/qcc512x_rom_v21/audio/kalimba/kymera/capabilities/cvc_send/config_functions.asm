@@ -4,6 +4,7 @@
 //
 //   
 // *****************************************************************************
+#ifndef CVC_HEADSET_2MIC_MONO_VA_ENABLE
 
 #include "cvc_send_data.h"
 
@@ -1831,3 +1832,4 @@ $cvc.pre_process:
    rts;
 
 .ENDMODULE;
+#endif /*CVC_HEADSET_2MIC_MONO_VA_ENABLE*/

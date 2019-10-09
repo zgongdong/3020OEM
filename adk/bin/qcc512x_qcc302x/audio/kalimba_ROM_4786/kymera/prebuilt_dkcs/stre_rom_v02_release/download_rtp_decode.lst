@@ -1,5 +1,5 @@
 
-/home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1907171737/kalimba/kymera/tools/KCSMaker/out/4786/stre_rom_v02_release/download/debugbin/download_rtp_decode.elf:     file format elf32-littlekalimba
+/home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/tools/KCSMaker/out/4786/stre_rom_v02_release/download/debugbin/download_rtp_decode.elf:     file format elf32-littlekalimba
 
 Disassembly of section .text_minim:
 
@@ -3370,8 +3370,8 @@ static void transport_metadata_tag(RTP_DECODE_OP_DATA *opx_data, RTP_FRAME_DECOD
 84200cfc:	85 13       	r3 = FP + 56;
 84200cfe:	94 f0 04 88 	r2 = M[r7 + 16];
 84200d02:	a2 f0 14 88 	r0 = M[r8 + 80];
-84200d06:	ff ff 17 f0 	call (m) 0x4003bbc;
-84200d0a:	37 e5 
+84200d06:	ff ff 17 f0 	call (m) 0x4003c0a;
+84200d0a:	25 e8 
 
 84200d0c <Lc_transport_metadata_tag_26>:
         }

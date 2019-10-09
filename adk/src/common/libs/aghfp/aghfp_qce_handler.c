@@ -253,6 +253,7 @@ void aghfpHandleHfCodecSelect(AGHFP *aghfp, AGHFP_INTERNAL_AT_QCS_REQ_T *codec_s
         /* Start Audio now that the Audio params and Qualcom Codec Mode ID are
          * selected.
          */
+        aghfp->audio_connection_state = aghfp_audio_codec_connect;
         MessageSend(&aghfp->task, AGHFP_INTERNAL_AUDIO_CONNECT_REQ, message);
     }
 }

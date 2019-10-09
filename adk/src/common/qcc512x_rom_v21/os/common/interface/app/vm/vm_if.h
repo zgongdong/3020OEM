@@ -126,7 +126,7 @@ typedef enum
     VM_TRANSFORM_PACKETISE_CPENABLE,            /*!< Configure whether copy protect is enabled */
     VM_TRANSFORM_PACKETISE_CODEC,               /*!< The codec to be used for the packetiser */
     VM_TRANSFORM_PACKETISE_SCMS,                /*!< Configure SCMS-T protection level */
-    VM_TRANSFORM_PACKETISE_SAMPLE_RATE,         /*!< Sample rate of the data in the packetiser */
+    VM_TRANSFORM_PACKETISE_SAMPLE_RATE,         /*!< Sample rate of the data in the packetiser (only SBC codec) */
     VM_TRANSFORM_PACKETISE_MTU,                 /*!< MTU of the packetiser packets */
     VM_TRANSFORM_PACKETISE_TIME_BEFORE_TTP,     /*!< Time to transmit packets before TTP (msec) */
     VM_TRANSFORM_PACKETISE_LATEST_TIME_BEFORE_TTP/*!< Latest time possible to transmit packets (msec) */

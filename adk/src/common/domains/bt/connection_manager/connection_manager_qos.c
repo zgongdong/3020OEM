@@ -11,6 +11,7 @@
 
 #include <logging.h>
 #include <panic.h>
+#include <local_addr.h>
 
 static cm_qos_t cm_default_qos;
 static cm_qos_t cm_max_qos;
@@ -180,13 +181,14 @@ void ConManagerRequestDefaultQos(cm_transport_t transport_mask, cm_qos_t qos)
     if(qos > cm_default_qos)
     {
         cm_qos_t qos_to_use;
-        const ble_connection_params* params;
+        ble_connection_params params;
         
         cm_default_qos = qos;
         
         qos_to_use = conManagerGetQosToUse(NULL);
-        params = conManagerGetParamsToUse(qos_to_use);
-        ConnectionDmBleSetConnectionParametersReq(params);
+        params = *conManagerGetParamsToUse(qos_to_use);
+        params.own_address_type = LocalAddr_GetBleType();
+        ConnectionDmBleSetConnectionParametersReq(&params);
     }
 }
 

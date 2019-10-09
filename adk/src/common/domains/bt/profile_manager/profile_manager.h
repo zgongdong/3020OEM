@@ -22,10 +22,13 @@
 #include <domain_message.h>
 #include <task_list.h>
 
+
+#define PROFILE_MANAGER_CLIENT_LIST_INIT_CAPACITY 1
+
 typedef enum
 {
-    profile_manager_failed,
     profile_manager_success,
+    profile_manager_failed,
     profile_manager_cancelled
 } profile_manager_request_cfm_result_t;
 
@@ -80,7 +83,7 @@ typedef struct
 typedef struct
 {
     TaskData                task;                      /*!< Profile Manager task */
-    task_list_t             client_tasks;              /*!< List of tasks interested in Profile Manager indications */
+    TASK_LIST_WITH_INITIAL_CAPACITY(PROFILE_MANAGER_CLIENT_LIST_INIT_CAPACITY)             client_tasks;              /*!< List of tasks interested in Profile Manager indications */
     task_list_with_data_t   pending_connect_reqs;      /*!< List of tasks that are pending connection requests */
     task_list_with_data_t   pending_disconnect_reqs;   /*!< List of tasks that are pending discconnection requests */
 
@@ -91,6 +94,9 @@ extern profile_manager_task_data profile_manager;
 
 /*! Get pointer to Device Management data structure */
 #define ProfileManager_GetTaskData()  (&profile_manager)
+
+/*! Get pointer to Device Management client tasks */
+#define ProfileManager_GetClientTasks()  (task_list_flexible_t *)(&profile_manager.client_tasks)
 
 /*! \brief This contains address of the connect handler of the profile
            being registred which application wants to connect.Internally

@@ -36,8 +36,7 @@
     UI_INPUT(ui_input_button_held_2) \
     UI_INPUT(ui_input_button_held_3) \
     UI_INPUT(ui_input_button_held_4) \
-    UI_INPUT(ui_input_power_off = UI_INPUTS_DEVICE_STATE_MESSAGE_BASE) \
-    UI_INPUT(ui_input_factory_reset_request) \
+    UI_INPUT(ui_input_factory_reset_request = UI_INPUTS_DEVICE_STATE_MESSAGE_BASE) \
     UI_INPUT(ui_input_dfu_active_when_in_case_request) \
     UI_INPUT(ui_input_play_dfu_button_held_tone) \
     UI_INPUT(ui_input_play_factory_reset_tone) \
@@ -76,6 +75,13 @@
     UI_INPUT(ui_input_prompt_pairing_failed) \
     UI_INPUT(ui_input_prompt_connected) \
     UI_INPUT(ui_input_prompt_disconnected) \
+    UI_INPUT(ui_input_va_1 = UI_INPUTS_VOICE_UI_MESSAGE_BASE) \
+    UI_INPUT(ui_input_va_2) \
+    UI_INPUT(ui_input_va_3) \
+    UI_INPUT(ui_input_va_4) \
+    UI_INPUT(ui_input_va_5) \
+    UI_INPUT(ui_input_va_6) \
+    UI_INPUT(ui_input_audio_tuning_mode_toggle) \
     UI_INPUT(ui_input_invalid = UI_INPUTS_BOUNDS_CHECK_MESSAGE_BASE) \
 
 #define GENERATE_ENUM(ENUM) ENUM,
@@ -110,6 +116,7 @@ typedef enum
     ui_provider_sm,
     ui_provider_power,
     ui_provider_audio_curation,
+    ui_provider_voice_ui,
     ui_providers_max
 } ui_providers_t;
 

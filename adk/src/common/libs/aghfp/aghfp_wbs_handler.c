@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2004 - 2015 Qualcomm Technologies International, Ltd.
+Copyright (c) 2004 - 2019 Qualcomm Technologies International, Ltd.
 
 
 FILE NAME
@@ -170,6 +170,7 @@ void aghfpHandleSetAudioParamsReq(AGHFP *aghfp, const AGHFP_INTERNAL_SET_AUDIO_P
 		/* Continue the Codec Connection */
 		aghfpHandleWbsCodecConReqProcessing(aghfp);
 		break;
+	case aghfp_audio_connecting_qce:
 	case aghfp_audio_connecting_esco:
 	case aghfp_audio_connecting_sco:
 	case aghfp_audio_accepting:
@@ -362,6 +363,7 @@ void aghfpHandleCodecNegotiationReq(AGHFP *aghfp, AGHFP_INTERNAL_CODEC_NEGOTIATI
 				aghfp->audio_connection_state = aghfp_audio_codec_connect;
 			} /* Ignore error case for now. */
 			break;
+		case(aghfp_audio_connecting_qce):
 		case(aghfp_audio_connecting_esco):
 		case(aghfp_audio_connecting_sco):
 		case(aghfp_audio_accepting):

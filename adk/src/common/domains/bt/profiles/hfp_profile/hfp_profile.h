@@ -264,6 +264,12 @@ typedef struct
 /*! \brief Get current AG address */
 #define appHfpGetAgBdAddr() (&(appGetHfp()->ag_bd_addr))
 
+/*! \brief Get SLC status notify list */
+#define appHfpGetSlcStatusNotifyList() (task_list_flexible_t *)(&(appGetHfp()->slc_status_notify_list))
+
+/*! \brief Get status notify list */
+#define appHfpGetStatusNotifyList() (task_list_flexible_t *)(&(appGetHfp()->status_notify_list))
+
 /*! \brief Is HFP connected */
 #define appHfpIsConnected() \
     ((appHfpGetState() >= HFP_STATE_CONNECTED_IDLE) && (appHfpGetState() <= HFP_STATE_CONNECTED_ACTIVE))

@@ -189,13 +189,18 @@ typedef struct
 
 } task_list_flexible_t;
 
+/*! Converts integer to sized capacity typedef, pre-expansion */
+#define PRE_EXPANDED_TASK_LIST_WITH_INITIAL_CAPACITY(N) task_list_capacity_##N##_t
+/*! Converts integer to sized capacity typedef */
+#define TASK_LIST_WITH_INITIAL_CAPACITY(N) PRE_EXPANDED_TASK_LIST_WITH_INITIAL_CAPACITY(N)
+
 /*! Declare a Task List structure with capacity to store N tasks.
     Since task_list_t can naturally store 1 task, the length of the flexible_tasks
     array is N-1. */
 #define TASK_LIST_CAPACITY_STRUCT(N) { task_list_t base; Task flexible_tasks[N-1]; }
 
 /*! Task list type that has capacity to store 1 task. */
-typedef struct task_list_t task_list_capacity_1_t;
+typedef task_list_t task_list_capacity_1_t;
 /*! Task list type that has capacity to store 2 tasks. */
 typedef struct TASK_LIST_CAPACITY_STRUCT(2) task_list_capacity_2_t;
 /*! Task list type that has capacity to store 3 tasks. */

@@ -78,7 +78,7 @@ static void stateProxy_UpdateActiveHandsetAddr(void)
         appDeviceGetHandsetBdAddr(&active_handset_addr);
         handset_tws = appDeviceTwsVersion(&active_handset_addr);
     }
-                
+
     /* save active handset addr in local state, will clear to zero if no profiles
      * connected */
     proxy->local_state->handset_addr = active_handset_addr;
@@ -113,7 +113,7 @@ static void stateProxy_GetInitialState(void)
 }
 
 /****************************
- * Handlers for local events 
+ * Handlers for local events
  ****************************/
 /*! \brief Send our initial state to peer when peer signalling is connected. */
 static void stateProxy_HandlePeerSigConnectionInd(const PEER_SIG_CONNECTION_IND_T* ind)
@@ -174,7 +174,7 @@ static void stateProxy_HandleInitialState(const state_proxy_initial_state_t* ini
 }
 
 /*! \brief Handle version message transmitted by state proxy on peer.
- 
+
     \todo Generate hash of the marshal type descriptors and send in the version
           Compare received hash with ours
           Handle version clash failure
@@ -185,7 +185,7 @@ static void stateProxy_HandleRemoteVersion(const state_proxy_version_t* version)
 {
     DEBUG_LOG("stateProxy_HandleRemoteVersion state_proxy_version_t version %u", version->version);
 }
-            
+
 /*******************************************
  * Transmit state proxy marshalled messages
  *******************************************/
@@ -245,7 +245,7 @@ static void stateProxy_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_C
             stateProxy_RemoteFlagIndicationHandler(MARSHAL_TYPE_AV_A2DP_CONNECTED_IND_T, TRUE, ind->msg);
             break;
         case MARSHAL_TYPE_AV_A2DP_DISCONNECTED_IND_T:
-            stateProxy_RemoteFlagIndicationHandler(MARSHAL_TYPE_AV_A2DP_CONNECTED_IND_T, FALSE, ind->msg);
+            stateProxy_RemoteFlagIndicationHandler(MARSHAL_TYPE_AV_A2DP_DISCONNECTED_IND_T, FALSE, ind->msg);
             break;
         case MARSHAL_TYPE_AV_AVRCP_CONNECTED_IND_T:
             stateProxy_RemoteFlagIndicationHandler(MARSHAL_TYPE_AV_AVRCP_CONNECTED_IND_T, TRUE, ind->msg);
@@ -312,7 +312,7 @@ static void stateProxy_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_C
 static void stateProxy_HandleMessage(Task task, MessageId id, Message message)
 {
     UNUSED(task);
-    
+
     switch (id)
     {
             /* marshalled messaging */
@@ -485,7 +485,7 @@ static state_proxy_data_t *stateProxy_createData(void)
 
 /*! \brief Initialise the State Proxy component.
     \param[in] Initialise component task.
-    \return bool 
+    \return bool
 */
 bool StateProxy_Init(Task init_task)
 {
@@ -505,19 +505,19 @@ bool StateProxy_Init(Task init_task)
 
     /* Initialise TaskLists */
     proxy->event_tasks = TaskList_WithDataCreate();
-    proxy->state_proxy_events = TaskList_Create();
+    TaskList_InitialiseWithCapacity(stateProxy_GetEvents(), STATE_PROXY_EVENTS_TASK_LIST_INIT_CAPACITY);
 
     /* start in paused state */
     proxy->paused = TRUE;
 
     /* Register with peer signalling to use the State Proxy msg channel */
-    appPeerSigMarshalledMsgChannelTaskRegister(stateProxy_GetTask(), 
+    appPeerSigMarshalledMsgChannelTaskRegister(stateProxy_GetTask(),
                                                PEER_SIG_MSG_CHANNEL_STATE_PROXY,
                                                state_proxy_marshal_type_descriptors,
                                                NUMBER_OF_MARSHAL_OBJECT_TYPES);
 
     /* get notification of peer signalling availability to send initial state to peer */
-    appPeerSigClientRegister(stateProxy_GetTask()); 
+    appPeerSigClientRegister(stateProxy_GetTask());
 
     /* register for notifications this component is interested in */
     ConManagerRegisterTpConnectionsObserver(cm_transport_bredr, stateProxy_GetTask());
@@ -540,7 +540,7 @@ bool StateProxy_Init(Task init_task)
 void StateProxy_EventRegisterClient(Task client_task, state_proxy_event_type event_mask)
 {
     state_proxy_task_data_t *proxy = stateProxy_GetTaskData();
-    
+
     if (!TaskList_IsTaskOnList(proxy->event_tasks, client_task))
     {
         task_list_data_t data = {0};
@@ -567,7 +567,7 @@ void StateProxy_EventUnregisterClient(Task client_task, state_proxy_event_type e
 {
     state_proxy_task_data_t *proxy = stateProxy_GetTaskData();
     task_list_data_t* data = NULL;
-    
+
     /* clear the events in the event_mask for the client_task
      * if no events are left registered then remove the task from the list. */
     if (TaskList_GetDataForTaskRaw(proxy->event_tasks, client_task, &data))
@@ -585,8 +585,7 @@ void StateProxy_EventUnregisterClient(Task client_task, state_proxy_event_type e
 /*! \brief Register for events concerning state proxy itself. */
 void StateProxy_StateProxyEventRegisterClient(Task client_task)
 {
-    state_proxy_task_data_t *proxy = stateProxy_GetTaskData();
-    TaskList_AddTask(proxy->state_proxy_events, client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(stateProxy_GetEvents()), client_task);
 }
 
 /*! \brief Send current device state to peer to initialise event baseline, and enable event forwarding. */
@@ -652,7 +651,7 @@ void StateProxy_Stop(void)
 }
 
 /*************************
- * State Access Functions 
+ * State Access Functions
  *************************/
 
 /*! \brief A table defining each state/flag accessor function.
@@ -705,7 +704,7 @@ void StateProxy_GetLocalAndRemoteBatteryLevels(uint16 *battery_level, uint16 *pe
     *peer_battery_level = stateProxy_GetRemoteData()->battery_voltage;
 }
 
-void StateProxy_GetLocalAndRemoteBatteryStates(battery_level_state *battery_state, 
+void StateProxy_GetLocalAndRemoteBatteryStates(battery_level_state *battery_state,
                                                battery_level_state *peer_battery_state)
 {
     *battery_state = appBatteryGetState();

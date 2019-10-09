@@ -11,6 +11,10 @@ typedef uint8 bitserial_handle;
 
 /** Bitserial transfer handle. */
 typedef uint16 bitserial_transfer_handle;
+/** Special value of Bitserial transfer handle for non-valid handles, it is
+ * never returned by BitserialTransfer trap.*/
+#define BITSERIAL_TRANSFER_HANDLE_NONE ((bitserial_transfer_handle)0)
+
 /** Special value to be passed into BitserialTransfer, BitserialWrite,
  * BitserialRead for bitserial_transfer_handle *transfer_handle_ptr when
  * Bitserial message on completion is not requested. */

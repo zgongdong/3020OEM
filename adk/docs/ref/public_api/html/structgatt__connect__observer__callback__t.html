@@ -73,7 +73,7 @@ $(document).ready(function(){initNavTree('structgatt__connect__observer__callbac
 <p><code>#include &lt;gatt_connect.h&gt;</code></p>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Callback structure used when an observer registers with the GATT connect module.</p>
-<p>A callback is used here (instead of TaskList), to ensure that the connection indications are delivered before any server access messages. All callback functions MUST be supplied when an observer registers. It is assumed an observer will need to know about connections and disconnections. </p>
+<p>A callback is used here (instead of TaskList), to ensure that the connection indications are delivered before any server access messages. The connections and disconnection callback functions MUST be supplied when an observer registers. The disconnect requested callback is optional for those observers that must do some additional processing before calling the response callback to say that GATT disconnection can proceed. It is assumed an observer will need to know about connections and disconnections. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

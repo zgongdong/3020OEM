@@ -777,6 +777,17 @@ bool A2dpDeviceManageLinkloss (uint8 device_id, bool enable);
 bool A2dpDeviceIsInLinkloss (uint16 device_id);
 
 /*!
+    @brief Set the client task for the given device_id.
+
+    @param device_id The identifier of the remote device.
+    @param new_task New client task to receive messages from A2DP library.
+
+    The call to A2dpSetAppTask will, on success, return immediately with TRUE if device_id is valid and able to set clientTask
+    If the device_id provided is not valid, the function will return FALSE.
+*/
+bool A2dpSetAppTask (uint8 device_id, Task new_task);
+
+/*!
     @brief An unsolicited message sent when a remote device attempts to establish a Signalling channel.
 
     This message indicates the device attempting to establish connection.

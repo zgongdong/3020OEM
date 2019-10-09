@@ -66,6 +66,7 @@ $(document).ready(function(){initNavTree('structpairing_task_data.html','');});
 <div id="doc-content">
 <div class="header">
   <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
 <div class="title">pairingTaskData Struct Reference</div>  </div>
@@ -74,12 +75,15 @@ $(document).ready(function(){initNavTree('structpairing_task_data.html','');});
 
 <p><code>#include &lt;pairing.h&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a172ad64e734b13e995feaf0e4791c2c0"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a172ad64e734b13e995feaf0e4791c2c0">TASK_LIST_WITH_INITIAL_CAPACITY</a> (PAIRING_CLIENT_TASK_LIST_INIT_CAPACITY) client_list</td></tr>
+<tr class="separator:a172ad64e734b13e995feaf0e4791c2c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
 <tr class="memitem:a9e0f672dce30fb94f2c8c55344cad43e"><td class="memItemLeft" align="right" valign="top">pairingBlePermission&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a9e0f672dce30fb94f2c8c55344cad43e">ble_permission</a></td></tr>
 <tr class="separator:a9e0f672dce30fb94f2c8c55344cad43e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a408028dcff9a33d94bad8ed9a56bfdf3"><td class="memItemLeft" align="right" valign="top">task_list_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a408028dcff9a33d94bad8ed9a56bfdf3">client_list</a></td></tr>
-<tr class="separator:a408028dcff9a33d94bad8ed9a56bfdf3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a23352cbf0297d99ec681013fe17c5c2c"><td class="memItemLeft" align="right" valign="top">Task&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a23352cbf0297d99ec681013fe17c5c2c">client_task</a></td></tr>
 <tr class="separator:a23352cbf0297d99ec681013fe17c5c2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af862c5a69785b2cb0faca53ac32d205a"><td class="memItemLeft" align="right" valign="top">bdaddr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#af862c5a69785b2cb0faca53ac32d205a">device_to_pair_with_bdaddr</a></td></tr>
@@ -88,6 +92,8 @@ Data Fields</h2></td></tr>
 <tr class="separator:af96360593f8099c27655af195e124955"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed8327fe8f3618f4b328e09c4d04546d"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#aed8327fe8f3618f4b328e09c4d04546d">outstanding_peer_sig_req</a></td></tr>
 <tr class="separator:aed8327fe8f3618f4b328e09c4d04546d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75f7dcfc4e1479cf5dce1700c2b8198f"><td class="memItemLeft" align="right" valign="top">Task&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a75f7dcfc4e1479cf5dce1700c2b8198f">pair_le_task</a></td></tr>
+<tr class="separator:a75f7dcfc4e1479cf5dce1700c2b8198f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4278561b04d13616d95b83f2b736ba65"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a4278561b04d13616d95b83f2b736ba65">pairing_lock</a></td></tr>
 <tr class="separator:a4278561b04d13616d95b83f2b736ba65"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a45f6366895472501b6944735e1ef84f4"><td class="memItemLeft" align="right" valign="top">typed_bdaddr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpairing_task_data.html#a45f6366895472501b6944735e1ef84f4">pending_ble_address</a></td></tr>
@@ -101,7 +107,25 @@ Data Fields</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Pairing task structure </p>
-</div><h2 class="groupheader">Field Documentation</h2>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a172ad64e734b13e995feaf0e4791c2c0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">TASK_LIST_WITH_INITIAL_CAPACITY </td>
+          <td>(</td>
+          <td class="paramtype">PAIRING_CLIENT_TASK_LIST_INIT_CAPACITY&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>client list that the pairing module shall send indication messages to </p>
+
+</div>
+</div>
+<h2 class="groupheader">Field Documentation</h2>
 <a class="anchor" id="a9e0f672dce30fb94f2c8c55344cad43e"></a>
 <div class="memitem">
 <div class="memproto">
@@ -112,19 +136,6 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>How to handle BLE pairing </p>
-
-</div>
-</div>
-<a class="anchor" id="a408028dcff9a33d94bad8ed9a56bfdf3"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">task_list_t* client_list</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>client list that the pairing module shall send indication messages to </p>
 
 </div>
 </div>
@@ -177,6 +188,19 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Number of unacknowledged peer signalling msgs </p>
+
+</div>
+</div>
+<a class="anchor" id="a75f7dcfc4e1479cf5dce1700c2b8198f"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Task pair_le_task</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Client task for concurrent BLE handset pairing </p>
 
 </div>
 </div>

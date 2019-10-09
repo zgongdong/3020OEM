@@ -84,6 +84,19 @@ typedef enum
 
     tws_topology_procedure_clean_connections,
 
+    /*! Procedure to release the lock on ACL to the peer and 
+        (potentially) start closing the connection */
+    tws_topology_procedure_release_peer,
+
+    tws_topology_procedure_handover,
+    tws_topology_procedure_handover_entering_case,
+    tws_topology_procedure_handover_entering_case_timeout,
+
+    tws_topology_procedure_command_role_switch,
+    tws_topology_procedure_wait_peer_link_drop,
+    tws_topology_procedure_secondary_forced_role_switch,
+    tws_topology_procedure_primary_forced_role_switch,
+
 } tws_topology_procedure;
 
 /*! Callback used by procedure to indicate it has started. */

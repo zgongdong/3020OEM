@@ -12,6 +12,11 @@
 
 #include <marshal.h>
 
+typedef struct state_proxy_msg_empty_payload
+{
+    state_proxy_event_type type;
+} state_proxy_msg_empty_payload_t;
+
 /*! \brief Get flags state for initial state message. */
 void stateProxy_GetInitialFlags(void);
 

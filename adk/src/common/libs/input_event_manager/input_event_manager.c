@@ -31,8 +31,7 @@ static void enterAction(InputEventState_t *state,
         if (input_action->repeat)
         {
             state->repeat = input_action;
-            MessageSendLater(&state->task, IEM_INTERNAL_REPEAT_TIMER,
-                             0, input_action->repeat);
+            MessageSendLater(&state->task, IEM_INTERNAL_REPEAT_TIMER, 0, input_action->repeat);
         }
         else
             state->repeat = 0;
@@ -51,6 +50,39 @@ static void enterAction(InputEventState_t *state,
     }
 }
 
+static void releaseAction(InputEventState_t *state,
+                        const InputActionMessage_t *input_action,
+                        input_event_bits_t input_event_bits)
+{
+    bool prev_bit_state_is_high = (input_action->bits == (state->input_event_bits & input_action->mask));
+    bool bit_state_is_low = (input_action->bits != (input_event_bits & input_action->mask));
+
+    if (prev_bit_state_is_high && bit_state_is_low)
+    {
+        MessageSend(state->client, input_action->message, 0);
+    }
+}
+
+static void heldActionButtonDownAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    /* Send a pointer to this input_action as part of the timer message so that it
+     * can be handled when the timeout expired
+     */
+    const InputActionMessage_t **m = PanicUnlessNew(const InputActionMessage_t *);
+    *m = input_action;
+    
+    MessageSendLater(&state->task, IEM_INTERNAL_HELD_TIMER, m, input_action->timeout);
+}
+
+static void heldActionButtonReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{    
+    UNUSED(input_action);
+
+    /* Cancel any active held or repeat timers. */
+    if (!MessageCancelAll(&state->task, IEM_INTERNAL_HELD_TIMER))
+        (void)MessageCancelAll(&state->task, IEM_INTERNAL_REPEAT_TIMER);
+}
+
 /* There can be 1+ held action/messages on the same PIO */
 static void heldAction(InputEventState_t *state,
                        const InputActionMessage_t *input_action,
@@ -58,106 +90,134 @@ static void heldAction(InputEventState_t *state,
 {
     /* If all the PIO, for the msg, are 'on'... */
     if (input_action->bits == (input_event_bits & input_action->mask))
-    {
-        /* Send a pointer to this input_action as part of the timer message so that it
-         * can be handled when the timeout expired
-         */
-        const InputActionMessage_t **m = PanicUnlessNew(const InputActionMessage_t *);
-        *m = input_action;
+        heldActionButtonDownAction(state, input_action);
+    else if (input_action->bits == (state->input_event_bits & input_action->mask) && input_action->bits != (input_event_bits & input_action->mask))
+        heldActionButtonReleaseAction(state, input_action);
+}
 
-        MessageSendLater(&state->task, IEM_INTERNAL_HELD_TIMER,
-                         m, input_action->timeout);
-    }
-    /* If any of the bits are turned off...
-     */
-    else if (input_action->bits == (state->input_event_bits & input_action->mask) &&
-             input_action->bits != (input_event_bits & input_action->mask))
+static void singleClickFirstReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    const InputActionMessage_t **m = PanicUnlessNew(const InputActionMessage_t *);
+    *m = input_action;
+    /* The first release detected, start the timer and attach the single click event */
+    IEM_DEBUG(("Starting single click timer, %p", input_action));
+    MessageSendLater(&state->task, IEM_INTERNAL_SINGLE_CLICK_TIMER, (void*)m, SINGLE_CLICK_TIMEOUT);
+    state->single_click_tracker.short_press |= input_action->bits;
+}
+
+static void singleClickSecondReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    /* This is a double click, so cancel the single click event */
+    MessageCancelAll(&state->task, IEM_INTERNAL_SINGLE_CLICK_TIMER);
+    state->single_click_tracker.short_press &= ~(input_action->bits);
+}
+
+static void singleClickAction(InputEventState_t *state,
+                              const InputActionMessage_t *input_action,
+                              input_event_bits_t input_event_bits)
+{
+    bool prev_bit_state_is_high = (input_action->bits == (state->input_event_bits & input_action->mask));
+    bool bit_state_is_low = (input_action->bits != (input_event_bits & input_action->mask));
+    bool single_press_already_detected = (input_action->bits == (state->single_click_tracker.short_press & input_action->mask ));
+    bool held_release_detected = (input_action->bits == (state->single_click_tracker.long_press & input_action->mask ));
+                                
+    if (prev_bit_state_is_high && bit_state_is_low)
     {
-        /* Cancel any active held or repeat timers. */
-        if (!MessageCancelAll(&state->task, IEM_INTERNAL_HELD_TIMER))
-            (void)MessageCancelAll(&state->task, IEM_INTERNAL_REPEAT_TIMER);
+        if(held_release_detected)
+        {
+            /* A held release has been detected, do not process a single click.
+             * Clear the single click tracker */
+            state->single_click_tracker.short_press &= ~(input_action->bits);
+            state->single_click_tracker.long_press &= ~(input_action->bits);
+        }
+        else
+        {
+            if(single_press_already_detected)
+                singleClickSecondReleaseAction(state, input_action);
+            else
+                singleClickFirstReleaseAction(state, input_action);
+        }
     }
 }
 
-static void heldReleaseAction(InputEventState_t *state,
-                              const InputActionMessage_t *input_action,
-                              input_event_bits_t input_event_bits)
+static void heldReleaseButtonDownAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    const InputActionMessage_t **m = PanicUnlessNew(const InputActionMessage_t *);
+    *m = input_action;
+    
+    MessageSendLater(&state->task, IEM_INTERNAL_HELD_RELEASE_TIMER, (void*)m, input_action->timeout);
+    state->held_release = 0;
+}
+
+static void heldReleaseButtonReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    (void) MessageCancelAll(&state->task, IEM_INTERNAL_HELD_RELEASE_TIMER);
+
+    if (state->held_release == input_action)
+        /* If an action message was registered, it means that the
+        * held_release timer has expired and hence send the
+        * message */
+    {
+        state->held_release = 0;
+        MessageSend(state->client, input_action->message, 0);
+    }
+}
+
+static void heldReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action, input_event_bits_t input_event_bits)
 {
     /* If all the bits, for the msg, are 'on' then ...
      */
     if (input_action->bits == (input_event_bits & input_action->mask))
-    {
-        const InputActionMessage_t **m = PanicUnlessNew(const InputActionMessage_t *);
-        *m = input_action;
+        heldReleaseButtonDownAction(state, input_action);
 
-        MessageSendLater(&state->task,
-                    IEM_INTERNAL_HELD_RELEASE_TIMER,
-                    (void*)m,
-                    input_action->timeout
-                    );
+    else if (input_action->bits == (state->input_event_bits & input_action->mask) && input_action->bits != (input_event_bits & input_action->mask))
+        heldReleaseButtonReleaseAction(state, input_action);
 
-        state->held_release = 0;
-    }
-    /* Otherwise, if the PIO were on but now changed to off...
-     */
-    else if (input_action->bits == (state->input_event_bits & input_action->mask) &&
-             input_action->bits != (input_event_bits & input_action->mask))
-    {
-        if (!state->held_release)
-            /* If no action message was registered for held_release yet,
-            * it means the pio was released before the held_release timer
-            * was expired.*/
-        {
-            /* Cancel any active held_release timers. */
-            (void) MessageCancelAll(&state->task,
-                                    IEM_INTERNAL_HELD_RELEASE_TIMER);
-        }
-        else if (state->held_release == input_action)
-            /* If an action message was registered, it means that the
-            * held_release timer has expired and hence send the
-            * message */
-        {
-            state->held_release = 0;
-            MessageSend(state->client, input_action->message, 0);
-
-            /* Now that held_release message is issued, supress
-            * future release messages */
-            state->input_event_release_disabled |= input_action->bits;
-        }
-    }
 }
 
-static void doubleAction(InputEventState_t *state,
+static void doubleClickFirstReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    const InputActionMessage_t **m = PanicUnlessNew(const InputActionMessage_t *);
+    *m = input_action;
+    /* This is the first press, make a note */
+    state->double_click_tracker.short_press |= (input_action->bits);
+    MessageSendLater(&state->task, IEM_INTERNAL_DOUBLE_CLICK_TIMER, (void*)m, SINGLE_CLICK_TIMEOUT);
+}
+
+static void doubleClickSecondReleaseAction(InputEventState_t *state, const InputActionMessage_t *input_action)
+{
+    /* This a double click, send the event and remove any valid event from the single click queue */
+    MessageSend(state->client, input_action->message, NULL);
+    MessageCancelAll(&state->task, IEM_INTERNAL_SINGLE_CLICK_TIMER);
+    state->double_click_tracker.short_press &= ~(input_action->bits);
+}
+
+static void doubleClickAction(InputEventState_t *state,
                          const InputActionMessage_t *input_action,
                          input_event_bits_t input_event_bits)
 {
-    /* if the Pio has changed to On... */
-    if (input_action->bits == (input_event_bits & input_action->mask))
+    bool prev_bit_state_is_high = (input_action->bits == (state->input_event_bits & input_action->mask));
+    bool bit_state_is_low = (input_action->bits != (input_event_bits & input_action->mask));
+    bool single_press_detected = (input_action->bits == (state->double_click_tracker.short_press & input_action->mask ));
+    bool held_release_detected = (input_action->bits == (state->double_click_tracker.long_press & input_action->mask ));
+                                
+    if (prev_bit_state_is_high && bit_state_is_low)
     {
-        /* If this input_action is the same as the stored input_action then this must be
-         * the second button tap.
-         */
-        if (state->double_tap == input_action)
+        if(held_release_detected)
         {
-            /* if the double tap timer is running then send the message
-             * (the condition check will cancel the timer).
-             */
-            if (MessageCancelAll(&state->task, IEM_INTERNAL_DOUBLE_TIMER))
-                MessageSend(state->client, input_action->message, 0);
-
-            /* Regardless of if the timer was running, clear the stored input_action */
-            state->double_tap = 0;
+            /* A held release has been detected, do not process a double click.
+             * Clear the double click tracker */
+            state->double_click_tracker.short_press &= ~(input_action->bits);
+            state->double_click_tracker.long_press &= ~(input_action->bits);
         }
-        /* Otherwise, this must be the first tap so store the input_action and start
-         * the Double Tap timer.
-         */
         else
         {
-            state->double_tap = input_action;
-            MessageSendLater(&state->task, IEM_INTERNAL_DOUBLE_TIMER,
-                             NULL, input_action->timeout);
+             if(single_press_detected)
+                doubleClickSecondReleaseAction(state, input_action);
+            else
+                doubleClickFirstReleaseAction(state, input_action);
         }
-    }
+    }  
 }
 
 static void inputEventsChanged(InputEventState_t *state, input_event_bits_t input_event_bits)
@@ -180,21 +240,17 @@ static void inputEventsChanged(InputEventState_t *state, input_event_bits_t inpu
                     enterAction(state, input_action, input_event_bits);
                     break;
 
-                /* Only a release if the PIO were previously on and now
-                    have been turned off, and a release message was not
-                    to be supressed */
                 case RELEASE:
-                {
-                    bool prev_bit_state_is_high = (input_action->bits == (state->input_event_bits & input_action->mask));
-                    bool bit_state_is_low = (input_action->bits != (input_event_bits & input_action->mask));
-                    bool bit_release_msg_is_active = (input_action->bits != (state->input_event_release_disabled & input_action->mask ));
-                    if (prev_bit_state_is_high && bit_state_is_low && bit_release_msg_is_active)
-                        MessageSend(state->client, input_action->message, 0);
-
-                    /* Re-enable Release messages for the next release action */
-                    state->input_event_release_disabled &= ~(input_action->bits);
-                }
-                break;
+                    releaseAction(state, input_action, input_event_bits);
+                    break;
+                
+                case SINGLE_CLICK:
+                    singleClickAction(state, input_action, input_event_bits);
+                    break;
+                
+                case DOUBLE_CLICK:
+                    doubleClickAction(state, input_action, input_event_bits);
+                    break;
 
                 case HELD:
                     heldAction(state, input_action, input_event_bits);
@@ -202,10 +258,6 @@ static void inputEventsChanged(InputEventState_t *state, input_event_bits_t inpu
 
                 case HELD_RELEASE:
                     heldReleaseAction(state, input_action, input_event_bits);
-                    break;
-
-                case DOUBLE:
-                    doubleAction(state, input_action, input_event_bits);
                     break;
 
                 default:
@@ -287,7 +339,7 @@ static void handleMessagePioChangedClients(InputEventState_t *state, const Messa
 static void pioHandler(Task task, MessageId id, Message message)
 {
     InputEventState_t *state = (InputEventState_t *)task;
-
+    
     switch (id)
     {
         case MESSAGE_PIO_CHANGED:
@@ -305,14 +357,14 @@ static void pioHandler(Task task, MessageId id, Message message)
             const InputActionMessage_t **m = (const InputActionMessage_t **)message;
             const InputActionMessage_t *input_action = *m;
 
+            /* Keep the trackers informed that this is now a held release */
+            state->single_click_tracker.long_press |= (input_action->bits);
+            state->double_click_tracker.long_press |= (input_action->bits);
+            
             MessageSend(state->client, input_action->message, NULL);
 
             /* Cancel any existing repeat timer that may be running */
             (void)MessageCancelAll(&state->task, IEM_INTERNAL_REPEAT_TIMER);
-
-            /* Now that a held message has been issued, suppress future
-               release messages */
-            state->input_event_release_disabled |= input_action->bits;
 
             /* If there is a repeat action start the repeat on this message
                and store the input_action */
@@ -330,7 +382,7 @@ static void pioHandler(Task task, MessageId id, Message message)
         case IEM_INTERNAL_REPEAT_TIMER:
         {
             if (state->repeat)
-            {
+            {    
                 MessageSend(state->client, (state->repeat)->message, NULL);
 
                 /* Start the repeat timer again */
@@ -346,13 +398,32 @@ static void pioHandler(Task task, MessageId id, Message message)
         {
             const InputActionMessage_t **m = (const InputActionMessage_t **)message;
             state->held_release = *m;
+            
+            /* Keep the trackers informed that this is now a held release */
+            state->single_click_tracker.long_press |= ((state->held_release)->bits);
+            state->double_click_tracker.long_press |= ((state->held_release)->bits);
+        }
+        break;
+        
+        case IEM_INTERNAL_SINGLE_CLICK_TIMER:
+        {
+            const InputActionMessage_t **m = (const InputActionMessage_t **)message;
+            const InputActionMessage_t *input_action = *m;
+            
+            IEM_DEBUG(("Sending single click message, %p", input_action));
+            MessageSend(state->client, input_action->message, NULL);
+            state->single_click_tracker.short_press &= ~(input_action->bits);
         }
         break;
 
-        case IEM_INTERNAL_DOUBLE_TIMER:
+        case IEM_INTERNAL_DOUBLE_CLICK_TIMER:
+        {
+            const InputActionMessage_t **m = (const InputActionMessage_t **)message;
+            const InputActionMessage_t *input_action = *m;
             /* Clear the stored input_action */
-            state->double_tap = 0;
-            break;
+            state->double_click_tracker.short_press &= ~(input_action->bits);
+        }
+        break;
 
         default:
             break;

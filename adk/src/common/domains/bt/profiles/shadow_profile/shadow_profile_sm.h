@@ -14,7 +14,6 @@ typedef enum
 {
     SHADOW_PROFILE_SUB_STATE_NONE               = 0x000, /*!< Pre initialisation */
     SHADOW_PROFILE_SUB_STATE_DISCONNECTED       = 0x010, /*!< No peer connected; shadow links will not be created. */
-    SHADOW_PROFILE_SUB_STATE_PEER_CONNECTED     = 0x020, /*!< Peer earbud is connected; shadow links can be created. */
     SHADOW_PROFILE_SUB_STATE_ACL_CONNECTED      = 0x040, /*!< Shadow ACL link connected. */
     SHADOW_PROFILE_SUB_STATE_ESCO_CONNECTED     = 0x080, /*!< Shadow eSCO link connected. */
     SHADOW_PROFILE_SUB_STATE_A2DP_CONNECTED     = 0x100, /*!< Shadow A2DP link connected. */
@@ -27,7 +26,7 @@ typedef enum
     connected and a shadow ACL link to the earbud before it can be created.
 
     The state enum values below represent this by using bitmasks to group
-    states based on whether the peer is connected, shadow ACL is connected,
+    states based on whether the peer is disconnected, shadow ACL is connected,
     and finally if shadow eSCO or shadow A2DP is connected.
 
     Shadow eSCO and shadow A2DP are mutually exclusive operations.
@@ -37,7 +36,7 @@ typedef enum
     one where it is waiting for a reply from the firmware only. Other
     messages should be blocked until the reply has been received.
 
-    A stable state is one  where it is ok to process messages from any origin,
+    A stable state is one where it is ok to process messages from any origin,
     e.g. internal messages (see #shadow_profile_internal_msg_t).
 
     The transition lock is set when going into a transition state. Any
@@ -45,7 +44,6 @@ typedef enum
 
     Stable states
     * SHADOW_PROFILE_STATE_DISCONNECTED
-    * SHADOW_PROFILE_STATE_PEER_CONNECTED
     * SHADOW_PROFILE_STATE_ACL_CONNECTED
     * SHADOW_PROFILE_STATE_ESCO_CONNECTED
     * SHADOW_PROFILE_STATE_A2DP_CONNECTED
@@ -68,19 +66,16 @@ typedef enum
     enum value.
 
     The pseudo-states are:
-    PEER_CONNECTED      SHADOW_PROFILE_SUB_STATE_PEER_CONNECTED (0x10)
-    ACL_CONNECTED       (SHADOW_PROFILE_SUB_STATE_ACL_CONNECTED | PEER_CONNECTED) (0x30)
-    ESCO_CONNECTED      (SHADOW_PROFILE_SUB_STATE_ESCO_CONNECTED | ACL_CONNECTED) (0x70)
-    A2DP_CONNECTED     (SHADOW_PROFILE_SUB_STATE_A2DP_CONNECTED | ACL_CONNECTED) (0xB0)
+    ACL_CONNECTED       (SHADOW_PROFILE_SUB_STATE_ACL_CONNECTED)
+    ESCO_CONNECTED      (SHADOW_PROFILE_SUB_STATE_ESCO_CONNECTED | ACL_CONNECTED)
+    A2DP_CONNECTED     (SHADOW_PROFILE_SUB_STATE_A2DP_CONNECTED | ACL_CONNECTED)
 
     These are mainly used for testing what the sub-state is when the state
-    machine is in a transition state, e.g. ACL_CONNECTING is PEER_CONNECTED
-    because the ACL connection has not completed yet.
+    machine is in a transition state.
 
     @startuml
 
-    state DISCONNECTED : No peer earbud connected
-    state PEER_CONNECTED : Peer earbud is connected
+    state DISCONNECTED : No shadow connection
     state ACL_CONNECTING : Primary initiated shadow ACL connect in progress
     state ACL_CONNECTED : Shadow ACL connected
     state ACL_DISCONNECTING : Primary initiated shadow ACL disconnect in progress
@@ -95,24 +90,21 @@ typedef enum
 
     INITIALISING -d-> DISCONNECTED : SDM_REGISTER_CFM
 
-    DISCONNECTED --> PEER_CONNECTED : Peer ACL connect
+    DISCONNECTED --> ACL_CONNECTING : Create ACL locally
+    DISCONNECTED --> ACL_CONNECTING : Link-loss retry
+    DISCONNECTED --> ACL_CONNECTED : ACL created remotely
 
-    PEER_CONNECTED --> ACL_CONNECTING : Create ACL locally
-    PEER_CONNECTED --> ACL_CONNECTING : Link-loss retry
-    PEER_CONNECTED --> ACL_CONNECTED : ACL created remotely
-    PEER_CONNECTED --> DISCONNECTED : Peer ACL disconnect
-
-    ACL_CONNECTING --> PEER_CONNECTED : Fail
+    ACL_CONNECTING --> DISCONNECTED : Fail
     ACL_CONNECTING --> ACL_CONNECTED : Success
 
     ACL_CONNECTED --> ESCO_CONNECTING : Create eSCO locally
     ACL_CONNECTED --> ESCO_CONNECTING : Link-loss retry
     ACL_CONNECTED --> ESCO_CONNECTED : eSCO created remotely
     ACL_CONNECTED --> ACL_DISCONNECTING : Disconnect ACL locally
-    ACL_CONNECTED --> PEER_CONNECTED : Disconnect ACL remotely
-    ACL_CONNECTED --> PEER_CONNECTED : ACL connection timeout
+    ACL_CONNECTED --> DISCONNECTED : Disconnect ACL remotely
+    ACL_CONNECTED --> DISCONNECTED : ACL connection timeout
 
-    ACL_DISCONNECTING --> PEER_CONNECTED : ACL disconnected
+    ACL_DISCONNECTING --> DISCONNECTED : ACL disconnected
 
     ESCO_CONNECTING --> ACL_CONNECTED : Fail
     ESCO_CONNECTING --> ESCO_CONNECTED : Success
@@ -142,17 +134,13 @@ typedef enum
         /*! Initialised but no shadow connections and peer not connected. */
         SHADOW_PROFILE_STATE_DISCONNECTED               = SHADOW_PROFILE_SUB_STATE_DISCONNECTED,
 
-            /* PEER_CONNECTED sub-state */
-
-            /*! Peer earbud connected. */
-            SHADOW_PROFILE_STATE_PEER_CONNECTED         = SHADOW_PROFILE_SUB_STATE_PEER_CONNECTED,
             /*! Locally initiated shadow ACL connection in progress. */
-            SHADOW_PROFILE_STATE_ACL_CONNECTING         = SHADOW_PROFILE_STATE_PEER_CONNECTED + 1,
+            SHADOW_PROFILE_STATE_ACL_CONNECTING         = SHADOW_PROFILE_STATE_DISCONNECTED + 1,
 
                 /* ACL_CONNECTED sub-state */
 
                 /*! Shadow ACL connected. */
-                SHADOW_PROFILE_STATE_ACL_CONNECTED      = (SHADOW_PROFILE_SUB_STATE_ACL_CONNECTED | SHADOW_PROFILE_STATE_PEER_CONNECTED),
+                SHADOW_PROFILE_STATE_ACL_CONNECTED      = SHADOW_PROFILE_SUB_STATE_ACL_CONNECTED,
                 /*! Locally initiated shadow eSCO connection in progress. */
                 SHADOW_PROFILE_STATE_ESCO_CONNECTING    = SHADOW_PROFILE_STATE_ACL_CONNECTED + 1,
 
@@ -177,7 +165,8 @@ typedef enum
 
 
             /*! Locally initiated shadow ACL disconnect in progress. */
-            SHADOW_PROFILE_STATE_ACL_DISCONNECTING       = SHADOW_PROFILE_STATE_PEER_CONNECTED + 2
+            SHADOW_PROFILE_STATE_ACL_DISCONNECTING       = SHADOW_PROFILE_STATE_DISCONNECTED + 2,
+
 } shadow_profile_state_t;
 
 /*!@{ \name Masks used to check for the sub-state of the state machine. */
@@ -200,7 +189,6 @@ typedef enum
 
 /*! If no other bits are set than those defined in this mask, the state is steady. */
 #define STEADY_STATE_MASK  (SHADOW_PROFILE_SUB_STATE_DISCONNECTED   | \
-                            SHADOW_PROFILE_SUB_STATE_PEER_CONNECTED | \
                             SHADOW_PROFILE_SUB_STATE_ACL_CONNECTED  | \
                             SHADOW_PROFILE_SUB_STATE_ESCO_CONNECTED | \
                             SHADOW_PROFILE_SUB_STATE_A2DP_CONNECTED)

@@ -30,6 +30,7 @@
 #include "scofwd_profile.h"
 #include "earbud_sm.h"
 #include "power_manager.h"
+#include "voice_ui.h"
 
 #include <macros.h>
 
@@ -47,63 +48,69 @@ bool Ui_IsUiInputStringIndexValid(unsigned index)
 /*! \brief ui config table*/
 const ui_config_table_content_t ui_config_table[] =
 {
-    {APP_MFB_BUTTON_PRESS,             ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_voice_call_hang_up                   },
-    {APP_MFB_BUTTON_PRESS,             ui_provider_hfp,             context_hfp_voice_call_sco_inactive,  ui_input_voice_call_hang_up                   },
-    {APP_MFB_BUTTON_PRESS,             ui_provider_hfp,             context_hfp_voice_call_outgoing,      ui_input_voice_call_hang_up                   },
-    {APP_MFB_BUTTON_PRESS,             ui_provider_hfp,             context_hfp_voice_call_incoming,      ui_input_voice_call_accept                    },
-    {APP_MFB_BUTTON_PRESS,             ui_provider_media_player,    context_av_is_streaming,              ui_input_send_toggle                          },
-    {APP_MFB_BUTTON_PRESS,             ui_provider_media_player,    context_av_connected,                 ui_input_send_toggle                          },
-    {APP_MFB_BUTTON_PRESS,             ui_provider_device,          context_handset_not_connected,        ui_input_connect_handset                      },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_voice_call_hang_up                   },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_hfp,             context_hfp_voice_call_sco_inactive,  ui_input_voice_call_hang_up                   },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_hfp,             context_hfp_voice_call_outgoing,      ui_input_voice_call_hang_up                   },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_hfp,             context_hfp_voice_call_incoming,      ui_input_voice_call_accept                    },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_media_player,    context_av_is_streaming,              ui_input_send_toggle                          },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_media_player,    context_av_connected,                 ui_input_send_toggle                          },
+    {APP_MFB_BUTTON_SINGLE_CLICK,      ui_provider_device,          context_handset_not_connected,        ui_input_connect_handset                      },
 
-    {APP_MFB_BUTTON_1_SECOND,          ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_transfer_to_ag                   },
-    {APP_MFB_BUTTON_1_SECOND,          ui_provider_hfp,             context_hfp_voice_call_sco_inactive,  ui_input_hfp_transfer_to_headset              },
-    {APP_MFB_BUTTON_1_SECOND,          ui_provider_hfp,             context_hfp_voice_call_incoming,      ui_input_voice_call_reject                    },
-    {APP_MFB_BUTTON_1_SECOND,          ui_provider_media_player,    context_av_is_streaming,              ui_input_stop_av_connection                   },
+    {APP_MFB_BUTTON_HELD_RELEASE_1SEC, ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_transfer_to_ag                   },
+    {APP_MFB_BUTTON_HELD_RELEASE_1SEC, ui_provider_hfp,             context_hfp_voice_call_sco_inactive,  ui_input_hfp_transfer_to_headset              },
+    {APP_MFB_BUTTON_HELD_RELEASE_1SEC, ui_provider_hfp,             context_hfp_voice_call_incoming,      ui_input_voice_call_reject                    },
+    {APP_MFB_BUTTON_HELD_RELEASE_1SEC, ui_provider_media_player,    context_av_is_streaming,              ui_input_stop_av_connection                   },
 
-    {APP_MFB_BUTTON_HELD_1,            ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_1                        },
-    {APP_MFB_BUTTON_HELD_2,            ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_2                        },
-    {APP_MFB_BUTTON_HELD_3,            ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_3                        },
-#ifdef APP_MFB_BUTTON_HELD_4
-    {APP_MFB_BUTTON_HELD_4,            ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_4                        },
+    {APP_MFB_BUTTON_HELD_1SEC,         ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_1                        },
+    {APP_MFB_BUTTON_HELD_3SEC,         ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_2                        },
+    {APP_MFB_BUTTON_HELD_6SEC,         ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_3                        },
+#ifdef APP_MFB_BUTTON_HELD_8SEC
+    {APP_MFB_BUTTON_HELD_8SEC,         ui_provider_sm,              context_sm_out_of_case,               ui_input_button_held_4                        },
 #endif
     {APP_BUTTON_DFU,                   ui_provider_sm,              context_sm_out_of_case,               ui_input_dfu_active_when_in_case_request      },
     {APP_BUTTON_HELD_DFU,              ui_provider_sm,              context_sm_out_of_case,               ui_input_play_dfu_button_held_tone            },
     {APP_BUTTON_FACTORY_RESET,         ui_provider_sm,              context_sm_out_of_case,               ui_input_factory_reset_request                },
     {APP_BUTTON_HELD_FACTORY_RESET,    ui_provider_sm,              context_sm_out_of_case,               ui_input_play_factory_reset_tone              },
 
-    {APP_MFB_BUTTON_6_SECOND,          ui_provider_sm,              context_sm_out_of_case,               ui_input_sm_pair_handset                      },
-    {APP_MFB_BUTTON_8_SECOND,          ui_provider_sm,              context_sm_out_of_case,               ui_input_sm_delete_handsets                   },
-
-    {APP_BUTTON_POWER_OFF,             ui_provider_power,           context_power_on,                     ui_input_power_off                            },
+    {APP_MFB_BUTTON_HELD_RELEASE_6SEC, ui_provider_sm,              context_sm_out_of_case,               ui_input_sm_pair_handset                      },
+    {APP_MFB_BUTTON_HELD_RELEASE_8SEC, ui_provider_sm,              context_sm_out_of_case,               ui_input_sm_delete_handsets                   },
 
 #if defined(HAVE_6_BUTTONS) || defined(HAVE_9_BUTTONS)
-    {APP_BUTTON_VOLUME_UP_DOWN,        ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
-    {APP_BUTTON_VOLUME_UP_DOWN,        ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_remote_stop           },
-    {APP_BUTTON_VOLUME_UP_DOWN,        ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },
-    {APP_BUTTON_VOLUME_UP_DOWN,        ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_mute_toggle                      },
+    {APP_VA_BUTTON_DOWN,              ui_provider_voice_ui,        context_voice_ui_available,            ui_input_va_1                                 },
+    {APP_VA_BUTTON_SINGLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_available,            ui_input_va_3                                 },
+    {APP_VA_BUTTON_DOUBLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_capture_in_progress,  ui_input_va_4                                 },
+    {APP_VA_BUTTON_HELD_1SEC,         ui_provider_voice_ui,        context_voice_ui_capture_in_progress,  ui_input_va_5                                 },
+    {APP_VA_BUTTON_RELEASE,           ui_provider_voice_ui,        context_voice_ui_available,            ui_input_va_6                                 },
+    {APP_VA_BUTTON_RELEASE,           ui_provider_voice_ui,        context_voice_ui_capture_in_progress,  ui_input_va_6                                 },
+    {APP_VA_BUTTON_SINGLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_idle,                 ui_input_audio_tuning_mode_toggle             },
+    
+    {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
+    {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_remote_stop           },
+    {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },
+    {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_mute_toggle                      },
 
-    {APP_BUTTON_VOLUME_DOWN,           ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_down_start                },
-    {APP_BUTTON_VOLUME_DOWN,           ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_start                 },
-    {APP_BUTTON_VOLUME_DOWN,           ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_down_start                },
+    {APP_BUTTON_VOLUME_DOWN,          ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_down_start                },
+    {APP_BUTTON_VOLUME_DOWN,          ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_start                 },
+    {APP_BUTTON_VOLUME_DOWN,          ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_down_start                },
 
-    {APP_BUTTON_VOLUME_UP,             ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_up_start                  },
-    {APP_BUTTON_VOLUME_UP,             ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_up_start                   },
-    {APP_BUTTON_VOLUME_UP,             ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_up_start                  },
+    {APP_BUTTON_VOLUME_UP,            ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_up_start                  },
+    {APP_BUTTON_VOLUME_UP,            ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_up_start                   },
+    {APP_BUTTON_VOLUME_UP,            ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_up_start                  },
 
-    {APP_BUTTON_VOLUME_DOWN_RELEASE,   ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
-    {APP_BUTTON_VOLUME_DOWN_RELEASE,   ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_remote_stop           },
-    {APP_BUTTON_VOLUME_DOWN_RELEASE,   ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },
+    {APP_BUTTON_VOLUME_DOWN_RELEASE,  ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
+    {APP_BUTTON_VOLUME_DOWN_RELEASE,  ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_remote_stop           },
+    {APP_BUTTON_VOLUME_DOWN_RELEASE,  ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },
 
-    {APP_BUTTON_VOLUME_UP_RELEASE,     ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
-    {APP_BUTTON_VOLUME_UP_RELEASE,     ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_up_remote_stop             },
-    {APP_BUTTON_VOLUME_UP_RELEASE,     ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },
+    {APP_BUTTON_VOLUME_UP_RELEASE,    ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
+    {APP_BUTTON_VOLUME_UP_RELEASE,    ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_up_remote_stop             },
+    {APP_BUTTON_VOLUME_UP_RELEASE,    ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },
 
-    {APP_BUTTON_FORWARD,               ui_provider_media_player,    context_av_is_streaming,              ui_input_av_forward                           },
-    {APP_BUTTON_FORWARD_HELD,          ui_provider_media_player,    context_av_is_streaming,              ui_input_av_fast_forward_start                },
-    {APP_BUTTON_FORWARD_HELD_RELEASE,  ui_provider_media_player,    context_av_is_streaming,              ui_input_fast_forward_stop                    },
-    {APP_BUTTON_BACKWARD,              ui_provider_media_player,    context_av_is_streaming,              ui_input_av_backward                          },
-    {APP_BUTTON_BACKWARD_HELD,         ui_provider_media_player,    context_av_is_streaming,              ui_input_av_rewind_start                      },
-    {APP_BUTTON_BACKWARD_HELD_RELEASE, ui_provider_media_player,    context_av_is_streaming,              ui_input_rewind_stop                          },
+    {APP_BUTTON_FORWARD,              ui_provider_media_player,    context_av_is_streaming,              ui_input_av_forward                           },
+    {APP_BUTTON_FORWARD_HELD,         ui_provider_media_player,    context_av_is_streaming,              ui_input_av_fast_forward_start                },
+    {APP_BUTTON_FORWARD_HELD_RELEASE, ui_provider_media_player,    context_av_is_streaming,              ui_input_fast_forward_stop                    },
+    {APP_BUTTON_BACKWARD,             ui_provider_media_player,    context_av_is_streaming,              ui_input_av_backward                          },
+    {APP_BUTTON_BACKWARD_HELD,        ui_provider_media_player,    context_av_is_streaming,              ui_input_av_rewind_start                      },
+    {APP_BUTTON_BACKWARD_HELD_RELEASE,ui_provider_media_player,    context_av_is_streaming,              ui_input_rewind_stop                          },
 #endif /* HAVE_6_BUTTONS || HAVE_9_BUTTONS */
 };
 

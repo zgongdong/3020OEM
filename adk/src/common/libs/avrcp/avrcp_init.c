@@ -176,7 +176,7 @@ void avrcpInitDefaults( AVRCP       *avrcp,
 *DESCRIPTION
 *  Add the AVRCP Task to the list.
 ******************************************************************************/
-static void avrcpAddTaskToList(AVRCP *avrcp, const bdaddr *bd_addr)
+void avrcpAddTaskToList(AVRCP *avrcp, const bdaddr *bd_addr)
 {
     avrcpList *newList;
 
@@ -538,14 +538,32 @@ void avrcpHandleDeleteTask(AVRCP *avrcp)
 *   Obtain the AVRCP profile instance using Bluetooth address of 
 *   the remote device. 
 *****************************************************************************/
-bool AvrcpGetInstanceFromBdaddr (const bdaddr *bd_addr, AVRCP *avrcp)
+bool AvrcpGetInstanceFromBdaddr (const bdaddr *bd_addr, AVRCP **avrcp)
 {
-    avrcp = avrcpFindTask(bd_addr);
+    *avrcp = avrcpFindTask(bd_addr);
 
-    if (avrcp)
+    if (*avrcp)
     {
         return TRUE;
     }
-    return FALSE;        
+    return FALSE;
+}
+
+/****************************************************************************
+*NAME
+*   AvrcpSetAppTask
+*
+*DESCRIPTION
+*   Set a new application task.
+*****************************************************************************/
+Task AvrcpSetAppTask(AVRCP *avrcp, Task new_task)
+{
+    Task existing = NULL;
+    if (avrcp)
+    {
+        existing = avrcp->clientTask;
+        avrcp->clientTask = new_task;
+    }
+    return existing;
 }
 

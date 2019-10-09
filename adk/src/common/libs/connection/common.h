@@ -16,26 +16,8 @@ DESCRIPTION
 #include <app/bluestack/bluetooth.h>
 #include <app/bluestack/hci.h>
 #include <app/bluestack/dm_prim.h>
-#ifdef RFC_LINK_TRANSFERRED
-#undef RFC_LINK_TRANSFERRED
-#endif
 #include <app/bluestack/rfcomm_prim.h>
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
 #include <app/bluestack/l2cap_prim.h>
-
-#ifdef RFC_LINK_TRANSFERRED
-#undef RFC_LINK_TRANSFERRED
-#endif
-
-#define RFC_LINK_TRANSFERRED 0xFF
-
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
-
-#define L2CA_DISCONNECT_LINK_TRANSFERRED 0xFF
 
 /****************************************************************************
 NAME    

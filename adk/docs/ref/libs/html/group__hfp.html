@@ -359,6 +359,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="memitem:gaee7ce2ca8230bd3d077fa379d390e75a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hfp.html#gaee7ce2ca8230bd3d077fa379d390e75a">HfpNetworkOperatorRequest</a> (<a class="el" href="group__hfp.html#ga6d5fb3cc9974030b0ef7ce93753f9f1c">hfp_link_priority</a> priority)</td></tr>
 <tr class="memdesc:gaee7ce2ca8230bd3d077fa379d390e75a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the network operator for the AG.  <a href="#gaee7ce2ca8230bd3d077fa379d390e75a">More...</a><br /></td></tr>
 <tr class="separator:gaee7ce2ca8230bd3d077fa379d390e75a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab3b663d60334ae4cfa773390a8c156d7"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hfp.html#gab3b663d60334ae4cfa773390a8c156d7">HfpOverideSinkBdaddr</a> (const bdaddr *bd_addr, Sink sink)</td></tr>
+<tr class="memdesc:gab3b663d60334ae4cfa773390a8c156d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Overrides the Audio Sink of the specified link and 'stitches' it in. I.e. Initializes the DM Sync connection context for the relevant SCO handle, stitch the SCO sink and the task and configure SCO sink messages.  <a href="#gab3b663d60334ae4cfa773390a8c156d7">More...</a><br /></td></tr>
+<tr class="separator:gab3b663d60334ae4cfa773390a8c156d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4975a158c6fd78c938ad50a8251f6470"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hfp.html#ga4975a158c6fd78c938ad50a8251f6470">HfpResponseHoldActionRequest</a> (<a class="el" href="group__hfp.html#ga6d5fb3cc9974030b0ef7ce93753f9f1c">hfp_link_priority</a> priority, <a class="el" href="group__hfp.html#ga2012b92f3a474cb3035566adb878339f">hfp_btrh_action</a> action)</td></tr>
 <tr class="memdesc:ga4975a158c6fd78c938ad50a8251f6470"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a BTRH command to the AG to perform a given response and hold command.  <a href="#ga4975a158c6fd78c938ad50a8251f6470">More...</a><br /></td></tr>
 <tr class="separator:ga4975a158c6fd78c938ad50a8251f6470"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -481,6 +484,9 @@ INTRODUCTION</h1>
 </td></tr>
 <tr><td class="fieldname"><a class="anchor" id="ggaca7d99c101fde4d531106e4a16579d24a8345411092bb11a73a34a88a78619ed7"></a>hfp_audio_disconnect_error&#160;</td><td class="fielddoc">
 <p>Unsuccessful due to library being in incorrect state. </p>
+</td></tr>
+<tr><td class="fieldname"><a class="anchor" id="ggaca7d99c101fde4d531106e4a16579d24a0250184de17a29fbe484cbc9b3b1ec83"></a>hfp_audio_disconnect_transferred&#160;</td><td class="fielddoc">
+<p>Disconnected due to the connection being transferred. </p>
 </td></tr>
 </table>
 
@@ -2453,6 +2459,44 @@ INTRODUCTION</h1>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a class="anchor" id="gab3b663d60334ae4cfa773390a8c156d7"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool HfpOverideSinkBdaddr </td>
+          <td>(</td>
+          <td class="paramtype">const bdaddr *&#160;</td>
+          <td class="paramname"><em>bd_addr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Sink&#160;</td>
+          <td class="paramname"><em>sink</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="hfp_8h.html">hfp/hfp.h</a>&gt;</code></p>
+
+<p>Overrides the Audio Sink of the specified link and 'stitches' it in. I.e. Initializes the DM Sync connection context for the relevant SCO handle, stitch the SCO sink and the task and configure SCO sink messages. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">bd_addr</td><td>address of the link to override the audio sink </td></tr>
+    <tr><td class="paramname">sink</td><td>new sink</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if sink successfully changed. </dd></dl>
 
 </div>
 </div>

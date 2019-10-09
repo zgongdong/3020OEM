@@ -81,6 +81,9 @@
 #ifdef INSTALL_OPERATOR_CONVERT_FROM_AUDIO
 #include "convert_from_audio/conv_from_audio.h"
 #endif
+#ifdef INSTALL_OPERATOR_CONVERT_TO_AUDIO
+#include "convert_to_audio/conv_to_audio.h"
+#endif
 
 
 #if defined(INSTALL_OPERATOR_APTX_CLASSIC_DECODE)      || \
@@ -243,6 +246,9 @@ const CAPABILITY_DATA* const capability_data_table[] = {
 #endif
 #ifdef INSTALL_OPERATOR_CONVERT_FROM_AUDIO
     &convert_from_audio_cap_data,
+#endif
+#ifdef INSTALL_OPERATOR_CONVERT_TO_AUDIO
+    &convert_to_audio_cap_data,
 #endif
 
 #ifdef INSTALL_OPERATOR_AAC_SHUNT_DECODER

@@ -7267,7 +7267,7 @@ typedef struct
     BD_ADDR_T                 adv_addr;
     uint16_t                  skip;
     uint16_t                  sync_timeout;
-    uint8_t                   unused_;
+    uint8_t                   sync_cte_type;
 } HCI_ULP_PS_CREATE_PA_SYNC_T;
 
 /*----------------------------------------------------------------------------*
@@ -7368,9 +7368,9 @@ typedef struct
 typedef struct
 {
     HCI_COMMAND_COMMON_T      common;
-    uint16_t                  sync_handle;
-    uint16_t                  service_data;
     hci_connection_handle_t   connection_handle;
+    uint16_t                  service_data;
+    uint16_t                  sync_handle;
 } HCI_ULP_PA_SYNC_TRANSFER_T;
 
 /*----------------------------------------------------------------------------*
@@ -7381,9 +7381,9 @@ typedef struct
 typedef struct
 {
     HCI_COMMAND_COMMON_T      common;
-    uint8_t                   adv_handle;
-    uint16_t                  service_data;
     hci_connection_handle_t   connection_handle;
+    uint16_t                  service_data;
+    uint8_t                   adv_handle;
 } HCI_ULP_PA_SET_INFO_TRANSFER_T;
 
 /*----------------------------------------------------------------------------*
@@ -8965,7 +8965,7 @@ typedef struct
     uint16_t                  sync_handle;
     uint8_t                   tx_power;
     uint8_t                   rssi;
-    uint8_t                   unused_;
+    uint8_t                   cte_type;
     uint8_t                   data_status;
     uint8_t                   data_length;
     uint8_t                  *data[HCI_ULP_EV_PERIODIC_DATA_PTRS];
@@ -9036,8 +9036,8 @@ typedef struct
     uint8_t                   status;
     hci_connection_handle_t   connection_handle;
     uint16_t                  service_data;
-    uint8_t                   adv_sid;
     uint16_t                  sync_handle;
+    uint8_t                   adv_sid;
     uint8_t                   adv_addr_type;
     BD_ADDR_T                 adv_addr;
     uint8_t                   adv_phy;

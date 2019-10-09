@@ -1144,14 +1144,8 @@ bool usb_audio_opmsg_set_ttp_params(OPERATOR_DATA *op_data, void *message_data,
     {
         return FALSE;
     }
+
     ttp_get_msg_params(&params, message_data);
-
-    if(usb_audio_data->op_configured &&
-       params.nominal_sample_rate != usb_audio_data->sample_rate)
-    {
-        return FALSE;
-    }
-
     ttp_configure_params(usb_audio_data->time_to_play, &params);
 
     return TRUE;

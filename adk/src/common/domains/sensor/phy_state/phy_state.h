@@ -49,6 +49,9 @@ will be performed during the transition." as N1
     @enduml
 */
 
+/*! Defines physical state client task list initial capacity */
+#define PHY_STATE_CLIENT_TASK_LIST_INIT_CAPACITY 6
+
 /*! \brief Enumeration of the physical states an Earbud can be in.
  */
 typedef enum
@@ -91,7 +94,7 @@ typedef struct
     /*! Current physical state of the device. */
     phyState state;
     /*! List of tasks to receive #PHY_STATE_CHANGED_IND notifications. */
-    task_list_t* client_tasks;
+    TASK_LIST_WITH_INITIAL_CAPACITY(PHY_STATE_CLIENT_TASK_LIST_INIT_CAPACITY)   client_tasks;
     /*! Stores the motion state */
     bool in_motion;
     /*! Stores the proximity state */
@@ -135,6 +138,9 @@ extern phyStateTaskData app_phy_state;
 
 /*! Get pointer to physical state data structure */
 #define PhyStateGetTaskData()   (&app_phy_state)
+
+/*! Get pointer to physical state client tasks */
+#define PhyStateGetClientTasks()   (task_list_flexible_t *)(&app_phy_state.client_tasks)
 
 /*! \brief Register a task for notification of changes in state.
     @param[in] client_task Task to receive PHY_STATE_CHANGED_IND messages.

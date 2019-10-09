@@ -42,6 +42,12 @@ void stateProxy_HandleRemoteConManagerDisconnectInd(const CON_MANAGER_TP_DISCONN
 */
 state_proxy_connection_t* stateProxy_GetConnection(state_proxy_data_t *data, const tp_bdaddr *bd_addr);
 
+/*! \brief Get the peer connection instance.
+    \param data The local/remote state proxy data.
+    \return The peer connection.
+*/
+state_proxy_connection_t* stateProxy_GetPeerConnection(state_proxy_data_t* data);
+
 /*! \brief Get the first empty connection instance.
     \param data The local/remote state proxy data.
 */

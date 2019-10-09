@@ -40,12 +40,10 @@ void appPhyStateSetState(phyStateTaskData* phy_state, phyState new_state);
  */
 static void appPhyStateMsgSendStateChangedInd(phyState state, phy_state_event event)
 {
-    phyStateTaskData* phy_state = PhyStateGetTaskData();
-
     MAKE_PHYSTATE_MESSAGE(PHY_STATE_CHANGED_IND);
     message->new_state = state;
     message->event = event;
-    TaskList_MessageSend(phy_state->client_tasks, PHY_STATE_CHANGED_IND, message);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(PhyStateGetClientTasks()), PHY_STATE_CHANGED_IND, message);
 }
 
 /*! \brief Perform actions on entering PHY_STATE_IN_CASE state. */
@@ -366,20 +364,16 @@ static void appPhyStateHandleMessage(Task task, MessageId id, Message message)
  */
 void appPhyStateRegisterClient(Task client_task)
 {
-    phyStateTaskData* phy_state = PhyStateGetTaskData();
-
     DEBUG_LOGF("appPhyStateRegisterClient %p", client_task);
 
-    TaskList_AddTask(phy_state->client_tasks, client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(PhyStateGetClientTasks()), client_task);
 }
 
 void appPhyStateUnregisterClient(Task client_task)
 {
-    phyStateTaskData* phy_state = PhyStateGetTaskData();
-
     DEBUG_LOGF("appPhyStateUnregisterClient %p", client_task);
 
-    TaskList_RemoveTask(phy_state->client_tasks, client_task);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(PhyStateGetClientTasks()), client_task);
 }
 
 bool appPhyStateInit(Task init_task)
@@ -390,7 +384,7 @@ bool appPhyStateInit(Task init_task)
 
     phy_state->task.handler = appPhyStateHandleMessage;
     phy_state->state = PHY_STATE_UNKNOWN;
-    phy_state->client_tasks = TaskList_Create();
+    TaskList_InitialiseWithCapacity(PhyStateGetClientTasks(), PHY_STATE_CLIENT_TASK_LIST_INIT_CAPACITY);
     phy_state->in_motion = FALSE;
     phy_state->in_proximity = FALSE;
 

@@ -513,8 +513,9 @@ static void gattServerBattery_RemoveClient(uint16 cid)
 
 static unsigned int gattServerBattery_NumberOfAdvItems(const le_adv_data_params_t * params)
 {
-    if((le_adv_data_set_handset_identifiable == params->data_set) && \
-        (le_adv_data_completeness_full == params->completeness) && \
+    if((le_adv_data_set_handset_identifiable == params->data_set ||
+        le_adv_data_set_handset_unidentifiable == params->data_set) &&
+        (le_adv_data_completeness_full == params->completeness) &&
         (le_adv_data_placement_advert == params->placement))
         return NUMBER_OF_ADVERT_DATA_ITEMS;
     else
@@ -525,8 +526,9 @@ static le_adv_data_item_t gattServerBattery_GetAdvDataItems(const le_adv_data_pa
 {
     UNUSED(id);
 
-    if((le_adv_data_set_handset_identifiable == params->data_set) && \
-        (le_adv_data_completeness_full == params->completeness) && \
+    if((le_adv_data_set_handset_identifiable == params->data_set ||
+        le_adv_data_set_handset_unidentifiable == params->data_set) &&
+        (le_adv_data_completeness_full == params->completeness) &&
         (le_adv_data_placement_advert == params->placement))
         return gatt_battery_advert;
     else

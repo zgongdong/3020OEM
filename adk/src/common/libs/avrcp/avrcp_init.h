@@ -156,4 +156,13 @@ void avrcpResetAvbpValues(AVBP* avbp);
 */
 void avrcpDeleteAllTasks(AVRCP *avrcp);
 
+/****************************************************************************
+*NAME
+*  avrcpAddTaskToList
+*
+*DESCRIPTION
+*  Add the AVRCP Task to the list.
+******************************************************************************/
+void avrcpAddTaskToList(AVRCP *avrcp, const bdaddr *bd_addr);
+
 #endif /* AVRCP_INIT_H_ */

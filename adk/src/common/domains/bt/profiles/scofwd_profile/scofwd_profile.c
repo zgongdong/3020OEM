@@ -22,15 +22,7 @@
 #include <system_clock.h>
 #include <rtime.h>
 #include <bluestack/hci.h>
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
 #include <bluestack/l2cap_prim.h>
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
-
-#define L2CA_DISCONNECT_LINK_TRANSFERRED 0xFF
 #include <device.h>
 #include <device_properties.h>
 #include <tws_packetiser.h>
@@ -1088,21 +1080,19 @@ static void ScoFwdProcessReceivedAirFrame(const uint8 **ppSource,uint8 frame_len
 /*! Send connect confirmation to all connect req clients and clean up list. */
 static void scoFwd_SendConnectClientsCfm(sfwd_status status)
 {
-    scoFwdTaskData *theScoFwd = GetScoFwd();
     MAKE_SFWD_MESSAGE(SFWD_CONNECT_CFM);
     message->status = status;
-    TaskList_MessageSend(&theScoFwd->connect_req_tasks, SFWD_CONNECT_CFM, message);
-    TaskList_RemoveAllTasks(&theScoFwd->connect_req_tasks);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(ScoFwdGetConnectReqTasks()), SFWD_CONNECT_CFM, message);
+    TaskList_RemoveAllTasks(TaskList_GetFlexibleBaseTaskList(ScoFwdGetConnectReqTasks()));
 }
 
 /*! Send connect confirmation to all connect req clients and clean up list. */
 static void scoFwd_SendDisconnectClientsCfm(sfwd_status status)
 {
-    scoFwdTaskData *theScoFwd = GetScoFwd();
     MAKE_SFWD_MESSAGE(SFWD_DISCONNECT_CFM);
     message->status = status;
-    TaskList_MessageSend(&theScoFwd->disconnect_req_tasks, SFWD_DISCONNECT_CFM, message);
-    TaskList_RemoveAllTasks(&theScoFwd->disconnect_req_tasks);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(ScoFwdGetDisonnectReqTasks()), SFWD_DISCONNECT_CFM, message);
+    TaskList_RemoveAllTasks(TaskList_GetFlexibleBaseTaskList(ScoFwdGetDisonnectReqTasks()));
 }
 
 static bool ScoFwdStateCanConnect(void)
@@ -2341,7 +2331,7 @@ static void ScoFwdHandleMessage(Task task, MessageId id, Message message)
             break;
             
         case SFWD_INTERNAL_PLAY_RING:
-            TaskList_MessageSendId(GetScoFwd()->clients, SCOFWD_RINGING);
+            TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ScoFwdGetClients()), SCOFWD_RINGING);
             break;
 
         /*----*/
@@ -2415,9 +2405,9 @@ bool ScoFwdInit(Task init_task)
     theScoFwd->task.handler = ScoFwdHandleMessage;
 
     /* initialise tasklists */
-    theScoFwd->clients = TaskList_Create();
-    TaskList_Initialise(&theScoFwd->connect_req_tasks);
-    TaskList_Initialise(&theScoFwd->disconnect_req_tasks);
+    TaskList_InitialiseWithCapacity(ScoFwdGetClients(), THE_SCOFWD_CLIENT_TASK_LIST_INIT_CAPACITY);
+    TaskList_InitialiseWithCapacity(ScoFwdGetConnectReqTasks(), THE_SCOFWD_CONNECT_REQ_TASK_LIST_INIT_CAPACITY);
+    TaskList_InitialiseWithCapacity(ScoFwdGetDisonnectReqTasks(), THE_SCOFWD_DISCONNECT_REQ_CLIENT_TASK_LIST_INIT_CAPACITY);
 
     /* Register a Protocol/Service Multiplexor (PSM) that will be
        used for this application. The same PSM is used at both
@@ -2469,7 +2459,7 @@ void ScoFwdConnectPeer(Task client)
     }
 
     /* add client to connect list */
-    TaskList_AddTask(&theScoFwd->connect_req_tasks, client);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ScoFwdGetConnectReqTasks()), client);
 
     MessageSendConditionally(GetScoFwdTask(), SFWD_INTERNAL_LINK_CONNECT_REQ, NULL, &theScoFwd->lock);
 }
@@ -2486,7 +2476,7 @@ void ScoFwdDisconnectPeer(Task client)
         scoFwd_SendConnectClientsCfm(sfwd_status_connect_cancelled);
     }
 
-    TaskList_AddTask(&theScoFwd->disconnect_req_tasks, client);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ScoFwdGetDisonnectReqTasks()), client);
 
     MessageSendConditionally(GetScoFwdTask(), SFWD_INTERNAL_LINK_DISCONNECT_REQ, NULL, &theScoFwd->lock);
 }
@@ -2747,7 +2737,7 @@ static void scoFwdProfile_RegisterMessageGroup(Task task, message_group_t group)
 {
     PanicFalse(group == SFWD_MESSAGE_GROUP);
 #ifdef INCLUDE_SCOFWD
-    TaskList_AddTask(GetScoFwd()->clients, task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ScoFwdGetClients()), task);
 #else
     DEBUG_LOG("scoFwdProfile_RegisterMessageGroup(%p) SCOFWD disabled", task);
 #endif

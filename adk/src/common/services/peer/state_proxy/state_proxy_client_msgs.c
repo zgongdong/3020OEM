@@ -4,7 +4,7 @@
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \version    
 \file       state_proxy_client_msgs.c
-\brief      
+\brief
 */
 
 /* local includes */
@@ -154,7 +154,6 @@ bool stateProxy_AnyClientsRegisteredForEvent(state_proxy_event_type type)
 
 void stateProxy_MsgStateProxyEventInitialStateSent(void)
 {
-    state_proxy_task_data_t *proxy = stateProxy_GetTaskData();
-    TaskList_MessageSendId(proxy->state_proxy_events, STATE_PROXY_EVENT_INITIAL_STATE_SENT);
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(stateProxy_GetEvents()), STATE_PROXY_EVENT_INITIAL_STATE_SENT);
 }
 

@@ -471,9 +471,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga1ad021fefd09a8a675ce3490bcc55ad4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#ga1ad021fefd09a8a675ce3490bcc55ad4">AvrcpGetElementAttributesResponse</a> (<a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *avrcp, <a class="el" href="group__avrcp.html#gaa04e9f4a29bfb107562c8ae4e99ea698">avrcp_response_type</a> response, uint16 number_of_attributes, uint16 size_attributes, Source attributes)</td></tr>
 <tr class="memdesc:ga1ad021fefd09a8a675ce3490bcc55ad4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Respond with the element attribute data that was requested by the CT.  <a href="#ga1ad021fefd09a8a675ce3490bcc55ad4">More...</a><br /></td></tr>
 <tr class="separator:ga1ad021fefd09a8a675ce3490bcc55ad4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gadf29ab34fd16c7198cd72dfc24ee2efe"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#gadf29ab34fd16c7198cd72dfc24ee2efe">AvrcpGetInstanceFromBdaddr</a> (const bdaddr *bd_addr, <a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *avrcp)</td></tr>
-<tr class="memdesc:gadf29ab34fd16c7198cd72dfc24ee2efe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the AVRCP profile instance using Bluetooth address of the remote device.  <a href="#gadf29ab34fd16c7198cd72dfc24ee2efe">More...</a><br /></td></tr>
-<tr class="separator:gadf29ab34fd16c7198cd72dfc24ee2efe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaaca097e5a29f5295779c5a6fe0566fa0"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#gaaca097e5a29f5295779c5a6fe0566fa0">AvrcpGetInstanceFromBdaddr</a> (const bdaddr *bd_addr, <a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> **avrcp)</td></tr>
+<tr class="memdesc:gaaca097e5a29f5295779c5a6fe0566fa0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the AVRCP profile instance using Bluetooth address of the remote device.  <a href="#gaaca097e5a29f5295779c5a6fe0566fa0">More...</a><br /></td></tr>
+<tr class="separator:gaaca097e5a29f5295779c5a6fe0566fa0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0c371207216091505fffca3d65646726"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#ga0c371207216091505fffca3d65646726">AvrcpGetPlayStatusRequest</a> (<a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *avrcp)</td></tr>
 <tr class="memdesc:ga0c371207216091505fffca3d65646726"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used by the CT to request the status of the currently playing media at the TG.  <a href="#ga0c371207216091505fffca3d65646726">More...</a><br /></td></tr>
 <tr class="separator:ga0c371207216091505fffca3d65646726"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -561,6 +561,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga3c223e7b2b8c7d9172ad3d74a3d17370"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#ga3c223e7b2b8c7d9172ad3d74a3d17370">AvrcpSetAddressedPlayerResponse</a> (<a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *avrcp, <a class="el" href="group__avrcp.html#gaa04e9f4a29bfb107562c8ae4e99ea698">avrcp_response_type</a> response)</td></tr>
 <tr class="memdesc:ga3c223e7b2b8c7d9172ad3d74a3d17370"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function is used by the TG to respond to SetAddressedPlayer request received from CT. If the addressed player has changed due to this procedure, the application must call <a class="el" href="group__avrcp.html#ga671f30666b0fa6bca6dfbea45e3130cb" title="This function is used by the TG to notify CT on addressed player change at TG. ">AvrcpEventAddressedPlayerChangedResponse()</a>, if the Controller has registered for the event avrcp_event_addressed_player_changed.  <a href="#ga3c223e7b2b8c7d9172ad3d74a3d17370">More...</a><br /></td></tr>
 <tr class="separator:ga3c223e7b2b8c7d9172ad3d74a3d17370"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaffaa7da76b5f5ae44e3602475fcdb0ec"><td class="memItemLeft" align="right" valign="top">Task&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#gaffaa7da76b5f5ae44e3602475fcdb0ec">AvrcpSetAppTask</a> (<a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *avrcp, Task new_task)</td></tr>
+<tr class="memdesc:gaffaa7da76b5f5ae44e3602475fcdb0ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the application task for a AVRCP instance.  <a href="#gaffaa7da76b5f5ae44e3602475fcdb0ec">More...</a><br /></td></tr>
+<tr class="separator:gaffaa7da76b5f5ae44e3602475fcdb0ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad6b406414db9509f592074b5aabd6010"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__avrcp.html#gad6b406414db9509f592074b5aabd6010">AvrcpSetAppValueRequest</a> (<a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *avrcp, uint16 size_attributes, Source attributes)</td></tr>
 <tr class="memdesc:gad6b406414db9509f592074b5aabd6010"><td class="mdescLeft">&#160;</td><td class="mdescRight">Request to set change the value on the TG, for the provided player application attribute.  <a href="#gad6b406414db9509f592074b5aabd6010">More...</a><br /></td></tr>
 <tr class="separator:gad6b406414db9509f592074b5aabd6010"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -3133,7 +3136,7 @@ Message <a class="el" href="struct_a_v_r_c_p___c_o_n_n_e_c_t___c_f_m___t.html">A
 
 </div>
 </div>
-<a class="anchor" id="gadf29ab34fd16c7198cd72dfc24ee2efe"></a>
+<a class="anchor" id="gaaca097e5a29f5295779c5a6fe0566fa0"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -3146,7 +3149,7 @@ Message <a class="el" href="struct_a_v_r_c_p___c_o_n_n_e_c_t___c_f_m___t.html">A
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *&#160;</td>
+          <td class="paramtype"><a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> **&#160;</td>
           <td class="paramname"><em>avrcp</em>&#160;</td>
         </tr>
         <tr>
@@ -3163,7 +3166,7 @@ Message <a class="el" href="struct_a_v_r_c_p___c_o_n_n_e_c_t___c_f_m___t.html">A
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">bd_addr</td><td>The Bluetooth address of the remote device. </td></tr>
-    <tr><td class="paramname">AVRCP</td><td>Pointer to AVRCP profile instance, used to return profile instance corresponding to the remote device's Bluetooth address.</td></tr>
+    <tr><td class="paramname">AVRCP</td><td>Address of pointer to AVRCP profile instance, used to return profile instance corresponding to the remote device's Bluetooth address.</td></tr>
   </table>
   </dd>
 </dl>
@@ -4327,6 +4330,45 @@ Message <a class="el" href="struct_a_v_r_c_p___c_o_n_n_e_c_t___c_f_m___t.html">A
   </dd>
 </dl>
 <p>This function is called on receipt of a message <a class="el" href="struct_a_v_r_c_p___s_e_t___a_d_d_r_e_s_s_e_d___p_l_a_y_e_r___i_n_d___t.html">AVRCP_SET_ADDRESSED_PLAYER_IND </a>. </p>
+
+</div>
+</div>
+<a class="anchor" id="gaffaa7da76b5f5ae44e3602475fcdb0ec"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Task AvrcpSetAppTask </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__avrcp.html#ga48992140604532e7b079477fdff3abce">AVRCP</a> *&#160;</td>
+          <td class="paramname"><em>avrcp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Task&#160;</td>
+          <td class="paramname"><em>new_task</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;avrcp/avrcp.h&gt;</code></p>
+
+<p>Set the application task for a AVRCP instance. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">avrcp</td><td>The avrcp instance. </td></tr>
+    <tr><td class="paramname">new_task</td><td>The new task.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The existing task assigned to this AVRCP instance.</dd></dl>
+<p>This function only sets the task, it does not handle cancelling/resending messages that may be in-flight to the existing task. </p>
 
 </div>
 </div>

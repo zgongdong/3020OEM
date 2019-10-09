@@ -5,7 +5,7 @@
  */
 #include "hydra/hydra_types.h"
 
-const uint32 trap_version[3] = {10, 0, 0};
+const uint32 trap_version[3] = {10, 1, 0};
 
 const uint32 trapset_bitmap[3] =
 {
@@ -47,6 +47,7 @@ const uint32 trapset_bitmap[3] =
     (1 << 31) | /* BDADDR */
     0U,
     (1 <<  0) | /* MARSHAL */
+    (1 <<  1) | /* RA_PARTITION */
     0U
 };
 

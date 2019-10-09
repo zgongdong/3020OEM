@@ -417,7 +417,7 @@ void ConnectionDmBleSetAdvertiseEnableReq(Task theAppTask, bool enable);
  */
 typedef struct
 {
-    connection_lib_status status;       /*!> Status of the operation */
+    hci_status status;       /*!> Status of the operation */
 } CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM_T;
 
 /*!

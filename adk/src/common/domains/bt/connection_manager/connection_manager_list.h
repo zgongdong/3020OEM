@@ -146,10 +146,22 @@ cm_connection_t* ConManagerListNextConnection(cm_list_iterator_t* iterator);
 */
 const tp_bdaddr* ConManagerGetConnectionTpAddr(cm_connection_t* connection);
 
+/*! \brief Set the Transport Bluetooth Address of a connection
+    \param connection The connection
+    \param new_addr The new address for the connection.
+*/
+void ConManagerSetConnectionTpAddr(cm_connection_t* connection, const tp_bdaddr* new_addr);
+
 /*! \brief Find an active connection
 
     \return A connection that is not in a disconnected state or NULL
             if not found */
 cm_connection_t *ConManagerFindFirstActiveLink(void);
+
+/*! \brief Copy the state of one connection to another.
+    \param dest The destiation connection.
+    \param src The source connection.
+*/
+void ConManagerConnectionCopy(cm_connection_t* dest, const cm_connection_t* src);
 
 #endif

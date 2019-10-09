@@ -22,17 +22,8 @@ DESCRIPTION
 
 #include <app/bluestack/types.h>
 #include <app/bluestack/bluetooth.h>
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
 #include <app/bluestack/l2cap_prim.h>
 #include <app/vm/vm_if.h>
-
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
-
-#define L2CA_DISCONNECT_LINK_TRANSFERRED 0xFF
 
 /****************************************************************************
 NAME 
@@ -230,24 +221,32 @@ RETURNS
 */
 void hidConnDisconnected(HID *hid, Sink sink)
 {
-    hidConnection *conn = NULL;
+    /* First, check if sink is valid. */
+    if (sink)
+    {
+        hidConnection *conn = NULL;
 
-    /* Find connection structure */
-    if (((hid->connection[HID_CON_CONTROL].state == hidConConnected) || (hid->connection[HID_CON_CONTROL].state == hidConDisconnecting)) &&
-        (sink == hid->connection[HID_CON_CONTROL].con.sink))
-            conn = &hid->connection[HID_CON_CONTROL];
-    else if (((hid->connection[HID_CON_INTERRUPT].state == hidConConnected) || (hid->connection[HID_CON_INTERRUPT].state == hidConDisconnecting)) &&
-        (sink == hid->connection[HID_CON_INTERRUPT].con.sink))
-            conn = &hid->connection[HID_CON_INTERRUPT];
+        /* Find connection structure */
+        if (((hid->connection[HID_CON_CONTROL].state == hidConConnected) || (hid->connection[HID_CON_CONTROL].state == hidConDisconnecting)) &&
+            (sink == hid->connection[HID_CON_CONTROL].con.sink))
+                conn = &hid->connection[HID_CON_CONTROL];
+        else if (((hid->connection[HID_CON_INTERRUPT].state == hidConConnected) || (hid->connection[HID_CON_INTERRUPT].state == hidConDisconnecting)) &&
+            (sink == hid->connection[HID_CON_INTERRUPT].con.sink))
+                conn = &hid->connection[HID_CON_INTERRUPT];
+        else
+            Panic();
+            
+        /* Dispose of any messages left in the l2cap sources to ensure the buffers are destroyed */
+        StreamDisconnect(StreamSourceFromSink(sink), 0);
+        StreamConnectDispose(StreamSourceFromSink(sink));		
+
+        /* Move connection into disconnected state */
+        conn->state = hidConDisconnected;
+    }
     else
-        Panic();
-        
-    /* Dispose of any messages left in the l2cap sources to ensure the buffers are destroyed */
-    StreamDisconnect(StreamSourceFromSink(sink), 0);
-    StreamConnectDispose(StreamSourceFromSink(sink));		
-
-    /* Move connection into disconnected state */
-    conn->state = hidConDisconnected;
+    {
+        HID_DEBUG(("Null sink provided.\n"));
+    }
 }
 
 /****************************************************************************

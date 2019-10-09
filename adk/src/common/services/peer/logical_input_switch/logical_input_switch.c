@@ -19,31 +19,73 @@
 #include <panic.h>
 #include <stdlib.h>
 
+/* We use the same task for receiving the marshaled messages so the range of
+ * logical inputs must not contain the peer signalling messages. */
+#define MIN_LOGICAL_INPUT_MSG 0x0000
+#define MAX_LOGICAL_INPUT_MSG PEER_SIG_MESSAGE_BASE-1
+
+/* Message id reserved for passthrough logical inputs */
+#define PASSTHROUGH_LOGICAL_INPUT_MSG 0xFFFF
+typedef struct
+{
+    ui_input_t ui_input;
+} PASSTHROUGH_LOGICAL_INPUT_MSG_T;
+
 static void logicalInputSwitch_HandleMessage(Task task, MessageId id, Message message);
 
 static TaskData lis_task = { .handler=logicalInputSwitch_HandleMessage };
 
 static bool reroute_logical_inputs_to_peer = FALSE;
 
-static uint16 lowest_valid_logical_input = 0x0;
-static uint16 highest_valid_logical_input = 0xFFFF;
+static uint16 lowest_valid_logical_input = MIN_LOGICAL_INPUT_MSG;
+static uint16 highest_valid_logical_input = MAX_LOGICAL_INPUT_MSG;
 
-static inline bool logicalInputSwitch_IsValidLogicalInput(uint16 logical_input)
+static inline bool logicalInputSwitch_IsPassthroughLogicalInput(uint16 logical_input)
 {
-    return logical_input >= lowest_valid_logical_input && logical_input <= highest_valid_logical_input;
+    return logical_input == PASSTHROUGH_LOGICAL_INPUT_MSG;
 }
 
-static inline void logicalInputSwitch_PassLogicalInputToLocalUi(uint16 logical_input)
+static ui_input_t logicalInputSwitch_PassthroughUiInput(uint16 logical_input, PASSTHROUGH_LOGICAL_INPUT_MSG_T* message)
 {
-    MessageSend(Ui_GetUiTask(), logical_input, NULL);
+    if (logicalInputSwitch_IsPassthroughLogicalInput(logical_input))
+    {
+        PanicNull(message);
+        return message->ui_input;
+    }
+    else
+    {
+        return ui_input_invalid;
+    }
 }
 
-static void logicalInputSwitch_SendLogicalInputToPeer(uint16 logical_input)
+static bool logicalInputSwitch_IsValidLogicalInput(uint16 logical_input)
+{
+    bool logical_input_in_valid_range = logical_input >= lowest_valid_logical_input && logical_input <= highest_valid_logical_input;
+
+    return logical_input_in_valid_range || logicalInputSwitch_IsPassthroughLogicalInput(logical_input);
+}
+
+static void logicalInputSwitch_PassLogicalInputToLocalUi(uint16 logical_input, ui_input_t ui_input)
+{
+    if (logicalInputSwitch_IsPassthroughLogicalInput(logical_input))
+    {
+        DEBUG_LOG("logicalInputSwitch_PassLogicalInputToLocalUi Injecting UI Input %04X", ui_input);
+
+        Ui_InjectUiInput(ui_input);
+    }
+    else
+    {
+        MessageSend(Ui_GetUiTask(), logical_input, NULL);
+    }
+}
+
+static void logicalInputSwitch_SendLogicalInputToPeer(uint16 logical_input, ui_input_t ui_input)
 {
     logical_input_ind_t* msg = PanicUnlessMalloc(sizeof(logical_input_ind_t));
     msg->logical_input = logical_input;
+    msg->passthrough_ui_input = ui_input;
 
-    DEBUG_LOG("logicalInputSwitch_SendLogicalInputToPeer %04X", msg->logical_input);
+    DEBUG_LOG("logicalInputSwitch_SendLogicalInputToPeer %04X %04X", msg->logical_input, msg->passthrough_ui_input);
 
     appPeerSigMarshalledMsgChannelTx(LogicalInputSwitch_GetTask(),
                                      PEER_SIG_MSG_CHANNEL_LOGICAL_INPUT_SWITCH,
@@ -62,7 +104,8 @@ static void logicalInputSwitch_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALL
     PanicNull(ind);
     msg = (logical_input_ind_t *)ind->msg;
     PanicNull(msg);
-    logicalInputSwitch_PassLogicalInputToLocalUi(msg->logical_input);
+
+    logicalInputSwitch_PassLogicalInputToLocalUi(msg->logical_input, msg->passthrough_ui_input);
     free(msg);
 }
 
@@ -83,13 +126,15 @@ static void logicalInputSwitch_HandleMessage(Task task, MessageId id, Message me
     default:
         if (logicalInputSwitch_IsValidLogicalInput(id))
         {
+            ui_input_t passthrough_ui_input = logicalInputSwitch_PassthroughUiInput(id, (PASSTHROUGH_LOGICAL_INPUT_MSG_T*)message);
+
             if (reroute_logical_inputs_to_peer)
             {
-                logicalInputSwitch_SendLogicalInputToPeer(id);
+                logicalInputSwitch_SendLogicalInputToPeer(id, passthrough_ui_input);
             }
             else
             {
-                logicalInputSwitch_PassLogicalInputToLocalUi(id);
+                logicalInputSwitch_PassLogicalInputToLocalUi(id, passthrough_ui_input);
             }
         }
         break;
@@ -108,15 +153,29 @@ void LogicalInputSwitch_SetRerouteToPeer(bool reroute_enabled)
 
 void LogicalInputSwitch_SetLogicalInputIdRange(uint16 lowest, uint16 highest)
 {
+    if ((lowest < MIN_LOGICAL_INPUT_MSG) || (highest > MAX_LOGICAL_INPUT_MSG) || (lowest > highest))
+    {
+        DEBUG_LOG("LogicalInputSwitch_SetLogicalInputIdRange Invalid range %04X %04X", lowest, highest);
+        Panic();
+    }
+
     lowest_valid_logical_input = lowest;
     highest_valid_logical_input = highest;
+}
+
+void LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_t ui_input)
+{
+    MESSAGE_MAKE(msg, PASSTHROUGH_LOGICAL_INPUT_MSG_T);
+    msg->ui_input = ui_input;
+
+    MessageSend(LogicalInputSwitch_GetTask(), PASSTHROUGH_LOGICAL_INPUT_MSG, msg);
 }
 
 bool LogicalInputSwitch_Init(Task init_task)
 {
     LogicalInputSwitch_SetRerouteToPeer(FALSE);
 
-    LogicalInputSwitch_SetLogicalInputIdRange(0x0,0xFFFF);
+    LogicalInputSwitch_SetLogicalInputIdRange(MIN_LOGICAL_INPUT_MSG, MAX_LOGICAL_INPUT_MSG);
 
     appPeerSigMarshalledMsgChannelTaskRegister(LogicalInputSwitch_GetTask(),
                                                PEER_SIG_MSG_CHANNEL_LOGICAL_INPUT_SWITCH,

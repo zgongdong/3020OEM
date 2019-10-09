@@ -186,61 +186,29 @@ bool appTestIsHandsetHfpScoActive(void);
 */
 bool appTestHandsetHfpVoiceDial(void);
 
-/*! \brief Initiate Earbud HFP Voice Transfer request to the Handset
-
-    \return bool TRUE if Voice Transfer request is initiated
-                 FALSE if HFP is not connected
+/*! \brief Toggle Microphone mute state on HFP SCO conenction to handset
 */
-bool appTestHandsetHfpVoiceTransfer(void);
-
-/*! \brief Mute Microphone audio on HFP SCO conenction to handset
-
-    \return bool TRUE if mute request is successful
-                 FALSE if HFP is not connected
-*/
-bool appTestHandsetHfpMute(void);
-
-/*! \brief Unmute Microphone audio on HFP SCO conenction to handset
-
-    \return bool TRUE if unmute request is successful
-                 FALSE if HFP is not connected
-*/
-bool appTestHandsetHfpUnMute(void);
+void appTestHandsetHfpMuteToggle(void);
 
 /*! \brief Transfer HFP voice to the Handset
-
-    \return bool TRUE if Voice Transfer request is initiated
-                 FALSE if HFP is not connected
 */
-bool appTestHandsetHfpVoiceTransferToAg(void);
+void appTestHandsetHfpVoiceTransferToAg(void);
 
 /*! \brief Transfer HFP voice to the Earbud
-
-    \return bool TRUE if Voice Transfer request is initiated
-                 FALSE if HFP is not connected
 */
-bool appTestHandsetHfpVoiceTransferToHeadset(void);
+void appTestHandsetHfpVoiceTransferToHeadset(void);
 
 /*! \brief Accept incoming call, either local or forwarded (SCO forwarding)
-
-    \return bool TRUE if call was accepted
-                 FALSE if HFP/SCO forwarding is not connected
 */
-bool appTestHandsetHfpCallAccept(void);
+void appTestHandsetHfpCallAccept(void);
 
 /*! \brief Reject incoming call, either local or forwarded (SCO forwarding)
-
-    \return bool TRUE if call was rejected
-                 FALSE if HFP/SCO forwarding is not connected
 */
-bool appTestHandsetHfpCallReject(void);
+void appTestHandsetHfpCallReject(void);
 
 /*! \brief End the current call, either local or forwarded (SCO forwarding)
-
-    \return bool TRUE if call was ended
-                 FALSE if HFP/SCO forwarding is not connected
 */
-bool appTestHandsetHfpCallHangup(void);
+void appTestHandsetHfpCallHangup(void);
 
 /*! \brief Initiated last number redial
 
@@ -248,6 +216,18 @@ bool appTestHandsetHfpCallHangup(void);
                  FALSE if HFP is not connected
 */
 bool appTestHandsetHfpCallLastDialed(void);
+
+/*! \brief Start decreasing the HFP volume
+*/
+void appTestHandsetHfpVolumeDownStart(void);
+
+/*! \brief Start increasing the HFP volume
+*/
+void appTestHandsetHfpVolumeUpStart(void);
+
+/*! \brief Stop increasing or decreasing HFP volume
+*/
+void appTestHandsetHfpVolumeStop(void);
 
 /*! \brief Set the Hfp Sco volume
 
@@ -284,14 +264,38 @@ bool appTestIsHandsetHfpCallIncoming(void);
 */
 bool appTestIsHandsetHfpCallOutgoing(void);
 
-/*! \brief Return if Earbud has a connection to the Handset
+/*! \brief Return if Earbud has an ACL connection to the Handset
 
-    This can be HFP, A2DP or AVRCP
+    It does not indicate if the handset is usable, with profiles
+    connected. Use appTestIsHandsetConnected or 
+    appTestIsHandsetFullyConnected.
+
+    \return bool TRUE Earbud has an ACL connection
+                 FALSE Earbud does not have an ACL connection to the Handset
+*/
+bool appTestIsHandsetAclConnected(void);
+
+/*! \brief Return if Earbud has a profile connection to the Handset
+
+    This can be HFP, A2DP or AVRCP. It does not indicate if there
+    is an ACL connection.
 
     \return bool TRUE Earbud has a connection to the Handset
                  FALSE Earbud does not have a connection to the Handset
 */
 bool appTestIsHandsetConnected(void);
+
+/*! \brief Is the handset completely connected (all profiles)
+
+    This function checks whether the handset device is connected
+    completely. Unlike appTestIsHandsetConnected() this function
+    checks that all the handset profiles required are connected.
+
+    \return TRUE if there is a handset, all required profiles
+        are connected, and we have not started disconnecting. 
+        FALSE in all other cases.
+ */
+bool appTestIsHandsetFullyConnected(void);
 
 /*! \brief Initiate Earbud A2DP connection to the the Peer
 
@@ -377,16 +381,6 @@ bool appTestAvVolumeChange(int8 step);
     \param volume   New volume level to set (0-127).
 */
 void appTestAvVolumeSet(uint8 volume);
-
-/*! \brief Set the volume level in dB's
-
-    The volume is scaled based on the range of dB supported,
-    which is specified by appConfigMaxVolumedB() and
-    appConfigMinVolumedB().
-
-    \param  gain    Level to set, in dBs, within the allowed range.
- */
-void appTestAvVolumeSetDb(int8 gain);
 
 /*! \brief Allow tests to control whether the earbud will enter dormant.
 
@@ -696,6 +690,23 @@ bool appTestPrimaryAddressIsFromThisBoard(void);
 */                                                                  
 void EarbudTest_PeerFindRoleOverrideScore(uint16 score);
 
+/*! \brief Check to determine whether peer signalling is connected.
+
+    Used to determine whether a peer device is connected
+
+    \returns TRUE if peer signalling is connected, else FALSE.
+*/
+bool EarbudTest_IsPeerSignallingConnected(void);
+
+/*! \brief Check to determine whether peer signalling is disconnected.
+
+    Used to determine whether a peer device is disconnected, note this is not necessarily the same as
+    !EarbudTest_IsPeerSignallingConnected() due to intermediate peer signalling states
+
+    \returns TRUE if peer signalling is disconnected, else FALSE.
+*/
+bool EarbudTest_IsPeerSignallingDisconnected(void);
+
 /*! Resets the PSKEY used to track the state of an upgrade 
 
     \return TRUE if the store was cleared
@@ -745,5 +756,41 @@ uint16 appTestSetTestIteration(uint16 test_iteration);
         as well as the output.
 */
 uint16 appTestWriteMarker(uint16 marker);
+
+/*! \brief Send the VA press command
+*/
+void appTestVaPress(void);
+
+/*! \brief Send the VA release command
+*/
+void appTestVaRelease(void);
+/*! \brief Send the VA AUDIO TUNING press command
+*/
+void appTestVaAudioTuningPress(void);
+
+/*! \brief Send the VA AUDIO TUNING release command
+*/
+void appTestVaAudioTuningRelease(void);
+
+/*! \brief Send the VA Tap command
+*/
+void appTestVaTap(void);
+
+/*! \brief Send the VA Double Tap command
+*/
+void appTestVaDoubleTap(void);
+
+/*! \brief Send the VA Press and Hold command
+*/
+void appTestVaPressAndHold(void);
+
+/*! \brief Send the VA Release command
+*/
+void appTestVaRelease(void);
+
+/*! \brief Send the VA AUDIO TUNING toggle command
+*/
+void appTestVaAudioTuningModeToggle(void);
+
 
 #endif /* EARBUD_TEST_H */

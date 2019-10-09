@@ -28,6 +28,8 @@ typedef enum app_kymera_states
     KYMERA_STATE_A2DP_STARTING_A,
     KYMERA_STATE_A2DP_STARTING_B,
     KYMERA_STATE_A2DP_STARTING_C,
+    /*! Starting slave A2DP kymera. */
+    KYMERA_STATE_A2DP_STARTING_SLAVE,
     /*! Kymera is streaming A2DP locally. */
     KYMERA_STATE_A2DP_STREAMING,
     /*! Kymera is streaming A2DP locally and forwarding to the slave. */
@@ -365,6 +367,11 @@ void KymeraAnc_EnterTuning(void);
 */
 void KymeraAnc_ExitTuning(void);
 
+/*! \brief Cancel any pending KYMERA_INTERNAL_A2DP_START message.
+    \param void
+    \return void
+*/
+void appKymeraCancelA2dpStart(void);
 #define appKymeraIsTonePlaying() (KymeraGetTaskData()->tone_count > 0)
 
 #endif /* KYMERA_H */

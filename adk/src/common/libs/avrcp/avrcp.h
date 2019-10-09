@@ -4613,7 +4613,7 @@ extern const handover_interface avrcp_handover;
     the remote device.
 
     @param bd_addr The Bluetooth address of the remote device.
-    @param AVRCP Pointer to AVRCP profile instance,
+    @param AVRCP Address of pointer to AVRCP profile instance,
     used to return profile instance corresponding to the remote 
     device's Bluetooth address.
 
@@ -4623,7 +4623,20 @@ extern const handover_interface avrcp_handover;
     On failure, the function will return FALSE and 
     set the supplied instance pointer to NULL.
 */
-bool AvrcpGetInstanceFromBdaddr (const bdaddr *bd_addr, AVRCP *avrcp);
+bool AvrcpGetInstanceFromBdaddr (const bdaddr *bd_addr, AVRCP **avrcp);
+
+/*!
+    @brief Set the application task for a AVRCP instance.
+
+    @param avrcp The avrcp instance.
+    @param new_task The new task.
+
+    @return The existing task assigned to this AVRCP instance.
+
+    This function only sets the task, it does not handle cancelling/resending
+    messages that may be in-flight to the existing task.
+*/
+Task AvrcpSetAppTask(AVRCP *avrcp, Task new_task);
 
 #endif /* AVRCP_H_ */
 

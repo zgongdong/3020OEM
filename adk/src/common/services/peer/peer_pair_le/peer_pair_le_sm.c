@@ -48,6 +48,21 @@ bool peer_pair_le_in_pairing_state(void)
 }
 
 
+bool peer_pair_le_is_in_advertising_state(void)
+{
+    switch (peer_pair_le_get_state())
+    {
+        case PEER_PAIR_LE_STATE_DISCOVERY:
+        case PEER_PAIR_LE_STATE_SELECTING:
+        case PEER_PAIR_LE_STATE_CONNECTING:
+            return TRUE;
+
+        default:
+            return FALSE;
+    }
+}
+
+
 static void peer_pair_le_cancel_advertising(void)
 {
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
@@ -242,6 +257,8 @@ static void peer_pair_le_enter_connecting(void)
     tp_addr.transport = TRANSPORT_BLE_ACL;
     tp_addr.taddr.type = TYPED_BDADDR_PUBLIC;
     tp_addr.taddr.addr = ppl->scanned_devices[0].addr;
+
+    DEBUG_LOG("peer_pair_le_enter_connecting lap 0x%04x", tp_addr.taddr.addr.lap);
     
     ConManagerCreateTpAcl(&tp_addr);
 }
@@ -252,7 +269,7 @@ static void peer_pair_le_enter_negotiate_p_role(void)
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
     gatt_uuid_t uuid[] = {UUID_128_FORMAT_gatt_uuid_t(UUID128_ROOT_KEY_SERVICE)};
 
-    DEBUG_LOG("peer_pair_le_enter_negotiate_p_role");
+    DEBUG_LOG("peer_pair_le_enter_negotiate_p_role cid:%d", ppl->gatt_cid);
 
     /*! \todo Ask the client to initialise itself, so we don't have to know about UUID */
     GattDiscoverPrimaryServiceRequest(PeerPairLeGetTask(), ppl->gatt_cid, 

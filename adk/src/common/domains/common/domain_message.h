@@ -51,6 +51,7 @@
     X(PROFILE_MANAGER)      /* See #profile_manager_messages */\
     X(APP_GATT)             /* See #av_headet_gatt_messages */ \
     X(POWER_APP)            /* See #powerClientMessages */ \
+    X(KYMERA) \
     X(TEMPERATURE)          /* See #temperatureMessages */ \
     X(AUDIO_SYNC)           /* See #audio_sync_msg_t */ \
     X(VOLUME)               /* See #volume_domain_messages */ \
@@ -67,14 +68,17 @@
     X(TELEPHONY)            /* See #telephony_messages */ \
     X(LE_SCAN_MANAGER)      /* See #scan_manager_messages */ \
     X(HANDOVER_PROFILE)     /* See #handover_profile_messages */ \
-    X(LOCAL_NAME)           /* See #local_name_messages */
+    X(LOCAL_NAME)           /* See #local_name_messages */ \
+    X(LOCAL_ADDR)           /* See #local_addr_messages */
 
 
 /*! A table of service component names */
 #define FOREACH_SERVICES_MESSAGE_GROUP(X) \
     X(HANDSET_SERVICE) \
     X(STATE_PROXY) \
-    X(VOLUME_SERVICE)
+    X(HDMA) \
+    X(VOLUME_SERVICE) \
+    X(VOICE_UI_SERVICE)
 
 /*! A table of app/system component names */
 #define FOREACH_APPS_MESSAGE_GROUP(X) \
@@ -92,6 +96,7 @@
     X(UI_INPUTS_HANDSET) \
     X(UI_INPUTS_AUDIO_CURATION) \
     X(UI_INPUTS_PROMPT) \
+    X(UI_INPUTS_VOICE_UI) \
     X(UI_INPUTS_BOUNDS_CHECK)
 
 /*! This expansion macro concatenates the component name with the text

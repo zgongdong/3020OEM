@@ -28,9 +28,7 @@ NOTES
     ENTRY(AVBP) \
     ENTRY(AvrcpBitfields) \
     ENTRY(AVRCP) \
-    ENTRY(AVRCP_AVBP_INIT) \
-    ENTRY(avrcp_union_t) \
-    ENTRY(avrcp_dummy_struct_t)
+    ENTRY(AVRCP_AVBP_INIT)
 
 
 /* Use xmacro to expand type table as enumeration of marshal types */
@@ -45,10 +43,6 @@ enum
 #undef EXPAND_AS_ENUMERATION
 
 extern const marshal_type_descriptor_t * const  mtd_avrcp[];
-
-/* Finds out whether browsing channel exists for the AVRCP connection about to
- * be marshalled/unmarshalled next */
-bool avrcpMarshalBrowsingChannelExists(void);
 
 #endif /* _AVRCP_MARSHAL_DESC_H_ */
 

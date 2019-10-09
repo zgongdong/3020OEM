@@ -32,6 +32,7 @@ void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t *callba
         
         gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered].OnConnection = callback->OnConnection;
         gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered].OnDisconnection = callback->OnDisconnection;
+        gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered].OnDisconnectRequested = callback->OnDisconnectRequested;
         gatt_connect_observer_registry.number_registered++;
     }
     else
@@ -69,6 +70,41 @@ void GattConnect_ObserverNotifyOnDisconnection(uint16 cid)
 
         index++;
     }
+}
+
+void GattConnect_ObserverNotifyOnDisconnectRequested(uint16 cid, gatt_connect_disconnect_req_response response)
+{
+    uint8 index = 0;
+
+    while (index < gatt_connect_observer_registry.number_registered)
+    {
+        gatt_connect_observer_callback_t * callback = &gatt_connect_observer_registry.callbacks[index];
+
+        if (callback->OnDisconnectRequested)
+        {
+            callback->OnDisconnectRequested(cid, response);
+        }
+        index++;
+    }
+}
+
+unsigned GattConnect_ObserverGetNumberDisconnectReqCallbacksRegistered(void)
+{
+    uint8 index = 0;
+    unsigned number_callbacks = 0;
+
+    while (index < gatt_connect_observer_registry.number_registered)
+    {
+        gatt_connect_observer_callback_t * callback = &gatt_connect_observer_registry.callbacks[index];
+
+        if (callback->OnDisconnectRequested)
+        {
+            number_callbacks++;
+        }
+        index++;
+    }
+    
+    return number_callbacks;
 }
 
 void GattConnect_ObserverInit(void)

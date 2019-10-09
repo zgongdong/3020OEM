@@ -43,6 +43,15 @@
 /*! \brief Macro for simplying copying message content */
 #define COPY_DEVICE_MESSAGE(src, dst) *(dst) = *(src);
 
+/*! \brief BT device internal messages */
+enum
+{
+    BT_INTERNAL_MSG_STORE_PS_DATA,            /*!< Store device data in PS */
+};
+
+/*! \brief Delay before storing the device data in ps */
+#define BT_DEVICE_STORE_PS_DATA_DELAY D_SEC(1)
+
 /*!< App device management task */
 deviceTaskData  app_device;
 
@@ -187,6 +196,19 @@ static bool btDevice_GetDeviceBdAddr(deviceType type, bdaddr *bd_addr)
         BdaddrSetZero(bd_addr);
         return FALSE;
     }
+}
+
+static void btDevice_StoreDeviceDataInPs(void)
+{
+    bdaddr handset_address = {0,0,0};
+    appDeviceGetHandsetBdAddr(&handset_address);
+
+    /* Update mru device in ps */
+    appDeviceUpdateMruDevice(&handset_address);
+
+    /* Store device data in ps */
+    DeviceDbSerialiser_Serialise();
+
 }
 
 bool appDeviceGetPeerBdAddr(bdaddr *bd_addr)
@@ -372,7 +394,7 @@ bool appDeviceHandleClDmLocalBdAddrCfm(Message message)
     return TRUE;
 }
 
-/*! @brief Peer signalling task message handler.
+/*! @brief BT device task message handler.
  */
 static void appDeviceHandleMessage(Task task, MessageId id, Message message)
 {
@@ -380,8 +402,14 @@ static void appDeviceHandleMessage(Task task, MessageId id, Message message)
 
     switch (id)
     {
+        /* Peer signalling message */
         case CON_MANAGER_CONNECTION_IND:
             appDeviceHandleConManagerConnectionInd((CON_MANAGER_CONNECTION_IND_T*)message);
+            break;
+
+        /* Bt device handover message */
+        case BT_INTERNAL_MSG_STORE_PS_DATA:
+            btDevice_StoreDeviceDataInPs();
             break;
 
         default:
@@ -415,37 +443,11 @@ static void btDevice_SerialisePersistentDeviceData(device_t device, void *buf, u
 {
     marshaller_t marshaller;
     uint8* bufptr = (uint8 *)buf;
-    void *property_value = NULL;
-    size_t size;
     bt_device_pdd_t data_to_marshal_from_device_database = {0};
 
     UNUSED(offset);
 
-    Device_GetPropertyU8(device, device_property_a2dp_volume, &data_to_marshal_from_device_database.a2dp_volume);
-    Device_GetPropertyU8(device, device_property_hfp_profile, &data_to_marshal_from_device_database.hfp_profile);
-    Device_GetPropertyU8(device, device_property_supported_profiles, &data_to_marshal_from_device_database.supported_profiles);
-    Device_GetPropertyU8(device, device_property_last_connected_profiles, &data_to_marshal_from_device_database.connected_profiles);
-
-    Device_GetPropertyU16(device, device_property_flags, &data_to_marshal_from_device_database.flags);
-
-    if (Device_GetProperty(device, device_property_type, &property_value, &size))
-    {
-        PanicFalse(size == sizeof(deviceType));
-        data_to_marshal_from_device_database.type = *((deviceType *)property_value);
-    }
-
-    if (Device_GetProperty(device, device_property_link_mode, &property_value, &size))
-    {
-        PanicFalse(size == sizeof(deviceLinkMode));
-        data_to_marshal_from_device_database.link_mode = *((deviceLinkMode *)property_value);
-    }
-
-    Device_GetPropertyU16(device, device_property_tws_version, &data_to_marshal_from_device_database.tws_version);
-    Device_GetPropertyU16(device, device_property_sco_fwd_features, &data_to_marshal_from_device_database.sco_fwd_features);
-    Device_GetPropertyU16(device, device_property_battery_server_config_l, &data_to_marshal_from_device_database.battery_server_config_l);
-    Device_GetPropertyU16(device, device_property_battery_server_config_r, &data_to_marshal_from_device_database.battery_server_config_r);
-    Device_GetPropertyU16(device, device_property_gatt_server_config, &data_to_marshal_from_device_database.gatt_server_config);
-    Device_GetPropertyU8(device, device_property_gatt_server_services_changed, &data_to_marshal_from_device_database.gatt_server_services_changed);
+    BtDevice_GetDeviceData(device, &data_to_marshal_from_device_database);
 
     marshaller = PanicNull(MarshalInit(bt_device_marshal_type_descriptors, NUMBER_OF_MARSHAL_OBJECT_TYPES));
     MarshalSetBuffer(marshaller, bufptr, btDevice_GetDeviceDataLen(device));
@@ -469,34 +471,7 @@ static void btDevice_DeserialisePersistentDeviceData(device_t device, void *buf,
 
     memcpy(&unmarshalled_data_to_write_to_device_database, object, sizeof(bt_device_pdd_t));
 
-    Device_SetProperty(device, device_property_type, &unmarshalled_data_to_write_to_device_database.type, sizeof(deviceType));
-    Device_SetPropertyU16(device, device_property_tws_version, unmarshalled_data_to_write_to_device_database.tws_version);
-    Device_SetPropertyU16(device, device_property_flags, unmarshalled_data_to_write_to_device_database.flags);
-    Device_SetProperty(device, device_property_link_mode, &unmarshalled_data_to_write_to_device_database.link_mode, sizeof(deviceLinkMode));
-
-    switch(unmarshalled_data_to_write_to_device_database.type)
-    {
-        case DEVICE_TYPE_EARBUD:
-            Device_SetPropertyU16(device, device_property_sco_fwd_features, unmarshalled_data_to_write_to_device_database.sco_fwd_features);
-            Device_SetPropertyU8(device, device_property_supported_profiles, unmarshalled_data_to_write_to_device_database.supported_profiles);
-            Device_SetPropertyU8(device, device_property_last_connected_profiles, unmarshalled_data_to_write_to_device_database.connected_profiles);
-            break;
-        case DEVICE_TYPE_HANDSET:
-            Device_SetPropertyU8(device, device_property_a2dp_volume, unmarshalled_data_to_write_to_device_database.a2dp_volume);
-            Device_SetPropertyU8(device, device_property_hfp_profile, unmarshalled_data_to_write_to_device_database.hfp_profile);
-            Device_SetPropertyU8(device, device_property_supported_profiles, unmarshalled_data_to_write_to_device_database.supported_profiles);
-            Device_SetPropertyU8(device, device_property_last_connected_profiles, unmarshalled_data_to_write_to_device_database.connected_profiles);
-            Device_SetPropertyU16(device, device_property_battery_server_config_l, unmarshalled_data_to_write_to_device_database.battery_server_config_l);
-            Device_SetPropertyU16(device, device_property_battery_server_config_r, unmarshalled_data_to_write_to_device_database.battery_server_config_r);
-            Device_SetPropertyU16(device, device_property_gatt_server_config, unmarshalled_data_to_write_to_device_database.gatt_server_config);
-            Device_SetPropertyU16(device, device_property_gatt_server_services_changed, unmarshalled_data_to_write_to_device_database.gatt_server_services_changed);
-            break;
-
-        case DEVICE_TYPE_SELF:
-        case DEVICE_TYPE_UNKNOWN:
-        default:
-            break;
-    }
+    BtDevice_SetDeviceData(device, &unmarshalled_data_to_write_to_device_database);
 
     UnmarshalClearStore(unmarshaller);
     UnmarshalDestroy(unmarshaller, TRUE);
@@ -523,7 +498,7 @@ bool appDeviceInit(Task init_task)
     DeviceDbSerialiser_Deserialise();
 
     theDevice->task.handler = appDeviceHandleMessage;
-    theDevice->device_version_client_tasks = TaskList_Create();
+    TaskList_InitialiseWithCapacity(DeviceGetVersionClientTasks(), DEVICE_VERSION_CLIENT_TASKS_LIST_INIT_CAPACITY);
 
     /* register to receive notifications of connections */
     ConManagerRegisterConnectionsClient(&theDevice->task);
@@ -550,7 +525,6 @@ uint16 appDeviceTwsVersion(const bdaddr *bd_addr)
 
 bool appDeviceSetTwsVersion(const bdaddr *bd_addr, uint16 tws_version)
 {
-    deviceTaskData *theDevice = DeviceGetTaskData();
     bool tws_version_changed = FALSE;
 
     device_t device = BtDevice_GetDeviceForBdAddr(bd_addr);
@@ -593,7 +567,7 @@ bool appDeviceSetTwsVersion(const bdaddr *bd_addr, uint16 tws_version)
             message->bd_addr = *bd_addr;
             message->tws_version = tws_version;
             message->previous_tws_version = device_tws_version;
-            TaskList_MessageSend(theDevice->device_version_client_tasks, DEVICE_VERSION_IND, message);
+            TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(DeviceGetVersionClientTasks()), DEVICE_VERSION_IND, message);
 
             /* Update with new TWS version */
             device_tws_version = tws_version;
@@ -631,6 +605,32 @@ bool appDeviceIsPeer(const bdaddr *bd_addr)
         }
     }
     return isPeer;
+}
+
+bool BtDevice_LeDeviceIsPeer(const tp_bdaddr *tpaddr)
+{
+    bool device_is_peer;
+
+    if (tpaddr->taddr.type == TYPED_BDADDR_RANDOM)
+    {
+        tp_bdaddr remote;
+
+        if (VmGetPublicAddress(tpaddr, &remote))
+        {
+            device_is_peer = appDeviceIsPeer(&remote.taddr.addr);
+        }
+        else
+        {
+        /*  Assume no IRK => not bonded => not our peer  */
+            device_is_peer = FALSE;
+        }
+    }
+    else
+    {
+        device_is_peer = appDeviceIsPeer(&tpaddr->taddr.addr);
+    }
+
+    return device_is_peer;
 }
 
 bool appDeviceIsHandset(const bdaddr *bd_addr)
@@ -751,12 +751,12 @@ static avInstanceTaskData* btDevice_GetAvInstanceForHandset(void)
 
 bool appDeviceIsHandsetA2dpDisconnected(void)
 {
-    bool is_disconnected = FALSE;
+    bool is_disconnected = TRUE;
     avInstanceTaskData *inst = btDevice_GetAvInstanceForHandset();
     if (inst)
     {
-        if (appA2dpIsDisconnected(inst))
-            is_disconnected = TRUE;
+        if (!appA2dpIsDisconnected(inst))
+            is_disconnected = FALSE;
     }
     return is_disconnected;
 }
@@ -787,12 +787,12 @@ bool appDeviceIsHandsetA2dpStreaming(void)
 
 bool appDeviceIsHandsetAvrcpDisconnected(void)
 {
-    bool is_disconnected = FALSE;
+    bool is_disconnected = TRUE;
     avInstanceTaskData *inst = btDevice_GetAvInstanceForHandset();
     if (inst)
     {
-        if (appAvrcpIsDisconnected(inst))
-            is_disconnected = TRUE;
+        if (!appAvrcpIsDisconnected(inst))
+            is_disconnected = FALSE;
     }
     return is_disconnected;
 }
@@ -938,8 +938,7 @@ bool appDeviceIsHandsetAnyProfileConnected(void)
 
 void appDeviceRegisterDeviceVersionClient(Task client_task)
 {
-    deviceTaskData *theDevice = DeviceGetTaskData();
-    TaskList_AddTask(theDevice->device_version_client_tasks, client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(DeviceGetVersionClientTasks()), client_task);
 }
 
 static void btDevice_ClearPreviousMruDevice(void)
@@ -1493,3 +1492,80 @@ void BtDevice_PrintAllDevices(void)
 
     DeviceList_Iterate(btDevice_PrintDeviceInfo, NULL);
 }
+
+void BtDevice_GetDeviceData(device_t device, bt_device_pdd_t *device_data)
+{
+    DEBUG_LOG("BtDevice_GetDeviceData");
+
+    void *property_value = NULL;
+    size_t size;
+
+    Device_GetPropertyU8(device, device_property_a2dp_volume, &device_data->a2dp_volume);
+    Device_GetPropertyU8(device, device_property_hfp_profile, &device_data->hfp_profile);
+    Device_GetPropertyU8(device, device_property_supported_profiles, &device_data->supported_profiles);
+    Device_GetPropertyU8(device, device_property_last_connected_profiles, &device_data->connected_profiles);
+
+    Device_GetPropertyU16(device, device_property_flags, &device_data->flags);
+
+    if (Device_GetProperty(device, device_property_type, &property_value, &size))
+    {
+        PanicFalse(size == sizeof(deviceType));
+        device_data->type = *((deviceType *)property_value);
+    }
+
+    if (Device_GetProperty(device, device_property_link_mode, &property_value, &size))
+    {
+        PanicFalse(size == sizeof(deviceLinkMode));
+        device_data->link_mode = *((deviceLinkMode *)property_value);
+    }
+
+    Device_GetPropertyU16(device, device_property_tws_version, &device_data->tws_version);
+    Device_GetPropertyU16(device, device_property_sco_fwd_features, &device_data->sco_fwd_features);
+    Device_GetPropertyU16(device, device_property_battery_server_config_l, &device_data->battery_server_config_l);
+    Device_GetPropertyU16(device, device_property_battery_server_config_r, &device_data->battery_server_config_r);
+    Device_GetPropertyU16(device, device_property_gatt_server_config, &device_data->gatt_server_config);
+    Device_GetPropertyU8(device, device_property_gatt_server_services_changed, &device_data->gatt_server_services_changed);
+
+}
+
+void BtDevice_SetDeviceData(device_t device, const bt_device_pdd_t *device_data)
+{
+    DEBUG_LOG("BtDevice_SetDeviceData");
+
+    Device_SetProperty(device, device_property_type, &device_data->type, sizeof(deviceType));
+    Device_SetPropertyU16(device, device_property_tws_version, device_data->tws_version);
+    Device_SetPropertyU16(device, device_property_flags, device_data->flags);
+    Device_SetProperty(device, device_property_link_mode, &device_data->link_mode, sizeof(deviceLinkMode));
+
+    switch(device_data->type)
+    {
+        case DEVICE_TYPE_EARBUD:
+            Device_SetPropertyU16(device, device_property_sco_fwd_features, device_data->sco_fwd_features);
+            Device_SetPropertyU8(device, device_property_supported_profiles, device_data->supported_profiles);
+            Device_SetPropertyU8(device, device_property_last_connected_profiles, device_data->connected_profiles);
+            break;
+        case DEVICE_TYPE_HANDSET:
+            Device_SetPropertyU8(device, device_property_a2dp_volume, device_data->a2dp_volume);
+            Device_SetPropertyU8(device, device_property_hfp_profile, device_data->hfp_profile);
+            Device_SetPropertyU8(device, device_property_supported_profiles, device_data->supported_profiles);
+            Device_SetPropertyU8(device, device_property_last_connected_profiles, device_data->connected_profiles);
+            Device_SetPropertyU16(device, device_property_battery_server_config_l, device_data->battery_server_config_l);
+            Device_SetPropertyU16(device, device_property_battery_server_config_r, device_data->battery_server_config_r);
+            Device_SetPropertyU16(device, device_property_gatt_server_config, device_data->gatt_server_config);
+            Device_SetPropertyU16(device, device_property_gatt_server_services_changed, device_data->gatt_server_services_changed);
+            break;
+
+        case DEVICE_TYPE_SELF:
+        case DEVICE_TYPE_UNKNOWN:
+        default:
+            break;
+    }
+
+}
+
+void BtDevice_StorePsDeviceDataWithDelay(void)
+{
+    MessageSendLater(&DeviceGetTaskData()->task, BT_INTERNAL_MSG_STORE_PS_DATA,
+                     NULL, BT_DEVICE_STORE_PS_DATA_DELAY);
+}
+

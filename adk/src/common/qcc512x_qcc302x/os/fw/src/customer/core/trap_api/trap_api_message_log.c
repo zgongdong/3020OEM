@@ -115,7 +115,7 @@ void trap_api_message_log_now(TRAP_API_LOG_ACTION action, AppMessage *msg, uint3
                                     + sizeof(seq_num)
                                     + sizeof(now)
                                     + sizeof(type)      /* action */
-                                    + sizeof(msg->task)
+                                    + sizeof(msg->t)  /* task/ptr union */
                                     + sizeof(msg->id)
                                     + sizeof(msg->condition_addr)
                                     + sizeof(msg->due)
@@ -157,7 +157,14 @@ void trap_api_message_log_now(TRAP_API_LOG_ACTION action, AppMessage *msg, uint3
         FAST_LOG_MSG_ELEMENT(seq_num, bufpos);
         FAST_LOG_MSG_ELEMENT(now, bufpos);
         FAST_LOG_MSG_ELEMENT(type, bufpos);
-        FAST_LOG_MSG_ELEMENT(msg->task, bufpos);
+        if (msg->multicast)
+        {
+            FAST_LOG_MSG_ELEMENT(msg->t.tlist, bufpos);
+        }
+        else
+        {
+            FAST_LOG_MSG_ELEMENT(msg->t.task, bufpos);
+        }
         FAST_LOG_MSG_ELEMENT(msg->id, bufpos);
         FAST_LOG_MSG_ELEMENT(msg->condition_addr, bufpos);
         FAST_LOG_MSG_ELEMENT(msg->due, bufpos);
@@ -182,7 +189,14 @@ void trap_api_message_log_now(TRAP_API_LOG_ACTION action, AppMessage *msg, uint3
         FAST_LOG_MSG_ELEMENT(seq_num, bufpos);
         FAST_LOG_MSG_ELEMENT(now, bufpos);
         FAST_LOG_MSG_ELEMENT(type, bufpos);
-        FAST_LOG_MSG_ELEMENT(msg->task, bufpos);
+        if (msg->multicast)
+        {
+            FAST_LOG_MSG_ELEMENT(msg->t.tlist, bufpos);
+        }
+        else
+        {
+            FAST_LOG_MSG_ELEMENT(msg->t.task, bufpos);
+        }
         FAST_LOG_MSG_ELEMENT(msg->id, bufpos);
         FAST_LOG_MSG_ELEMENT(msg->condition_addr, bufpos);
         FAST_LOG_MSG_ELEMENT(msg->due, bufpos);

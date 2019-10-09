@@ -4,54 +4,88 @@
 <message_map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="pio_message_map.xsd">
 
 <message>
-    <messageName>APP_MFB_BUTTON_PRESS</messageName>
-    <buttonEvent>RELEASE</buttonEvent>
+    <messageName>APP_MFB_BUTTON_SINGLE_CLICK</messageName>
+    <buttonEvent>SINGLE_CLICK</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
 </message>
 
 <message>
-    <messageName>APP_MFB_BUTTON_1_SECOND</messageName>
+    <messageName>APP_MFB_BUTTON_HELD_RELEASE_1SEC</messageName>
     <buttonEvent>HELD_RELEASE</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
     <timeout_ms>1000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_MFB_BUTTON_HELD_1</messageName>
+    <messageName>APP_MFB_BUTTON_HELD_1SEC</messageName>
     <buttonEvent>HELD</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
     <timeout_ms>1000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_MFB_BUTTON_6_SECOND</messageName>
+    <messageName>APP_MFB_BUTTON_HELD_3SEC</messageName>
+    <buttonEvent>HELD</buttonEvent>
+    <activePinFriendlyName>SW2</activePinFriendlyName>
+    <timeout_ms>3000</timeout_ms>
+</message>
+
+<message>
+    <messageName>APP_MFB_BUTTON_HELD_RELEASE_6SEC</messageName>
     <buttonEvent>HELD_RELEASE</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
     <timeout_ms>6000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_MFB_BUTTON_HELD_2</messageName>
+    <messageName>APP_MFB_BUTTON_HELD_6SEC</messageName>
     <buttonEvent>HELD</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
     <timeout_ms>6000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_MFB_BUTTON_8_SECOND</messageName>
+    <messageName>APP_MFB_BUTTON_HELD_RELEASE_8SEC</messageName>
     <buttonEvent>HELD_RELEASE</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
     <timeout_ms>8000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_MFB_BUTTON_HELD_3</messageName>
+    <messageName>APP_MFB_BUTTON_HELD_8SEC</messageName>
     <buttonEvent>HELD</buttonEvent>
     <activePinFriendlyName>SW2</activePinFriendlyName>
     <timeout_ms>8000</timeout_ms>
 </message>
 
+<message>
+    <messageName>APP_BUTTON_DFU</messageName>
+    <buttonEvent>HELD_RELEASE</buttonEvent>
+    <activePinFriendlyName>SW2</activePinFriendlyName>
+    <timeout_ms>12000</timeout_ms>
+</message>
 
+
+<message>
+    <messageName>APP_BUTTON_HELD_DFU</messageName>
+    <buttonEvent>HELD</buttonEvent>
+    <activePinFriendlyName>SW2</activePinFriendlyName>
+    <timeout_ms>12000</timeout_ms>
+</message>
+
+<message>
+    <messageName>APP_BUTTON_FACTORY_RESET</messageName>
+    <buttonEvent>HELD_RELEASE</buttonEvent>
+    <activePinFriendlyName>SW2</activePinFriendlyName>
+    <timeout_ms>15000</timeout_ms>
+</message>
+
+<message>
+    <messageName>APP_BUTTON_HELD_FACTORY_RESET</messageName>
+    <buttonEvent>HELD</buttonEvent>
+    <activePinFriendlyName>SW2</activePinFriendlyName>
+    <timeout_ms>15000</timeout_ms>
+</message>
 
 
 <message>
@@ -130,15 +164,6 @@
 </message>
 
 
-
-
-<message>
-    <messageName>APP_BUTTON_POWER_OFF</messageName>
-    <buttonEvent>HELD_RELEASE</buttonEvent>
-    <activePinFriendlyName>SW5</activePinFriendlyName>
-    <timeout_ms>3000</timeout_ms>
-</message>
-
 <message>
     <messageName>APP_BUTTON_HELD_1</messageName>
     <buttonEvent>HELD</buttonEvent>
@@ -147,31 +172,47 @@
 </message>
 
 <message>
-    <messageName>APP_BUTTON_DFU</messageName>
+    <messageName>APP_VA_BUTTON_DOWN</messageName>
+    <buttonEvent>ENTER</buttonEvent>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
+</message>
+
+<message>
+    <messageName>APP_VA_BUTTON_RELEASE</messageName>
+    <buttonEvent>RELEASE</buttonEvent>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
+</message>
+
+<message>
+    <messageName>APP_VA_BUTTON_SINGLE_CLICK</messageName>
+    <buttonEvent>SINGLE_CLICK</buttonEvent>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
+</message>
+
+<message>
+    <messageName>APP_VA_BUTTON_HELD_RELEASE</messageName>
     <buttonEvent>HELD_RELEASE</buttonEvent>
-    <activePinFriendlyName>SW5</activePinFriendlyName>
-    <timeout_ms>12000</timeout_ms>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
+    <timeout_ms>1000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_BUTTON_HELD_DFU</messageName>
+    <messageName>APP_VA_BUTTON_HELD_1SEC</messageName>
     <buttonEvent>HELD</buttonEvent>
-    <activePinFriendlyName>SW5</activePinFriendlyName>
-    <timeout_ms>12000</timeout_ms>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
+    <timeout_ms>1000</timeout_ms>
 </message>
 
 <message>
-    <messageName>APP_BUTTON_FACTORY_RESET</messageName>
-    <buttonEvent>HELD_RELEASE</buttonEvent>
-    <activePinFriendlyName>SW5</activePinFriendlyName>
-    <timeout_ms>15000</timeout_ms>
+    <messageName>APP_VA_BUTTON_DOUBLE_CLICK</messageName>
+    <buttonEvent>DOUBLE_CLICK</buttonEvent>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
 </message>
 
 <message>
-    <messageName>APP_BUTTON_HELD_FACTORY_RESET</messageName>
-    <buttonEvent>HELD</buttonEvent>
-    <activePinFriendlyName>SW5</activePinFriendlyName>
-    <timeout_ms>15000</timeout_ms>
+    <messageName>APP_BUTTON_LAST</messageName>
+    <buttonEvent>ENTER</buttonEvent>
+    <activePinFriendlyName>SW3</activePinFriendlyName>
 </message>
 
 

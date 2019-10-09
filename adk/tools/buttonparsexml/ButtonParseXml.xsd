@@ -25,6 +25,14 @@
           </xs:documentation>
         </xs:annotation>
       </xs:enumeration>
+      <xs:enumeration value="SINGLE_CLICK">
+        <xs:annotation>
+          <xs:documentation>
+            start a timer when the PIO state changes to not match
+            if another conflicting event does not stop the timer it will send a message on timeout
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
       <xs:enumeration value="HELD">
         <xs:annotation>
           <xs:documentation>
@@ -37,14 +45,14 @@
         <xs:annotation>
           <xs:documentation>
             start a timer when the PIO enters the specified state. If the PIO changes state AFTER the timer expires then
-            send the message when the PIO state changes back.
+            send the message when the PIO state changes back. (Does NOT block the unified RELEASE event)
           </xs:documentation>
         </xs:annotation>
       </xs:enumeration>
-      <xs:enumeration value="DOUBLE">
+      <xs:enumeration value="DOUBLE_CLICK">
         <xs:annotation>
           <xs:documentation>
-            send a message when the PIO state changes to match, twice within a specified time period (double button tap).
+            send a message when the PIO state changes to not match, twice before the timeout for a single press (500ms)
           </xs:documentation>
         </xs:annotation>
       </xs:enumeration>

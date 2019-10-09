@@ -611,6 +611,12 @@ typedef enum panicid
     PANIC_DMA_FAILED_TO_RETURN_TO_IDLE = 0xe8,
 
     /**
+     * Check revealed that PS store is corrupt, we can't recover from this.
+     * Diatribe value is offset in flash of the corrupt key.
+     */
+    PANIC_PSFLASH_STORE_CORRUPT = 0xe9,
+
+    /**
      * NOTE: 0x07ff is the highest panic code in the Qualcomm range
      * Qualcomm add codes from the lowest free number towards this high one
      */

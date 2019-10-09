@@ -20,6 +20,7 @@
 #include <chain.h>
 
 #include "kymera.h"
+#include "kymera_voice_capture.h"
 #include "earbud_log.h"
 #include "earbud_chain_roles.h"
 #include "earbud_latency.h"
@@ -122,6 +123,7 @@ typedef enum kymera_operator_ucids
     UCID_AEC_NB = 1,
     UCID_AEC_SWB = 2,
     UCID_AEC_UWB = 3,
+    UCID_AEC_WB_VA = 4,
     UCID_CVC_SEND = 0,
     UCID_CVC_RECEIVE = 0,
     UCID_VOLUME_CONTROL = 0,
@@ -282,6 +284,18 @@ typedef struct
     uint16 client_lock_mask;
 } KYMERA_INTERNAL_TONE_PROMPT_PLAY_T;
 
+/*! \brief KYMERA_INTERNAL_VOICE_CAPTURE_START message content */
+typedef struct
+{
+    Task client;
+    voice_capture_params_t params;
+} KYMERA_INTERNAL_VOICE_CAPTURE_START_T;
+
+/*! \brief KYMERA_INTERNAL_VOICE_CAPTURE_STOP message content */
+typedef struct
+{
+    Task client;
+} KYMERA_INTERNAL_VOICE_CAPTURE_STOP_T;
 
 typedef struct
 {
@@ -307,14 +321,17 @@ const appKymeraScoChainInfo *appKymeraScoFindChain(const appKymeraScoChainInfo *
 void appKymeraTonePromptStop(void);
 
 /*! \brief Create and configure the audio output chain.
-    \param rate The sample rate in Hz.
     \param kick_period The kymera kick period.
     \param buffer_size The PCM buffer size.
     \param volume_in_db The start volume.
 
     \note If buffer_size is zero, the buffer size is not configured.
 */
-void appKymeraCreateOutputChain(uint32 rate, unsigned kick_period, unsigned buffer_size, int16 volume_in_db);
+void appKymeraCreateOutputChain(unsigned kick_period, unsigned buffer_size, int16 volume_in_db);
+
+/*! \brief Stop and destroy the audio output chain.
+*/
+void appKymeraDestroyOutputChain(void);
 
 /*! \brief Configure the audio output chain.
     \param chain The chain containing the audio output chain operators.

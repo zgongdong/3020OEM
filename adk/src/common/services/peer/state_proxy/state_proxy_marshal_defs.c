@@ -13,6 +13,7 @@
 
 #include "state_proxy.h"
 #include "state_proxy_marshal_defs.h"
+#include "state_proxy_flags.h"
 
 #include <marshal_common.h>
 #include <phy_state.h>

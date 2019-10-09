@@ -156,6 +156,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ga0f39613be3d1455b29e6ed560e692c1c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#ga0f39613be3d1455b29e6ed560e692c1c">MessageSendLater</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task, <a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a> id, void *message, uint32 delay)</td></tr>
 <tr class="memdesc:ga0f39613be3d1455b29e6ed560e692c1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message to the corresponding task after the given delay in ms. The message will be passed to free after delivery.  <a href="#ga0f39613be3d1455b29e6ed560e692c1c">More...</a><br /></td></tr>
 <tr class="separator:ga0f39613be3d1455b29e6ed560e692c1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab8dbc30d5a332053387aa855e3f4931a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#gab8dbc30d5a332053387aa855e3f4931a">MessageSendMulticastConditionally</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> *t, <a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a> id, <a class="el" href="message___8h.html#acc69ef471490ab4c4bfd1e511aba5c74">Message</a> m, const uint16 *c)</td></tr>
+<tr class="memdesc:gab8dbc30d5a332053387aa855e3f4931a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message to be be delivered when the corresponding uint16 is zero.  <a href="#gab8dbc30d5a332053387aa855e3f4931a">More...</a><br /></td></tr>
+<tr class="separator:gab8dbc30d5a332053387aa855e3f4931a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gad6c1dcd05bf9acf829d645a954d86964"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#gad6c1dcd05bf9acf829d645a954d86964">MessageSendMulticastLater</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> *tasks, <a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a> id, void *message, uint32 delay)</td></tr>
+<tr class="memdesc:gad6c1dcd05bf9acf829d645a954d86964"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message to the corresponding tasks after the given delay in ms. The message will be passed to free after delivery.  <a href="#gad6c1dcd05bf9acf829d645a954d86964">More...</a><br /></td></tr>
+<tr class="separator:gad6c1dcd05bf9acf829d645a954d86964"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga04c5032d8f7be7ce07da6ee9f41244b3"><td class="memItemLeft" align="right" valign="top">uint16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__trapset__core.html#ga04c5032d8f7be7ce07da6ee9f41244b3">MessagesPendingForTask</a> (<a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> task, int32 *first_due)</td></tr>
 <tr class="memdesc:ga04c5032d8f7be7ce07da6ee9f41244b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search the message queue for all messages pending delivery to the specified task.  <a href="#ga04c5032d8f7be7ce07da6ee9f41244b3">More...</a><br /></td></tr>
 <tr class="separator:ga04c5032d8f7be7ce07da6ee9f41244b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -909,6 +915,106 @@ A value of 0xFFFD, 0xFFFE and 0xFFFF MUST not be used for partition number since
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">task</td><td>The task to deliver the message to. </td></tr>
+    <tr><td class="paramname">id</td><td>The message type identifier. </td></tr>
+    <tr><td class="paramname">message</td><td>The message data (if any). </td></tr>
+    <tr><td class="paramname">delay</td><td>The delay in ms before the message will be sent.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gab8dbc30d5a332053387aa855e3f4931a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MessageSendMulticastConditionally </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> *&#160;</td>
+          <td class="paramname"><em>t</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a>&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="message___8h.html#acc69ef471490ab4c4bfd1e511aba5c74">Message</a>&#160;</td>
+          <td class="paramname"><em>m</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint16 *&#160;</td>
+          <td class="paramname"><em>c</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send a message to be be delivered when the corresponding uint16 is zero. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">t</td><td>Pointer to the NULL-terminated table of tasks to deliver the message to. </td></tr>
+    <tr><td class="paramname">id</td><td>The message identifier. </td></tr>
+    <tr><td class="paramname">m</td><td>The message data. </td></tr>
+    <tr><td class="paramname">c</td><td>The condition that must be zero for the message to be delivered.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>This trap may be called from a high-priority task handler </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="gad6c1dcd05bf9acf829d645a954d86964"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void MessageSendMulticastLater </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="message___8h.html#a51d7b6544fb734b892b35ce3f56a579a">Task</a> *&#160;</td>
+          <td class="paramname"><em>tasks</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="message___8h.html#aa135f64d9b1113995d9335c8e9314d95">MessageId</a>&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>message</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32&#160;</td>
+          <td class="paramname"><em>delay</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Send a message to the corresponding tasks after the given delay in ms. The message will be passed to free after delivery. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">tasks</td><td>Pointer to the NULL-terminated table of tasks to deliver the message to. </td></tr>
     <tr><td class="paramname">id</td><td>The message type identifier. </td></tr>
     <tr><td class="paramname">message</td><td>The message data (if any). </td></tr>
     <tr><td class="paramname">delay</td><td>The delay in ms before the message will be sent.</td></tr>

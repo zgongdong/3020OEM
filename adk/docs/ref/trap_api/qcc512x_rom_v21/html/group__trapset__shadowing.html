@@ -149,7 +149,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>This trap may be called by the primary and the secondary devices to cancel the handover operation. </p>
-<p>On the primary side this trap may be called after calling <a class="el" href="group__trapset__shadowing.html#gaab0d70189633625fc907b0b079c5d4c1" title="Prepare the device for ACL handover. ">AclHandoverPrepare()</a> and before initiating a remote slave bdaddr change. On the secondary side this trap may be called before initiating a remote slave bdaddr change.</p>
+<p>On the primary side this trap may be called after calling <a class="el" href="group__trapset__shadowing.html#gaed788b0415211275e525e52610b7f4ec" title="Check if the device is prepared to handover the ACL. ">AclHandoverPrepared()</a>. On the secondary side this trap may be called before getting remote slave bdaddr change indication.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">handle</td><td>On the primary device, this will be the handle value returned by "AclHandoverPrepare()". On the secondary device, this will be connection_handle parameter in shadow acl link create indication </td></tr>
@@ -176,7 +176,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>This trap should be called by both primary and secondary devices to commit to resuming operation with the shadowed device in the new secondary or primary role. </p>
-<p>On the primary device, this trap should be called after successful device role switch and slave address change confirmation. On the secondary device, this trap should be called after slave address change confirmation. This trap should not be used on primary or secondary if <a class="el" href="group__trapset__shadowing.html#gaed788b0415211275e525e52610b7f4ec" title="Check if the device is prepared to handover the ACL. ">AclHandoverPrepared()</a> trap on primary returned failure status.</p>
+<p>On the primary device, this trap should be called after successful device role switch. On the secondary device, this trap should be called after slave address change indication. This trap should not be used on primary or secondary if <a class="el" href="group__trapset__shadowing.html#gaed788b0415211275e525e52610b7f4ec" title="Check if the device is prepared to handover the ACL. ">AclHandoverPrepared()</a> trap on primary returned failure status.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">handle</td><td>On the primary device, this will be the handle value returned by "AclHandoverPrepare()". On the secondary device, this will be connection_handle parameter in shadow acl link create indication </td></tr>

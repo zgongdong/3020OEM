@@ -220,6 +220,33 @@ uint16 MessagesPendingForTask(Task task, int32 * first_due);
  * \ingroup trapset_core
  */
 bool MessagePendingFirst(Task task, MessageId id, int32 * first_due);
+
+/**
+ *  \brief Send a message to the corresponding tasks after the given delay in ms. The
+ *  message will be passed to free after delivery.
+ *  \param tasks Pointer to the NULL-terminated table of tasks to deliver the message to.
+ *  \param id The message type identifier.
+ *  \param message The message data (if any).
+ *  \param delay The delay in ms before the message will be sent.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_core
+ */
+void MessageSendMulticastLater(Task * tasks, MessageId id, void * message, uint32 delay);
+
+/**
+ *  \brief Send a message to be be delivered when the corresponding uint16 is zero.
+ *  \param t Pointer to the NULL-terminated table of tasks to deliver the message to. 
+ *  \param id The message identifier. 
+ *  \param m The message data. 
+ *  \param c The condition that must be zero for the message to be delivered.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_core
+ */
+void MessageSendMulticastConditionally(Task * t, MessageId id, Message m, const uint16 * c);
 #endif /* TRAPSET_CORE */
 #if TRAPSET_NFC
 
@@ -363,6 +390,32 @@ void MessageLoop(void );
  * \ingroup trapset___special_inline
  */
 void MessageSendConditionallyOnTask(Task t, MessageId id, Message m, const Task * c);
+
+/**
+ *  \brief Send a message to the corresponding tasks immediately. The message will be
+ *  passed to free after delivery. 
+ *  \param tasks Pointer to the NULL-terminated table of tasks to deliver the message to. 
+ *  \param id The message type identifier. 
+ *  \param message The message data (if any).
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset___special_inline
+ */
+void MessageSendMulticast(Task * tasks, MessageId id, void * message);
+
+/**
+ *  \brief Send a message to be be delivered when the corresponding Task is zero.
+ *  \param t Pointer to the NULL-terminated table of tasks to deliver the message to. 
+ *  \param id The message identifier. 
+ *  \param m The message data. 
+ *  \param c The task that must be zero for the message to be delivered.
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset___special_inline
+ */
+void MessageSendMulticastConditionallyOnTask(Task * t, MessageId id, Message m, const Task * c);
 #if TRAPSET_BITSERIAL
 
 /**

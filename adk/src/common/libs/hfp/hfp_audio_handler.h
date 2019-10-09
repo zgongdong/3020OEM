@@ -29,11 +29,14 @@ NAME
 
 DESCRIPTION
     Used to inform hfp of a synchronous (audio) disconnection.
+    If transferred is true the audio disconnect status 
+    hfp_audio_disconnect_transferred is sent, otherwise 
+    hfp_audio_disconnect_success is used.    
     
 RETURNS
     void
 */
-void hfpManageSyncDisconnect(hfp_link_data* link);
+void hfpManageSyncDisconnect(hfp_link_data* link, bool transferred);
 
 
 /****************************************************************************

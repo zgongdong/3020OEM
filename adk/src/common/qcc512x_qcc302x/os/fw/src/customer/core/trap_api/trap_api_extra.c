@@ -50,7 +50,21 @@ static TaskData cleanup = { cleanup_handler };
 */
 void MessageSend(Task task, MessageId id, void *message)
 {
-  MessageSendLater(task, id, message, D_IMMEDIATE);
+    MessageSendLater(task, id, message, D_IMMEDIATE);
+}
+
+/*!
+  @brief Send a message to the corresponding task list immediately.
+  The message will be passed to free after delivery.
+  If the tasklist is dynamically allocated, it too will be freed.
+
+  @param tasklist The list of tasks to deliver the message to.
+  @param id The message type identifier.
+  @param message The message data (if any).
+*/
+void MessageSendMulticast(Task *tasklist, MessageId id, void *message)
+{
+    MessageSendMulticastLater(tasklist, id, message, D_IMMEDIATE);
 }
 
 /*!

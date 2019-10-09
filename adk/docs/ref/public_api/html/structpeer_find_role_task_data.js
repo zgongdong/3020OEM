@@ -1,5 +1,6 @@
 var structpeer_find_role_task_data =
 [
+    [ "TASK_LIST_WITH_INITIAL_CAPACITY", "structpeer_find_role_task_data.html#a8b3617eee0d4a7777bb3a015c73ed45f", null ],
     [ "_task", "structpeer_find_role_task_data.html#a088d0507756ffd5f0e684d2457bd9cb1", null ],
     [ "advert_activity", "structpeer_find_role_task_data.html#a2eaf08fba1647ee29ec8d1a20957799d", null ],
     [ "advert_handle", "structpeer_find_role_task_data.html#ae473d4794d7c5cd63e1c40f17fe9a3d2", null ],
@@ -10,7 +11,6 @@ var structpeer_find_role_task_data =
     [ "my_addr", "structpeer_find_role_task_data.html#a79f5658141045c050fedc47049ea3017", null ],
     [ "prepare_tasks", "structpeer_find_role_task_data.html#a6ab8573c04d814d0cbbd44239cea8e0f", null ],
     [ "primary_addr", "structpeer_find_role_task_data.html#a89c3317f75fdbffaa6ee0ad9ab5f59d5", null ],
-    [ "registered_tasks", "structpeer_find_role_task_data.html#aa04e3403abf6dff8a7fe7e9945b53716", null ],
     [ "remote_role", "structpeer_find_role_task_data.html#af616344b20f78729e5e4d3fdd61063c2", null ],
     [ "role_selection_client", "structpeer_find_role_task_data.html#ac6c6ff9f0f2db1f6b24d195b5dc8e1c6", null ],
     [ "role_selection_server", "structpeer_find_role_task_data.html#a94804f390513914061020cd9c6c7711d", null ],

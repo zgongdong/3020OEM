@@ -36,7 +36,7 @@
             <property name="KALSIM_FIRMWARE">../../output/stre_rom_kalsim_kalcmd2_release/build/debugbin/kymera_stre_audio.elf</property>
             <property name="KALSIM_SCRIPTS">script/kalsim/download.py,script/kalsim/download_mixer.dkcs</property>
             <property name="KALSIM_PLATFORM">stre</property>
-            <property name="KALSIM_PATCH_BUNDLE">../../output/stre_rom_kalsim_kalcmd2_release/build/patchbin/subsys3_patch0_fw00001EFC.hcf</property>
+            <property name="KALSIM_PATCH_BUNDLE">../../output/stre_rom_kalsim_kalcmd2_release/build/patchbin/subsys3_patch0_fw00002035.hcf</property>
             <property name="KALSIM_CONFIG_MAKE">CONFIG=stre_rom_kalsim_kalcmd2_release</property>
             <property name="KALSIM_KSE_PATH">../../../../kse</property>
         </configuration>
@@ -66,7 +66,7 @@
             <property name="KALSIM_FIRMWARE">../../output/stre_rom_kalsim_kalcmd2_release/build/debugbin/kymera_stre_audio.elf</property>
             <property name="KALSIM_SCRIPTS">script/kalsim/download.py,script/kalsim/download_mixer.dkcs</property>
             <property name="KALSIM_PLATFORM">stre</property>
-            <property name="KALSIM_PATCH_BUNDLE">../../output/stre_rom_kalsim_kalcmd2_release/build/patchbin/subsys3_patch0_fw00001EFC.hcf</property>
+            <property name="KALSIM_PATCH_BUNDLE">../../output/stre_rom_kalsim_kalcmd2_release/build/patchbin/subsys3_patch0_fw00002035.hcf</property>
             <property name="KALSIM_CONFIG_MAKE">CONFIG=stre_rom_kalsim_kalcmd2_release</property>
             <property name="KALSIM_KSE_PATH">../../../../kse</property>
         </configuration>

@@ -1,5 +1,5 @@
 ############################################################################
-# Copyright (c) 2015 Qualcomm Technologies International, Ltd.
+# Copyright (c) 2015 - 2019 Qualcomm Technologies International, Ltd.
 # All Rights Reserved.
 # Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 # Notifications and licenses are retained for attribution purposes only
@@ -76,5 +76,6 @@ INSTALL_AEC_REFERENCE_SPKR_TTP_GATE
 USE_STRE_CAPS_LICENCING
 
 
-#Install the CONVERT_FROM_AUDIO capability
-%include config.MODIFY_CONVERT_FROM_AUDIO
+#Install the AUDIO CONVERT capabilities
+#%include config.MODIFY_CONVERT_FROM_AUDIO
+#%include config.MODIFY_CONVERT_TO_AUDIO

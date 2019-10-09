@@ -2,7 +2,7 @@ var struct_____b_r_o_a_d_c_a_s_t =
 [
     [ "assoc_data", "struct_____b_r_o_a_d_c_a_s_t.html#aba505a02a622910a691e374bfd4a55b3", null ],
     [ "client_task", "struct_____b_r_o_a_d_c_a_s_t.html#a23352cbf0297d99ec681013fe17c5c2c", null ],
-    [ "config", "struct_____b_r_o_a_d_c_a_s_t.html#ab80510f93d1d56b34cc341244fdb2414", null ],
+    [ "config", "struct_____b_r_o_a_d_c_a_s_t.html#ac589a754a68f48c6eb336722020250ad", null ],
     [ "csb_params", "struct_____b_r_o_a_d_c_a_s_t.html#a9d95118553fe881052ecd4e836a5d911", null ],
     [ "csb_params", "struct_____b_r_o_a_d_c_a_s_t.html#a347bdfdf91d030249681108eacde5c38", null ],
     [ "current_state", "struct_____b_r_o_a_d_c_a_s_t.html#a84528e4517f574ee0489362611ab09b3", null ],

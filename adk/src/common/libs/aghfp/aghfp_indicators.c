@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2005 - 2015 Qualcomm Technologies International, Ltd.
+Copyright (c) 2005 - 2019 Qualcomm Technologies International, Ltd.
 
 */
 
@@ -16,6 +16,10 @@ Copyright (c) 2005 - 2015 Qualcomm Technologies International, Ltd.
 #include <string.h> /* For memcpy */
 #include <stdio.h>
 #include <sink.h>
+
+#ifndef MIN
+#define MIN(a,b) ((a)<(b) ? (a) : (b))
+#endif
 
 
 /****************************************************************************

@@ -21,6 +21,7 @@
 /*! \brief Charger component task data structure. */
 chargerTaskData app_charger;
 #define appGetCharger()     (&app_charger)
+#define ChargerMonitorGetClientTasks()     (task_list_flexible_t *)(&app_charger.client_tasks)
 
 /**************************************************************************/
 /*! /brief Check if we KNOW that the system can power off.
@@ -215,14 +216,14 @@ static void appChargerCheck(void)
             appChargerDisableReasonClear(CHARGER_DISABLE_REASON_TIMEOUT);
 
             /* Inform all clients that charger has detached */
-            TaskList_MessageSendId(theCharger->client_tasks, CHARGER_MESSAGE_DETACHED);
+            TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), CHARGER_MESSAGE_DETACHED);
         }
         else
         {
             /* Inform all clients that charger has attached when old state was disconnected */
             if (theCharger->is_connected == CHARGER_DISCONNECTED)
             {
-                TaskList_MessageSendId(theCharger->client_tasks, CHARGER_MESSAGE_ATTACHED);
+                TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), CHARGER_MESSAGE_ATTACHED);
             }
 
             /* Clear charging flag now to kick off charging indication later */
@@ -255,17 +256,17 @@ static void appChargerCheck(void)
         /* Check if we have finished charging */
         if (!is_charging && theCharger->is_charging)
         {
-            TaskList_MessageSendId(theCharger->client_tasks, CHARGER_MESSAGE_COMPLETED);
+            TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), CHARGER_MESSAGE_COMPLETED);
         }
         else if (is_charging)
         {
             if (appBatteryGetVoltage() > appConfigBatteryVoltageOk())
             {
-                TaskList_MessageSendId(theCharger->client_tasks, CHARGER_MESSAGE_CHARGING_OK);
+                TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), CHARGER_MESSAGE_CHARGING_OK);
             }
             else
             {
-                TaskList_MessageSendId(theCharger->client_tasks, CHARGER_MESSAGE_CHARGING_LOW);
+                TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), CHARGER_MESSAGE_CHARGING_LOW);
             }
         }
 
@@ -467,7 +468,7 @@ bool appChargerInit(Task init_task)
 
     /* Set up task handler & record current charger status */
     theCharger->task.handler = appChargerHandleMessage;
-    theCharger->client_tasks = TaskList_Create();
+    TaskList_InitialiseWithCapacity(ChargerMonitorGetClientTasks(), CHARGER_MONITOR_CLIENT_TASKS_LIST_INIT_CAPACITY);
     theCharger->is_connected = CHARGER_DISCONNECTED;
     theCharger->is_charging = FALSE;
     theCharger->status = ENABLE_FAIL_UNKNOWN;
@@ -501,8 +502,7 @@ bool appChargerInit(Task init_task)
 bool appChargerClientRegister(Task client_task)
 {
 #ifdef INCLUDE_CHARGER
-    chargerTaskData *theCharger = appGetCharger();
-    if (TaskList_AddTask(theCharger->client_tasks, client_task))
+    if (TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), client_task))
     {
         /* Send initial state if charger is attached */
         if (appChargerIsConnected() == CHARGER_CONNECTED_NO_ERROR)
@@ -525,8 +525,7 @@ bool appChargerClientRegister(Task client_task)
 void appChargerClientUnregister(Task client_task)
 {
 #ifdef INCLUDE_CHARGER
-    chargerTaskData *theCharger = appGetCharger();
-    TaskList_RemoveTask(theCharger->client_tasks, client_task);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(ChargerMonitorGetClientTasks()), client_task);
 #else
     UNUSED(client_task);
 #endif

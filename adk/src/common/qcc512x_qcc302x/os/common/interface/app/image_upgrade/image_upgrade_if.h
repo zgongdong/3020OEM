@@ -70,7 +70,6 @@ typedef enum
     /** Audio executable image section. */
     IMAGE_SECTION_AUDIO_IMAGE                  = 0xc,
 
-#if INSTALL_RA_PARTITION
     /** Apps Random Access Partition image section. */
     /* NOTE: this image section cannot be upgraded using image upgrade
      * traps. 
@@ -78,7 +77,7 @@ typedef enum
      * to the other image bank whilst handling the ImageUpgradeSwapTry() trap.
      */
     IMAGE_SECTION_APPS_RA_PARTITION            = 0xd,
-#endif /* INSTALL_RA_PARTITION */
+
     /** Maximum value of the image section. */
     IMAGE_SECTION_ID_MAX
 }image_section_id;

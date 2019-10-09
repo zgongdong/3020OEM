@@ -16,6 +16,8 @@ var group__trapset__core =
     [ "MessagePioTask", "group__trapset__core.html#ga3a491ae8deeebdcb69fc57f3c6f4d1cd", null ],
     [ "MessageSendConditionally", "group__trapset__core.html#gaa608780f111499c54dbde65797a25e82", null ],
     [ "MessageSendLater", "group__trapset__core.html#ga0f39613be3d1455b29e6ed560e692c1c", null ],
+    [ "MessageSendMulticastConditionally", "group__trapset__core.html#gab8dbc30d5a332053387aa855e3f4931a", null ],
+    [ "MessageSendMulticastLater", "group__trapset__core.html#gad6c1dcd05bf9acf829d645a954d86964", null ],
     [ "MessagesPendingForTask", "group__trapset__core.html#ga04c5032d8f7be7ce07da6ee9f41244b3", null ],
     [ "MessageSystemTask", "group__trapset__core.html#gabd1023998e25adee54f220a8d71736ae", null ],
     [ "MessageWait", "group__trapset__core.html#ga77b36f30530a6cd62a2e0f34a787063c", null ],

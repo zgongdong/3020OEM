@@ -67,6 +67,9 @@
 #Install the CONVERT_FROM_AUDIO capability
 %include config.MODIFY_CONVERT_FROM_AUDIO
 
+#Install the CONVERT_TO_AUDIO capability
+%include config.MODIFY_CONVERT_TO_AUDIO
+
 %cpp
 # Remove QVA and VAD licensing for first TO. Added initially under config.MODIFY_QVA and _VAD
 -USE_VAD_QVA_CAPS_LICENSING

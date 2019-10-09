@@ -165,7 +165,7 @@ DESCRIPTION
     Get the system lock state of the Connection library
 
 RETURNS
-    TRUE if no locks held
+    FALSE if no locks held
 */
 bool connectionGetLockState( void )
 {

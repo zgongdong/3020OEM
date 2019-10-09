@@ -16,16 +16,7 @@ DESCRIPTION
 
 #include <app/bluestack/types.h>
 #include <app/bluestack/bluetooth.h>
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
 #include <app/bluestack/l2cap_prim.h>
-
-#ifdef L2CA_DISCONNECT_LINK_TRANSFERRED
-#undef L2CA_DISCONNECT_LINK_TRANSFERRED
-#endif
-
-#define L2CA_DISCONNECT_LINK_TRANSFERRED 0xFF
 
 /***********************************************************
 NAME 

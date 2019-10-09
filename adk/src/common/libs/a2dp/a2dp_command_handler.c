@@ -1406,6 +1406,15 @@ void a2dpStreamStart (const A2DP_INTERNAL_MEDIA_START_REQ_T *req)
 void a2dpStreamStartResponse (const A2DP_INTERNAL_MEDIA_START_RES_T *res)
 {
     remote_device *device = PanicNull(res->device);
+    signalling_channel *signalling = &device->signal_conn;
+
+    /* If the Signalling channel sink has become invalid in the time taken for the local client to respond
+     * then there's nowhere to send an accept or reject.  Inform app of failure */
+    if ((signalling == NULL) || !SinkIsValid(signalling->connection.active.sink))
+    {
+       a2dpMediaStartCfm(device, &device->media_conn[0], a2dp_no_signalling_connection);
+       return;
+    }
 
     if ( (device->signal_conn.status.stream_state != avdtp_stream_open) &&
          (device->signal_conn.status.stream_state != avdtp_stream_remote_starting) &&
@@ -1415,7 +1424,7 @@ void a2dpStreamStartResponse (const A2DP_INTERNAL_MEDIA_START_RES_T *res)
         a2dpMediaStartCfm(device, &device->media_conn[0], a2dp_wrong_state);
         return;
     }
-    
+           
     /* If we are already streaming, don't worry about any rejection response from the local client */
     if (res->accept || (device->signal_conn.status.stream_state == avdtp_stream_streaming))
     {

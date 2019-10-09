@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Qualcomm Technologies International, Ltd. */
+/* Copyright (c) 2016, 2019 Qualcomm Technologies International, Ltd. */
 /*    */
 /**
  * \file

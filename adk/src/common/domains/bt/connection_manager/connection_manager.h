@@ -209,6 +209,14 @@ void ConManagerUnregisterConnectionsClient(Task client_task);
  */
 bool ConManagerIsConnected(const bdaddr *addr);
 
+/*! \brief Query if a device is currently connected.
+
+    \param[in] tpaddr Pointer to a BT address.
+
+    \return bool TRUE device is connected, FALSE device is not connected.
+ */
+bool ConManagerIsTpConnected(const tp_bdaddr *tpaddr);
+
 /*! \brief Query if a ACL to device was locally initiated.
 
     \param[in] addr Pointer to a BT address.
@@ -447,6 +455,10 @@ void ConManagerSetMaxQos(cm_qos_t qos);
         Sends a CON_MANAGER_CLOSE_ALL_CFM response to the requester.
         CON_MANAGER_CONNECTION_IND messages may be sent to any registered
         observers
+
+        \note The function does not protect against any new connections
+        being created. This should be blocked by calls to 
+        ConManagerAllowConnection().
 
         \param[in] requester task to be sent CON_MANAGER_CLOSE_ALL_CFM 
                 message

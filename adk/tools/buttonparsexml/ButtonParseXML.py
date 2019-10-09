@@ -195,8 +195,9 @@ def OutputButtonTable(message_dict, action_name):
     table_str = "const InputActionMessage_t " + action_name + "[] = \n{\n"
     table_str += OutputButtonAction(message_dict, "ENTER")
     table_str += OutputButtonAction(message_dict, "HELD")
+    table_str += OutputButtonAction(message_dict, "SINGLE_CLICK")
     table_str += OutputButtonAction(message_dict, "HELD_RELEASE")
-    table_str += OutputButtonAction(message_dict, "DOUBLE")
+    table_str += OutputButtonAction(message_dict, "DOUBLE_CLICK")
     table_str += OutputButtonAction(message_dict, "RELEASE")
     table_str += "};\n"
     return table_str

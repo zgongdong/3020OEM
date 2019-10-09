@@ -85,6 +85,23 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
     {
         case KYMERA_STATE_A2DP_STARTING_A:
         {
+            unsigned kick_period = KICK_PERIOD_FAST;
+            int16 volume_config = appConfigEnableSoftVolumeRampOnStart() ? VOLUME_MUTE_IN_DB : volume_in_db;
+            DEBUG_LOG("appKymeraA2dpStartMaster, creating output chain, completing startup");
+            switch (seid)
+            {
+                case AV_SEID_SBC_SNK:  kick_period = KICK_PERIOD_MASTER_SBC;  break;
+                case AV_SEID_AAC_SNK:  kick_period = KICK_PERIOD_MASTER_AAC;  break;
+                case AV_SEID_APTX_SNK: kick_period = KICK_PERIOD_MASTER_APTX; break;
+            }
+            theKymera->output_rate = rate;
+            appKymeraCreateOutputChain(kick_period, PCM_LATENCY_BUFFER_SIZE, volume_config);
+            appKymeraSetOperatorUcids(FALSE, NO_SCO);
+            
+        }
+        return FALSE;
+        case KYMERA_STATE_A2DP_STARTING_B:	
+        {
             const chain_config_t *config = NULL;
             bool is_left = appConfigIsLeft();
             /* Create input chain */
@@ -125,8 +142,10 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
         }
         return FALSE;
 
-        case KYMERA_STATE_A2DP_STARTING_B:
+        case KYMERA_STATE_A2DP_STARTING_C:
         {
+            bool connected;
+            int16 volume_config = appConfigEnableSoftVolumeRampOnStart() ? VOLUME_MUTE_IN_DB : volume_in_db;
             kymera_chain_handle_t chain_handle = theKymera->chain_input_handle;
             rtp_codec_type_t rtp_codec = -1;
             Operator op;
@@ -171,25 +190,6 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
             }
             appKymeraConfigureRtpDecoder(op_rtp_decoder, rtp_codec, rate, cp_header_enabled);
             ChainConnect(theKymera->chain_input_handle);
-        }
-        return FALSE;
-
-        case KYMERA_STATE_A2DP_STARTING_C:
-        {
-            bool connected;
-            unsigned kick_period = KICK_PERIOD_FAST;
-            int16 volume_config = appConfigEnableSoftVolumeRampOnStart() ? VOLUME_MUTE_IN_DB : volume_in_db;
-            DEBUG_LOG("appKymeraA2dpStartMaster, creating output chain, completing startup");
-            switch (seid)
-            {
-                case AV_SEID_SBC_SNK:  kick_period = KICK_PERIOD_MASTER_SBC;  break;
-                case AV_SEID_AAC_SNK:  kick_period = KICK_PERIOD_MASTER_AAC;  break;
-                case AV_SEID_APTX_SNK: kick_period = KICK_PERIOD_MASTER_APTX; break;
-            }
-            OperatorsFrameworkSetKickPeriod(kick_period);
-            appKymeraCreateOutputChain(rate, kick_period, PCM_LATENCY_BUFFER_SIZE, volume_config);
-            appKymeraSetOperatorUcids(FALSE, NO_SCO);
-
             /* Connect input and output chains together */
             PanicFalse(ChainConnectInput(theKymera->chainu.output_vol_handle,
                             ChainGetOutput(theKymera->chain_input_handle, EPR_SOURCE_DECODED_PCM),
@@ -245,7 +245,6 @@ void appKymeraA2dpCommonStop(Source source)
 
     /* Stop chains before disconnecting */
     ChainStop(theKymera->chain_input_handle);
-    ChainStop(theKymera->chainu.output_vol_handle);
 
     /* Disable external amplifier if required */
     appKymeraExternalAmpControl(FALSE);
@@ -254,11 +253,11 @@ void appKymeraA2dpCommonStop(Source source)
     StreamDisconnect(source, 0);
     StreamConnectDispose(source);
 
+    appKymeraDestroyOutputChain();
+
     /* Destroy chains now that input has been disconnected */
     ChainDestroy(theKymera->chain_input_handle);
     theKymera->chain_input_handle = NULL;
-    ChainDestroy(theKymera->chainu.output_vol_handle);
-    theKymera->chainu.output_vol_handle = NULL;
 
     /* Destroy packetiser */
     if (theKymera->packetiser)
@@ -430,7 +429,8 @@ void appKymeraA2dpStartSlave(a2dp_codec_settings *codec_settings, int16 volume_i
     appKymeraConfigureDspPowerMode(FALSE);
 
     /* Create output chain */
-    appKymeraCreateOutputChain(rate, kick_period, 0, volume_config);
+    theKymera->output_rate = rate;
+    appKymeraCreateOutputChain(kick_period, 0, volume_config);
     appKymeraSetOperatorUcids(FALSE, NO_SCO);
 
     /* Connect chains together */

@@ -19,7 +19,11 @@ var earbud__chain__roles_8h =
       [ "EPR_MICFWD_RX_OTA", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736ca8804e308ad63b04889101eb4c7ff93e8", null ],
       [ "EPR_MICFWD_TX_OTA", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736ca25fbade3c789b068455a61fbfe93fa29", null ],
       [ "EPR_TONE_PROMPT_CHAIN_OUT", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736ca10073d39e1f7b5d6733d1b12c3ffebd4", null ],
-      [ "EPR_PROMPT_IN", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736caf98658593de21e5883360ea2c99417d7", null ]
+      [ "EPR_PROMPT_IN", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736caf98658593de21e5883360ea2c99417d7", null ],
+      [ "EPR_VOICE_CAPTURE_AEC_IN", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736ca7fc49e9644f12ba18771f0103695e41f", null ],
+      [ "EPR_VOICE_CAPTURE_OUT", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736ca04a20ea4891b925ac2ecddbd5f4fcac2", null ],
+      [ "EPR_AEC_INPUT1", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736ca0535aa22a24fdc227baeb2decabebfb4", null ],
+      [ "EPR_AEC_REFERENCE_OUT", "earbud__chain__roles_8h.html#ab3bfd336ee4c0368466818a58ce0736cadc5e70eb7d5bb7a2d7f21e6320f06b22", null ]
     ] ],
     [ "chain_operator_roles", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8", [
       [ "OPR_RTP_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a8bd8147edf12feda9c3e59ce7fbc3e56", null ],
@@ -56,6 +60,7 @@ var earbud__chain__roles_8h =
       [ "OPR_TONE_PROMPT_RESAMPLER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a15e8bbc4bf530856be57fddbbc8c368c", null ],
       [ "OPR_TONE_GEN", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a1c6a0342455f22193aff4f3e032213ec", null ],
       [ "OPR_PROMPT_DECODER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a727795631ff5a29cebc4837aa21031eb", null ],
-      [ "OPR_LEFT_RIGHT_MIXER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a65237e4d5017702ec5e85ee238f66354", null ]
+      [ "OPR_LEFT_RIGHT_MIXER", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8a65237e4d5017702ec5e85ee238f66354", null ],
+      [ "OPR_AEC", "earbud__chain__roles_8h.html#a244ce0dc57d6d744751bef182fb0bec8add41fde2639996420ccb07ac93d20e13", null ]
     ] ]
 ];

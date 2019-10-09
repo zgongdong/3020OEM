@@ -53,7 +53,22 @@ def validate_args(args):
         return False
 
     if args.tab_type:
-        if not (args.tab_type in ["trap_live_log", "prim_live_log", "fw_live_log"]) and not os.path.isfile(args.tab_type):
+        tab_file = ''
+        if args.tab_type.endswith('.py'):
+            tab_file = args.tab_type
+
+            if not os.path.isabs(tab_file):
+                here = os.path.abspath(os.path.dirname(__file__))
+                tab_file = os.path.join(here, args.tab_type)
+
+            if os.path.isfile(tab_file):
+                args.tab_type = tab_file
+                return True
+            else:
+                print("Tab script file not found: {}".format(tab_file))
+                return False
+
+        if not (args.tab_type in ["trap_live_log", "prim_live_log", "fw_live_log"]):
             print("Incorrect tab type")
             return False
 
@@ -213,7 +228,10 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug_interface", help="Debug interface eg. trb:scar",
                         dest="debug", default="trb:scar")
 
-    parser.add_argument("-t", "--tab_type", help="prim_live_log, trap_live_log or none for normal pydbg",
+    parser.add_argument("-t", "--tab_type",
+                        help=("prim_live_log, trap_live_log, a path to a python script"
+                              "with an absolute path or a path relative to the location of this script,"
+                              "or none for normal pydbg"),
                         dest="tab_type", default=None)
 
     parser.add_argument("-k", "--kit", help="The devkit this is being used in",
@@ -266,7 +284,8 @@ if __name__ == "__main__":
         if firmware_args:
             command_line += ["-f", ",".join(firmware_args)] 
         if args.tab_type:
-            command_line.append(args.tab_type)
+            here = os.path.abspath(os.path.dirname(__file__))
+            command_line.append(os.path.join(here, args.tab_type))
         if args.passOn:
             command_line += args.passOn
 

@@ -11,6 +11,12 @@
 #include "domain_marshal_types.h"
     </source>
 
+    <typedef_header_source>
+    /*! Defines  */
+#define HFP_SLC_STATUS_NOTIFY_LIST_INIT_CAPACITY 1
+#define HFP_STATUS_NOTIFY_LIST_INIT_CAPACITY 6
+    </typedef_header_source>
+
     <typedef_struct name="hfpTaskDataBitfields" basic="true" doc="HFP task bitfields data structure">
         <member marshal="true" doc="AG supports in-band ringing tone">unsigned in_band_ring:1</member>
         <member marshal="true" doc="volume repeat">unsigned volume_repeat:1</member>
@@ -60,12 +66,12 @@
         <member marshal="false" doc="Microphone volume/gain">uint8 mic_volume</member>
         <member marshal="true" doc="HFP bitfields data">hfpTaskDataBitfields bitfields</member>
         <member marshal="true" doc="Profile currently used">hfp_profile profile</member>
-        <member marshal="false" doc="Bitmap of supported SCO packets by both headset and AG">uint16 sco_supported_packets</member>
+        <member marshal="true" doc="Bitmap of supported SCO packets by both headset and AG">uint16 sco_supported_packets</member>
         <member marshal="false" doc="Address of connected AG">bdaddr ag_bd_addr</member>
         <member marshal="false" doc="Sink for SCO, 0 if no SCO active">Sink sco_sink</member>
         <member marshal="false" doc="Sink for SLC">Sink slc_sink</member>
-        <member marshal="false" doc="List of tasks to notify of SLC connection status.">task_list_t* slc_status_notify_list</member>
-        <member marshal="false" doc="List of tasks to notify of general HFP status changes">task_list_t* status_notify_list</member>
+        <member marshal="false" doc="List of tasks to notify of SLC connection status.">TASK_LIST_WITH_INITIAL_CAPACITY(HFP_SLC_STATUS_NOTIFY_LIST_INIT_CAPACITY) slc_status_notify_list</member>
+        <member marshal="false" doc="List of tasks to notify of general HFP status changes">TASK_LIST_WITH_INITIAL_CAPACITY(HFP_STATUS_NOTIFY_LIST_INIT_CAPACITY) status_notify_list</member>
         <member marshal="false" doc="List of tasks requiring confirmation of HFP connect requests">task_list_with_data_t connect_request_clients</member>
         <member marshal="false" doc="List of tasks requiring confirmation of HFP disconnect requests">task_list_with_data_t disconnect_request_clients</member>
         <member marshal="false" doc="Task to handle TWS+ AT commands.">Task at_cmd_task</member>

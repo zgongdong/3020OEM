@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2005 - 2016 Qualcomm Technologies International, Ltd.
+Copyright (c) 2005 - 2019 Qualcomm Technologies International, Ltd.
 
 */
 
@@ -678,6 +678,7 @@ typedef enum
 	aghfp_audio_codec_connect,
     aghfp_audio_connecting_esco,
     aghfp_audio_connecting_sco,
+    aghfp_audio_connecting_qce,
     aghfp_audio_accepting,
     aghfp_audio_disconnecting,
     aghfp_audio_connected

@@ -52,6 +52,7 @@
   <div id="navrow3" class="tabs2">
     <ul class="tablist">
       <li class="current"><a href="functions.html"><span>All</span></a></li>
+      <li><a href="functions_func.html"><span>Functions</span></a></li>
       <li><a href="functions_vars.html"><span>Variables</span></a></li>
     </ul>
   </div>
@@ -104,6 +105,10 @@ $(document).ready(function(){initNavTree('functions_r.html','');});
 : <a class="el" href="struct_k_y_m_e_r_a___i_n_t_e_r_n_a_l___t_o_n_e___p_r_o_m_p_t___p_l_a_y___t.html#ae79ebefe045af3d6787d3496dc4ab726">KYMERA_INTERNAL_TONE_PROMPT_PLAY_T</a>
 , <a class="el" href="structprompt__configuration.html#ae79ebefe045af3d6787d3496dc4ab726">prompt_configuration</a>
 </li>
+<li>raw_data
+: <a class="el" href="struct__adv__mgr__advert__t.html#a8204f2df9b4a1804a3b175ace2864c6d">_adv_mgr_advert_t</a>
+, <a class="el" href="struct__le__adv__mgr__scan__response__t.html#a8204f2df9b4a1804a3b175ace2864c6d">_le_adv_mgr_scan_response_t</a>
+</li>
 <li>reason
 : <a class="el" href="struct__adv__mgr__advert__t.html#aabd8eddb3f5803929e478d5222e250bd">_adv_mgr_advert_t</a>
 , <a class="el" href="struct_a_p_p___h_f_p___d_i_s_c_o_n_n_e_c_t_e_d___i_n_d___t.html#a188d6dfebdf30d0c15db82f78b56377e">APP_HFP_DISCONNECTED_IND_T</a>
@@ -112,12 +117,11 @@ $(document).ready(function(){initNavTree('functions_r.html','');});
 , <a class="el" href="struct_a_v___i_n_t_e_r_n_a_l___a2_d_p___s_u_s_p_e_n_d___m_e_d_i_a___r_e_q___t.html#a07eb116b29ea4b14e5245a4e8db81e37">AV_INTERNAL_A2DP_SUSPEND_MEDIA_REQ_T</a>
 , <a class="el" href="struct_c_o_n___m_a_n_a_g_e_r___c_o_n_n_e_c_t_i_o_n___i_n_d___t.html#aa3951ce9be0063565560959f2293f69e">CON_MANAGER_CONNECTION_IND_T</a>
 , <a class="el" href="struct_c_o_n___m_a_n_a_g_e_r___t_p___d_i_s_c_o_n_n_e_c_t___i_n_d___t.html#aa3951ce9be0063565560959f2293f69e">CON_MANAGER_TP_DISCONNECT_IND_T</a>
-</li>
-<li>registered_tasks
-: <a class="el" href="structpeer_find_role_task_data.html#aa04e3403abf6dff8a7fe7e9945b53716">peerFindRoleTaskData</a>
+, <a class="el" href="structhdma__handover__decision__t.html#a352879cb6815652c413a291553244737">hdma_handover_decision_t</a>
 </li>
 <li>remote_psm
-: <a class="el" href="structsco_fwd_task_data.html#aa00b62938b9f7e61ec3a59e9434dbb03">scoFwdTaskData</a>
+: <a class="el" href="structpeer_sig_task_data.html#aa00b62938b9f7e61ec3a59e9434dbb03">peerSigTaskData</a>
+, <a class="el" href="structsco_fwd_task_data.html#aa00b62938b9f7e61ec3a59e9434dbb03">scoFwdTaskData</a>
 </li>
 <li>remote_role
 : <a class="el" href="structpeer_find_role_task_data.html#af616344b20f78729e5e4d3fdd61063c2">peerFindRoleTaskData</a>
@@ -138,20 +142,15 @@ $(document).ready(function(){initNavTree('functions_r.html','');});
 : <a class="el" href="struct_a_d_v___m_a_n_a_g_e_r___a_d_v_e_r_t___i_n_t_e_r_n_a_l___t.html#aded1adbb77fad51b003abcf14f2673e1">ADV_MANAGER_ADVERT_INTERNAL_T</a>
 , <a class="el" href="structle__scan__manager__data__t.html#aded1adbb77fad51b003abcf14f2673e1">le_scan_manager_data_t</a>
 </li>
-<li>requesting_task
-: <a class="el" href="structcon_manager_task_data.html#a6877cce6509d7355b37765f94ae0abf4">conManagerTaskData</a>
-</li>
 <li>response
 : <a class="el" href="struct_a_v___i_n_t_e_r_n_a_l___a_v_r_c_p___v_e_n_d_o_r___p_a_s_s_t_h_r_o_u_g_h___r_e_s___t.html#ad9c2981b0abc1af3e37839913b1670a4">AV_INTERNAL_AVRCP_VENDOR_PASSTHROUGH_RES_T</a>
+, <a class="el" href="structgaia_disconnect_data.html#a5ee3112ae93ce9c578adbcfc7612ab55">gaiaDisconnectData</a>
 </li>
 <li>role
 : <a class="el" href="struct_h_a_n_d_s_e_t___s_i_g___i_n_t_e_r_n_a_l___e_a_r_b_u_d___r_o_l_e___r_e_q___t.html#a1e0ba70bf1bd3ab6597de373d2e908ec">HANDSET_SIG_INTERNAL_EARBUD_ROLE_REQ_T</a>
 , <a class="el" href="struct_t_w_s___t_o_p_o_l_o_g_y___r_o_l_e___c_h_a_n_g_e_d___i_n_d___t.html#a9131f5cbc647c36968590f4490730fae">TWS_TOPOLOGY_ROLE_CHANGED_IND_T</a>
 , <a class="el" href="struct_t_w_s___t_o_p_o_l_o_g_y___s_t_a_r_t___c_f_m___t.html#a9131f5cbc647c36968590f4490730fae">TWS_TOPOLOGY_START_CFM_T</a>
 , <a class="el" href="structtws_topology_task_data.html#a9131f5cbc647c36968590f4490730fae">twsTopologyTaskData</a>
-</li>
-<li>role_changed_tasks
-: <a class="el" href="structtws_topology_task_data.html#a851dd0b0506c516a86e806fea9466b45">twsTopologyTaskData</a>
 </li>
 <li>role_selection_client
 : <a class="el" href="structpeer_find_role_task_data.html#ac6c6ff9f0f2db1f6b24d195b5dc8e1c6">peerFindRoleTaskData</a>
@@ -183,6 +182,12 @@ $(document).ready(function(){initNavTree('functions_r.html','');});
 </li>
 <li>rules_count
 : <a class="el" href="structrule__set__init__params__t.html#a1848f2a3fa366f470720b7d3a48ea724">rule_set_init_params_t</a>
+</li>
+<li>rx_handset_commands_task
+: <a class="el" href="structpeer_sig_task_data.html#a910e518941dc02114de83004e3cf25c3">peerSigTaskData</a>
+</li>
+<li>rx_link_key_task
+: <a class="el" href="structpeer_sig_task_data.html#a230a6c51d77a76ca0f1503627d020181">peerSigTaskData</a>
 </li>
 </ul>
 </div><!-- contents -->

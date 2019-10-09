@@ -15,10 +15,11 @@ typedef uint32 input_event_bits_t;
 typedef enum
 {
     ENTER,
-    RELEASE,
     HELD,
+    RELEASE,
+    SINGLE_CLICK,
     HELD_RELEASE,
-    DOUBLE
+    DOUBLE_CLICK
 } InputEventAction_t;
 
 typedef struct

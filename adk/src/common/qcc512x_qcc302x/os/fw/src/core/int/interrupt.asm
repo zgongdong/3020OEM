@@ -1,5 +1,5 @@
 // *****************************************************************************
-// Copyright (c) 2005 - 2016 Qualcomm Technologies International, Ltd.
+// Copyright (c) 2005 - 2016, 2019 Qualcomm Technologies International, Ltd.
 //   %%version
 // *****************************************************************************
 

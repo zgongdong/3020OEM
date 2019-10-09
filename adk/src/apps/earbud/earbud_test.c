@@ -23,6 +23,7 @@
 #include "ui.h"
 #include "peer_link_keys.h"
 #include "microphones.h"
+#include "volume_messages.h"
 
 #if defined(HAVE_9_BUTTONS)
 #include "9_buttons.h"
@@ -46,6 +47,8 @@
 #include <profile_manager.h>
 #include <peer_find_role_private.h>
 #include <peer_signalling.h>
+#include <handset_service.h>
+#include <connection_manager.h>
 
 
 #include <cryptovm.h>
@@ -166,7 +169,7 @@ uint16 appTestThermistorDegreesCelsiusToMillivolts(int8 temperature)
 void appTestPairHandset(void)
 {
     DEBUG_LOG("appTestPairHandset");
-    appSmPairHandset();
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_sm_pair_handset);
 }
 
 /*! \brief Delete all Handset pairing
@@ -174,7 +177,7 @@ void appTestPairHandset(void)
 void appTestDeleteHandset(void)
 {
     DEBUG_LOG("appTestDeleteHandset");
-    appSmDeleteHandsets();
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_sm_delete_handsets);
 }
 
 /*! \brief Put Earbud into Peer Pairing mode
@@ -218,8 +221,11 @@ bool appTestGetPeerAddr(bdaddr *peer_address)
 */
 bool appTestIsPairingInProgress(void)
 {
-    DEBUG_LOG("appTestIsPairingInProgress");
-    return !appPairingIsIdle();
+    bool pip = !appPairingIsIdle();
+
+    DEBUG_LOG("appTestIsPairingInProgress:%d", pip);
+
+    return pip;
 }
 
 /*! \brief Initiate Earbud A2DP connection to the Handset
@@ -270,61 +276,68 @@ bool appTestIsHandsetPaired(void)
 */
 bool appTestIsHandsetA2dpConnected(void)
 {
+    bool connected = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsHandsetA2dpConnected");
     if (appDeviceGetHandsetBdAddr(&bd_addr))
     {
         /* Find handset AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appA2dpIsConnected(theInst);
+        connected = theInst && appA2dpIsConnected(theInst);
     }
 
+    DEBUG_LOG("appTestIsHandsetA2dpConnected:%d", connected);
+
     /* If we get here then there's no A2DP connected for handset */
-    return FALSE;
+    return connected;
 }
 
 bool appTestIsHandsetA2dpMediaConnected(void)
 {
+    bool connected = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsHandsetA2dpMediaConnected");
     if (appDeviceGetHandsetBdAddr(&bd_addr))
     {
         /* Find handset AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appA2dpIsConnectedMedia(theInst);
+        connected = theInst && appA2dpIsConnectedMedia(theInst);
     }
 
+    DEBUG_LOG("appTestIsHandsetA2dpMediaConnected:%d", connected);
+
     /* If we get here then there's no A2DP connected for handset */
-    return FALSE;
+    return connected;
 }
 
 /*! \brief Return if Earbud is in A2DP streaming mode with the handset
 */
 bool appTestIsHandsetA2dpStreaming(void)
 {
+    bool streaming = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsHandsetA2dpStreaming");
     if (appDeviceGetHandsetBdAddr(&bd_addr))
     {
         /* Find handset AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appA2dpIsStreaming(theInst);
+        streaming = theInst && appA2dpIsStreaming(theInst);
     }
 
+    DEBUG_LOG("appTestIsHandsetA2dpStreaming:%d", streaming);
+
     /* If we get here then there's no A2DP connected for handset */
-    return FALSE;
+    return streaming;
 }
 
 bool appTestIsA2dpPlaying(void)
 {
-    DEBUG_LOGF("appTestIsA2dpPlaying, status %u", appAvPlayStatus());
-    return appAvPlayStatus() == avrcp_play_status_playing;
+    avrcp_play_status play_status = appAvPlayStatus();
+    bool playing = play_status == avrcp_play_status_playing;
+
+    DEBUG_LOGF("appTestIsA2dpPlaying:%d, status %u", playing, play_status);
+
+    return playing;
 }
 
 /*! \brief Initiate Earbud AVRCP connection to the Handset
@@ -336,56 +349,49 @@ bool appTestHandsetAvrcpConnect(void)
     DEBUG_LOG("appTestHandsetAvrcpConnect");
     if (appDeviceGetHandsetBdAddr(&bd_addr))
         return  appAvAvrcpConnectRequest(NULL, &bd_addr);
-    else
-        return FALSE;
+    return FALSE;
 }
 
 /*! \brief Return if Earbud has an Handset AVRCP connection
 */
 bool appTestIsHandsetAvrcpConnected(void)
 {
+    bool connected = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsHandsetAvrcpConnected");
     if (appDeviceGetHandsetBdAddr(&bd_addr))
     {
         /* Find handset AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appAvrcpIsConnected(theInst);
+        connected = theInst && appAvrcpIsConnected(theInst);
     }
 
+    DEBUG_LOG("appTestIsHandsetAvrcpConnected = %d", connected);
+
     /* If we get here then there's no AVRCP connected for handset */
-    return FALSE;
-}
-
-/*! \brief Initiate Earbud HFP connection to the Handset
-*/
-bool appTestHandsetHfpConnect(void)
-{
-    bdaddr bd_addr;
-
-    DEBUG_LOG("appTestHandsetHfpConnect");
-    if (appDeviceGetHandsetBdAddr(&bd_addr))
-        return appHfpConnectWithBdAddr(&bd_addr, hfp_handsfree_107_profile);
-    else
-        return FALSE;
+    return connected;
 }
 
 /*! \brief Return if Earbud has an Handset HFP connection
 */
 bool appTestIsHandsetHfpConnected(void)
 {
-    DEBUG_LOG("appTestIsHandsetHfpConnected");
-    return appHfpIsConnected();
+    bool connected = appHfpIsConnected();
+
+    DEBUG_LOG("appTestIsHandsetHfpConnected= %d", connected);
+
+    return connected;
 }
 
 /*! \brief Return if Earbud has an Handset HFP SCO connection
 */
 bool appTestIsHandsetHfpScoActive(void)
 {
-    DEBUG_LOG("appTestIsHandsetHfpScoActive");
-    return appHfpIsScoActive();
+    bool active = appHfpIsScoActive();
+
+    DEBUG_LOG("appTestIsHandsetHfpScoActive:%d", active);
+
+    return active;
 }
 
 /*! \brief Initiate Earbud HFP Voice Dial request to the Handset
@@ -398,129 +404,44 @@ bool appTestHandsetHfpVoiceDial(void)
         appHfpCallVoice();
         return TRUE;
     }
-    else
-        return FALSE;
+
+    return FALSE;
 }
 
-/*! \brief Initiate Earbud HFP Voice Transfer request to the Handset
-*/
-bool appTestHandsetHfpVoiceTransfer(void)
-{
-    DEBUG_LOG("appTestHandsetHfpVoiceTransfer");
-    if (appHfpIsCall())
-    {
-        if (appHfpIsScoActive())
-            appHfpTransferToAg();
-        else
-            appHfpTransferToHeadset();
-        return TRUE;
-    }
-    else
-        return FALSE;
-}
-
-bool appTestHandsetHfpMute(void)
+void appTestHandsetHfpMuteToggle(void)
 {
     DEBUG_LOG("appTestHandsetHfpMute");
-    if (appHfpIsCall())
-    {
-        if (!appHfpIsMuted())
-            appHfpMuteToggle();
-        return TRUE;
-    }
-    else
-        return FALSE;
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_hfp_mute_toggle);
 }
 
-bool appTestHandsetHfpUnMute(void)
-{
-    DEBUG_LOG("appTestHandsetHfpUnMute");
-    if (appHfpIsCall())
-    {
-        if (appHfpIsMuted())
-            appHfpMuteToggle();
-        return TRUE;
-    }
-    else
-        return FALSE;
-}
-
-bool appTestHandsetHfpVoiceTransferToAg(void)
+void appTestHandsetHfpVoiceTransferToAg(void)
 {
     DEBUG_LOG("appTestHandsetHfpVoiceTransferToAg");
-    if (appHfpIsCall() && appHfpIsScoActive())
-    {
-        appHfpTransferToAg();
-        return TRUE;
-    }
-    else
-        return FALSE;
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_hfp_transfer_to_ag);
 }
 
-bool appTestHandsetHfpVoiceTransferToHeadset(void)
+void appTestHandsetHfpVoiceTransferToHeadset(void)
 {
     DEBUG_LOG("appTestHandsetHfpVoiceTransferToHeadset");
-    if (appHfpIsCall())
-    {
-        appHfpTransferToHeadset();
-        return TRUE;
-    }
-    else
-        return FALSE;
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_hfp_transfer_to_headset);
 }
 
-bool appTestHandsetHfpCallAccept(void)
+void appTestHandsetHfpCallAccept(void)
 {
     DEBUG_LOG("appTestHandsetHfpCallAccept");
-    if (appHfpIsCall())
-    {
-        appHfpCallAccept();
-    }
-    else if (ScoFwdIsCallIncoming())
-    {
-        ScoFwdCallAccept();
-    }
-    else
-    {
-        return FALSE;
-    }
-    return TRUE;
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_voice_call_accept);
 }
 
-bool appTestHandsetHfpCallReject(void)
+void appTestHandsetHfpCallReject(void)
 {
     DEBUG_LOG("appTestHandsetHfpCallReject");
-    if (appHfpIsCall())
-    {
-        appHfpCallReject();
-    }
-    else if (ScoFwdIsCallIncoming())
-    {
-        ScoFwdCallReject();
-    }
-    else
-    {
-        return FALSE;
-    }
-    return TRUE;
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_voice_call_reject);
 }
 
-bool appTestHandsetHfpCallHangup(void)
+void appTestHandsetHfpCallHangup(void)
 {
     DEBUG_LOG("appTestHandsetHfpCallHangup");
-    if (appHfpIsCall())
-    {
-        appHfpCallHangup();
-    }
-    else if (ScoFwdIsReceiving() && !ScoFwdIsCallIncoming())
-    {
-        ScoFwdCallHangup();
-    }
-    else
-    {
-        return FALSE;
-    }
-    return TRUE;
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_voice_call_hang_up);
 }
 
 bool appTestHandsetHfpCallLastDialed(void)
@@ -535,12 +456,30 @@ bool appTestHandsetHfpCallLastDialed(void)
         return FALSE;
 }
 
+void appTestHandsetHfpVolumeDownStart(void)
+{
+    DEBUG_LOG("appTestHandsetHfpVolumeDownStart");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_hfp_volume_down_start);
+}
+
+void appTestHandsetHfpVolumeUpStart(void)
+{
+    DEBUG_LOG("appTestHandsetHfpVolumeUpStart");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_hfp_volume_up_start);
+}
+
+void appTestHandsetHfpVolumeStop(void)
+{
+    DEBUG_LOG("appTestHandsetHfpVolumeStop");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_hfp_volume_stop);
+}
+
 bool appTestHandsetHfpSetScoVolume(uint8 volume)
 {
     DEBUG_LOG("appTestHandsetHfpScoVolume");
-    if (appHfpIsCall())
+    if(appHfpIsCall() || ScoFwdIsReceiving())
     {
-        appKymeraScoSetVolume(volume);
+        Volume_SendVoiceSourceVolumeUpdateRequest(voice_source_hfp_1, event_origin_local, volume);
         return TRUE;
     }
     else
@@ -549,36 +488,51 @@ bool appTestHandsetHfpSetScoVolume(uint8 volume)
 
 bool appTestIsHandsetHfpMuted(void)
 {
-    DEBUG_LOG("appTestIsHandsetHfpMuted");
-    return appHfpIsMuted();
+    bool muted = appHfpIsMuted();
+
+    DEBUG_LOG("appTestIsHandsetHfpMuted;%d", muted);
+
+    return muted;
 }
 
 bool appTestIsHandsetHfpCall(void)
 {
-    DEBUG_LOG("appTestIsHandsetHfpCall");
-    return appHfpIsCall();
+    bool is_call = appHfpIsCall();
+
+    DEBUG_LOG("appTestIsHandsetHfpCall:%d", is_call);
+
+    return is_call;
 }
 
 bool appTestIsHandsetHfpCallIncoming(void)
 {
-    DEBUG_LOG("appTestIsHandsetHfpCallIncoming");
-    return appHfpIsCallIncoming();
+    bool incoming = appHfpIsCallIncoming();
+
+    DEBUG_LOG("appTestIsHandsetHfpCallIncoming:%d", incoming);
+
+    return incoming;
 }
 
 bool appTestIsHandsetHfpCallOutgoing(void)
 {
-    DEBUG_LOG("appTestIsHandsetHfpCallOutgoing");
-    return appHfpIsCallOutgoing();
+    bool outgoing = appHfpIsCallOutgoing();
+
+    DEBUG_LOG("appTestIsHandsetHfpCallOutgoing:%d", outgoing);
+
+    return outgoing;
 }
 
 /*! \brief Return if Earbud has a connection to the Handset
 */
 bool appTestIsHandsetConnected(void)
 {
-    DEBUG_LOG("appTestIsHandsetConnected");
-    return appTestIsHandsetA2dpConnected() ||
-           appTestIsHandsetAvrcpConnected() ||
-           appTestIsHandsetHfpConnected();
+    bool connected = appTestIsHandsetA2dpConnected() ||
+                     appTestIsHandsetAvrcpConnected() ||
+                     appTestIsHandsetHfpConnected();
+
+    DEBUG_LOG("appTestIsHandsetConnected = %d", connected);
+
+    return connected;
 }
 
 /*! \brief Initiate Earbud A2DP connection to the the Peer
@@ -592,29 +546,27 @@ bool appTestPeerA2dpConnect(void)
     {
         return appAvA2dpConnectRequest(&bd_addr, A2DP_CONNECT_NOFLAGS);
     }
-    else
-    {
-        return FALSE;
-    }
+
+    return FALSE;
 }
 
 /*! \brief Return if Earbud has a Peer A2DP connection
 */
 bool appTestIsPeerA2dpConnected(void)
 {
+    bool connected = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsPeerA2dpConnected");
     if (appDeviceGetPeerBdAddr(&bd_addr))
     {
         /* Find peer AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appA2dpIsConnected(theInst);
+        connected = theInst && appA2dpIsConnected(theInst);
     }
 
-    /* If we get here then there's no A2DP connected for handset */
-    return FALSE;
+    DEBUG_LOG("appTestIsPeerA2dpConnected:%d", connected);
+
+    return connected;
 }
 
 
@@ -622,19 +574,19 @@ bool appTestIsPeerA2dpConnected(void)
  */
 bool appTestIsPeerA2dpStreaming(void)
 {
+    bool streaming = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsPeerA2dpStreaming");
     if (appDeviceGetPeerBdAddr(&bd_addr))
     {
         /* Find peer AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appA2dpIsStreaming(theInst);
+        streaming = theInst && appA2dpIsStreaming(theInst);
     }
 
-    /* If we get here then there's no A2DP connected for peer */
-    return FALSE;
+    DEBUG_LOG("appTestIsPeerA2dpStreaming:%d", streaming);
+
+    return streaming;
 }
 
 
@@ -647,27 +599,27 @@ bool appTestPeerAvrcpConnect(void)
     DEBUG_LOG("appTestPeerAvrcpConnect");
     if (appDeviceGetPeerBdAddr(&bd_addr))
         return  appAvAvrcpConnectRequest(NULL, &bd_addr);
-    else
-        return FALSE;
+
+    return FALSE;
 }
 
 /*! \brief Return if Earbud has a Peer AVRCP connection
 */
 bool appTestIsPeerAvrcpConnected(void)
 {
+    bool connected = FALSE;
     bdaddr bd_addr;
 
-    DEBUG_LOG("appTestIsPeerAvrcpConnected");
     if (appDeviceGetPeerBdAddr(&bd_addr))
     {
         /* Find handset AV instance */
         avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&bd_addr);
-        if (theInst)
-            return appAvrcpIsConnected(theInst);
+        connected = theInst && appAvrcpIsConnected(theInst);
     }
 
-    /* If we get here then there's no AVRCP connected for handset */
-    return FALSE;
+    DEBUG_LOG("appTestIsPeerAvrcpConnected:%d", connected);
+
+    return connected;
 }
 
 /*! \brief Send the Avrcp pause command to the Handset
@@ -675,7 +627,7 @@ bool appTestIsPeerAvrcpConnected(void)
 void appTestAvPause(void)
 {
     DEBUG_LOG("appTestAvPause");
-    Ui_InjectUiInput(ui_input_pause);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_pause);
 }
 
 /*! \brief Send the Avrcp play command to the Handset
@@ -683,7 +635,7 @@ void appTestAvPause(void)
 void appTestAvPlay(void)
 {
     DEBUG_LOG("appTestAvPlay");
-    Ui_InjectUiInput(ui_input_play);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_play);
 }
 
 /*! \brief Send the Avrcp stop command to the Handset
@@ -691,7 +643,7 @@ void appTestAvPlay(void)
 void appTestAvStop(void)
 {
     DEBUG_LOG("appTestAvStop");
-    Ui_InjectUiInput(ui_input_stop_av_connection);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_stop_av_connection);
 }
 
 /*! \brief Send the Avrcp forward command to the Handset
@@ -699,7 +651,7 @@ void appTestAvStop(void)
 void appTestAvForward(void)
 {
     DEBUG_LOG("appTestAvForward");
-    Ui_InjectUiInput(ui_input_av_forward);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_av_forward);
 }
 
 /*! \brief Send the Avrcp backward command to the Handset
@@ -707,7 +659,7 @@ void appTestAvForward(void)
 void appTestAvBackward(void)
 {
     DEBUG_LOG("appTestAvBackward");
-    Ui_InjectUiInput(ui_input_av_backward);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_av_backward);
 }
 
 /*! \brief Send the Avrcp fast forward state command to the Handset
@@ -715,7 +667,7 @@ void appTestAvBackward(void)
 void appTestAvFastForwardStart(void)
 {
     DEBUG_LOG("appTestAvFastForwardStart");
-    Ui_InjectUiInput(ui_input_av_fast_forward_start);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_av_fast_forward_start);
 }
 
 /*! \brief Send the Avrcp fast forward stop command to the Handset
@@ -723,7 +675,7 @@ void appTestAvFastForwardStart(void)
 void appTestAvFastForwardStop(void)
 {
     DEBUG_LOG("appTestAvFastForwardStop");
-    Ui_InjectUiInput(ui_input_fast_forward_stop);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_fast_forward_stop);
 }
 
 /*! \brief Send the Avrcp rewind start command to the Handset
@@ -731,7 +683,7 @@ void appTestAvFastForwardStop(void)
 void appTestAvRewindStart(void)
 {
     DEBUG_LOG("appTestAvRewindStart");
-    Ui_InjectUiInput(ui_input_av_rewind_start);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_av_rewind_start);
 }
 
 /*! \brief Send the Avrcp rewind stop command to the Handset
@@ -739,7 +691,7 @@ void appTestAvRewindStart(void)
 void appTestAvRewindStop(void)
 {
     DEBUG_LOG("appTestAvRewindStop");
-    Ui_InjectUiInput(ui_input_rewind_stop);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_rewind_stop);
 }
 
 /*! \brief Send the Avrcp volume change command to the Handset
@@ -755,23 +707,7 @@ bool appTestAvVolumeChange(int8 step)
 void appTestAvVolumeSet(uint8 volume)
 {
     DEBUG_LOGF("appTestAvVolumeSet %d", volume);
-   appAvVolumeSet(volume, NULL);
-}
-
-void appTestAvVolumeSetDb(int8 gain)
-{
-    /* Set default volume as set in earbud_config.h */
-    const int rangeDb = appConfigMaxVolumedB() - appConfigMinVolumedB();
-
-    DEBUG_LOGF("appTestAvVolumeSetDb %d", gain);
-    if (    gain < appConfigMinVolumedB()
-        ||  gain > appConfigMaxVolumedB())
-    {
-        DEBUG_LOGF("appTestAvVolumeSetDb. Gain %d outside range %d-%d",
-                        gain,appConfigMinVolumedB(),appConfigMaxVolumedB());
-    }
-
-    appAvVolumeSet((gain - appConfigMinVolumedB()) * VOLUME_MAX / rangeDb, NULL);
+    appAvVolumeSet(volume, NULL);
 }
 
 void appTestPowerAllowDormant(bool enable)
@@ -988,7 +924,7 @@ bool appTestConnectHandsetA2dpMedia(void)
 
 bool appTestIsPeerSyncComplete(void)
 {
-    DEBUG_LOG("appTestIsPeerSyncComplete ** DEPRECATED **");
+    DEBUG_LOG("appTestIsPeerSyncComplete:1 ** DEPRECATED **");
     /* test scripts may rely on this, for now just return TRUE so
      * they keep running. */
     return TRUE;
@@ -1568,9 +1504,11 @@ void appTestEnterDfuWhenEnteringCase(bool unused)
 
 bool appTestIsInitialisationCompleted(void)
 {
-    DEBUG_LOG("appTestIsInitialisationCompleted");
+    bool completed = appInitCompleted();
 
-    return appInitCompleted();
+    DEBUG_LOG("appTestIsInitialisationCompleted:%d", completed);
+
+    return completed;
 }
 
 bool appTestIsPrimary(void)
@@ -1636,6 +1574,7 @@ bool appTestIsTopologyIdle(void)
     bool idle = (TwsTopology_GetRole() == app_test_topology_role_none);
 
     DEBUG_LOG("appTestIsTopologyIdle:%d", idle);
+
     return idle;
 }
 
@@ -1739,47 +1678,76 @@ void EarbudTest_DeviceDatabaseReport(void)
 
 extern uint8 profile_list[4];
 
-void EarbudTest_ConnectHandset(void)
+static device_t earbudTest_GetHandset(void)
 {
     bool is_mru_handset = TRUE;
     device_t handset_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_mru, &is_mru_handset, sizeof(uint8));
+    if (!handset_device)
+    {
+        bdaddr handset_address = {0,0,0};
+        if (appDeviceGetHandsetBdAddr(&handset_address))
+        {
+            handset_device = BtDevice_GetDeviceForBdAddr(&handset_address);
+        }
+    }
+    return handset_device;
+}
+
+void EarbudTest_ConnectHandset(void)
+{
+    device_t handset_device = earbudTest_GetHandset();
     if (handset_device)
     {
         Device_SetProperty(handset_device, device_property_profiles_connect_order, profile_list, sizeof(profile_list));
         ProfileManager_ConnectProfilesRequest(&SmGetTaskData()->task, handset_device);
     }
-    else
-    {
-        bdaddr handset_address = {0,0,0};
-        if (appDeviceGetHandsetBdAddr(&handset_address))
-        {
-            handset_device = BtDevice_GetDeviceForBdAddr(&handset_address);
-            Device_SetProperty(handset_device, device_property_profiles_connect_order, profile_list, sizeof(profile_list));
-            ProfileManager_ConnectProfilesRequest(&SmGetTaskData()->task, handset_device);
-        }
-    }
 }
 
 void EarbudTest_DisconnectHandset(void)
 {
-    bool is_mru_handset = TRUE;
-    device_t handset_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_mru, &is_mru_handset, sizeof(uint8));
+    device_t handset_device = earbudTest_GetHandset();
     if (handset_device)
     {
         Device_SetProperty(handset_device, device_property_profiles_disconnect_order, profile_list, sizeof(profile_list));
         ProfileManager_DisconnectProfilesRequest(&SmGetTaskData()->task, handset_device);
     }
+}
+
+bool appTestIsHandsetFullyConnected(void)
+{
+    bool connected = FALSE;
+    device_t handset_device = earbudTest_GetHandset();
+
+    if (handset_device)
+    {
+        connected = HandsetService_Connected(handset_device);
+        DEBUG_LOG("appTestIsHandsetFullyConnected:%d", connected);
+    }
     else
     {
-        bdaddr handset_address = {0,0,0};
-        if (appDeviceGetHandsetBdAddr(&handset_address))
-        {
-            handset_device = BtDevice_GetDeviceForBdAddr(&handset_address);
-            Device_SetProperty(handset_device, device_property_profiles_disconnect_order, profile_list, sizeof(profile_list));
-            ProfileManager_DisconnectProfilesRequest(&SmGetTaskData()->task, handset_device);
-        }
+        DEBUG_LOG("appTestIsHandsetFullyConnected:0  No handset device");
     }
+    return connected;
 }
+
+bool appTestIsHandsetAclConnected(void)
+{
+    bool connected = FALSE;
+    device_t handset_device = earbudTest_GetHandset();
+
+    if (handset_device)
+    {
+        bdaddr addr = DeviceProperties_GetBdAddr(handset_device);
+        connected = ConManagerIsConnected(&addr);
+        DEBUG_LOG("appTestIsHandsetAclConnected:%d 0x%06x", connected, addr.lap);
+    }
+    else
+    {
+        DEBUG_LOG("appTestIsHandsetAclConnected:0 No handset device/addr");
+    }
+    return connected;
+}
+
 
 bool appTestPrimaryAddressIsFromThisBoard(void)
 {
@@ -1812,6 +1780,16 @@ void EarbudTest_PeerFindRoleOverrideScore(uint16 score)
 {
     DEBUG_LOG("EarbudTest_PeerFindRoleOverrideScore 0x%x", score);
     PeerFindRole_OverrideScore((grss_figure_of_merit_t)score);
+}
+
+bool EarbudTest_IsPeerSignallingConnected(void)
+{
+    return appPeerSigIsConnected();
+}
+
+bool EarbudTest_IsPeerSignallingDisconnected(void)
+{
+    return appPeerSigIsDisconnected();
 }
 
 /* private API added to upgrade library */
@@ -1886,5 +1864,43 @@ uint16 appTestWriteMarker(uint16 marker)
     }
 
     return marker;
+}
+
+void appTestVaTap(void)
+{
+    DEBUG_LOG("appTestVaTap");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_1);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_6);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_3);
+}
+
+void appTestVaDoubleTap(void)
+{
+    DEBUG_LOG("appTestVaDoubleTap");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_1);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_6);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_1);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_6);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_4);
+    
+}
+
+void appTestVaPressAndHold(void)
+{
+    DEBUG_LOG("appTestVaPressAndHold");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_1);
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_5);
+}
+
+void appTestVaRelease(void)
+{
+    DEBUG_LOG("appTestVaRelease");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_6);
+}
+
+void appTestVaAudioTuningModeToggle(void)
+{
+    DEBUG_LOG("appTestVaAudioTuningModeToggle");
+    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_audio_tuning_mode_toggle);
 }
 

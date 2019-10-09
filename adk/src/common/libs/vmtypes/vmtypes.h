@@ -37,6 +37,14 @@ Copyright (c) 2015-2018 Qualcomm Technologies International, Ltd.
    ie round up sizes rather than round down if sizeof() has octet resolution */
 #define PS_SIZE_ADJ(X) (((X) + sizeof(uint16) - 1) / sizeof(uint16))
 
+#ifndef MIN
+#define MIN(a,b)    ( ((a)<(b)) ? (a) : (b) )
+#endif
+
+#ifndef MAX
+#define MAX(a,b)    ( ((a)>(b)) ? (a) : (b) )
+#endif
+
 #ifdef HYDRACORE
 
 /*

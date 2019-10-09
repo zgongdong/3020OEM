@@ -132,8 +132,14 @@ static void twsTopology_ProcScriptEngineCompleteCfm(tws_topology_procedure proc,
                 return;
 
             case proc_result_failed:
-                DEBUG_LOG("twsTopology_ProcScriptEngineCompleteCfm step %u failed", td->next_step);
-                Panic();
+                {
+                    /* Script step failed. Finish the script and forward the failed status. 
+                       If there is an associted failed event the goals handler will
+                       generate this else panics */
+                    DEBUG_LOG("twsTopology_ProcScriptEngineCompleteCfm step %u failed", td->next_step);
+                    twsTopology_ProcScriptEngineReset();
+                    td->complete_fn(td->proc, proc_result_failed);
+                }
                 return;
         }
         /* No default case in the switch as compilers and static analysis will

@@ -56,6 +56,7 @@ uint16 reconnect = 0;
 deviceUpgradePeerTaskData device_upgrade_peer;
 #define GetDeviceUpgradePeer()      (&device_upgrade_peer)
 #define GetDeviceUpgradePeerTask()  (&(GetDeviceUpgradePeer()->task))
+#define GetDeviceUpgradeClientTask()  (task_list_flexible_t *)(&(GetDeviceUpgradePeer()->client_list))
 
 /*! Macro to make a message. */
 #define MAKE_MESSAGE(TYPE) TYPE##_T *message = PanicUnlessNew(TYPE##_T);
@@ -80,7 +81,7 @@ BRIEF
 
 static void appDeviceUpgradePeerNotifyStart(void)
 {
-    TaskList_MessageSendId(GetDeviceUpgradePeer()->client_list,
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GetDeviceUpgradeClientTask()),
                            DEVICE_UPGRADE_PEER_STARTED);
 }
 
@@ -135,10 +136,11 @@ static void DeviceUpgradePeerConnected(DeviceUpgradePeerState old_state)
     else
     {
         UpgradePeerSetDeviceRole(FALSE);
-        appDeviceUpgradePeerNotifyStart();
         UpgradeTransportConnectRequest(GetDeviceUpgradePeerTask(),
                                        TRUE, FALSE);
     }
+    /* Notify both Initiator and Peer App that Peer Upgrade has started.*/
+    appDeviceUpgradePeerNotifyStart();
     if(old_state == DEVICE_UPGRADE_PEER_STATE_CONNECTING_LOCAL)
     {
         /* We have finished (successfully or not) attempting to connect, so
@@ -760,7 +762,7 @@ static void DeviceUpgradePeerHandleL2capConnectInd(const CL_L2CAP_CONNECT_IND_T 
     DEBUG_LOGF("DeviceUpgradePeerL2capConnectInd, state %u, psm %u",
                 deviceUpgradePeerGetState(), ind->psm);
 
-    /* If the PSM doesn't macthes, then send l2cap failure message to upgrade 
+    /* If the PSM doesn't macthes, then send l2cap failure message to upgrade
      * library and put the device in disconnected state
      */
     if(!(ind->psm == theDeviceUpgradePeer->local_psm))
@@ -803,7 +805,7 @@ static void DeviceUpgradePeerHandleL2capConnectInd(const CL_L2CAP_CONNECT_IND_T 
 
         default:
         {
-            DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectInd, rejected, state %u", 
+            DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectInd, rejected, state %u",
                        deviceUpgradePeerGetState());
         }
         break;
@@ -980,7 +982,7 @@ static uint8 *DeviceUpgradePeerClaimSink(Sink sink, uint16 size)
     uint16 claim_size = 0;
     uint16 already_claimed = SinkClaim(sink, 0);
     uint16 offset = 0;
-    
+
     if (size > available)
     {
         DEBUG_LOG("DeviceUpgradePeerClaimSink attempt to claim too much %u", size);
@@ -1202,7 +1204,7 @@ bool appDeviceUpgradePeerInit(Task init_task)
     /* Set up task handler */
     theDeviceUpgradePeer->task.handler = DeviceUpgradePeerHandleMessage;
 
-    theDeviceUpgradePeer->client_list = TaskList_Create();
+    TaskList_InitialiseWithCapacity(GetDeviceUpgradeClientTask(), PEER_UPGRADE_CLIENT_LIST_INIT_CAPACITY);
 
     appUpgradePeerClientRegister(SmGetTask());
 
@@ -1218,7 +1220,7 @@ NAME
     DeviceUpgradePeerForceLinkToPeer
 
 BRIEF
-    Initiate Peer connect request when UPGRADE_PEER_CONNECT_REQ msg is 
+    Initiate Peer connect request when UPGRADE_PEER_CONNECT_REQ msg is
     received from Upgrade library
 */
 void DeviceUpgradePeerForceLinkToPeer(void)
@@ -1256,8 +1258,7 @@ BRIEF
 */
 void appUpgradePeerClientRegister(Task tsk)
 {
-    deviceUpgradePeerTaskData *theDeviceUpgradePeer = GetDeviceUpgradePeer();
-    TaskList_AddTask(theDeviceUpgradePeer->client_list, tsk);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(GetDeviceUpgradeClientTask()), tsk);
 }
 #endif
 

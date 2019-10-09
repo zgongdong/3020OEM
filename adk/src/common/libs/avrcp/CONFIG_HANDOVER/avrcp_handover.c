@@ -29,11 +29,6 @@ NOTES
 #include <stdlib.h>
 
 
-#define AVRCP_MARSHAL_CONN_FLAG_NONE        0           /* AVRCP connection does not exists */
-#define AVRCP_MARSHAL_CONN_MASK_BASIC       (1 << 0)    /* AVRCP connection exists */
-#define AVRCP_MARSHAL_CONN_MASK_BROWSING    (1 << 1)    /* Browsing channel connection also exists */
-
-
 static bool avrcpVeto( void );
 static bool avrcpMarshal(const tp_bdaddr *tp_bd_addr,
                          uint8 *buf,
@@ -56,26 +51,11 @@ const handover_interface avrcp_handover =
     avrcpMarshalAbort
 };
 
-
-typedef struct
+static union avrcp_marshaller_unmarshaller
 {
-    enum
-    {
-        AVRCP_MARSHAL_STATE_FLAG,           /* Marshal flag indicating type of connection */
-        AVRCP_MARSHAL_STATE_CONN,           /* Marshal connection information */
-    } state;
-
-    union
-    {
-        marshaller_t marshaller;
-        unmarshaller_t unmarshaller;
-    } marshal;
-
-    avrcpList *avrcp_node;
-    uint8 connection_flag;
-} avrcp_marshal_instance_t;
-
-static avrcp_marshal_instance_t *avrcp_marshal_inst = NULL;
+    marshaller_t marshaller;
+    unmarshaller_t unmarshaller;
+} avrcp_marshal_inst;
 
 
 /****************************************************************************
@@ -107,9 +87,8 @@ DESCRIPTION
 RETURNS
     void
 */
-static void stitchAvrcp(AVRCP *unmarshalled_avrcp)
+static void stitchAvrcp(AVRCP *unmarshalled_avrcp, const bdaddr *bd_addr)
 {
-    avrcpList *newList;
     uint16 cid;
 
     unmarshalled_avrcp->task.handler = avrcpProfileHandler;
@@ -124,20 +103,17 @@ static void stitchAvrcp(AVRCP *unmarshalled_avrcp)
         avrcp_avbp->avbp.avrcp_task = &avrcp_avbp->avrcp.task;
     }
 
-    /* Add to the connection list */
-    newList = PanicUnlessNew(avrcpList);
-    newList->avrcp = unmarshalled_avrcp;
-    newList->next = avrcp_marshal_inst->avrcp_node;
-    avrcp_marshal_inst->avrcp_node = newList;
-
     /* Initialize the connection context for the relevant connection id */
     cid = SinkGetL2capCid(unmarshalled_avrcp->sink);
     PanicZero(cid);   /* Invalid Connection ID */
-    VmOverrideL2capConnContext(cid, (conn_context_t)&newList->avrcp->task);
+    VmOverrideL2capConnContext(cid, (conn_context_t)&unmarshalled_avrcp->task);
     /* Stitch the sink and the task */
-    MessageStreamTaskFromSink(unmarshalled_avrcp->sink, &newList->avrcp->task);
+    MessageStreamTaskFromSink(unmarshalled_avrcp->sink, &unmarshalled_avrcp->task);
     /* Configure sink messages */
     SinkConfigure(unmarshalled_avrcp->sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
+
+    /* Add to the connection list */
+    avrcpAddTaskToList(unmarshalled_avrcp, bd_addr);
 }
 
 /****************************************************************************
@@ -153,11 +129,8 @@ RETURNS
 */
 static void avrcpMarshalAbort(void)
 {
-    MarshalDestroy(avrcp_marshal_inst->marshal.marshaller,
-                   FALSE);
-
-    free(avrcp_marshal_inst);
-    avrcp_marshal_inst = NULL;
+    MarshalDestroy(avrcp_marshal_inst.marshaller, FALSE);
+    avrcp_marshal_inst.marshaller = NULL;
 }
 
 /****************************************************************************
@@ -175,113 +148,42 @@ static bool avrcpMarshal(const tp_bdaddr *tp_bd_addr,
                          uint16 length,
                          uint16 *written)
 {
-    marshal_type_t type;
-    bool marshalled = TRUE;
-
-    if (!avrcp_marshal_inst)
-    { /* Initiating marshalling, initialize the instance */
-        avrcp_marshal_inst = PanicUnlessNew(avrcp_marshal_instance_t);
-        avrcp_marshal_inst->marshal.marshaller = MarshalInit(mtd_avrcp,
-                                                             AVRCP_MARSHAL_OBJ_TYPE_COUNT);
-
-        avrcp_marshal_inst->avrcp_node = avrcpListHead;
-        avrcp_marshal_inst->state = AVRCP_MARSHAL_STATE_FLAG;
-    }
-    else
+    AVRCP *avrcp = NULL;
+    if (AvrcpGetInstanceFromBdaddr(&tp_bd_addr->taddr.addr, &avrcp))
     {
-        /* Resuming the marshalling */
-    }
-
-    MarshalSetBuffer(avrcp_marshal_inst->marshal.marshaller,
-                     (void *) buf,
-                     length);
-
-
-    if (browsingSupported())
-    {
-        /* When browsing is supported, AVRCP and AVBP structures are part of
-         * same allocation. But browsing connection information may or may not
-         * need to be marshalled depending upon whether browsing channel connection
-         * exists or not. Thus union of AVRCP and AVRCP_AVBP_INIT is marshalled. */
-        type = MARSHAL_TYPE(avrcp_union_t);
-    }
-    else
-    {
-        type = MARSHAL_TYPE(AVRCP);
-    }
-
-    do
-    {
-        switch (avrcp_marshal_inst->state)
+        if (!avrcp_marshal_inst.marshaller)
         {
-            case AVRCP_MARSHAL_STATE_FLAG:
-                if (avrcp_marshal_inst->avrcp_node)
-                {
-                    avrcp_marshal_inst->connection_flag = AVRCP_MARSHAL_CONN_MASK_BASIC;
-
-                    if (browsingSupported())
-                    {
-                        AVBP *avbp = &((AVRCP_AVBP_INIT *) avrcp_marshal_inst->avrcp_node->avrcp)->avbp;
-
-                        if (isAvbpConnected(avbp))
-                        {
-                            avrcp_marshal_inst->connection_flag |= AVRCP_MARSHAL_CONN_MASK_BROWSING;
-                        }
-                    }
-                }
-                else
-                {
-                    avrcp_marshal_inst->connection_flag = AVRCP_MARSHAL_CONN_FLAG_NONE;
-                }
-
-                if (Marshal(avrcp_marshal_inst->marshal.marshaller,
-                            &avrcp_marshal_inst->connection_flag,
-                            MARSHAL_TYPE(uint8)))
-                {
-                    avrcp_marshal_inst->state = AVRCP_MARSHAL_STATE_CONN;
-                }
-                else
-                { /* Insufficient buffer */
-                    marshalled = FALSE;
-                }
-
-                break;
-
-            case AVRCP_MARSHAL_STATE_CONN:
-                if (avrcp_marshal_inst->avrcp_node)
-                {
-                    if (Marshal(avrcp_marshal_inst->marshal.marshaller,
-                                &avrcp_marshal_inst->avrcp_node->avrcp,
-                                type))
-                    {
-                        avrcp_marshal_inst->avrcp_node = avrcp_marshal_inst->avrcp_node->next;
-                        avrcp_marshal_inst->state = AVRCP_MARSHAL_STATE_FLAG;
-                    }
-                    else
-                    { /* Insufficient buffer */
-                        marshalled = FALSE;
-                    }
-                }
-                else
-                { /* Marshaling completed */
-                    avrcpMarshalAbort();
-
-                    return TRUE;
-                }
-
-                break;
-
-            default: /* Unexpected state */
-                Panic();
-                break;
+            /* Initiating marshalling, initialize the instance */
+            avrcp_marshal_inst.marshaller = MarshalInit(mtd_avrcp, AVRCP_MARSHAL_OBJ_TYPE_COUNT);
+            PanicNull(avrcp_marshal_inst.marshaller);
+        }
+        else
+        {
+            /* Resuming the marshalling */
         }
 
-        *written = MarshalProduced(avrcp_marshal_inst->marshal.marshaller);
-    } while (marshalled && *written <= length);
+        MarshalSetBuffer(avrcp_marshal_inst.marshaller, (void *) buf, length);
 
-    UNUSED(tp_bd_addr);
+        if (Marshal(avrcp_marshal_inst.marshaller, avrcp,
+                    browsingSupported() ? MARSHAL_TYPE(AVRCP_AVBP_INIT) :
+                                          MARSHAL_TYPE(AVRCP)))
+        {
+            *written = MarshalProduced(avrcp_marshal_inst.marshaller);
 
-    return marshalled;
+            avrcpMarshalAbort();
+
+            return TRUE;
+        }
+        else
+        {
+            /* Insufficient buffer */
+            *written = MarshalProduced(avrcp_marshal_inst.marshaller);
+
+            return FALSE;
+        }
+    }
+    *written = 0;
+    return TRUE;
 }
 
 /****************************************************************************
@@ -299,112 +201,48 @@ static bool avrcpUnmarshal(const tp_bdaddr *tp_bd_addr,
                            uint16 length,
                            uint16 *consumed)
 {
-    marshal_type_t unmarshalled_type, expected_type;
-    bool unmarshalled = TRUE;
+    void *unmarshalled_obj = NULL;
+    marshal_type_t unmarshalled_type;
 
-    if (!avrcp_marshal_inst)
-    { /* Initiating unmarshalling, initialize the instance */
-        avrcp_marshal_inst = PanicUnlessNew(avrcp_marshal_instance_t);
-        avrcp_marshal_inst->marshal.unmarshaller = UnmarshalInit(mtd_avrcp,
-                                                                 AVRCP_MARSHAL_OBJ_TYPE_COUNT);
-
-        avrcp_marshal_inst->avrcp_node = NULL;
-        avrcp_marshal_inst->state = AVRCP_MARSHAL_STATE_FLAG;
+    if (!avrcp_marshal_inst.unmarshaller)
+    {
+        /* Initiating unmarshalling, initialize the instance */
+        avrcp_marshal_inst.unmarshaller = UnmarshalInit(mtd_avrcp, AVRCP_MARSHAL_OBJ_TYPE_COUNT);
+        PanicNull(avrcp_marshal_inst.unmarshaller);
     }
     else
     {
         /* Resuming the unmarshalling */
     }
 
-    UnmarshalSetBuffer(avrcp_marshal_inst->marshal.unmarshaller,
+    UnmarshalSetBuffer(avrcp_marshal_inst.unmarshaller,
                        (void *) buf,
                        length);
 
-    if (browsingSupported())
+    if (Unmarshal(avrcp_marshal_inst.unmarshaller,
+                  &unmarshalled_obj,
+                  &unmarshalled_type))
     {
-        /* When browsing is supported, AVRCP and AVBP structures are part of
-         * same allocation. But browsing connection information may or may not
-         * need to be marshalled depending upon whether browsing channel connection
-         * exists or not. Thus union of AVRCP and AVRCP_AVBP_INIT is marshalled. */
-        expected_type = MARSHAL_TYPE(avrcp_union_t);
+        PanicFalse(unmarshalled_type == MARSHAL_TYPE(AVRCP) ||
+                   unmarshalled_type == MARSHAL_TYPE(AVRCP_AVBP_INIT));
+
+        /* Stitch unmarshalled AVRCP connection instance */
+        stitchAvrcp((AVRCP*)unmarshalled_obj, &tp_bd_addr->taddr.addr);
+
+        *consumed = UnmarshalConsumed(avrcp_marshal_inst.unmarshaller);
+
+        UnmarshalDestroy(avrcp_marshal_inst.unmarshaller, FALSE);
+        avrcp_marshal_inst.unmarshaller = NULL;
+
+        /* Only expecting one object, so unmarshalling is complete */
+        return TRUE;
+
     }
     else
     {
-        expected_type = MARSHAL_TYPE(AVRCP);
+        *consumed = UnmarshalConsumed(avrcp_marshal_inst.unmarshaller);
+        return FALSE;
     }
-
-    do
-    {
-        switch (avrcp_marshal_inst->state)
-        {
-            case AVRCP_MARSHAL_STATE_FLAG:
-            {
-                uint8 *flag = NULL;
-
-                if (Unmarshal(avrcp_marshal_inst->marshal.unmarshaller,
-                              (void **) &flag,
-                              &unmarshalled_type))
-                {
-                    PanicFalse(unmarshalled_type == MARSHAL_TYPE(uint8));
-
-                    avrcp_marshal_inst->connection_flag = *flag;
-                    free(flag);
-
-                    avrcp_marshal_inst->state = AVRCP_MARSHAL_STATE_CONN;
-                }
-                else
-                { /* Insufficient buffer */
-                    unmarshalled = FALSE;
-                }
-
-                break;
-            }
-
-            case AVRCP_MARSHAL_STATE_CONN:
-                if (avrcp_marshal_inst->connection_flag != AVRCP_MARSHAL_CONN_FLAG_NONE)
-                {
-                    AVRCP *unmarshalled_avrcp = NULL;
-
-                    if (Unmarshal(avrcp_marshal_inst->marshal.unmarshaller,
-                                  (void **) &unmarshalled_avrcp,
-                                  &unmarshalled_type))
-                    {
-                        PanicFalse(unmarshalled_type == expected_type);
-
-                        /* Stitch unmarshalled AVRCP connection instance */
-                        stitchAvrcp(unmarshalled_avrcp);
-
-                        avrcp_marshal_inst->state = AVRCP_MARSHAL_STATE_FLAG;
-                    }
-                    else
-                    { /* Insufficient buffer */
-                        unmarshalled = FALSE;
-                    }
-                }
-                else
-                {
-                    UnmarshalDestroy(avrcp_marshal_inst->marshal.unmarshaller,
-                                     FALSE);
-
-                    free(avrcp_marshal_inst);
-                    avrcp_marshal_inst = NULL;
-
-                    return TRUE;
-                }
-
-                break;
-
-            default: /* Unexpected state */
-                Panic();
-                break;
-        }
-
-        *consumed = UnmarshalConsumed(avrcp_marshal_inst->marshal.unmarshaller);
-    } while (unmarshalled && *consumed <= length);
-
-    UNUSED(tp_bd_addr);
-
-    return unmarshalled;
 }
 
 /****************************************************************************
@@ -421,13 +259,6 @@ RETURNS
 static void avrcpMarshalCommit( const bool newRole )
 {
     UNUSED(newRole);
-}
-
-bool avrcpMarshalBrowsingChannelExists(void)
-{
-    PanicNull(avrcp_marshal_inst);
-
-    return (avrcp_marshal_inst->connection_flag & AVRCP_MARSHAL_CONN_MASK_BROWSING);
 }
 
 
@@ -453,8 +284,8 @@ static bool avrcpVeto( void )
 
     /* If AVRCP library initialization is not complete or AvrcpInit has not been
      * called the set device role will not be set */
-    if (device_role != avrcp_target ||
-        device_role != avrcp_controller ||
+    if (device_role != avrcp_target &&
+        device_role != avrcp_controller &&
         device_role != avrcp_target_and_controller  )
     {
         return TRUE;

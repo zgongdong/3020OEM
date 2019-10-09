@@ -3,63 +3,56 @@
 
 <message_map xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="pio_message_map.xsd">
 
-    <message>
-        <messageName>APP_MFB_BUTTON_PRESS</messageName>
-        <buttonEvent>RELEASE</buttonEvent>
+	<message>
+        <messageName>APP_MFB_BUTTON_SINGLE_CLICK</messageName>
+        <buttonEvent>SINGLE_CLICK</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
     </message>
 
     <message>
-        <messageName>APP_MFB_BUTTON_HELD_1</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_1SEC</messageName>
         <buttonEvent>HELD</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>1000</timeout_ms>
     </message>
 
     <message>
-        <messageName>APP_MFB_BUTTON_1_SECOND</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_RELEASE_1SEC</messageName>
         <buttonEvent>HELD_RELEASE</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>1000</timeout_ms>
     </message>
 
     <message>
-        <messageName>APP_MFB_BUTTON_HELD_2</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_3SEC</messageName>
         <buttonEvent>HELD</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>3000</timeout_ms>
     </message>
 
     <message>
-        <messageName>APP_BUTTON_POWER_OFF</messageName>
-        <buttonEvent>HELD_RELEASE</buttonEvent>
-        <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
-        <timeout_ms>3000</timeout_ms>
-    </message>
-
-    <message>
-        <messageName>APP_MFB_BUTTON_HELD_3</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_6SEC</messageName>
         <buttonEvent>HELD</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>6000</timeout_ms>
     </message>
 
     <message>
-        <messageName>APP_MFB_BUTTON_6_SECOND</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_RELEASE_6SEC</messageName>
         <buttonEvent>HELD_RELEASE</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>6000</timeout_ms>
     </message>
 
     <message>
-        <messageName>APP_MFB_BUTTON_HELD_4</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_8SEC</messageName>
         <buttonEvent>HELD</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>8000</timeout_ms>
     </message>
 
     <message>
-        <messageName>APP_MFB_BUTTON_8_SECOND</messageName>
+        <messageName>APP_MFB_BUTTON_HELD_RELEASE_8SEC</messageName>
         <buttonEvent>HELD_RELEASE</buttonEvent>
         <activePinFriendlyName>MFB_BUTTON</activePinFriendlyName>
         <timeout_ms>8000</timeout_ms>

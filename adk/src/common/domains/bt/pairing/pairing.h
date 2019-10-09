@@ -24,7 +24,7 @@
     INITIALISING : Registering EIR data
     INITIALISING -down-> IDLE : EIR registration complete
     IDLE : Page and Inquiry scan disabled
-
+    
     state DevicePairing {
         DevicePairing : Page scan enabled
         IDLE -down-> DISCOVERABLE : INTERNAL_PAIR_REQ
@@ -42,6 +42,11 @@
     @enduml
 */
 
+/*! Defines the pairing client task list initial capacity */
+#define PAIRING_CLIENT_TASK_LIST_INIT_CAPACITY 1
+/*! Defines the pairing activity task list initial capacity */
+#define PAIRING_ACTIVITY_LIST_INIT_CAPACITY 3
+
 
 /*! \brief Pairing module state machine states */
 typedef enum pairing_states
@@ -51,13 +56,14 @@ typedef enum pairing_states
     PAIRING_STATE_IDLE,                /*!< No pairing happening */
     PAIRING_STATE_DISCOVERABLE,         /*!< Discoverable to the device */
     PAIRING_STATE_PENDING_AUTHENTICATION, /*!< Waiting to authenticate with device */
-} pairingState;
+ } pairingState;
 
 /*! \brief Internal message IDs */
 enum pairing_internal_message_ids
 {
     PAIRING_INTERNAL_PAIR_REQ,                  /*!< Pair with handset/phone/AV source */
     PAIRING_INTERNAL_LE_PEER_PAIR_REQ,          /*!< Pair with le peer */
+    PAIRING_INTERNAL_PAIR_LE_REQ,               /*!< Pair with le handset */
     PAIRING_INTERNAL_TIMEOUT_IND,               /*!< Pairing has timed out */
     PAIRING_INTERNAL_PAIR_STOP_REQ,             /*!< Stop in progress pairing */
     PAIRING_INTERNAL_DISABLE_SCAN               /*!< Delayed message to disable page and inquiry scan */
@@ -126,8 +132,10 @@ typedef struct
     Task     client_task;
     /*! The pairing stop request task */
     Task     stop_task;
+    /*! Client task for concurrent BLE handset pairing */
+    Task     pair_le_task;
     /*! client list that the pairing module shall send indication messages to */
-    task_list_t * client_list;
+    TASK_LIST_WITH_INITIAL_CAPACITY(PAIRING_CLIENT_TASK_LIST_INIT_CAPACITY) client_list;
     /*! The current pairing state */
     pairingState state;
     /*! Set if the current pairing is user initiated */
@@ -143,7 +151,7 @@ typedef struct
     /*! The current BLE link pending pairing. This will be random address if used. */
     typed_bdaddr            pending_ble_address;
 
-    task_list_t* pairing_activity;
+    TASK_LIST_WITH_INITIAL_CAPACITY(PAIRING_ACTIVITY_LIST_INIT_CAPACITY) pairing_activity;
 } pairingTaskData;
 
 /*! Pairing status codes */
@@ -199,7 +207,7 @@ typedef struct
     pairingStatus status;
     bdaddr device_addr;
     uint16 tws_version;
-} PAIRING_ACTIVITY_T; 
+} PAIRING_ACTIVITY_T;
 /*! Marshalling type definition for PAIRING_ACTIVITY_T */
 extern const marshal_type_descriptor_t marshal_type_descriptor_PAIRING_ACTIVITY_T;
 
@@ -209,16 +217,22 @@ extern pairingTaskData pairing_task_data;
 /*! Get pointer to Pairing data structure */
 #define PairingGetTaskData()             (&pairing_task_data)
 
+/*! Get pointer to Pairing client list */
+#define PairingGetClientList()             (task_list_flexible_t *)(&pairing_task_data.client_list)
+
+/*! Get pointer to Pairing's pairing activity */
+#define PairingGetPairingActivity()             (task_list_flexible_t *)(&pairing_task_data.pairing_activity)
+
 /*! \brief Initialise the pairing application module.
  */
-extern bool Pairing_Init(Task init_task);
+bool Pairing_Init(Task init_task);
 
 /*! \brief Pair with a device, where inquiry is required.
 
     \param[in] client_task       Task to send #PAIRING_PAIR_CFM response message to.
     \param     is_user_initiated TRUE if this is a user initiated request.
  */
-extern void Pairing_Pair(Task client_task, bool is_user_initiated);
+void Pairing_Pair(Task client_task, bool is_user_initiated);
 
 /*! \brief Pair with a device where the address is already known.
 
@@ -229,7 +243,8 @@ extern void Pairing_Pair(Task client_task, bool is_user_initiated);
     \param[in] client_task  Task to send #PAIRING_PAIR_CFM response message to.
     \param[in] handset_addr Pointer to BT address of handset.
  */
-extern void Pairing_PairAddress(Task client_task, bdaddr* device_addr);
+void Pairing_PairAddress(Task client_task, bdaddr* device_addr);
+
 
 /*! \brief Stop a pairing.
 
@@ -248,7 +263,7 @@ extern void Pairing_PairAddress(Task client_task, bdaddr* device_addr);
 
     \param[in] client_task  Task to send #PAIRING_STOP_CFM response message to.
  */
-extern void Pairing_PairStop(Task client_task);
+void Pairing_PairStop(Task client_task);
 
 
 /*! Determine how BLE connections may pair
@@ -265,7 +280,7 @@ extern void Pairing_PairStop(Task client_task);
     \param permission The permission to use for any BLE pairing in future. This
         will not apply to any pairing that has already started.
 */
-extern void Pairing_BlePermission(pairingBlePermission permission);
+void Pairing_BlePermission(pairingBlePermission permission);
 
 
 /*! Handler for all connection library messages not sent directly
@@ -286,7 +301,7 @@ extern void Pairing_BlePermission(pairingBlePermission permission);
     \returns TRUE if the message has been processed, otherwise returns the
         value in already_handled
  */
-extern bool Pairing_HandleConnectionLibraryMessages(MessageId id,Message message, bool already_handled);
+bool Pairing_HandleConnectionLibraryMessages(MessageId id,Message message, bool already_handled);
 
 /*! Register to receive PAIRING_ACTIVITY messages.
     \param task Task to send the messages to.
@@ -307,6 +322,15 @@ void Pairing_AddAuthDevice(const bdaddr* address, const uint16 key_length, const
            discovery is removed from the pairing module.
  */
 void Pairing_PairLePeer(Task client_task, typed_bdaddr* device_addr, bool server);
+
+
+/*! \brief Pair with a BLE handset device.
+
+    \param[in] client_task  Task to send #PAIRING_PAIR_CFM response message to.
+    \param[in] handset_addr Pointer to BT address of handset.
+*/
+void Pairing_PairLeAddress(Task client_task, const typed_bdaddr* device_addr);
+
 
 /*! \brief TEST FUNCTION to force link key TX to peer on reboot. */
 void Pairing_SetLinkTxReqd(void);
@@ -355,18 +379,18 @@ typedef struct
 } pairing_plugin_t;
 
 /*! 
-    \brief Register pairing plugin callback 
-    
+    \brief Register pairing plugin callback
+
     \param plugin The plugin to register. This function will panic if
            called multiple times without calling Pairing_PluginUnregister
            inbetween
  */
 void Pairing_PluginRegister(pairing_plugin_t plugin);
 
-/*! 
-    \brief Retry user confirmation where pairing_user_confirmation_callback_t 
-           previously returned pairing_user_confirmation_wait 
-           
+/*!
+    \brief Retry user confirmation where pairing_user_confirmation_callback_t
+           previously returned pairing_user_confirmation_wait
+
     \returns TRUE if user confirmation can be retried, FALSE if there is no
              pending user confirmation to retry. This may happen due to
              incorrect call sequence, pairing failure/timeout or shortage of
@@ -374,9 +398,9 @@ void Pairing_PluginRegister(pairing_plugin_t plugin);
  */
 bool Pairing_PluginRetryUserConfirmation(void);
 
-/*! 
-    \brief Unregister pairing plugin callback 
-    
+/*!
+    \brief Unregister pairing plugin callback
+
     \param plugin The plugin to unregister. This function will panic if
            this does not match the last plugin passed to Pairing_PluginRegister
  */

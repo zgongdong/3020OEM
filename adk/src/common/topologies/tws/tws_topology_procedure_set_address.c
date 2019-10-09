@@ -16,6 +16,7 @@
 
 #include <bt_device.h>
 #include <link_policy.h>
+#include <timestamp_event.h>
 
 #include <logging.h>
 
@@ -86,6 +87,8 @@ void TwsTopology_ProcedureSetAddressStart(Task result_task,
                    addr.nap, addr.uap, addr.lap);
     }
 
+    TimestampEvent(TIMESTAMP_EVENT_ADDRESS_SWAP_STARTED);
+
     /* To override the BD_ADDR requires the BTSS to be idle. Occasionally the
        VmOverrideBdaddr trap can be called before BTSS has become completely idle,
        resulting in the trap returning false. In these scenarios, retry the
@@ -94,6 +97,9 @@ void TwsTopology_ProcedureSetAddressStart(Task result_task,
     {
         attempts_remaining--;
     }
+
+    TimestampEvent(TIMESTAMP_EVENT_ADDRESS_SWAP_COMPLETED);
+
     if (attempts_remaining)
     {
         DEBUG_LOG("TwsTopology_ProcedureSetAddressStart (%u) SUCCESS", OVERRIDE_BD_ADDR_MAX_ATTEMPTS - attempts_remaining);
@@ -104,7 +110,7 @@ void TwsTopology_ProcedureSetAddressStart(Task result_task,
     }
     else
     {
-        DEBUG_LOG("TwsTopology_ProcedureSetAddressStart FAILED");
+        DEBUG_LOG("TwsTopology_ProcedureSetAddressStart (%u) FAILED", OVERRIDE_BD_ADDR_MAX_ATTEMPTS);
         TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn, tws_topology_procedure_set_address, proc_result_failed);
     }
 }

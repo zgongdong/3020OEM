@@ -1057,4 +1057,20 @@ void UpgradePeerStoreMd5(uint32 md5);
 */
 void UpgradePeerSetDeviceRole(bool is_primary);
 
+/*!
+    @brief Abort the ongoing DFU due to disconnection between host and device.
+    @param none.
+    
+    Returns none
+*/
+void UpgradeAbortDuringDeviceDisconnect(void);
+
+/*!
+    @brief Abort the ongoing DFU due to device coming out of case.
+    @param none.
+    
+    Returns none
+*/
+void UpgradeHandleAbortDuringUpgrade(void);
+
 #endif /* UPGRADE_H_ */

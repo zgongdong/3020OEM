@@ -13,7 +13,7 @@
 #include "tws_topology_sm.h"
 #include "tws_topology_goals.h"
 #include "tws_topology_procedures.h"
-
+#include "hdma.h"
 #include <rules_engine.h>
 #include <task_list.h>
 #include <stdlib.h>
@@ -44,14 +44,32 @@
 
     /*! The start identifier for messages related to the topology script engine */
 #define TWSTOP_INTERNAL_PROC_SCRIPT_ENGINE_MSG_BASE 0x0700
+
+    /*! The start identifier for messages related to topology use of peer signalling. */
+#define TWSTOP_INTERNAL_PEER_SIG_MSG_BASE           0x0800
 /*! @} */
+
+
+/*! Defines the roles changed task list initalc capacity */
+#define ROLE_CHANGED_TASK_LIST_INIT_CAPACITY 1
 
 typedef enum
 {
     TWSTOP_INTERNAL_START = TWSTOP_INTERNAL_MSG_BASE,
     TWSTOP_INTERNAL_HANDLE_PENDING_GOAL,
+    TWSTOP_INTERNAL_PEER_SIG_MSG,
     TWSTOP_INTERNAL_MSG_MAX,
 } tws_topology_internal_message_t;
+
+
+/*! Structure describing handover data */
+typedef struct {
+    /*! Cached handover message notification from HDMA  */
+    hdma_handover_decision_t hdma_message;
+
+    /*! handover retry attempt count */
+    uint16 handover_retry_count;
+}handover_data_t;
 
 /*! Structure holding information for the TWS Topology task */
 typedef struct
@@ -76,7 +94,7 @@ typedef struct
 
     /*! List of clients registered to receive TWS_TOPOLOGY_ROLE_CHANGED_IND_T
      * messages */
-    task_list_t         role_changed_tasks;
+    TASK_LIST_WITH_INITIAL_CAPACITY(ROLE_CHANGED_TASK_LIST_INIT_CAPACITY)   role_changed_tasks;
 
     /*! Task handler for pairing activity notification */
     TaskData            pairing_notification_task;
@@ -97,26 +115,41 @@ typedef struct
     /*! Whether hdma is created or not.TRUE if created. FALSE otherwise */
     bool                hdma_created;
     
-    /* Whether Handover is allowed or prohibited. controlled by APP */
+    /*! Whether Handover is allowed or prohibited. controlled by APP */
     bool                app_prohibit_handover;
+
+    /*! handover related information */
+    handover_data_t       handover_info;
+
+    /*! List of internal TWS Topology clients using peer signalling
+        with peer TWS Topology component. One client is always the core
+        tws topology task itself, the others are procedures. */
+    task_list_capacity_2_t peer_sig_msg_client_list;
+
 } twsTopologyTaskData;
 
 /* Make the tws_topology instance visible throughout the component. */
 extern twsTopologyTaskData tws_topology;
 
 /*! Get pointer to the task data */
-#define TwsTopologyGetTaskData()        (&tws_topology)
+#define TwsTopologyGetTaskData()         (&tws_topology)
 
 /*! Get pointer to the TWS Topology task */
-#define TwsTopologyGetTask()            (&tws_topology.task)
+#define TwsTopologyGetTask()             (&tws_topology.task)
+
+/*! Get pointer to the TWS Topology role changed tasks */
+#define TwsTopologyGetRoleChangedTasks() (task_list_flexible_t *)(&tws_topology.role_changed_tasks)
 
 /*! Macro to create a TWS topology message. */
 #define MAKE_TWS_TOPOLOGY_MESSAGE(TYPE) TYPE##_T *message = (TYPE##_T*)PanicNull(calloc(1,sizeof(TYPE##_T)))
 
 void twsTopology_SetRole(tws_topology_role role);
+tws_topology_role twsTopology_GetRole(void);
 void twsTopology_SetActingInRole(bool acting);
 bool TwsTopology_IsPeerBdAddr(bdaddr* addr);
 void twsTopology_RulesSetEvent(rule_events_t event);
 void twsTopology_RulesMarkComplete(MessageId message);
+void twsTopology_CreateHdma(void);
+void twsTopology_DestroyHdma(void);
 
 #endif /* TWS_TOPOLOGY_H_ */

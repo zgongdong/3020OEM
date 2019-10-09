@@ -97,11 +97,30 @@ typedef enum
     /*! Goal to disconnect the peer and begin role selection, could
         be used on handset linkloss to determine best Earbud to reconnect. */
     tws_topology_goal_disconnect_peer_find_role             = 1UL << 23,
+
+    /*! Goal to release the peer link.
+        This is needed as we otherwise keep a lock on the peer link
+        until profiles are started (which won't now happen) */
+    tws_topology_goal_release_peer                          = 1UL << 24,
+
+    /*! Goal to handle the handover recommendation from HDMA upon entering
+        the case. */
+    tws_topology_goal_handover_entering_case                = 1UL << 25,
+
+    /*! Goal to handle the handover timeout upon entering the case. */
+    tws_topology_goal_handover_incase_timeout               = 1UL << 26,
+
+    /*! Goal for Secondary to participate in a forced role switch to
+        Primary role. */
+    tws_topology_goal_secondary_forced_role_switch          = 1UL << 27,
+    /*! Goal for Primary to participate in a forced role switch of
+        Secondary to Primary role. */
+    tws_topology_goal_primary_forced_role_switch            = 1UL << 28,
 } tws_topology_goal;
 
 /*! Maximum number of goals
  * \todo generate this via XMACROs */
-#define TWS_TOPOLOGY_GOALS_MAX  24
+#define TWS_TOPOLOGY_GOALS_MAX  29
 
 /*! Types of handling contention when adding a goal with already
     existing active goals. */
@@ -169,9 +188,9 @@ typedef struct
     { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_concurrent, 0, 0, 0, concurrent_goals_mask}
 
 /*! Macro to add goal to the goals table and define an event to generate
-    on timeout failure completion. */
-#define GOAL_TIMEOUT(goal_name, proc_name, fns, exclusive_goal, timeout_event) \
-    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_wait, 0, timeout_event, 0, tws_topology_goal_none}
+    on timeout or failure completion. */
+#define GOAL_WITH_TIMEOUT_AND_FAIL(goal_name, proc_name, fns, exclusive_goal, timeout_event, failure_event) \
+    { goal_name, proc_name, fns, NULL, exclusive_goal, goal_contention_wait, 0, timeout_event, failure_event, tws_topology_goal_none}
 
 /*! Macro to add goal to the goals table, which can run concurrently with other goals
     and which will generate an event on timeout failure completion. */
@@ -203,6 +222,32 @@ typedef struct
     The goal also defines an event to generate on successful completion. */
 #define SCRIPT_GOAL_CANCEL_SUCCESS(goal_name, proc_name, script, exclusive_goal, success_event) \
     { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_cancel, success_event, 0, 0, tws_topology_goal_none}
+
+/*! Macro to add scripted goal to the goals table.
+    If the timeout parameter is provided and the goal results in a timeout, the timeout
+    event will be sent to the rules engine.
+    If the failed parameter is provided and the goal results in a failure,a failed event
+    will be sent to the rules engine. */
+#define SCRIPT_GOAL_TIMEOUT_OR_FAILED(goal_name, proc_name, script, exclusive_goal, timeout_event, failed_event) \
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_wait, 0, timeout_event, failed_event, tws_topology_goal_none}
+
+/*! Macro to add scripted cancel goal to the goals table.
+    If there are any goals active when this goal is added, they will be cancelled and the
+    new goal executed when the cancel has completed..
+    If the success parameter is provided and the goal results in a success, the success
+    event will be sent to the rules engine.
+    If the failed parameter is provided and the goal results in a failure, a failed event
+    will be sent to the rules engine. */
+#define SCRIPT_GOAL_CANCEL_SUCCESS_FAILED(goal_name, proc_name, script, exclusive_goal, success_event, failed_event) \
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_cancel, success_event, 0, failed_event, tws_topology_goal_none}
+
+/*! Macro to add scripted cancel goal to the goals table.
+    If there are any goals active when this goal is added, they will be cancelled and the
+    new goal executed when the cancel has completed..
+    If the failed parameter is provided and the goal results in a failure, a failed event
+    will be sent to the rules engine. */
+#define SCRIPT_GOAL_CANCEL_FAILED(goal_name, proc_name, script, exclusive_goal, failed_event) \
+    { goal_name, proc_name, NULL, script, exclusive_goal, goal_contention_cancel, 0, 0, failed_event, tws_topology_goal_none}
 
 /*! Macro to add scripted goal to the goals table and define an event to
     generate on timeout failure completion. */

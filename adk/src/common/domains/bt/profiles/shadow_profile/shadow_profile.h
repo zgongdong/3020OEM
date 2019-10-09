@@ -91,6 +91,12 @@ typedef enum
     /*! Shadow ACL connect indication */
     SHADOW_PROFILE_CONNECT_IND,
 
+    /*! Confirmation of a connection request. */
+    SHADOW_PROFILE_CONNECT_CFM,
+
+    /*! Confirmation of a connection request. */
+    SHADOW_PROFILE_DISCONNECT_CFM,
+
     /*! Shadow ACL disconnect indication */
     SHADOW_PROFILE_DISCONNECT_IND,
 
@@ -108,12 +114,36 @@ typedef enum
 
 } shadow_profile_msg_t;
 
-/*! Status codes used by shadow_profile */
+/*! \brief Status codes used by shadow_profile */
 typedef enum
 {
-    shadow_profile_status_connected = 0,
-    shadow_profile_status_disconnected
+    /*! Shadow profile got connected to peer */
+    shadow_profile_status_peer_connected = 0,
+
+    /*! Unable to connect Shadow profile with Peer */
+    shadow_profile_status_peer_connect_failed,
+
+    /*! Shadow profile peer connect is cancelled */
+    shadow_profile_status_peer_connect_cancelled,
+
+    /*! Shadow profile disconnected */
+    shadow_profile_status_peer_disconnected
 } shadow_profile_status_t;
+
+/*! \brief Confirmation of the result of a connection request. */
+typedef struct
+{
+    /*! Status of the connection request. */
+    shadow_profile_status_t status;
+} SHADOW_PROFILE_CONNECT_CFM_T;
+
+/*! \brief Confirmation of the result of a disconnection request. */
+typedef struct
+{
+    /*! Status of the disconnection request. */
+    shadow_profile_status_t status;
+} SHADOW_PROFILE_DISCONNECT_CFM_T;
+
 
 /*! \brief Shadow ACL connect indication. */
 typedef CON_MANAGER_TP_CONNECT_IND_T SHADOW_PROFILE_CONNECT_IND_T;
@@ -136,17 +166,17 @@ typedef CON_MANAGER_TP_DISCONNECT_IND_T SHADOW_PROFILE_ESCO_DISCONNECT_IND_T;
 
 #define ShadowProfile_ClientUnregister(task) UNUSED(task)
 
-#define ShadowProfile_Connect() /* Nothing to do */
+#define ShadowProfile_Connect(task, peer_addr) /* Nothing to do */
 
-#define ShadowProfile_Disconnect() /* Nothing to do */
-
-#define ShadowProfile_PeerConnected() /* Nothing to do */
-
-#define ShadowProfile_PeerDisconnected() /* Nothing to do */
+#define ShadowProfile_Disconnect(task) /* Nothing to do */
 
 #define ShadowProfile_SetRole(primary) UNUSED(primary)
 
 #define ShadowProfile_GetScoSink() ((Sink)NULL)
+
+#define ShadowProfile_GetShadowAclHandle() ((uint16)0xFFFF)
+
+#define ShadowProfile_HandleConnectionLibraryMessages(id, message, already_handled) (already_handled)
 
 
 #endif /* SHADOW_PROFILE_H_ */

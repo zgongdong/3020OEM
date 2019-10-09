@@ -38,11 +38,6 @@ typedef struct state_proxy_initial_state
     state_proxy_data_t state;
 } state_proxy_initial_state_t;
 
-typedef struct state_proxy_msg_empty_payload
-{
-    state_proxy_event_type type;
-} state_proxy_msg_empty_payload_t;
-
 typedef struct state_proxy_active_handset_addr
 {
     bdaddr active_handset_addr;

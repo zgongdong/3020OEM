@@ -533,7 +533,7 @@ static void appAvInstanceHandleAvAvrcpSetVolumeInd(avInstanceTaskData *theInst, 
     appAvVolumeSet(ind->volume, theInst);
 }
 
-static void appAvInstanceHandleMessage(Task task, MessageId id, Message message)
+void appAvInstanceHandleMessage(Task task, MessageId id, Message message)
 {
     avInstanceTaskData *theInst = (avInstanceTaskData *)task;
 
@@ -864,7 +864,15 @@ static bool av_A2dpSendConnectCfm(Task task, task_list_data_t *data, void *arg)
         found_client_task = TRUE;
         MESSAGE_MAKE(msg, AV_A2DP_CONNECT_CFM_T);
         msg->device = params->device;
-        msg->successful = params->result;
+
+        if(params->result == profile_manager_success)
+        {
+            msg->successful = TRUE;
+        }
+        else
+        {
+            msg->successful = FALSE;
+        }
 
         DEBUG_LOG("av_A2dpSendConnectCfm toTask=%x success=%d", task, params->result);
         MessageSend(task, AV_A2DP_CONNECT_CFM, msg);
@@ -884,7 +892,15 @@ static bool av_A2dpSendDisconnectCfm(Task task, task_list_data_t *data, void *ar
         found_client_task = TRUE;
         MESSAGE_MAKE(msg, AV_A2DP_DISCONNECT_CFM_T);
         msg->device = params->device;
-        msg->successful = params->result;
+
+        if(params->result == profile_manager_success)
+        {
+            msg->successful = TRUE;
+        }
+        else
+        {
+            msg->successful = FALSE;
+        }
 
         DEBUG_LOG("av_A2dpSendDisconnectCfm toTask=%x success=%d", task, params->result);
         MessageSend(task, AV_A2DP_DISCONNECT_CFM, msg);
@@ -904,7 +920,15 @@ static bool av_AvrcpSendConnectCfm(Task task, task_list_data_t *data, void *arg)
         found_client_task = TRUE;
         MESSAGE_MAKE(msg, AV_AVRCP_CONNECT_CFM_PROFILE_MANAGER_T);
         msg->device = params->device;
-        msg->successful = params->result;
+
+        if(params->result == profile_manager_success)
+        {
+            msg->successful = TRUE;
+        }
+        else
+        {
+            msg->successful = FALSE;
+        }
 
         DEBUG_LOG("av_AvrcpSendConnectCfm toTask=%x success=%d", task, params->result);
         MessageSend(task, AV_AVRCP_CONNECT_CFM_PROFILE_MANAGER, msg);
@@ -924,7 +948,15 @@ static bool av_AvrcpSendDisconnectCfm(Task task, task_list_data_t *data, void *a
         found_client_task = TRUE;
         MESSAGE_MAKE(msg, AV_AVRCP_DISCONNECT_CFM_T);
         msg->device = params->device;
-        msg->successful = params->result;
+
+        if(params->result == profile_manager_success)
+        {
+            msg->successful = TRUE;
+        }
+        else
+        {
+            msg->successful = FALSE;
+        }
 
         DEBUG_LOG("av_AvrcpSendConnectCfm toTask=%x success=%d", task, params->result);
         MessageSend(task, AV_AVRCP_DISCONNECT_CFM, msg);

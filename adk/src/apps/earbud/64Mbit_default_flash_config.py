@@ -11,12 +11,12 @@
 "layout": [
     ("curator_fs",      { "capacity" :  1 * 64 * 1024,  "authenticate": False, "src_file_signed": False}),
     ("apps_p0",         { "capacity" : 12 * 64 * 1024,  "authenticate": True, "src_file_signed": True}),
-    ("apps_p1",         { "capacity" :  9 * 64 * 1024,  "authenticate": False}),
+    ("apps_p1",         { "capacity" : 10 * 64 * 1024,  "authenticate": False}),
     # Device config filesystem size limited by size of production test buffer,  ( 1024*2)-10.
     ("device_ro_fs",    { "capacity" :  1 * 64 * 1024,  "authenticate": False, "inline_auth_hash": True }),
     ("rw_config",       { "capacity" :  2 * 64 * 1024}),
     ("rw_fs",           { "capacity" :  4 * 64 * 1024}),
     ("ro_cfg_fs",       { "capacity" :  2 * 64 * 1024,  "authenticate": False}),
-    ("ro_fs",           { "capacity" : 31 * 64 * 1024,  "authenticate": False})
+    ("ro_fs",           { "capacity" : 30 * 64 * 1024,  "authenticate": False})
 ]
 }

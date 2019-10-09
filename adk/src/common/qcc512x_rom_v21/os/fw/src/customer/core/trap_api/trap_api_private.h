@@ -70,12 +70,17 @@ typedef enum
 typedef struct AppMessage
 {
     struct AppMessage *next;
-    Task task;
-    uint16 id;
-    void *message;
-    const void *condition_addr;     /**< Pointer to condition value */
-    CONDITION_WIDTH c_width;        /**< Width of condition value */
-    uint32 due;                 /**< Millisecond time to deliver this message */
+    uint32 due;                  /**< Millisecond time to deliver this message */
+    union
+    {
+        Task task;               /**< Receiving task (if unicast) */
+        Task *tlist;             /**< Ptr to receiving task list (if multicast) */
+    } t;
+    void *message;               /**< Pointer to the message payload */
+    const void *condition_addr;  /**< Pointer to condition value */
+    uint16 id;                   /**< Message ID */
+    CONDITION_WIDTH c_width;     /**< Width of condition value */
+    unsigned int multicast:1;    /**< If multicast, task is a null-terminated list */
 } AppMessage;
 
 

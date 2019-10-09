@@ -53,7 +53,7 @@
         <member marshal="false" doc="Playback status lock, set when AVRCP Play or Pause sent.  Cleared when playback status received, or after timeout">uint16 playback_lock</member>
         <member marshal="true" doc="AVRCP bitfields data">avrcpTaskDataBitfields bitfields</member>
         <member marshal="false" doc="List of clients for AVRCP messages for this link">task_list_t *client_list</member>
-        <member marshal="true" doc="Count of the number of clients registered for this AVRCP link">uint8 client_lock</member>
+        <member marshal="false" doc="Count of the number of clients registered for this AVRCP link">uint8 client_lock</member>
         <member marshal="false" doc="Count of outstanding response to requests sent to registered clients">uint8 client_responses</member>
         <member marshal="false" doc="Task to receive vendor commands">Task vendor_task</member>
         <member marshal="false" doc="Data for current vendor command">uint8 *vendor_data</member>

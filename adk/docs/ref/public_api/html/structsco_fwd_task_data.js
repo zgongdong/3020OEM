@@ -1,7 +1,7 @@
 var structsco_fwd_task_data =
 [
-    [ "connect_req_tasks", "structsco_fwd_task_data.html#a61a26d765167604b26480984bfc57775", null ],
-    [ "disconnect_req_tasks", "structsco_fwd_task_data.html#a9cb0895fc703ac9b0bd5e78fb88f95db", null ],
+    [ "TASK_LIST_WITH_INITIAL_CAPACITY", "structsco_fwd_task_data.html#a218b58f7fbde9e4838637bad81e2974c", null ],
+    [ "TASK_LIST_WITH_INITIAL_CAPACITY", "structsco_fwd_task_data.html#a2247de80a58b335cc428c905264ef00c", null ],
     [ "drop_multiple_packets", "structsco_fwd_task_data.html#a3ebdd24ca46c0a9d2dd45b5f56544f45", null ],
     [ "forward_volume", "structsco_fwd_task_data.html#a24087be1f0e2e2d473898c85543d3338", null ],
     [ "forwarded_sink", "structsco_fwd_task_data.html#ab7fece2596c57341f89cca83bcc750df", null ],

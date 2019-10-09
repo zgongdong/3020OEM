@@ -13,7 +13,9 @@
 #include <anc_state_manager.h>
 
 #include "kymera_private.h"
+#include "kymera_aec.h"
 #include "kymera_config.h"
+#include "kymera_voice_capture.h"
 #include "av.h"
 #include "microphones.h"
 #include "microphones_config.h"
@@ -57,6 +59,28 @@ static source_sync_route_t routes[] =
         .gain = 0
     }
 };
+
+static void connectOutputChainToAudioSink(Source chain_output, Sink audio_sink)
+{
+#ifdef INCLUDE_KYMERA_AEC
+    aec_connect_audio_output_t aec_connect_params = {0};
+    aec_connect_params.input_1 = chain_output;
+    aec_connect_params.speaker_output_1 = audio_sink;
+    appKymera_ConnectAudioOutputToAec(&aec_connect_params);
+#else
+    PanicNull(StreamConnect(chain_output, audio_sink));
+#endif
+}
+
+static void disconnectOutputChainFromAudioSink(Source chain_output)
+{
+#ifdef INCLUDE_KYMERA_AEC
+    UNUSED(chain_output);
+    appKymera_DisconnectAudioOutputFromAec();
+#else
+    StreamDisconnect(chain_output, NULL);
+#endif
+}
 
 int32 volTo60thDbGain(int16 volume_in_db)
 {
@@ -106,33 +130,38 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
         case KYMERA_STATE_A2DP_STARTING_A:
         case KYMERA_STATE_A2DP_STARTING_B:
         case KYMERA_STATE_A2DP_STARTING_C:
+        case KYMERA_STATE_A2DP_STARTING_SLAVE:
         case KYMERA_STATE_A2DP_STREAMING:
         case KYMERA_STATE_A2DP_STREAMING_WITH_FORWARDING:
         {
-            if (tone_playing)
+            if(appKymera_IsVoiceCaptureActive())
+            {
+                cconfig.active_mode = AUDIO_DSP_TURBO_CLOCK;
+            }
+            else if(tone_playing)
             {
                 /* Always jump up to normal clock for tones - for most codecs there is
-                 * not enough MIPs when running on a slow clock to also play a tone */
+                * not enough MIPs when running on a slow clock to also play a tone */
                 cconfig.active_mode = AUDIO_DSP_BASE_CLOCK;
-                mode = AUDIO_POWER_SAVE_MODE_1;                
+                mode = AUDIO_POWER_SAVE_MODE_1;
             }
             else
             {
                 /* Either setting up for the first time or returning from a tone, in
-                 * either case return to the default clock rate for the codec in use */
-                switch (theKymera->a2dp_seid)
+                * either case return to the default clock rate for the codec in use */
+                switch(theKymera->a2dp_seid)
                 {
                     case AV_SEID_APTX_SNK:
                     case AV_SEID_APTX_ADAPTIVE_SNK:
                     case AV_SEID_APTX_ADAPTIVE_TWS_SNK:
                     {
                         /* Not enough MIPs to run aptX master (TWS standard) or
-                         * aptX adaptive (TWS standard and TWS+) on slow clock */
+                        * aptX adaptive (TWS standard and TWS+) on slow clock */
                         cconfig.active_mode = AUDIO_DSP_BASE_CLOCK;
                         mode = AUDIO_POWER_SAVE_MODE_1;
                     }
                     break;
-        
+
                     default:
                         break;
                 }
@@ -182,12 +211,21 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
         }
         break;        
         
-        case KYMERA_STATE_IDLE:
         case KYMERA_STATE_TONE_PLAYING:
         {
-            /* All other states default to slow */
+            if(appKymera_IsVoiceCaptureActive())
+            {
+                /* Can't be in low power-mode with an active voice capture chain
+                    while playig tone */
+                cconfig.active_mode = AUDIO_DSP_TURBO_CLOCK;
+                mode = AUDIO_POWER_SAVE_MODE_1;
+            }
         }
-        break;        
+        break;
+
+        /* All other states default to slow */
+        case KYMERA_STATE_IDLE:
+            break;      
     }
 
 #ifdef AUDIO_IN_SQIF
@@ -343,26 +381,44 @@ void appKymeraConfigureOutputChainOperators(kymera_chain_handle_t chain,
     }
 }
 
-void appKymeraCreateOutputChain(uint32 rate, unsigned kick_period,
-                                unsigned buffer_size, int16 volume_in_db)
+void appKymeraCreateOutputChain(unsigned kick_period, unsigned buffer_size, int16 volume_in_db)
 {
     kymeraTaskData *theKymera = KymeraGetTaskData();
     Sink dac;
     kymera_chain_handle_t chain;
 
+    DEBUG_LOG("appKymeraCreateOutputChain");
+
     /* Create chain */
     chain = ChainCreate(&chain_output_volume_config);
     theKymera->chainu.output_vol_handle = chain;
-    appKymeraConfigureOutputChainOperators(chain, rate, kick_period, buffer_size, volume_in_db);
+    appKymeraConfigureOutputChainOperators(chain, theKymera->output_rate, kick_period, buffer_size, volume_in_db);
+    PanicFalse(OperatorsFrameworkSetKickPeriod(kick_period));
+    
+    ChainConnect(chain);
 
     /* Configure the DAC channel */
     dac = StreamAudioSink(appConfigLeftAudioHardware(), appConfigLeftAudioInstance(), appConfigLeftAudioChannel());
-    PanicFalse(SinkConfigure(dac, STREAM_CODEC_OUTPUT_RATE, rate));
+    PanicFalse(SinkConfigure(dac, STREAM_CODEC_OUTPUT_RATE, theKymera->output_rate));
     PanicFalse(SinkConfigure(dac, STREAM_RM_ENABLE_DEFERRED_KICK, 0));
 
-    /* Connect chain output to the DAC */
-    ChainConnect(chain);
-    PanicFalse(ChainConnectOutput(chain, dac, EPR_SOURCE_MIXER_OUT));
+    connectOutputChainToAudioSink(ChainGetOutput(chain, EPR_SOURCE_MIXER_OUT), dac);
+}
+
+void appKymeraDestroyOutputChain(void)
+{
+    kymeraTaskData *theKymera = KymeraGetTaskData();
+    kymera_chain_handle_t chain = theKymera->chainu.output_vol_handle;
+
+    DEBUG_LOG("appKymeraDestroyOutputChain");
+
+    if (chain)
+    {
+        ChainStop(chain);
+        disconnectOutputChainFromAudioSink(ChainGetOutput(chain, EPR_SOURCE_MIXER_OUT));
+        ChainDestroy(chain);
+        theKymera->chainu.output_vol_handle = NULL;
+    }
 }
 
 /*! \brief Set the UCID for a single operator */
@@ -408,7 +464,7 @@ Source Kymera_GetMicrophoneSource(microphone_number_t microphone_number, Source 
     }
     if(mic_source && source_to_synchronise_with)
     {
-        SourceSynchronise(mic_source, source_to_synchronise_with);
+        SourceSynchronise(source_to_synchronise_with, mic_source);
     }
     return mic_source;
 }

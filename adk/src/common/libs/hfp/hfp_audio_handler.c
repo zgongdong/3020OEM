@@ -757,17 +757,20 @@ NAME
 
 DESCRIPTION
     Used to inform hfp of a synchronous (audio) disconnection.
-    
+    If transferred is true the audio disconnect status 
+    hfp_audio_disconnect_transferred is sent, otherwise 
+    hfp_audio_disconnect_success is used.
 RETURNS
     void
 */
-void hfpManageSyncDisconnect(hfp_link_data* link)
+void hfpManageSyncDisconnect(hfp_link_data* link, bool transferred)
 {
     if ( link->bitfields.audio_state!=hfp_audio_disconnected )
     {
         /* Reset the audio handle */
         resetAudioParams(link);
-        sendAudioDisconnectIndToApp(link, hfp_audio_disconnect_success);
+        sendAudioDisconnectIndToApp(link, 
+            transferred ? hfp_audio_disconnect_transferred : hfp_audio_disconnect_success);
     }
 }
 
@@ -794,7 +797,7 @@ void hfpHandleSyncDisconnectInd(const CL_DM_SYNC_DISCONNECT_IND_T *ind)
             /* Inform the app */ 
             if (ind->status == hci_success)
             {
-                hfpManageSyncDisconnect(link);
+                hfpManageSyncDisconnect(link, FALSE);
                 
                 /* Update the link call state if required*/
                 hfpHandleCallAudio(link, FALSE);

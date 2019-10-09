@@ -42,7 +42,4 @@
                     state_proxy_event_type_peer_linkloss |      \
                     state_proxy_event_type_handset_linkloss)
 
-/*! Optional state proxy events to register, feature specific */
-#define appConfigStateProxyRegisteredEventsOptional() 0
-
 #endif /* EARBUD_CONFIG_H_ */

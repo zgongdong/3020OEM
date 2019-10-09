@@ -1,5 +1,5 @@
 
-/home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1907171737/kalimba/kymera/tools/KCSMaker/out/4786/stre_rom_v02_release/download/debugbin/download_aec_reference.elf:     file format elf32-littlekalimba
+/home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/tools/KCSMaker/out/4786/stre_rom_v02_release/download/debugbin/download_aec_reference.elf:     file format elf32-littlekalimba
 
 Disassembly of section .text_maxim:
 
@@ -73,7 +73,7 @@ static inline AEC_REFERENCE_OP_DATA *get_instance_data(OPERATOR_DATA *op_data)
 #ifdef CAPABILITY_DOWNLOAD_BUILD
     /* let the patches know it's not running from ROM */
     set_aec_reference_not_running_from_rom();
-84200046:	18 f0 2b e3 	call (m) $_set_aec_reference_not_running_from_rom;
+84200046:	18 f0 2d e3 	call (m) $_set_aec_reference_not_running_from_rom;
 #endif
 
     /* Setup Response to Creation Request.   Assume Failure*/
@@ -3732,8 +3732,8 @@ static inline AEC_REFERENCE_OP_DATA *get_instance_data(OPERATOR_DATA *op_data)
 84200df4:	38 04       	Null = r5 - Null;
 84200df6:	21 f0 43 ce 	if NE r1 = Null + 1;
 84200dfa:	62 f0 9d 88 	r0 = M[r4 + 628];
-84200dfe:	ff ff 16 f0 	call (m) 0x4003b9a;
-84200e02:	3d ec 
+84200dfe:	ff ff 16 f0 	call (m) 0x4003be8;
+84200e02:	2b ef 
 
     return TRUE;
 84200e04:	42 20       	r0 = Null + 1;
@@ -5950,7 +5950,7 @@ bool build_spkr_graph(AEC_REFERENCE_OP_DATA *op_extra_data)
         setup_cbops_dc_offset_compensation(spkr_graph, op_extra_data->task_frequency);
 842016d8:	b3 f0 92 88 	r1 = M[r9 + 584];
 842016dc:	52 08       	r0 = r8 + Null;
-842016de:	0c f0 25 ef 	call (m) $M.download_support_lib.setup_cbops_dc_offset_compensation.return_null;
+842016de:	0c f0 29 ef 	call (m) $_setup_cbops_dc_offset_compensation;
 842016e2:	b2 f0 9e 8e 	M[r9 + 632] = r0;
 #endif    
 #endif
@@ -12396,50 +12396,67 @@ $_create_mute_op:
     rMAC = M[$_patched_fw_version];
 8420309e:	01 f0 4b 98 	rMAC = M[Null + 0x92c];
     Null = rMAC - PATCH_BUILD_ID;
-842030a2:	10 f1 f9 3e 	Null = rMAC - 7929;
+842030a2:	00 f0 10 f2 	Null = rMAC - 8242;
+842030a6:	32 24 
     if EQ jump PATCH_ENTRY_CREATE_MUTE_OP;
-842030a6:	fc ff 10 f0 	if EQ jump (m) 0x4003b60;
-842030aa:	bb e5 
+842030a8:	fc ff 10 f0 	if EQ jump (m) 0x4003bae;
+842030ac:	87 e6 
 
-842030ac <$M.download_support_lib.create_mute_op.L_pb_mismatch>:
+842030ae <$M.download_support_lib.create_mute_op.L_pb_mismatch>:
 
 L_pb_mismatch:
     /* Stub: return false; */
     r0 = 0;
-842030ac:	02 00       	r0 = Null + Null;
+842030ae:	02 00       	r0 = Null + Null;
     rts;
-842030ae:	d8 4c       	rts;
+842030b0:	d8 4c       	rts;
 
-842030b0 <$_set_aec_reference_not_running_from_rom>:
+842030b2 <$_set_aec_reference_not_running_from_rom>:
 .CODESEGMENT PM;
 .MINIM;
 $_set_aec_reference_not_running_from_rom:
 #ifndef DISABLE_PATCH_BUILD_ID_CHECK
     // panic if not using the right patch
     r0 = 0;
-842030b0:	02 00       	r0 = Null + Null;
+842030b2:	02 00       	r0 = Null + Null;
     rMAC = M[$_patched_fw_version];
-842030b2:	01 f0 4b 98 	rMAC = M[Null + 0x92c];
+842030b4:	01 f0 4b 98 	rMAC = M[Null + 0x92c];
     Null = rMAC - PATCH_BUILD_ID;
-842030b6:	10 f1 f9 3e 	Null = rMAC - 7929;
+842030b8:	00 f0 10 f2 	Null = rMAC - 8242;
+842030bc:	32 24 
     if NZ call $error;
-842030ba:	f1 fd 4d f1 	if NE call (m) 0x2cb9c;
-842030be:	23 e7 
+842030be:	f1 fd 4d f1 	if NE call (m) 0x2cb9c;
+842030c2:	3f e6 
     // if we have patch entry for setting the downloadable flag
     // then go to that patch.
     jump PATCH_ENTRY_SET_AEC_REFERENCE_NOT_RUNNING_FROM_ROM;
 #else
    // otherwise quietly return
    rts;
-842030c0:	d8 4c       	rts;
+842030c4:	d8 4c       	rts;
 
-842030c2 <$M.download_support_lib.setup_cbops_dc_offset_compensation.return_null>:
+842030c6 <$_setup_cbops_dc_offset_compensation>:
+#ifdef DISABLE_PATCH_BUILD_ID_CHECK
+   .const $_setup_cbops_dc_offset_compensation PATCH_ENTRY_SETUP_CBOPS_DC_OFFSET_COMPENSATION;
+#else /* PATCH_ENTRY_SETUP_CBOPS_DC_OFFSET_COMPENSATION */
+$_setup_cbops_dc_offset_compensation:
+   /* Check patch version */
+    rMAC = M[$_patched_fw_version];
+842030c6:	01 f0 4b 98 	rMAC = M[Null + 0x92c];
+    Null = rMAC - PATCH_BUILD_ID;
+842030ca:	00 f0 10 f2 	Null = rMAC - 8242;
+842030ce:	32 24 
+    if EQ jump PATCH_ENTRY_SETUP_CBOPS_DC_OFFSET_COMPENSATION;
+842030d0:	fc ff 70 f0 	if EQ jump (m) 0x40068da;
+842030d4:	8b e0 
+
+842030d6 <$M.download_support_lib.setup_cbops_dc_offset_compensation.return_null>:
 #endif
 return_null:
    /* if not matching then just return NULL,
     * so no dc offset op created/added
     */
     r0 = 0;
-842030c2:	02 00       	r0 = Null + Null;
+842030d6:	02 00       	r0 = Null + Null;
     rts;
-842030c4:	d8 4c       	rts;
+842030d8:	d8 4c       	rts;

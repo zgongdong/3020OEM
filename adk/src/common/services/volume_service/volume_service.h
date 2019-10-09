@@ -20,6 +20,7 @@ The Volume service uses \ref audio_domain Audio domain.
 #include "voice_sources_list.h"
 #include "volume_types.h"
 
+
 /*! Messages sent by the volume service to interested clients. */
 enum volume_service_messages
 {

@@ -74,11 +74,11 @@ bool connectionVeto( void )
         return TRUE;
 
     /* Check Lock Status */
-    if(!connectionGetLockState())
+    if(connectionGetLockState())
         return TRUE;
     
     /* Check for outstanding scan requests */
-    if(!connectionOutstandingWriteScanEnableReqsGet() != 0)
+    if(connectionOutstandingWriteScanEnableReqsGet() != 0)
         return TRUE;
 
     if(MessagesPendingForTask(connectionGetAppTask(), NULL) != 0)

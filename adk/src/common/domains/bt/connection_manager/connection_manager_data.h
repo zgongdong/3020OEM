@@ -25,14 +25,8 @@ typedef struct
     
     bool  is_le_scan_paused;
 
-    /*! Structure grouping data for forced disconnect */
-    struct {
-        /*! Address being disconnected. Note that the disconnect API does 
-            not have address type information */
-        bdaddr acl;
-        /*! Task requesting the forced disconnect */
-        Task   requesting_task;
-    } forced_disconnect;
+    /*! Task that has requested a forced disconnect */
+    Task forced_disconnect;
 } conManagerTaskData;
 
 

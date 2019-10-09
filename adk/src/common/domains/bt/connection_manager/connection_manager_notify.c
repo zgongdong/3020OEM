@@ -17,12 +17,21 @@
 #define MAKE_CONMAN_MESSAGE(TYPE) TYPE##_T *message = PanicUnlessNew(TYPE##_T);
 /*! @} */
 
+#define CONNECTION_MANAGER_CONNECTION_TASK_LIST_INIT_CAPACITY 8
+#define CONNECTION_MANAGER_BREDR_OBSERVER_TASK_LIST_INIT_CAPACITY 1
+#define CONNECTION_MANAGER_BLE_OBSERVER_TASK_LIST_INIT_CAPACITY 1
+
 /*! List of client tasks which have registered to receive CON_MANAGER_CONNECTION_IND
     messages */
-static task_list_t connection_client_tasks;
-static task_list_t bredr_observer_tasks;
-static task_list_t ble_observer_tasks;
+static TASK_LIST_WITH_INITIAL_CAPACITY(CONNECTION_MANAGER_CONNECTION_TASK_LIST_INIT_CAPACITY) connection_client_tasks;
+static TASK_LIST_WITH_INITIAL_CAPACITY(CONNECTION_MANAGER_BREDR_OBSERVER_TASK_LIST_INIT_CAPACITY) bredr_observer_tasks;
+static TASK_LIST_WITH_INITIAL_CAPACITY(CONNECTION_MANAGER_BLE_OBSERVER_TASK_LIST_INIT_CAPACITY) ble_observer_tasks;
 static task_list_t handset_connection_observer_tasks;
+
+
+#define ConManager_GetConnectionClientTasks() (task_list_flexible_t *)(&connection_client_tasks)
+#define ConManager_GetBredrObserverTasks() (task_list_flexible_t *)(&bredr_observer_tasks)
+#define ConManager_GetBleObserverTasks() (task_list_flexible_t *)(&ble_observer_tasks)
 
 
 /******************************************************************************/
@@ -33,7 +42,7 @@ static void conManagerMsgConnectionInd(const tp_bdaddr *tpaddr, bool connected, 
     message->connected = connected;
     message->ble = (tpaddr->transport == TRANSPORT_BLE_ACL);
     message->reason = reason;
-    TaskList_MessageSend(&connection_client_tasks, CON_MANAGER_CONNECTION_IND, message);
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(ConManager_GetConnectionClientTasks()), CON_MANAGER_CONNECTION_IND, message);
 }
 
 /******************************************************************************/
@@ -41,7 +50,7 @@ static task_list_t* conManagerGetTaskListForTransport(TRANSPORT_T transport)
 {
     if(transport == TRANSPORT_BLE_ACL)
         return &ble_observer_tasks;
-    
+
     return &bredr_observer_tasks;
 }
 
@@ -49,7 +58,7 @@ static task_list_t* conManagerGetTaskListForTransport(TRANSPORT_T transport)
 static void conManagerMsgTpConnectionInd(const tp_bdaddr *tpaddr, bool incoming)
 {
     task_list_t* list = conManagerGetTaskListForTransport(tpaddr->transport);
-    
+
     MAKE_CONMAN_MESSAGE(CON_MANAGER_TP_CONNECT_IND);
     message->tpaddr = *tpaddr;
     message->incoming = incoming;
@@ -60,7 +69,7 @@ static void conManagerMsgTpConnectionInd(const tp_bdaddr *tpaddr, bool incoming)
 static void conManagerMsgTpDisconnectionInd(const tp_bdaddr *tpaddr, hci_status reason)
 {
     task_list_t* list = conManagerGetTaskListForTransport(tpaddr->transport);
-    
+
     MAKE_CONMAN_MESSAGE(CON_MANAGER_TP_DISCONNECT_IND);
     message->tpaddr = *tpaddr;
     message->reason = reason;
@@ -71,7 +80,7 @@ static void conManagerMsgTpDisconnectionInd(const tp_bdaddr *tpaddr, hci_status 
 static void conManagerMsgTpDisconnectRequestedInd(const tp_bdaddr *tpaddr)
 {
     task_list_t* list = conManagerGetTaskListForTransport(tpaddr->transport);
-    
+
     MAKE_CONMAN_MESSAGE(CON_MANAGER_TP_DISCONNECT_REQUESTED_IND);
     message->tpaddr = *tpaddr;
     TaskList_MessageSend(list, CON_MANAGER_TP_DISCONNECT_REQUESTED_IND, message);
@@ -79,7 +88,7 @@ static void conManagerMsgTpDisconnectRequestedInd(const tp_bdaddr *tpaddr)
 
 /******************************************************************************/
 static task_list_t* conManagerGetTaskListForHansetConnection(void)
-{   
+{
     return &handset_connection_observer_tasks;
 }
 
@@ -87,7 +96,7 @@ static task_list_t* conManagerGetTaskListForHansetConnection(void)
 static void conManagerMsgHandsetConnectionAllowInd(void)
 {
     task_list_t* list = conManagerGetTaskListForHansetConnection();
-    
+
     TaskList_MessageSendId(list, CON_MANAGER_HANDSET_CONNECT_ALLOW_IND);
 }
 
@@ -95,7 +104,7 @@ static void conManagerMsgHandsetConnectionAllowInd(void)
 static void conManagerMsgHandsetConnectionDisallowInd(void)
 {
     task_list_t* list = conManagerGetTaskListForHansetConnection();
-    
+
     TaskList_MessageSendId(list, CON_MANAGER_HANDSET_CONNECT_DISALLOW_IND);
 }
 
@@ -121,7 +130,7 @@ void conManagerNotifyObservers(const tp_bdaddr *tpaddr, cm_notify_message_t noti
 
         default:
             /* Unhandled notification */
-            Panic(); 
+            Panic();
             break;
     }
 }
@@ -140,7 +149,7 @@ void conManagerNotifyAllowedConnectionsObservers(con_manager_allowed_notify_t no
 
         default:
             /* Unhandled notification */
-            Panic(); 
+            Panic();
             break;
     }
 }
@@ -151,32 +160,32 @@ void conManagerNotifyInit(void)
 {
     /* create a task list to track tasks interested in connection
      * event indications */
-    TaskList_Initialise(&connection_client_tasks);
-    TaskList_Initialise(&bredr_observer_tasks);
-    TaskList_Initialise(&ble_observer_tasks);
+    TaskList_InitialiseWithCapacity(ConManager_GetConnectionClientTasks(), CONNECTION_MANAGER_CONNECTION_TASK_LIST_INIT_CAPACITY);
+    TaskList_InitialiseWithCapacity(ConManager_GetBredrObserverTasks(), CONNECTION_MANAGER_BREDR_OBSERVER_TASK_LIST_INIT_CAPACITY);
+    TaskList_InitialiseWithCapacity(ConManager_GetBleObserverTasks(), CONNECTION_MANAGER_BLE_OBSERVER_TASK_LIST_INIT_CAPACITY);
     TaskList_Initialise(&handset_connection_observer_tasks);
 }
 
 /******************************************************************************/
 void ConManagerRegisterConnectionsClient(Task client_task)
 {
-    TaskList_AddTask(&connection_client_tasks, client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ConManager_GetConnectionClientTasks()), client_task);
 }
 
 /******************************************************************************/
 void ConManagerUnregisterConnectionsClient(Task client_task)
 {
-    TaskList_RemoveTask(&connection_client_tasks, client_task);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(ConManager_GetConnectionClientTasks()), client_task);
 }
 
 /******************************************************************************/
 void ConManagerRegisterTpConnectionsObserver(cm_transport_t transport_mask, Task client_task)
 {
     if((transport_mask & cm_transport_bredr) == cm_transport_bredr)
-        TaskList_AddTask(&bredr_observer_tasks, client_task);
-    
+        TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ConManager_GetBredrObserverTasks()), client_task);
+
     if((transport_mask & cm_transport_ble) == cm_transport_ble)
-        TaskList_AddTask(&ble_observer_tasks, client_task);
+        TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(ConManager_GetBleObserverTasks()), client_task);
 }
 
 /******************************************************************************/
@@ -184,12 +193,12 @@ void ConManagerUnregisterTpConnectionsObserver(cm_transport_t transport_mask, Ta
 {
     if ((transport_mask & cm_transport_bredr) == cm_transport_bredr)
     {
-        TaskList_RemoveTask(&bredr_observer_tasks, client_task);
+        TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(ConManager_GetBredrObserverTasks()), client_task);
     }
-    
+
     if ((transport_mask & cm_transport_ble) == cm_transport_ble)
     {
-        TaskList_RemoveTask(&ble_observer_tasks, client_task);
+        TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(ConManager_GetBleObserverTasks()), client_task);
     }
 }
 

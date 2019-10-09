@@ -8,7 +8,7 @@
 
 %cpp
 # do not call framework patches associated with stream_anc_user1 and stream_anc_user2
-#NO_ANC_TUNING_PATCHES
+NO_ANC_TUNING_PATCHES
 
 #
 # Capabilities to include in the build

@@ -287,6 +287,8 @@ void peq_wrapper_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched
                     0, NULL, 0
                 };
                 thread_offload_queue_rpc(&rpc_data);
+
+                multi_chan_set_self_kick(op_data);
             }
         }
         else

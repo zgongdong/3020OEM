@@ -40,6 +40,8 @@
 
 /*! UUID for Qualcomm Handover Profile Service */
 #define UUID_HANDOVER_PROFILE_SERVICE      0x00,0x00,0xeb,0x06,0xd1,0x02,0x11,0xe1,0x9b,0x23,0x00,0x02,0x5b,0x00,0xa5,0xa5
+/*! UUID for Qualcomm Shadow Profile Service */
+#define UUID_SHADOW_PROFILE_SERVICE      0x00,0x00,0xeb,0x07,0xd1,0x02,0x11,0xe1,0x9b,0x23,0x00,0x02,0x5b,0x00,0xa5,0xa5
 
 /*! SDP Service Class Attribute UUID */
 #define UUID_SERVICE_CLASS_ID_LIST (0x0001)
@@ -208,6 +210,18 @@ uint16 appSdpGetPeerSigServiceSearchRequestSize(void);
 
 const uint8 *appSdpGetPeerSigAttributeSearchRequest(void);
 uint16 appSdpGetPeerSigAttributeSearchRequestSize(void);
+
+/* Shadow Profile */
+void appSdpSetShadowProfilePsm(uint8 *record, uint16 psm);
+
+const uint8 *appSdpGetShadowProfileServiceRecord(void);
+uint16 appSdpGetShadowProfileServiceRecordSize(void);
+
+const uint8 *appSdpGetShadowProfileServiceSearchRequest(void);
+uint16 appSdpGetShadowProfileServiceSearchRequestSize(void);
+
+const uint8 *appSdpGetShadowProfileAttributeSearchRequest(void);
+uint16 appSdpGetShadowProfileAttributeSearchRequestSize(void);
 
 #ifdef INCLUDE_DFU_PEER
 /* Upgrade Peer */

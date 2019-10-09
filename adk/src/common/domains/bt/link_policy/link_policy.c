@@ -116,13 +116,6 @@ static const lp_power_table powertable_twsplus_peer_streaming[]=
     {lp_sniff,      80,          100,             2,       4,      0}   /* Stay in sniff mode */
 };
 
-/*! Lower power table for shadowing link to peer earbud */
-static const lp_power_table powertable_peer_shadowing[]=
-{
-    /* mode,        min_interval, max_interval, attempt, timeout, duration */
-    {lp_sniff,      50,           50,           3,       2,       0}   /* Enter sniff mode*/
-};
-
 /*! \cond helper */
 #define ARRAY_AND_DIM(ARRAY) (ARRAY), ARRAY_DIM(ARRAY)
 /*! \endcond helper */
@@ -147,7 +140,6 @@ static const struct powertable_data powertables_standard[] = {
     [POWERTABLE_HFP_SCO] =                 {ARRAY_AND_DIM(powertable_hfp_sco)},
     [POWERTABLE_AVRCP] =                   {ARRAY_AND_DIM(powertable_avrcp)},
     [POWERTABLE_PEER_MODE] =               {ARRAY_AND_DIM(powertable_peer_SCO_fwd)},
-    [POWERTABLE_PEER_SHADOWING] =          {ARRAY_AND_DIM(powertable_peer_shadowing)},
 };
 
 /*! Array of structs used to store the power tables for TWS+ phones */
@@ -159,7 +151,6 @@ static const struct powertable_data powertables_twsplus[] = {
     [POWERTABLE_HFP] =                     {ARRAY_AND_DIM(powertable_hfp)},
     [POWERTABLE_HFP_SCO] =                 {ARRAY_AND_DIM(powertable_twsplus_hfp_sco)},
     [POWERTABLE_AVRCP] =                   {ARRAY_AND_DIM(powertable_avrcp)},
-    [POWERTABLE_PEER_SHADOWING] =          {ARRAY_AND_DIM(powertable_peer_shadowing)},
     [POWERTABLE_PEER_MODE] =               {ARRAY_AND_DIM(powertable_twsplus_peer_streaming)},
 };
 

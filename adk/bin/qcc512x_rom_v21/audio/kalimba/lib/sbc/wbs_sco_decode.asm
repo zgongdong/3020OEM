@@ -836,14 +836,6 @@ exit_with_output:
 
    // fallthrough
 exit:
-   Null = Null - r5;
-   if GE jump restore_stack_and_exit;
-
-   push r5;
-   call $sbcdec.silence_decoder;
-   pop r5;
-
-   restore_stack_and_exit:
    SP = SP - (NUM_LOCAL_VARS * ADDR_PER_WORD), popm <FP, rLink>;
    rts;
 

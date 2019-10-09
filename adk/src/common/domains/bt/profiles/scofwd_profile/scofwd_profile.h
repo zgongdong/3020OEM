@@ -75,6 +75,13 @@
 
 #define SFWD_STATE_LOCK_MASK    (1 << 4)
 
+/*! Defines the initial capacity of the client task list */
+#define THE_SCOFWD_CLIENT_TASK_LIST_INIT_CAPACITY 1
+/*! Defines the initial capacity of the connect request task list */
+#define THE_SCOFWD_CONNECT_REQ_TASK_LIST_INIT_CAPACITY 1
+/*! Defines the initial capacity of the disconnect request task list */
+#define THE_SCOFWD_DISCONNECT_REQ_CLIENT_TASK_LIST_INIT_CAPACITY 1
+
 /*! \brief SCO Forwarding task state machine states */
 typedef enum
 {
@@ -115,7 +122,7 @@ typedef struct
 typedef struct
 {
     TaskData        task;
-    task_list_t *   clients;
+    TASK_LIST_WITH_INITIAL_CAPACITY(THE_SCOFWD_CLIENT_TASK_LIST_INIT_CAPACITY)   clients;
     uint16          lock;
     scoFwdState     state;                      /*!< Current state of the state machine */
     uint16          local_psm;                  /*!< L2CAP PSM registered */
@@ -140,8 +147,8 @@ typedef struct
 
     bool            forward_volume;             /*!< Forwarding HFP volume changes to Secondary */
     int             sdp_retry_count;            /*!< Number of times to retry SDP search for L2CAP PSM */
-    task_list_t     connect_req_tasks;          /*!< Task of client that requested connect */
-    task_list_t     disconnect_req_tasks;       /*!< Task of client that requested disconnect */
+    TASK_LIST_WITH_INITIAL_CAPACITY(THE_SCOFWD_CONNECT_REQ_TASK_LIST_INIT_CAPACITY)     connect_req_tasks;          /*!< Task of client that requested connect */
+    TASK_LIST_WITH_INITIAL_CAPACITY(THE_SCOFWD_DISCONNECT_REQ_CLIENT_TASK_LIST_INIT_CAPACITY)     disconnect_req_tasks;       /*!< Task of client that requested disconnect */
 
 #ifdef INCLUDE_SCOFWD_TEST_MODE
     unsigned        percentage_to_drop;         /*!< Percentage of packets to not transmit */
@@ -203,6 +210,9 @@ typedef struct
 extern scoFwdTaskData sco_fwd;
 #define GetScoFwd()      (&sco_fwd)
 #define ScoFwdGetSink()  (GetScoFwd()->link_sink)
+#define ScoFwdGetClients()  (task_list_flexible_t *)(&sco_fwd.clients)
+#define ScoFwdGetConnectReqTasks()  (task_list_flexible_t *)(&sco_fwd.connect_req_tasks)
+#define ScoFwdGetDisonnectReqTasks()  (task_list_flexible_t *)(&sco_fwd.disconnect_req_tasks)
 
 
 bool ScoFwdInit(Task init_task);

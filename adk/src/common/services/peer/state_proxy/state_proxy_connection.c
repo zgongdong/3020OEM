@@ -208,3 +208,16 @@ static void stateProxy_DisconnectionUpdateState(state_proxy_data_t* data, const 
         BdaddrTpSetEmpty(&conn->device);
     }
 }
+
+state_proxy_connection_t* stateProxy_GetPeerConnection(state_proxy_data_t* data)
+{
+    state_proxy_connection_t *conn = NULL;
+    ARRAY_FOREACH(conn, data->connection)
+    {
+        if (conn->flags.is_peer)
+        {
+            return conn;
+        }
+    }
+    return NULL;
+}

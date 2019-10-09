@@ -65,7 +65,6 @@ static bool DefaultHandler(MessageId id, Message message, bool handledAlready);
 
 static UpgradeState GetState(void);
 
-static void FatalError(UpgradeHostErrorCode ec);
 static void PsSpaceError(void);
 static void CommitConfirmYes(void);
 
@@ -529,6 +528,7 @@ bool HandleDataTransfer(MessageId id, Message message)
             else if(rc == UPGRADE_HOST_DATA_TRANSFER_COMPLETE)
             {
                 /*    Calculate and validate data hash(s).   */
+                UpgradeCtxGet()->isCsrValidDoneReqReceived = FALSE;
                 UpgradeSMMoveToState(UPGRADE_STATE_DATA_HASH_CHECKING);
             }
             else
@@ -572,7 +572,6 @@ bool HandleDataHashChecking(MessageId id, Message message)
     switch(id)
     {
     case UPGRADE_INTERNAL_CONTINUE:
-        ctx->isCsrValidDoneReqReceived = FALSE;
         ctx->vctx = ImageUpgradeHashInitialise(SHA256_ALGORITHM);
 
         if (ctx->vctx == NULL)
@@ -605,6 +604,7 @@ bool HandleDataHashChecking(MessageId id, Message message)
         if(UpgradePartitionValidationValidate() == UPGRADE_PARTITION_VALIDATION_IN_PROGRESS)
         {
             UpgradeHostIFDataSendIsCsrValidDoneCfm(VALIDATAION_BACKOFF_TIME_MS);
+            ctx->isCsrValidDoneReqReceived = TRUE;
         }
         else
         {
@@ -675,8 +675,12 @@ bool HandleValidating(MessageId id, Message message)
         break;
 
     case UPGRADE_HOST_IS_CSR_VALID_DONE_REQ:
-        UpgradeCtxGet()->funcs->SendIsCsrValidDoneCfm(VALIDATAION_BACKOFF_TIME_MS);
-        break;
+       {
+            UpgradeCtx *ctx = UpgradeCtxGet();
+            UpgradeCtxGet()->funcs->SendIsCsrValidDoneCfm(VALIDATAION_BACKOFF_TIME_MS);
+            ctx->isCsrValidDoneReqReceived = TRUE;
+            break;
+       }
 
     default:
         return FALSE;
@@ -706,8 +710,12 @@ bool HandleWaitForValidate(MessageId id, Message message)
         break;
 
     case UPGRADE_HOST_IS_CSR_VALID_DONE_REQ:
-        UpgradeCtxGet()->funcs->SendIsCsrValidDoneCfm(VALIDATAION_BACKOFF_TIME_MS);
-        break;
+        {
+            UpgradeCtx *ctx = UpgradeCtxGet();
+            UpgradeCtxGet()->funcs->SendIsCsrValidDoneCfm(VALIDATAION_BACKOFF_TIME_MS);
+            ctx->isCsrValidDoneReqReceived = TRUE;
+            break;
+        }
 
     default:
         return FALSE;

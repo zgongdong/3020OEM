@@ -17,10 +17,14 @@
 #include <task_list.h>
 
 #include "domain_message.h"
+#include "gatt_connect.h"
 
 
 /*! Minor version number used for the GAIA interface */
 #define GAIA_API_MINOR_VERSION 5
+
+/*! Defines the gaia client task list initial capacity*/
+#define GAIA_CLIENT_TASK_LIST_INIT_CAPACITY 1
 
 /*! Messages that are sent by the gaia_handler module */
 typedef enum {
@@ -32,6 +36,14 @@ typedef enum {
     APP_GAIA_UPGRADE_ACTIVITY,                  /*!< The GAIA module has seen some upgrade activity */
 } av_headet_gaia_messages;
 
+/*! Data used by the GAIA module */
+typedef struct
+{
+        /*! Function to send response once GAIA has tidied up due to a disconnect. */
+    gatt_connect_disconnect_req_response response;
+        /*! The cid of the connection that is being disconnected. */
+    uint16 cid;
+} gaiaDisconnectData;
 
 /*! Data used by the GAIA module */
 typedef struct
@@ -43,7 +55,9 @@ typedef struct
         /*! Whether a GAIA connection is allowed, or will be rejected immediately */
     bool            connections_allowed;
         /*! List of tasks to notify of GAIA activity. */
-    task_list_t    *client_list;
+    TASK_LIST_WITH_INITIAL_CAPACITY(GAIA_CLIENT_TASK_LIST_INIT_CAPACITY) client_list;
+        /*! Data associated with a disconnection. */
+    gaiaDisconnectData disconnect;
 
 } gaiaTaskData;
 
@@ -63,6 +77,9 @@ extern gaiaTaskData    app_gaia;
 #define GaiaSetTransport(_transport)  do { \
                                             GaiaGetTaskData()->transport = (_transport);\
                                            } while(0)
+
+/*! Get the client list for the applications Gaia task */
+#define GaiaGetClientList()            (task_list_flexible_t *)(&app_gaia.client_list)
 
 /*! Initialise the GAIA Module */
 extern bool appGaiaInit(Task init_task);

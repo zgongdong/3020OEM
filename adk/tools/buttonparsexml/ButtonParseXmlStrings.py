@@ -236,10 +236,12 @@ xmlExample = """<?xml version="1.0" encoding="utf-8"?>
       enter        - send a message when the PIO state changes to match
       release      - send a message when the PIO state changes to not match
       held         - send a message when the PIO has been in the state for the specified time period
-      held_release - start a timer when the PIO enters the specified state.
+      held_release   - start a timer when the PIO enters the specified state.
                      if the PIO changes state AFTER the timer expires then send the message when the PIO 
                      state changes back.
-      double       - send a message when the PIO state changes to match, twice within a specified time period 
+      single_click - start a timer when the PIO start changes to not match
+                     if a second press does not cancel the timer, send event on timeout
+      double_click - send a message when the PIO state changes to not match, twice within a specified time period 
                       (double button tap).
 
   With the 'enter' and 'held' actions a 'repeat' modifier can be used so that the message is repeatedly sent 
@@ -310,8 +312,8 @@ xmlExample = """<?xml version="1.0" encoding="utf-8"?>
   </message>
   
   <message>
-    <messageName>PLAY_STOP_DOUBLE</messageName>
-    <buttonEvent>DOUBLE</buttonEvent>
+    <messageName>PLAY_STOP_DOUBLE_CLICK</messageName>
+    <buttonEvent>DOUBLE_CLICK</buttonEvent>
     <activePinFriendlyName>PLAY_STOP</activePinFriendlyName>
     <timeout_ms>1000</timeout_ms>
   </message>

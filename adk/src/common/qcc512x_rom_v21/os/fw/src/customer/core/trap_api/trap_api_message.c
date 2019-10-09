@@ -19,7 +19,10 @@
 #define IO_DEFS_MODULE_K32_DEBUG
 #define IO_DEFS_MODULE_K32_MISC
 #include "io/io.h"
- 
+
+
+/* Define ourselves a marker to invalidate a task in a task list */
+#define INVALIDATED_TASK    (1)
 
 /*
  * To correctly reproduce the API, which in practice takes pointers to uint16
@@ -119,7 +122,7 @@ COMPILE_TIME_ASSERT(sizeof(void *) == sizeof(uint32), Pointer_not_32_bits);
 
 static void vm_message_forget(Task task);
 static uint32 vm_message_next(void);
-static void vm_message_send_later(Task task, uint16 id, void *message,
+static void vm_message_send_later(Task *task, bool multicast, uint16 id, void *message,
                            uint32 delay, const void * c,
                            CONDITION_WIDTH c_width);
 static void vm_event_trigger(void);
@@ -184,14 +187,38 @@ static uint32 vm_message_next(void)
         {
             /* Unlink the message from the queue */
             *p = a->next;
-            if(a->task && a->task->handler)
+            /* Deliver the message to the handler(s) */
+            if (!a->multicast)
             {
+                if(a->t.task && a->t.task->handler)
+                {
+                    trap_api_message_log_now(TRAP_API_LOG_DELIVER, a, now);
+                    VALIDATE_FN_PTR(a->t.task->handler);
+                    a->t.task->handler(a->t.task, a->id, a->message);
+                }
+            }
+            else
+            {
+                Task *tptr = a->t.tlist;
+
                 trap_api_message_log_now(TRAP_API_LOG_DELIVER, a, now);
-                VALIDATE_FN_PTR(a->task->handler);
-                a->task->handler(a->task, a->id, a->message);
+                /* Loop through the tasks in the list, despatching to all */
+                while (*tptr != NULL)
+                {
+                    if ((*tptr != (Task)INVALIDATED_TASK) && (*tptr)->handler)
+                    {
+                        VALIDATE_FN_PTR((*tptr)->handler);
+                        (*tptr)->handler(*tptr, a->id, a->message);
+                    }
+                    tptr++;
+                }
             }
             trap_api_message_log(TRAP_API_LOG_FREE, a);
             MessageFree(a->id, a->message);
+            if (a->multicast)
+            {
+                pfree(a->t.tlist);
+            }
             pfree(a);
             return 0;
         }
@@ -212,7 +239,13 @@ static uint32 vm_message_next(void)
  */
 static bool similar(const AppMessage *a, const AppMessage *b)
 {
-    if(a->task == b->task && a->id == b->id)
+    /* This is used only for P0->P1 messages, so we can ignore multicast */
+    if(a->multicast)
+    {
+        return FALSE;
+    }
+
+    if(a->t.task == b->t.task && a->id == b->id)
     {
         switch(a->id)
         {
@@ -249,7 +282,13 @@ static bool similar(const AppMessage *a, const AppMessage *b)
  */
 static bool replace(AppMessage *a, const AppMessage *b)
 {
-    if(a->task != b->task)
+    /* This is used only for P0->P1 messages, so we can ignore multicast */
+    if(a->multicast)
+    {
+        return FALSE;
+    }
+
+    if(a->t.task != b->t.task)
     {
         return FALSE;
     }
@@ -336,7 +375,9 @@ static bool already(Task task, uint16 id, uint16 *message)
 {
     AppMessage *p;
     AppMessage temp;
-    temp.task    = task;
+
+    temp.multicast = 0;
+    temp.t.task  = task;
     temp.id      = id;
     temp.message = message;
     for(p = vm_message_queue; p != 0; p = p->next)
@@ -379,7 +420,9 @@ static bool insert(AppMessage *a)
  * @param message The message contents
  */
 static void send_message(Task task, uint16 id, void *message)
-{ vm_message_send_later(task, id, message, D_IMMEDIATE, NULL, CONDITION_WIDTH_UNUSED); }
+{
+    vm_message_send_later(&task, FALSE, id, message, D_IMMEDIATE, NULL, CONDITION_WIDTH_UNUSED);
+}
 
 
 /**
@@ -391,7 +434,8 @@ static void send_message(Task task, uint16 id, void *message)
 
 /**
  * Send a message after a time delay
- * @param task Task to deliver the message to
+ * @param task Pointer to task(s) to deliver the message to
+ * @param multicast Whether 'task' is a pointer to a list or not
  * @param id ID of the message
  * @param message The message contents
  * @param delay Number of milliseconds to wait before delivering the message
@@ -400,15 +444,39 @@ static void send_message(Task task, uint16 id, void *message)
  * @param c_width Whether to test the condition as a 16 or 32-bit variable
  * or @c CONDITION_WIDTH_UNUSED if @c c is NULL.
  */
-static void vm_message_send_later(Task task, uint16 id, void *message,
+static void vm_message_send_later(Task *task, bool multicast, uint16 id, void *message,
                            uint32 delay, const void * c,
                            CONDITION_WIDTH c_width)
 {
     AppMessage *a;
     uint32 timenow = get_milli_time();
+    Task *tptr;
+    uint8 lc = 1; /* Pre-account for the null entry */
 
-    a                 = pnew(AppMessage);
-    a->task           = task;
+    /* If no recipient(s), then we need not queue it */
+    if (task == NULL || *task == NULL) return;
+
+    a = pnew(AppMessage);
+    if (multicast)
+    {
+        /* We need to walk the list we've been given to copy it */
+        tptr = task;
+
+        while (*tptr != NULL)
+        {   
+            tptr++;
+            lc +=1;
+        }
+
+        a->t.tlist    = pmalloc(sizeof(Task)*lc);
+        memcpy(a->t.tlist, task, sizeof(Task)*lc);
+        a->multicast  = 1;
+    }
+    else
+    {
+        a->t.task     = *task;
+        a->multicast  = 0;
+    }
     a->id             = id;
     a->message        = message;
     a->condition_addr = c;
@@ -424,6 +492,10 @@ static void vm_message_send_later(Task task, uint16 id, void *message,
     else
     {
         handle_message_free(a->id, a->message);
+        if (multicast)
+        {
+            pfree(a->t.tlist);
+        }
         pfree(a);
     }
 }
@@ -561,7 +633,12 @@ void trap_api_sched_msg_handler(void **ppriv)
 
 void MessageSendLater(Task task, MessageId id, void *message, uint32 delay)
 {
-    vm_message_send_later(task, id, message, delay, NULL, CONDITION_WIDTH_UNUSED);
+    vm_message_send_later(&task, FALSE, id, message, delay, NULL, CONDITION_WIDTH_UNUSED);
+}
+
+void MessageSendMulticastLater(Task *tasklist, MessageId id, void *message, uint32 delay)
+{
+    vm_message_send_later(tasklist, TRUE, id, message, delay, NULL, CONDITION_WIDTH_UNUSED);
 }
 
 
@@ -610,13 +687,33 @@ static uint32 get_message_condition_value(const void *c,
  */
 void MessageSendConditionally(Task t, MessageId id, Message m, const uint16 * c)
 {
-    void * msg;
+    void *msg;
     /* Cast away the const from the message. The messages sent through this
      * interface will not be modified but can't be passed through as const
      * because they have to be queued alongside ones that are not const.
      */
     msg = (uint32 *)((uint32) m);
-    vm_message_send_later(t, id, msg, D_IMMEDIATE, c, CONDITION_WIDTH_16BIT);
+    vm_message_send_later(&t, FALSE, id, msg, D_IMMEDIATE, c, CONDITION_WIDTH_16BIT);
+}
+
+/*!
+ *  \brief Send a message to be be delivered when the corresponding uint16 is zero.
+ *  \param tlist Pointer to the tasks to deliver the message to.
+ *  \param id The message identifier.
+ *  \param m The message data.
+ *  \param c The condition that must be zero for the message to be delivered.
+ *
+ * \ingroup trapset_core
+ */
+void MessageSendMulticastConditionally(Task *tlist, MessageId id, Message m, const uint16 * c)
+{
+    void *msg;
+    /* Cast away the const from the message. The messages sent through this
+     * interface will not be modified but can't be passed through as const
+     * because they have to be queued alongside ones that are not const.
+     */
+    msg = (uint32 *)((uint32) m);
+    vm_message_send_later(tlist, TRUE, id, msg, D_IMMEDIATE, c, CONDITION_WIDTH_16BIT);
 }
 
 /*!
@@ -630,13 +727,33 @@ void MessageSendConditionally(Task t, MessageId id, Message m, const uint16 * c)
 void MessageSendConditionallyOnTask(Task t, MessageId id, Message m,
                                     const Task *c)
 {
-    void * msg;
+    void *msg;
     /* Cast away the const from the message. The messages sent through this
      * interface will not be modified but can't be passed through as const
      * because they have to be queued alongside ones that are not const.
      */
     msg = (uint32 *)((uint32) m);
-    vm_message_send_later(t, id, msg, D_IMMEDIATE, c, CONDITION_WIDTH_32BIT);
+    vm_message_send_later(&t, FALSE, id, msg, D_IMMEDIATE, c, CONDITION_WIDTH_32BIT);
+}
+
+/*!
+  @brief Send a message to be be delivered when the corresponding Task is zero.
+
+  @param tlist Pointer to the tasks to deliver the message to.
+  @param id The message identifier.
+  @param m The message data.
+  @param c The task that must be zero for the message to be delivered.
+*/
+void MessageSendMulticastConditionallyOnTask(Task *tlist, MessageId id, Message m,
+                                    const Task *c)
+{
+    void *msg;
+    /* Cast away the const from the message. The messages sent through this
+     * interface will not be modified but can't be passed through as const
+     * because they have to be queued alongside ones that are not const.
+     */
+    msg = (uint32 *)((uint32) m);
+    vm_message_send_later(tlist, TRUE, id, msg, D_IMMEDIATE, c, CONDITION_WIDTH_32BIT);
 }
 
 void MessageFree(MessageId id, Message data)
@@ -759,8 +876,6 @@ static void trap_api_remove_sink_source_hdlr_entries_for_task(Task task)
         }
     }
 }
-
-
 #endif /* TRAPSET_STREAM || TRAPSET_OPERATOR */
 
 /*
@@ -773,14 +888,67 @@ bool MessageCancelFirst(Task task, uint16 id)
     while(*p)
     {
         struct AppMessage *a = *p;
-        if(a->task == task && a->id == id)
+        if (a->id == id)
         {
-            *p = a->next;
-            vm_debug_message_cancel(a);
-            trap_api_message_log(TRAP_API_LOG_CANCEL, a);
-            handle_message_free(a->id, a->message);
-            pfree(a);
-            return TRUE;
+            bool cancel = FALSE;
+
+            if (a->multicast)
+            {
+                /* Iterate over the task list to see if we want to remove it. */
+                Task *tptr = a->t.tlist;
+                bool valid_tasks = FALSE;
+
+                /* Message task list mustn't be empty since it's
+                 * checked for emptiness on message add, cancel/free
+                 * and task flush.
+                 */
+                assert(*tptr != NULL);
+
+                /* Loop through the tasks in the list to find one to cancel */
+                while (*tptr != NULL)
+                {
+                    if (*tptr == task)
+                    {
+                        *tptr = (Task)INVALIDATED_TASK;
+                    }
+
+                    if (*tptr != (Task)INVALIDATED_TASK)
+                    {
+                        valid_tasks = TRUE;
+                    }
+                    tptr++;
+                }
+
+                /* If no valid task is remaining in the task list,
+                 * cancel the message.
+                 */
+                if (!valid_tasks)
+                {
+                    cancel = TRUE;
+                }
+            }
+            else
+            {
+                if (a->t.task == task)
+                {
+                    cancel = TRUE;
+                }
+            }
+
+            /* Check if we want to cancel/free the message */
+            if (cancel)
+            {
+                *p = a->next;
+                vm_debug_message_cancel(a);
+                trap_api_message_log(TRAP_API_LOG_CANCEL, a);
+                handle_message_free(a->id, a->message);
+                if (a->multicast)
+                {
+                    pfree(a->t.tlist);
+                }
+                pfree(a);
+                return TRUE;
+            }
         }
         p = &(*p)->next;
     }
@@ -804,20 +972,72 @@ uint16 MessageFlushTask(Task task)
 {
     uint16 count = 0;
     struct AppMessage **p = &vm_message_queue;
+    bool flush = FALSE;
 
     vm_message_forget(task);
 
     while(*p)
     {
         struct AppMessage *a = *p;
-        if(a->task == task)
+
+        if (a->multicast)
+        {
+            /* Iterate over the task list for this task */
+            Task *tptr = a->t.tlist;
+            bool valid_tasks = FALSE;
+
+            /* Message task list mustn't be empty since it's
+             * checked for emptiness on message add, cancel/free
+             * and task flush.
+             */
+            assert(*tptr != NULL);
+
+            /* Loop through the tasks in the list, deleting ours */
+            while (*tptr != NULL)
+            {
+                if (*tptr == task)
+                {
+                    *tptr = (Task)INVALIDATED_TASK;
+                    ++count;
+                }
+
+                if (*tptr != (Task)INVALIDATED_TASK)
+                {
+                    valid_tasks = TRUE;
+                }
+                tptr++;
+            }
+
+            /* If no valid task is remaining in the task list,
+             * flush the message.
+             */
+            if (!valid_tasks)
+            {
+                flush = TRUE;
+            }
+        }
+        else
+        {
+            if (a->t.task == task)
+            {
+                flush = TRUE;
+                ++count;
+            }
+        }
+
+        /* Check if we want to flush the message */
+        if (flush)
         {
             *p = a->next;
             vm_debug_message_cancel(a);
             trap_api_message_log(TRAP_API_LOG_CANCEL, a);
             handle_message_free(a->id, a->message);
+            if (a->multicast)
+            {
+                pfree(a->t.tlist);
+            }
             pfree(a);
-            ++count;
+            flush = FALSE;
         }
         else
         {
@@ -1057,14 +1277,17 @@ uint16 MessagesPendingForTask(Task task, int32 *first_due)
     uint16 count = 0;
     for (p = vm_message_queue; p; p = p->next)
     {
-        if (p->task == task)
+        if (!p->multicast) /* Ignore multicast messages */
         {
-            if (!count && first_due)
+            if (p->t.task == task)
             {
-                uint32 now  = get_milli_time();
-                *first_due = VM_DIFF(p->due, now);
+                if (!count && first_due)
+                {
+                    uint32 now  = get_milli_time();
+                    *first_due = VM_DIFF(p->due, now);
+                }
+                ++count;
             }
-            ++count;
         }
     }
     return count;
@@ -1075,14 +1298,17 @@ bool MessagePendingFirst(Task task, MessageId id, int32 *first_due)
     AppMessage *p;
     for (p = vm_message_queue; p; p = p->next)
     {
-        if (p->task == task && p->id == id)
+        if (!p->multicast) /* Ignore multicast messages */
         {
-            if (first_due)
+            if (p->t.task == task && p->id == id)
             {
-                uint32 now  = get_milli_time();
-                *first_due = VM_DIFF(p->due, now);
+                if (first_due)
+                {
+                    uint32 now  = get_milli_time();
+                    *first_due = VM_DIFF(p->due, now);
+                }
+                return TRUE;
             }
-            return TRUE;
         }
     }
     return FALSE;

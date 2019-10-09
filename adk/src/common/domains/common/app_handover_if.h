@@ -162,6 +162,10 @@ _Pragma("datasection handover_interface_registrations") \
 const registered_handover_interface_t handover_interface_##NAME = \
     {TYPELIST, VETO, MARSHAL, UNMARSHAL, COMMIT}
 
+/*! Macro to register the handover interface with no marshalling data */
+#define REGISTER_HANDOVER_INTERFACE_NO_MARSHALLING(NAME, VETO, COMMIT) \
+REGISTER_HANDOVER_INTERFACE(NAME, NULL, VETO, NULL, NULL, COMMIT)
+
 /*! Linker defined consts referencing the location of the section containing
     the handover interface registrations.
 */

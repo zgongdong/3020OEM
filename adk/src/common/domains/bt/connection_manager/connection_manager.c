@@ -318,15 +318,11 @@ static bool conManagerFindHandsetTwsVersion(tp_bdaddr* tpaddr)
 
 static void conManagerCheckForForcedDisconnect(tp_bdaddr *tpaddr)
 {
-    if (con_manager.forced_disconnect.requesting_task)
+    if (con_manager.forced_disconnect)
     {
-        DEBUG_LOG("conManagerCheckForForcedDisconnect x%06x", tpaddr->taddr.addr.lap);
+        DEBUG_LOG("conManagerCheckForForcedDisconnect x%06x now dropped", tpaddr->taddr.addr.lap);
 
-        if (BdaddrIsSame(&tpaddr->taddr.addr, 
-                         &con_manager.forced_disconnect.acl))
-        {
-            ConManagerTerminateAllAcls(con_manager.forced_disconnect.requesting_task);
-        }
+        ConManagerTerminateAllAcls(con_manager.forced_disconnect);
     }
 }
 
@@ -376,10 +372,6 @@ static void ConManagerHandleClDmAclOpenedIndication(const CL_DM_ACL_OPENED_IND_T
                                       hci_success);
             conManagerSendInternalMsgUpdateQos(connection);
         }
-    }
-    else if (ind->status == hci_error_max_nr_of_acl)
-    {
-        DEBUG_LOG("ConManagerHandleClDmAclOpenedIndication, status %d, waiting");
     }
     else
     {
@@ -622,6 +614,13 @@ bool ConManagerIsConnected(const bdaddr *addr)
 }
 
 /******************************************************************************/
+bool ConManagerIsTpConnected(const tp_bdaddr *tpaddr)
+{
+    const cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(tpaddr);
+    return (conManagerGetConnectionState(connection) == ACL_CONNECTED);
+}
+
+/******************************************************************************/
 bool ConManagerIsAclLocal(const bdaddr *addr)
 {
     tp_bdaddr tpaddr;
@@ -711,22 +710,21 @@ bool ConManagerAnyTpLinkConnected(cm_transport_t transport_mask)
 /******************************************************************************/
 void ConManagerTerminateAllAcls(Task requester)
 {
-    cm_connection_t *connection;
-
     DEBUG_LOG("ConManagerTerminateAllAcls");
 
-    connection = ConManagerFindFirstActiveLink();
-    if (!connection)
+    PanicFalse(!con_manager.forced_disconnect || (con_manager.forced_disconnect  == requester));
+
+    if (!ConManagerFindFirstActiveLink())
     {
-        con_manager.forced_disconnect.requesting_task = NULL;
+        con_manager.forced_disconnect = NULL;
         MessageSend(requester, CON_MANAGER_CLOSE_ALL_CFM, NULL);
         return;
     }
 
-    const tp_bdaddr *addr = ConManagerGetConnectionTpAddr(connection);
+    /* Address is ignored, but can't pass a NULL pointer */
+    bdaddr addr = {0};
 
-    con_manager.forced_disconnect.requesting_task = requester;
-    con_manager.forced_disconnect.acl = addr->taddr.addr;
-    ConnectionDmAclDetach(&addr->taddr.addr, hci_error_unspecified, FALSE);
+    con_manager.forced_disconnect = requester;
+    ConnectionDmAclDetach(&addr, hci_error_unspecified, TRUE);
 }
 

@@ -63,6 +63,9 @@ void TwsTopology_ProcedureDisconnectHandsetStart(Task result_task,
 {
     twsTopProcDisconnectHandsetTaskData* td = TwsTopProcDisconnectHandsetGetTaskData();
     bdaddr handset_addr;
+    bdaddr le_handset_addr;
+    bool bredr_handset = FALSE;
+    bool le_handset = HandsetService_GetConnectedLeHandsetAddress(&le_handset_addr);
 
     UNUSED(result_task);
     UNUSED(goal_data);
@@ -72,7 +75,8 @@ void TwsTopology_ProcedureDisconnectHandsetStart(Task result_task,
     TwsTopProcDisconnectHandsetGetTaskData()->complete_fn = proc_complete_fn;
 
     appDeviceGetHandsetBdAddr(&handset_addr);
-    if (!ConManagerIsConnected(&handset_addr))
+    bredr_handset = ConManagerIsConnected(&handset_addr);
+    if (!bredr_handset && !le_handset)
     {
         proc_start_cfm_fn(tws_topology_procedure_disconnect_handset, proc_result_success);
         TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn,
@@ -81,11 +85,18 @@ void TwsTopology_ProcedureDisconnectHandsetStart(Task result_task,
     }
     else
     {
-        /* Record the currently connected profiles in case the disconnect is cancelled. */
-        device_t handset_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_bdaddr, &handset_addr, sizeof(bdaddr));
-        td->profiles_status = BtDevice_GetConnectedProfiles(handset_device);
+        if (bredr_handset)
+        {
+            /* Record the currently connected profiles in case the disconnect is cancelled. */
+            device_t handset_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_bdaddr, &handset_addr, sizeof(bdaddr));
+            td->profiles_status = BtDevice_GetConnectedProfiles(handset_device);
 
-        HandsetService_DisconnectRequest(TwsTopProcDisconnectHandsetGetTask(), &handset_addr);
+            HandsetService_DisconnectRequest(TwsTopProcDisconnectHandsetGetTask(), &handset_addr);
+        }
+        else
+        {
+            HandsetService_DisconnectRequest(TwsTopProcDisconnectHandsetGetTask(), &le_handset_addr);
+        }
 
         /* start the procedure */
         td->complete_fn = proc_complete_fn;
@@ -115,11 +126,20 @@ static void twsTopology_ProcDisconnectHandsetHandleHandsetConnectCfm(const HANDS
 static void twsTopology_ProcDisconnectHandsetHandleHandsetDisconnectCfm(const HANDSET_SERVICE_DISCONNECT_CFM_T *cfm)
 {
     twsTopProcDisconnectHandsetTaskData* td = TwsTopProcDisconnectHandsetGetTaskData();
+    bdaddr le_handset_addr;
+    bool le_handset = HandsetService_GetConnectedLeHandsetAddress(&le_handset_addr);
 
     DEBUG_LOG("twsTopology_ProcDisconnectHandsetHandleHandsetDisconnectCfm status %d", cfm->status);
 
-    twsTopology_ProcDisconnectHandsetResetProc();
-    td->complete_fn(tws_topology_procedure_disconnect_handset, proc_result_success);
+    if (le_handset)
+    {
+        HandsetService_DisconnectRequest(TwsTopProcDisconnectHandsetGetTask(), &le_handset_addr);
+    }
+    else
+    {
+        twsTopology_ProcDisconnectHandsetResetProc();
+        td->complete_fn(tws_topology_procedure_disconnect_handset, proc_result_success);
+    }
 }
 
 static void twsTopology_ProcDisconnectHandsetHandleMessage(Task task, MessageId id, Message message)

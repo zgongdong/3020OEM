@@ -52,6 +52,7 @@ typedef struct
 {
     ble_ad_type ad_type;
     uint16 interval;
+    tp_bdaddr* find_tpaddr;
     uint16 size_pattern;
     uint8* pattern;
 } le_advertising_report_filter_t;

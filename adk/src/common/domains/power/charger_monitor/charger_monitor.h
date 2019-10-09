@@ -17,6 +17,9 @@
 #include "earbud_config.h"
 #include "domain_message.h"
 
+/*! Defines the charger monitor client tasks list initial capacity */
+#define CHARGER_MONITOR_CLIENT_TASKS_LIST_INIT_CAPACITY 5
+
 /* Check whether charger detecion is currently happening */
 #define appChargerDetectionIsPending() ( (UsbAttachedStatus() == UNKNOWN_STATUS)? TRUE:FALSE )
 /*! \brief Messages which may be sent by the charger module. */
@@ -59,7 +62,7 @@ typedef struct
     /*! Charger task */
     TaskData         task;
     /*! List of client tasks */
-    task_list_t     *client_tasks;
+    TASK_LIST_WITH_INITIAL_CAPACITY(CHARGER_MONITOR_CLIENT_TASKS_LIST_INIT_CAPACITY) client_tasks;
     /*! Set when charger is charging */
     unsigned         is_charging:1;
     /*! Set when charger is connected */

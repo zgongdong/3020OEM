@@ -66,6 +66,7 @@ $(document).ready(function(){initNavTree('structpeer_find_role_task_data.html','
 <div id="doc-content">
 <div class="header">
   <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
 <div class="title">peerFindRoleTaskData Struct Reference</div>  </div>
@@ -74,6 +75,11 @@ $(document).ready(function(){initNavTree('structpeer_find_role_task_data.html','
 
 <p><code>#include &lt;peer_find_role_private.h&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a8b3617eee0d4a7777bb3a015c73ed45f"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpeer_find_role_task_data.html#a8b3617eee0d4a7777bb3a015c73ed45f">TASK_LIST_WITH_INITIAL_CAPACITY</a> (PEER_FIND_ROLE_REGISTERED_TASKS_LIST_INIT_CAPACITY) registered_tasks</td></tr>
+<tr class="separator:a8b3617eee0d4a7777bb3a015c73ed45f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
 <tr class="memitem:a088d0507756ffd5f0e684d2457bd9cb1"><td class="memItemLeft" align="right" valign="top">TaskData&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpeer_find_role_task_data.html#a088d0507756ffd5f0e684d2457bd9cb1">_task</a></td></tr>
@@ -96,8 +102,6 @@ Data Fields</h2></td></tr>
 <tr class="separator:a6ab8573c04d814d0cbbd44239cea8e0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a89c3317f75fdbffaa6ee0ad9ab5f59d5"><td class="memItemLeft" align="right" valign="top">bdaddr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpeer_find_role_task_data.html#a89c3317f75fdbffaa6ee0ad9ab5f59d5">primary_addr</a></td></tr>
 <tr class="separator:a89c3317f75fdbffaa6ee0ad9ab5f59d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa04e3403abf6dff8a7fe7e9945b53716"><td class="memItemLeft" align="right" valign="top">task_list_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpeer_find_role_task_data.html#aa04e3403abf6dff8a7fe7e9945b53716">registered_tasks</a></td></tr>
-<tr class="separator:aa04e3403abf6dff8a7fe7e9945b53716"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af616344b20f78729e5e4d3fdd61063c2"><td class="memItemLeft" align="right" valign="top">GattRoleSelectionServiceControlOpCode&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpeer_find_role_task_data.html#af616344b20f78729e5e4d3fdd61063c2">remote_role</a></td></tr>
 <tr class="separator:af616344b20f78729e5e4d3fdd61063c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac6c6ff9f0f2db1f6b24d195b5dc8e1c6"><td class="memItemLeft" align="right" valign="top">GATT_ROLE_SELECTION_CLIENT&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpeer_find_role_task_data.html#ac6c6ff9f0f2db1f6b24d195b5dc8e1c6">role_selection_client</a></td></tr>
@@ -121,7 +125,25 @@ Data Fields</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Structure to hold information used by the peer find role service </p>
-</div><h2 class="groupheader">Field Documentation</h2>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="a8b3617eee0d4a7777bb3a015c73ed45f"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">TASK_LIST_WITH_INITIAL_CAPACITY </td>
+          <td>(</td>
+          <td class="paramtype">PEER_FIND_ROLE_REGISTERED_TASKS_LIST_INIT_CAPACITY&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>List of tasks to send messages to </p>
+
+</div>
+</div>
+<h2 class="groupheader">Field Documentation</h2>
 <a class="anchor" id="a088d0507756ffd5f0e684d2457bd9cb1"></a>
 <div class="memitem">
 <div class="memproto">
@@ -251,19 +273,6 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>address of peer device  </p>
-
-</div>
-</div>
-<a class="anchor" id="aa04e3403abf6dff8a7fe7e9945b53716"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">task_list_t* registered_tasks</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>List of tasks to send messages to </p>
 
 </div>
 </div>

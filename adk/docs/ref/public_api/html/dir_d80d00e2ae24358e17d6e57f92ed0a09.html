@@ -95,6 +95,9 @@ Files</h2></td></tr>
 <tr class="memitem:tws__topology__goals_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_goals.h</b></td></tr>
 <tr class="memdesc:tws__topology__goals_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to TWS Topology goal handling. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__handover_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_handover.c</b></td></tr>
+<tr class="memdesc:tws__topology__handover_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">TWS Topology Handover interfaces. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__init_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_init.c</b></td></tr>
 <tr class="memdesc:tws__topology__init_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialisation function for the TWS topology component. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -103,6 +106,12 @@ Files</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__pair__peer_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_pair_peer.h</b></td></tr>
 <tr class="memdesc:tws__topology__pair__peer_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header file for peer pairing within the TWS topology service. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__peer__sig_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_peer_sig.c</b></td></tr>
+<tr class="memdesc:tws__topology__peer__sig_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Implementation of TWS Topology use of peer signalling marshalled message channel. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__peer__sig_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_peer_sig.h</b></td></tr>
+<tr class="memdesc:tws__topology__peer__sig_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to TWS Topology use of peer signalling marshalled message channel. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__primary__rules_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_primary_rules.c</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -130,6 +139,12 @@ Files</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__clean__connections_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_clean_connections.h</b></td></tr>
 <tr class="memdesc:tws__topology__procedure__clean__connections_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure to ask connection manager to clean up any connections that may still exist. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__command__role__switch_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_command_role_switch.c</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__command__role__switch_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure for a Primary to command the Secondary becomes Primary. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__command__role__switch_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_command_role_switch.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__command__role__switch_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to procedure to send command to Secondary to switch role. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__connect__handset_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_connect_handset.c</b></td></tr>
 <tr class="memdesc:tws__topology__procedure__connect__handset_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure for Primary to connect BR/EDR ACL to Handset. <br /></td></tr>
@@ -178,6 +193,19 @@ Files</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__find__role_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_find_role.h</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__handover_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_handover.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__handover_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generic interface to TWS Topology procedure handling for handover. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__handover__entering__case_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_handover_entering_case.c</b></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__handover__entering__case_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_handover_entering_case.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__handover__entering__case_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handover entering case script. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__handover__entering__case__timeout_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_handover_entering_case_timeout.c</b></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__handover__entering__case__timeout_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_handover_entering_case_timeout.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__handover__entering__case__timeout_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handover entering case timeout script. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__no__role__find__role_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_no_role_find_role.c</b></td></tr>
 <tr class="memdesc:tws__topology__procedure__no__role__find__role_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure to start finding a role when not in the Primary role. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -213,6 +241,12 @@ Files</h2></td></tr>
 <tr class="memitem:tws__topology__procedure__pri__connectable__peer_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_pri_connectable_peer.h</b></td></tr>
 <tr class="memdesc:tws__topology__procedure__pri__connectable__peer_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to procedure to enable/disable BREDR connectable (pagescan) for peer connectivity. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__pri__forced__role__switch_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_pri_forced_role_switch.c</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__pri__forced__role__switch_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure for a Primary to participate in forced role switch. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__pri__forced__role__switch_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_pri_forced_role_switch.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__pri__forced__role__switch_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to procedure for a Primary to participate in forced role switch. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__primary__addr__find__role_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_primary_addr_find_role.c</b></td></tr>
 <tr class="memdesc:tws__topology__procedure__primary__addr__find__role_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure to start find role following completion of peer pairing when out of the case. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -238,6 +272,12 @@ Files</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__prohibit__connection__le_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_prohibit_connection_le.h</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__release__peer_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_release_peer.c</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__release__peer_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure to release the lock on the peer link ACL. This can lead to the peer link being destroyed. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__release__peer_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_release_peer.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__release__peer_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure to release the lock on the peer link ACL. This can lead to the peer link being destroyed. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__script__engine_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_script_engine.c</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__script__engine_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_script_engine.h</b></td></tr>
@@ -246,6 +286,12 @@ Files</h2></td></tr>
 <tr class="memdesc:tws__topology__procedure__sec__connect__peer_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure for Secondary to connect BR/EDR ACL to Primary. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__sec__connect__peer_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_sec_connect_peer.h</b></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__sec__forced__role__switch_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_sec_forced_role_switch.c</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__sec__forced__role__switch_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure for a Secondary to become Primary on command from Primary. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__sec__forced__role__switch_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_sec_forced_role_switch.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__sec__forced__role__switch_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to procedure for a Secondary to become Primary on command from Primary. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__secondary__role_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_secondary_role.c</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -263,6 +309,12 @@ Files</h2></td></tr>
 <tr class="memitem:tws__topology__procedure__switch__to__secondary_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_switch_to_secondary.c</b></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedure__switch__to__secondary_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_switch_to_secondary.h</b></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__wait__peer__link__drop_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_wait_peer_link_drop.c</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__wait__peer__link__drop_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Procedure for a Secondary to wait for peer link to drop. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:tws__topology__procedure__wait__peer__link__drop_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedure_wait_peer_link_drop.h</b></td></tr>
+<tr class="memdesc:tws__topology__procedure__wait__peer__link__drop_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to procedure for a Secondary to wait for peer link to drop. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:tws__topology__procedures_8c"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><b>tws_topology_procedures.c</b></td></tr>
 <tr class="memdesc:tws__topology__procedures_8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Common procedure handling functions. <br /></td></tr>

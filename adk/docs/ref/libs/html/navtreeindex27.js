@@ -1,5 +1,13 @@
 var NAVTREEINDEX27 =
 {
+"vmal_8h.html#aa9f0efcbd48efe8890c374cb38385d88":[5,0,87,0,20],
+"vmal_8h.html#aae440f179c6606715748520761ad44b4":[5,0,87,0,18],
+"vmal_8h.html#aba2240bac2b5b7e212e41ff5018271ff":[5,0,87,0,6],
+"vmal_8h.html#abdad6d1089cf9ef63c2b463834b1a97e":[5,0,87,0,21],
+"vmal_8h.html#ac121e0e3811cfa6380e21bc0bf8a363e":[5,0,87,0,24],
+"vmal_8h.html#ac145217460fcd24eb93d9647cadf1123":[5,0,87,0,19],
+"vmal_8h.html#ac625d6d53b5f9e9c44dc3d4fb6aad280":[5,0,87,0,1],
+"vmal_8h.html#af49150f5c6ba9ff12fb54b0959e6c2ae":[5,0,87,0,15],
 "vmal_8h.html#af9b651b2d6725165ccbbf8cec828ff3f":[5,0,87,0,11],
 "vmal_8h.html#afb837795356d7757f9bb1d8391378ab0":[5,0,87,0,25],
 "voice__assistant__audio__manager_8h.html":[5,0,88,0],
