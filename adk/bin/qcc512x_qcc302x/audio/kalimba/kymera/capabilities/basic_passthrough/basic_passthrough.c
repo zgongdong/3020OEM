@@ -799,8 +799,17 @@ static void metadata_transport_with_ttp(BASIC_PASSTHROUGH_OP_DATA *opx_data, uns
     {
         ttp_status status;
         metadata_tag *list_tag = mtag->next;
-        unsigned list_octets = mtag->length;
+        unsigned list_octets;
         TIME ttp_reference_time;
+
+        /* calculate the total length of tag list */
+        unsigned tot_length = mtag->length;
+        while (list_tag != NULL)
+        {
+            tot_length += list_tag->length;
+            list_tag = list_tag->next;
+        }
+
         if (IS_TIME_OF_ARRIVAL_TAG(mtag))
         {
             /* We have incoming ToA, so use that as the TTP reference */
@@ -812,7 +821,17 @@ static void metadata_transport_with_ttp(BASIC_PASSTHROUGH_OP_DATA *opx_data, uns
             ttp_reference_time = hal_get_time();
         }
 
-        ttp_update_ttp(opx_data->time_to_play, ttp_reference_time, samples, &status);
+        /* Update ttp context and get the new time to play.
+         * 
+         * Note: We don't pass 'samples' to this function, instead we pass
+         * the total length of mtag (in samples).The reason is that this
+         * function is called only when mtag isn't NULL, and by passing 'samples'
+         * some samples might get skipped (when mtag is NULL) so there is a
+         * risk that the ttp_update module doesn't see all the samples resulting in
+         * frequent resetting of TTP generator.
+         */
+        ttp_update_ttp(opx_data->time_to_play, ttp_reference_time, tot_length / OCTETS_PER_SAMPLE, &status);
+
         /* Populate the metadata tag from the TTP status */
         METADATA_TIME_OF_ARRIVAL_UNSET(mtag);
         ttp_utils_populate_tag(mtag, &status);
@@ -822,6 +841,8 @@ static void metadata_transport_with_ttp(BASIC_PASSTHROUGH_OP_DATA *opx_data, uns
         /* In case there were multiple metadata tags on the input,
          * extrapolate the timestamps to any subsequent tags
          */
+        list_tag = mtag->next;
+        list_octets = mtag->length;
         while (list_tag != NULL)
         {
             status.ttp = ttp_get_next_timestamp(mtag->timestamp, list_octets / OCTETS_PER_SAMPLE, opx_data->sample_rate, status.sp_adjustment);

@@ -24,6 +24,7 @@ var earbud__primary__rules_8h =
       [ "CONN_RULES_DISCONNECT_HANDSET", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a73ed0adb6a2b4ed9b7a760e629f6f4e6", null ],
       [ "CONN_RULES_DISCONNECT_PEER", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a156c08ca8d623fdc073f396960b4647d", null ],
       [ "CONN_RULES_ENTER_DFU", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a14eb12c38c855db27c464936fcfc51b4", null ],
+      [ "CONN_RULES_EXIT_DFU", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226ad254a58e89e35183c0b4b0602b53a06b", null ],
       [ "CONN_RULES_DFU_ALLOW", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a96d385a59682cf9576547004ba74fbd4", null ],
       [ "CONN_RULES_ALLOW_HANDSET_CONNECT", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a5cda471258db6cd434b3a240e3690de2", null ],
       [ "CONN_RULES_REJECT_HANDSET_CONNECT", "earbud__primary__rules_8h.html#a4139b52c6de4c065f45b2bc2a6b2e226a018eba27bf42e5ab69bb998b9fe37e4d", null ],

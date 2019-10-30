@@ -3,7 +3,7 @@ var unionvncl3020__command__register =
     [ "___unused", "unionvncl3020__command__register.html#a0a991bed8968595de95af6fcb2291104", null ],
     [ "__unused", "unionvncl3020__command__register.html#af6684d5c3089cb3e59c162e7a3da1a4f", null ],
     [ "_unused", "unionvncl3020__command__register.html#ac842b28384300fc31607e79871349d16", null ],
-    [ "bits", "unionvncl3020__command__register.html#a66773b1a1c1831349ea5e38296732211", null ],
+    [ "bits", "unionvncl3020__command__register.html#a909ed263c652ced0c3a60435d7f2425c", null ],
     [ "config_lock", "unionvncl3020__command__register.html#a300755680a06419488108ed2f6bba008", null ],
     [ "prox_data_rdy", "unionvncl3020__command__register.html#ae3ffd11139de854cbd856707ad196b69", null ],
     [ "prox_en", "unionvncl3020__command__register.html#aceffc589f5bdebd4692a724371b1b2f3", null ],

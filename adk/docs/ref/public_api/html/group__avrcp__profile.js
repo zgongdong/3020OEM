@@ -1,6 +1,6 @@
 var group__avrcp__profile =
 [
-    [ "AVRCP Profile Volume Observer", "group__avrcp__profile__volume__observer.html", "group__avrcp__profile__volume__observer" ],
+    [ "AVRCP Profile Volume Observer", "group__avrcp__profile__volume__observer.html", null ],
     [ "appAvrcpGetState", "group__avrcp__profile.html#ga41846d5cd93a7ca709812729785bd953", null ],
     [ "appAvrcpHandleAvrcpConnectIndicationNew", "group__avrcp__profile.html#gaf7fe4f6796e9c4d65f9ec5f8fcb7ab73", null ],
     [ "appAvrcpInstanceHandleMessage", "group__avrcp__profile.html#ga59ba58331f48039b8ca08e2ed7adaa70", null ],

@@ -432,8 +432,8 @@ void encode_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
     ENCODER_PARAMS *enc_base = (ENCODER_PARAMS *)(op_data->cap_class_ext);
     const ENCODER_CAP_VIRTUAL_TABLE *vt;
     bool output_produced;
-    unsigned ip_avail_data_pre_enc , ip_avail_data_post_enc;
-    unsigned ip_proc_data;
+    unsigned ip_rd_offset_pre_enc , ip_rd_offset_post_enc;
+    int ip_proc_data;
 
     patch_fn(encoder_process_data);
     
@@ -444,8 +444,8 @@ void encode_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
         /* One option is to consume the input data in this case.*/
         return;
     }
-    /* available data in input buffer before processing */
-    ip_avail_data_pre_enc = cbuffer_calc_amount_data_in_words(enc_base->codec.in_left_buffer);
+    /* input buffer read offset before processing */
+    ip_rd_offset_pre_enc = cbuffer_get_read_offset(enc_base->codec.in_left_buffer);
 
     vt = enc_base->vt;
     if (vt->scratch_allocs != NULL)
@@ -459,10 +459,15 @@ void encode_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
     {
         output_produced = encoder_encode(&(enc_base->codec), vt->encode_fn);
     }
-    /* available data in input buffer after processing */
-    ip_avail_data_post_enc = cbuffer_calc_amount_data_in_words(enc_base->codec.in_left_buffer);
+    /* input buffer read offset after processing */
+    ip_rd_offset_post_enc = cbuffer_get_read_offset(enc_base->codec.in_left_buffer);
     /* total data processed on the input */
-    ip_proc_data = ip_avail_data_pre_enc - ip_avail_data_post_enc;
+    ip_proc_data = ip_rd_offset_post_enc - ip_rd_offset_pre_enc;
+    /* if negative the read pointer wrapped and we need to add buffer size in words */
+    if (ip_proc_data < 0)
+    {
+        ip_proc_data += cbuffer_get_size_in_words(enc_base->codec.in_left_buffer);
+    }
 
     if (output_produced)
     {

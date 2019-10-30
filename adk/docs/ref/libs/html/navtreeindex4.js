@@ -1,5 +1,8 @@
 var NAVTREEINDEX4 =
 {
+"gatt__heart__rate__client_8h.html#af265b062a1f77a85fdb9258cd40cc122":[5,0,36,0,9],
+"gatt__heart__rate__server_8h.html":[5,0,37,0],
+"gatt__heart__rate__server_8h.html#a037102a9c382c432139a5987e744eaba":[5,0,37,0,10],
 "gatt__heart__rate__server_8h.html#a4c208b7eb2a94072e86d9380a4b7c9b6":[5,0,37,0,8],
 "gatt__heart__rate__server_8h.html#a51fc7ce901ffb280fcc73bb45b6ac358":[5,0,37,0,9],
 "gatt__heart__rate__server_8h.html#a874a4fda44dab7825fea00d6e7fd6bb4":[5,0,37,0,7],
@@ -246,8 +249,5 @@ var NAVTREEINDEX4 =
 "gatt__scan__params__client_8h.html#a3fe16eb58040855ae123c55d258b14c6":[5,0,50,0,3],
 "gatt__scan__params__client_8h.html#a4803570a87a52702c9f241c9cf3fafcc":[5,0,50,0,8],
 "gatt__scan__params__client_8h.html#a8e609352b9333c8cb11f0a9cc3161121":[5,0,50,0,5],
-"gatt__scan__params__client_8h.html#a8e9bfde95509316f7b696948b0d9e000":[5,0,50,0,9],
-"gatt__scan__params__client_8h.html#aaeed9fa9bbd1b6da6ee8df74cd1a553e":[5,0,50,0,7],
-"gatt__scan__params__client_8h.html#ab8b5fa111631d11c0ea1bc4db15dec0c":[5,0,50,0,6],
-"gatt__scan__params__client_8h.html#afac3597e3bc416b50f12669428f26002":[5,0,50,0,10]
+"gatt__scan__params__client_8h.html#a8e9bfde95509316f7b696948b0d9e000":[5,0,50,0,9]
 };

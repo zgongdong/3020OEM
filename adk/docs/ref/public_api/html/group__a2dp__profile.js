@@ -1,7 +1,7 @@
 var group__a2dp__profile =
 [
-    [ "A2DP Profile Audio", "group__a2dp__profile__audio.html", "group__a2dp__profile__audio" ],
-    [ "A2DP Profile Volume", "group__a2dp__profile__volume.html", "group__a2dp__profile__volume" ],
+    [ "A2DP Profile Audio", "group__a2dp__profile__audio.html", null ],
+    [ "A2DP Profile Volume", "group__a2dp__profile__volume.html", null ],
     [ "A2dpProfile_GetHandsetData", "group__a2dp__profile.html#gac240b8759ac61c39fdc8a772e22db225", null ],
     [ "A2dpProfile_GetPeerData", "group__a2dp__profile.html#ga52e9537169ff265aefad8e8fe6564b70", null ],
     [ "appA2dpConvertSeidFromSinkToSource", "group__a2dp__profile.html#gadc7f2615574cf39ecef8030522392737", null ],

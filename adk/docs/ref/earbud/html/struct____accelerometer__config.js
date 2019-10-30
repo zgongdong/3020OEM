@@ -5,7 +5,7 @@ var struct____accelerometer__config =
     [ "inactivity_timer", "struct____accelerometer__config.html#a39bcf2ec31739c7ca1120094012a2455", null ],
     [ "interrupt", "struct____accelerometer__config.html#af198dd0699db27d9cff8882ebbf1ac67", null ],
     [ "on", "struct____accelerometer__config.html#aa2acbcea5dfcc8538f2f22361302ea2f", null ],
-    [ "pios", "struct____accelerometer__config.html#ac971fdb3c4bddafe6b6a6020975db955", null ],
+    [ "pios", "struct____accelerometer__config.html#a48c06a40b8d235fac71b45ef9b775a07", null ],
     [ "spi_clk", "struct____accelerometer__config.html#a22e8ff0850bcefb8acbf22176f3712d2", null ],
     [ "spi_clock_khz", "struct____accelerometer__config.html#a6ee9318ed4b2e3ddeb49b3865b31bd33", null ],
     [ "spi_cs", "struct____accelerometer__config.html#a99ee12079966d73bbd6c2b0f27139741", null ],

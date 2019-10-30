@@ -348,6 +348,8 @@
     KSP
                    - Kymera Stream Probe, streaming of connection buffers' data
                      to a host
+    OPUS_CELT_ENCODE
+                   - Opus-CELT encoder
     TEST_VA
                    - Capability to test the AOV and the operator client.
     TEST_ASYNC_WBS_LINK
@@ -662,6 +664,8 @@
     DOWNLOAD_KSP
                    - Kymera Stream Probe, streaming of connection buffers' data
                      to a host
+    DOWNLOAD_OPUS_CELT_ENCODE
+                   - Downloadable Opus-CELT encoder
     DUMMY_ID_FORCE_INT
                    - Dummy value to enforce enum uses int type
 
@@ -825,6 +829,7 @@ typedef enum
     CAP_ID_CONVERT_FROM_AUDIO = 0x00BD,
     CAP_ID_CONVERT_TO_AUDIO = 0x00BE,
     CAP_ID_KSP = 0x00BF,
+    CAP_ID_OPUS_CELT_ENCODE = 0x00C0,
     CAP_ID_TEST_VA = 0x3FF3,
     CAP_ID_TEST_ASYNC_WBS_LINK = 0x3FF4,
     CAP_ID_TEST_CONSUMER = 0x3FF5,
@@ -979,6 +984,7 @@ typedef enum
     CAP_ID_DOWNLOAD_CVCHS2MIC_WAKEON_WB = 0x4091,
     CAP_ID_DOWNLOAD_CVCHS2MIC_BARGEIN_WB = 0x4092,
     CAP_ID_DOWNLOAD_KSP = 0x4093,
+    CAP_ID_DOWNLOAD_OPUS_CELT_ENCODE = 0x4096,
     CAP_ID_DUMMY_ID_FORCE_INT = INT_MAX
 } CAP_ID;
 

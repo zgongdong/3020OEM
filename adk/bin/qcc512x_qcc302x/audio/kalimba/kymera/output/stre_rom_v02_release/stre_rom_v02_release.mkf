@@ -1,5 +1,5 @@
-# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/build/gen_config.py
-# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/build/config/config.stre_rom_v02_release
+# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091617/kalimba/kymera/build/gen_config.py
+# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091617/kalimba/kymera/build/config/config.stre_rom_v02_release
 # Any changes will be lost the next time the configuration is generated.
 
 CONFIG = stre_rom_v02_release
@@ -460,7 +460,6 @@ PRIVATE_LIBS = components/adaptor \
 #
 
 COMPILE_EXTRA_DEFS = -DADDR_PER_WORD=4 \
-	-DAEC_REFERENCE_LATENCY_DEBUG \
 	-DAMBER_STYLE_INT_CTRL \
 	-DAPTX_ENABLE_MERGED_HD \
 	-DAPTX_LICENCE_EXTENSIONS \

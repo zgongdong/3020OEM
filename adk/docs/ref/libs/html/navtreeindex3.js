@@ -1,5 +1,8 @@
 var NAVTREEINDEX3 =
 {
+"gaia_8h.html":[5,0,26,0],
+"gaia_8h.html#a0f19c43100753ce3f25ce2006794b754":[5,0,26,0,19],
+"gaia_8h.html#a189e0e39d2e7cf503862cecba055af5b":[5,0,26,0,9],
 "gaia_8h.html#a1ef995b59008cde9c91f835fc93059ca":[5,0,26,0,27],
 "gaia_8h.html#a1ef995b59008cde9c91f835fc93059caa071911ac1bcf6db90611b60bcc594965":[5,0,26,0,27,11],
 "gaia_8h.html#a1ef995b59008cde9c91f835fc93059caa13a7489744c37075f4a96fb9caa01830":[5,0,26,0,27,20],
@@ -246,8 +249,5 @@ var NAVTREEINDEX3 =
 "gatt__heart__rate__client_8h.html#a5deed3a1aa173ef98c59c39f1cc13a4e":[5,0,36,0,16],
 "gatt__heart__rate__client_8h.html#a9dd28bf260e4a89b79ecaf895f1dc61b":[5,0,36,0,6],
 "gatt__heart__rate__client_8h.html#ac31fb3b0e27abf61eaf286d94284306d":[5,0,36,0,10],
-"gatt__heart__rate__client_8h.html#af0b73ed597c66fa2bd7ee27e333a2905":[5,0,36,0,15],
-"gatt__heart__rate__client_8h.html#af265b062a1f77a85fdb9258cd40cc122":[5,0,36,0,9],
-"gatt__heart__rate__server_8h.html":[5,0,37,0],
-"gatt__heart__rate__server_8h.html#a037102a9c382c432139a5987e744eaba":[5,0,37,0,10]
+"gatt__heart__rate__client_8h.html#af0b73ed597c66fa2bd7ee27e333a2905":[5,0,36,0,15]
 };

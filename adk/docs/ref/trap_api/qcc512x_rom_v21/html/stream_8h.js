@@ -14,6 +14,7 @@ var stream_8h =
     [ "StreamAttSourceRemoveAllHandles", "group__trapset__att.html#gaa699306d3abc2ca5c87e032087c4ea98", null ],
     [ "StreamAudioSink", "group__trapset__audio.html#gac95d0b88cbd3a23f10f1dddcda6e7b98", null ],
     [ "StreamAudioSource", "group__trapset__audio.html#ga1f1030769d1a8d7d89e586e253515792", null ],
+    [ "StreamAudioSyncSource", "group__trapset__shadowing.html#ga5fe2db4250a64b52d7515aa33935b8a1", null ],
     [ "StreamConfigure", "group__trapset__stream.html#ga3adcc0a6c3530f416ee0ec81735709d0", null ],
     [ "StreamConnect", "group__trapset__stream.html#ga4cd351636d2d317e6bd2f4c5f76968d4", null ],
     [ "StreamConnectAndDispose", "stream_8h.html#ab9b4144438226d6e65588aaf0c5a468f", null ],

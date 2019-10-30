@@ -15,12 +15,12 @@
     <configurations>
         <configuration name="debug" options="build|clean|default">
             <devkitConfiguration>application</devkitConfiguration>
-            <devkitGroup>kitres://{885b2e62-d6de-4472-8989-51ed1537bf28}</devkitGroup>
+            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
             <property name="MAKEFILE_TO_CALL">makefile</property>
             <property name="KYMERA_SRC_PATH">KYMERA_SRC_PATH=../..</property>
             <property name="BUILD_NAME">BUILD_NAME=kymera_stre_audio</property>
-            <property name="BUILD_PATH">BUILD_PATH=$(DEVKIT_ROOT)/audio/kalimba_ROM_5951/kymera/output/stre_rom_v21_release/build</property>
-            <property name="BUILD_ROOT">BUILD_ROOT=$(DEVKIT_ROOT)/audio/kalimba/kymera/build</property>
+            <property name="BUILD_PATH">BUILD_PATH=../../../../kalimba_ROM_5951/kymera/output/stre_rom_v21_release/build</property>
+            <property name="BUILD_ROOT">BUILD_ROOT=../../build</property>
             <property name="MAKE_JOBS">MAKE_JOBS=True</property>
             <group name="splitter" type="capability">
                 <property name="CAP_NAME">splitter</property>
@@ -32,6 +32,7 @@
             <property name="BUILD_TYPE">MAKEFILE</property>
             <property name="OUTPUT">../../output_bundles/stre_rom_v21_release/download_splitter/download_splitter.elf</property>
             <property name="SUBSYSTEM_NAME">audio</property>
+            <property name="ACAT_PATH">../../../../tools/acat</property>
             <property name="KALSIM_MODE">false</property>
             <property name="KALSIM_ENABLE_DEBUGGER">false</property>
             <property name="KALSIM_NAME">kalsim_qcc512x_audio.exe</property>
@@ -39,16 +40,16 @@
             <property name="KALSIM_SCRIPTS">script/kalsim/download.py,script/kalsim/download_splitter.dkcs</property>
             <property name="KALSIM_PLATFORM">stre</property>
             <property name="KALSIM_CONFIG_MAKE">CONFIG=stre_rom_kalsim_kalcmd2_release</property>
-            <property name="KALSIM_KSE_PATH">../../../../kse</property>
+            <property name="KALSIM_KSE_PATH">../../../../tools/kse</property>
         </configuration>
         <configuration name="kse" options="build|clean|deploy">
             <devkitConfiguration>application</devkitConfiguration>
-            <devkitGroup>kitres://{885b2e62-d6de-4472-8989-51ed1537bf28}</devkitGroup>
+            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
             <property name="MAKEFILE_TO_CALL">makefile</property>
             <property name="KYMERA_SRC_PATH">KYMERA_SRC_PATH=../..</property>
             <property name="BUILD_NAME">BUILD_NAME=kymera_stre_audio</property>
-            <property name="BUILD_PATH">BUILD_PATH=$(DEVKIT_ROOT)/audio/kalimba/kymera/output/stre_rom_kalsim_kalcmd2_release/build</property>
-            <property name="BUILD_ROOT">BUILD_ROOT=$(DEVKIT_ROOT)/audio/kalimba/kymera/build</property>
+            <property name="BUILD_PATH">BUILD_PATH=../../output/stre_rom_kalsim_kalcmd2_release/build</property>
+            <property name="BUILD_ROOT">BUILD_ROOT=../../build</property>
             <property name="MAKE_JOBS">MAKE_JOBS=True</property>
             <group name="splitter" type="capability">
                 <property name="CAP_NAME">splitter</property>
@@ -60,6 +61,7 @@
             <property name="BUILD_TYPE">MAKEFILE</property>
             <property name="OUTPUT">../../output_bundles/stre_rom_kalsim_kalcmd2_release/download_splitter/download_splitter.elf</property>
             <property name="SUBSYSTEM_NAME">audio</property>
+            <property name="ACAT_PATH">../../../../tools/acat</property>
             <property name="KALSIM_MODE">true</property>
             <property name="KALSIM_ENABLE_DEBUGGER">false</property>
             <property name="KALSIM_NAME">kalsim_qcc512x_audio.exe</property>
@@ -67,7 +69,7 @@
             <property name="KALSIM_SCRIPTS">script/kalsim/download.py,script/kalsim/download_splitter.dkcs</property>
             <property name="KALSIM_PLATFORM">stre</property>
             <property name="KALSIM_CONFIG_MAKE">CONFIG=stre_rom_kalsim_kalcmd2_release</property>
-            <property name="KALSIM_KSE_PATH">../../../../kse</property>
+            <property name="KALSIM_KSE_PATH">../../../../tools/kse</property>
         </configuration>
     </configurations>
 </project>

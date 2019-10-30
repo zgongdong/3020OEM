@@ -177,7 +177,7 @@ var aghfp_8h =
     [ "AghfpCallAnswer", "aghfp_8h.html#a4ece2eae5eaae3703c8ac096cc8ec099", null ],
     [ "AghfpCallCreate", "aghfp_8h.html#a2e496a8d5462ca1bd829dc15daf04440", null ],
     [ "AghfpCallCreateAudio", "aghfp_8h.html#a01bd1b25c73bf2d8fbd143a201814ba9", null ],
-    [ "AghfpCallIndicatorsStatusResponse", "aghfp_8h.html#adbefd4c7124893ff5d4ad7873077bff3", null ],
+    [ "AghfpCallIndicatorsStatusResponse", "aghfp_8h.html#a7a824a3d30bd3a5c5068a23f76497d5e", null ],
     [ "AghfpCallRemoteAnswered", "aghfp_8h.html#a3c7b409a2afdf27ee23e6862a7a24ef1", null ],
     [ "AghfpCallTerminate", "aghfp_8h.html#aea529141c353c491b0aa8c4e96e29bec", null ],
     [ "AghfpCindStatusPollClientEnable", "aghfp_8h.html#a5c33765667c6c7dc9e396c4cf29e496f", null ],

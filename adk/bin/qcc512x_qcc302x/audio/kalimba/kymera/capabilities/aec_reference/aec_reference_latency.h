@@ -27,11 +27,9 @@ typedef struct aec_latency_common
    unsigned frm_count;       /**< Running count of frame processed */
    unsigned rm_adjustment;   /** applied rate adjustment */
 
-#ifdef AEC_REFERENCE_LATENCY_DEBUG
-	unsigned speaker_drops;
-	unsigned speaker_inserts;
-	unsigned speaker_delay;
-#endif
+   unsigned speaker_drops;   /* counter showing number of samples droped from ref output */
+   unsigned speaker_inserts; /* counter showing number of samples inserted into ref output */
+   unsigned speaker_delay;   /* current latency between ref and mic outputs, in samples */
 
 }aec_latency_common;
 

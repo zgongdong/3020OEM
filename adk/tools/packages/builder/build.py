@@ -416,14 +416,7 @@ def build(proj, devkit, tgt_config, build_style, build_output_folder=None):
 def get_makefile_rules_path(proj, default_makefile_rules_path):
     working_dir = os.path.normpath(proj.proj_dirname)
 
-    head = working_dir.split(os.path.sep+"adk"+os.path.sep)
-    # working_dir is divided(by spliting "/adk/") into two parts, 
-    # first part is <path_to_adk> which we are interested in.
-    path_to_head = head[0]
-    path_to_makefile_rules = os.path.sep.join((path_to_head, "adk", "tools"))
-
-    if not os.path.isfile(os.path.join(path_to_makefile_rules, "Makefile.rules")):
-        path_to_makefile_rules = default_makefile_rules_path
+    path_to_makefile_rules = os.path.sep.join((working_dir, "..", "..", "..", "adk", "tools"))
 
     return path_to_makefile_rules
     

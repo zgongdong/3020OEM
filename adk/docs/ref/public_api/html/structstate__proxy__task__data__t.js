@@ -1,6 +1,7 @@
 var structstate__proxy__task__data__t =
 [
     [ "event_tasks", "structstate__proxy__task__data__t.html#a0176c7e58db47fa7d9e6d4848b69237a", null ],
+    [ "initial_state_received", "structstate__proxy__task__data__t.html#a60f4477e4d7b82acbffef27fe1d10e7e", null ],
     [ "initial_state_sent", "structstate__proxy__task__data__t.html#a7c508d74f2275f4bc88b2870ec101499", null ],
     [ "is_primary", "structstate__proxy__task__data__t.html#a410042bed920bbc06efeb5554b51ba68", null ],
     [ "local_state", "structstate__proxy__task__data__t.html#ab926fb3bd8434cc32957e44f536b6cce", null ],

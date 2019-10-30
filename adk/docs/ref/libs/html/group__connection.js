@@ -105,7 +105,7 @@ var group__connection =
       [ "status", "struct_c_l___d_m___b_l_e___s_e_t___c_o_n_n_e_c_t_i_o_n___p_a_r_a_m_e_t_e_r_s___c_f_m___t.html#a21bfb7bd50a454da813fdf32b1bd485d", null ]
     ] ],
     [ "CL_DM_BLE_SET_SCAN_ENABLE_CFM_T", "struct_c_l___d_m___b_l_e___s_e_t___s_c_a_n___e_n_a_b_l_e___c_f_m___t.html", [
-      [ "status", "struct_c_l___d_m___b_l_e___s_e_t___s_c_a_n___e_n_a_b_l_e___c_f_m___t.html#a21bfb7bd50a454da813fdf32b1bd485d", null ]
+      [ "status", "struct_c_l___d_m___b_l_e___s_e_t___s_c_a_n___e_n_a_b_l_e___c_f_m___t.html#a194fc2556a199c206484cbcb85ef14af", null ]
     ] ],
     [ "CL_DM_BLE_SET_SCAN_PARAMETERS_CFM_T", "struct_c_l___d_m___b_l_e___s_e_t___s_c_a_n___p_a_r_a_m_e_t_e_r_s___c_f_m___t.html", [
       [ "status", "struct_c_l___d_m___b_l_e___s_e_t___s_c_a_n___p_a_r_a_m_e_t_e_r_s___c_f_m___t.html#a21bfb7bd50a454da813fdf32b1bd485d", null ]

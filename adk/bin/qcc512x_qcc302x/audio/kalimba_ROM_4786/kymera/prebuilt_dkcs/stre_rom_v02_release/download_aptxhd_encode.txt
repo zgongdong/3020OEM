@@ -1,3 +1,0 @@
-Download Capability BUILD ID = 8254
-ELF File ID = 0x69FCC8A9
-Base Build ID = 8244

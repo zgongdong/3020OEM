@@ -29,6 +29,9 @@
 #Install the CELT encoder capability
 %include config.MODIFY_CELT_DECODE
 
+#Install the Opus-CELT encoder capability
+%include config.MODIFY_OPUS_CELT_ENCODE
+
 #Install the IIR_RESAMPLER capability
 %include config.MODIFY_IIR_RESAMPLER
 

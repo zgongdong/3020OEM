@@ -1,5 +1,6 @@
 var NAVTREEINDEX13 =
 {
+"message__broker_8h.html#a91f6534c75ec23c2c061f4bc9a0e601e":[5,0,62,1,2],
 "message__broker_8h.html#ad3804c297ba75394ec44af70770327dc":[5,0,62,1,1],
 "modules.html":[3],
 "obex_8h.html":[5,0,63,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX13 =
 "power__smb1352_8h.html#a2c3fc9089f48652418cde0a946b2238d":[5,0,68,0,1],
 "power__smb1352_8h.html#a8a3faa615d1d7faa4ecbf48d4ce37351":[5,0,68,0,4],
 "power__smb1352_8h.html#aab56fbd483fb133f37b78d001ea871f0":[5,0,68,0,0],
-"power__smb1352_8h.html#adca0a58b96efd3b3bbb38f6574acffd3":[5,0,68,0,3],
-"power__smb1352__adapter_8h.html":[5,0,69,0]
+"power__smb1352_8h.html#adca0a58b96efd3b3bbb38f6574acffd3":[5,0,68,0,3]
 };

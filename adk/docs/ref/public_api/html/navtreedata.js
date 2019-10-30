@@ -1,7 +1,28 @@
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this file.
+
+Copyright (C) 1997-2019 by Dimitri van Heesch
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of version 2 of the GNU General Public License as published by
+the Free Software Foundation
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this file
+*/
 var NAVTREE =
 [
   [ "Public API", "index.html", [
-    [ "Deprecated List", "deprecated.html", null ],
     [ "Modules", "modules.html", "modules" ],
     [ "Data Structures", "annotated.html", [
       [ "Data Structures", "annotated.html", "annotated_dup" ],
@@ -11,18 +32,22 @@ var NAVTREE =
         [ "Variables", "functions_vars.html", "functions_vars" ]
       ] ]
     ] ],
+    [ "Globals", "globals.html", [
+      [ "All", "globals.html", null ],
+      [ "Functions", "globals_func.html", null ],
+      [ "Enumerations", "globals_enum.html", null ]
+    ] ],
     [ "Examples", "examples.html", "examples" ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"_c_1_2ws_2j_qcc512x_qcc302x_2temp_2_staging_2_q_c_c512x__q_c_c302x_8_s_r_c_81_80_2adk_2src_2commaba9635a9390f004d5a6f2b32a92e628.html",
-"group__microphones.html#gad6ce917d7fd4bef0782c048407cf13c3",
-"struct_a_u_d_i_o___s_y_n_c___c_o_d_e_c___r_e_c_o_n_f_i_g_u_r_e_d___i_n_d___t.html#aab680b785369cb7b9d224cb7cfab3424",
-"struct_p_e_e_r___p_a_i_r___l_e___p_a_i_r___c_f_m___t.html#a58ba21995b51a06b440a2a9009012c62",
-"structkymera_task_data.html#a81b22ec8b79e28fbf3b10ad1bdcb70cd",
-"structstate__proxy__data__flags__t.html"
+"_c_1_2ws_2j_qcc512x_qcc302x_2temp_2_staging_2_q_c_c512x__q_c_c302x_8_s_r_c_81_80_2adk_2src_2serv2a81ba1fdd8bf39e4f5df21ec36a86fe.html",
+"struct_a_v___i_n_t_e_r_n_a_l___a2_d_p___d_i_s_c_o_n_n_e_c_t___r_e_q___t.html#a8b08a4d2ec878257d64c55f64a62242c",
+"struct_p_e_e_r___s_i_g___p_a_i_r___h_a_n_d_s_e_t___i_n_d___t.html#abde3a699231ebf9cbde8b2871cc5d479",
+"structled_pattern.html#a56dc4455d04b83cfa7cefe5f46ba81c2",
+"structstate__proxy__task__data__t.html#a7c508d74f2275f4bc88b2870ec101499"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

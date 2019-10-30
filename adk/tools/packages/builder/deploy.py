@@ -15,10 +15,10 @@ import tempfile
 import collections
 import shutil
 
-import maker.sim_launch as sim
 import maker.exceptions as bdex
 from . import nvscmd as nvs
 from . import deploy_single_image
+from . import sim_launch as sim
 
 SQIF0_CONFIG_FILE = "flash_layout_config.py"
 
@@ -437,6 +437,7 @@ def deploy(proj_parser, dk_parser, parsed_args):
     if config_keys["SUBSYSTEM_NAME"] == "audio" and "KALSIM_MODE" in config_keys:
         if config_keys["KALSIM_MODE"] == "true":
             kse_path = os.path.abspath(os.path.join(proj_parser.proj_dirname, config_keys["KALSIM_KSE_PATH"]))
+            acat_path = os.path.abspath(os.path.join(proj_parser.proj_dirname, config_keys["ACAT_PATH"]))
             if "BUNDLE_NAME" in config_keys:
                 # Deploying a KCS in kalsim means copying it to the scripts folder
                 src_dkcs_path = os.path.abspath(os.path.join(proj_parser.proj_dirname, config_keys["OUTPUT"]))
@@ -468,7 +469,7 @@ def deploy(proj_parser, dk_parser, parsed_args):
                 bdex.log_buildproc_output('elfpath', attribs, fw_path)
             else:
                 audio_elf_path = ""
-            return sim.launch_audio_kse_env(parsed_args.devkit_root, kse_path, fw_path, config_keys["KALSIM_NAME"], config_keys["KALSIM_ENABLE_DEBUGGER"], config_keys["KALSIM_SCRIPTS"], config_keys["KALSIM_PLATFORM"], patch_path, audio_elf_path)
+            return sim.launch_audio_kse_env(parsed_args.devkit_root, kse_path, fw_path, config_keys["KALSIM_NAME"], config_keys["KALSIM_ENABLE_DEBUGGER"], config_keys["KALSIM_SCRIPTS"], config_keys["KALSIM_PLATFORM"], patch_path, audio_elf_path, acat_path)
         elif parsed_args.configuration == "debug":
             raise Exception("Error. Cannot deploy downloadable bundle on device from this project. KALSIM_MODE is set to false. Rebuild the project, add the .dkcs to the customer_ro_filesystem project and deploy from there")
 

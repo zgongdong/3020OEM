@@ -7,5 +7,6 @@ var group__trapset__shadowing =
     [ "MessageSdmTask", "group__trapset__shadowing.html#ga840a2905a411b868d9023d834ec5b194", null ],
     [ "StreamAclMarshalSink", "group__trapset__shadowing.html#ga6813630b903a29e82babf12570da67c0", null ],
     [ "StreamAclMarshalSource", "group__trapset__shadowing.html#gac21e0ddc51ef09b8c8a3cef222db41a9", null ],
+    [ "StreamAudioSyncSource", "group__trapset__shadowing.html#ga5fe2db4250a64b52d7515aa33935b8a1", null ],
     [ "VmSendSdmPrim", "group__trapset__shadowing.html#ga77efe5e6682d69e82b0250e415e9fa53", null ]
 ];

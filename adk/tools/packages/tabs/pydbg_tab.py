@@ -32,6 +32,7 @@ import argparse
 import glob
 from workspace_parse.workspace import Workspace
 
+import Tkinter as Tki 
 
 
 class NoDeviceDetected(RuntimeError):
@@ -79,7 +80,6 @@ def validate_args(args):
     if not args.kit:
         print("Please enter a valid devkit")
         return False
-
 
     return True
 
@@ -202,6 +202,149 @@ def is_device_connected(devkit_target):
         return False
     return True
 
+class SimpleRadioBoxUI(object):
+    """
+    Creates a dialogue box containing a configurable list of radio buttons,
+    with OK to return the selected button and Cancel (or closing the window) to
+    exit with the effect of none of the windows having been selected.
+    """
+    def __init__(self, title, radio_buttons, label_text, icon=None):
+
+        self.root = Tki.Tk()
+        self.root.title(title)
+
+        # The Pydbg window appears near the bottom by default, so put the
+        # dialogue box somewhere around there too.
+        scn_w = self.root.winfo_screenwidth()
+        scn_h = self.root.winfo_screenheight()
+        geom = "+%d+%d" % (scn_w//4,scn_h//2)
+        self.root.geometry(geom)
+
+        if icon:
+            self.root.iconbitmap(bitmap=icon)
+
+        # Put the instructional label at the top...
+        lbl = Tki.Label(self.root, text=label_text)
+        lbl.pack(side=Tki.TOP, padx=5,pady=5)
+
+        # Followed by the radio buttons
+        rbut_frame = Tki.Frame(self.root, borderwidth=1)
+        rbut_frame.pack(fill=Tki.BOTH, expand=True)
+
+        self._button_selected = Tki.IntVar()
+        rbuts = []
+        for button_desc in radio_buttons:
+            rbut = Tki.Radiobutton(rbut_frame, text=button_desc, 
+                                   var=self._button_selected, value=len(rbuts))
+            rbut.pack(anchor=Tki.W)
+            rbuts.append(rbut)
+        
+        # Exit buttons go at the bottom on the right.
+        
+        # Cancel button closes the window and ensures the selection is None
+        cancel_button = Tki.Button(self.root, text="Cancel", 
+                                   command=self._select_none_and_exit, width=6)
+        cancel_button.pack(side=Tki.RIGHT)
+        # Make closing the window act like pressing Cancel
+        self.root.protocol("WM_DELETE_WINDOW", self._select_none_and_exit)
+        # OK button closes the window preserving the radio button selection
+        ok_button = Tki.Button(self.root, text="OK", command=self.root.destroy,
+                               width=6)
+        ok_button.pack(side=Tki.RIGHT, padx=5,pady=5)
+
+        Tki.mainloop()
+        
+    def _select_none_and_exit(self):
+        self._button_selected = None
+        self.root.destroy()
+        
+    @property
+    def selected(self):
+        return self._button_selected.get() if self._button_selected is not None else None
+
+def prompt_secondary_device_selection(devkit_root, primary_device_url):
+    """
+    Open a simple dialogue box listing devices that are detected as being
+    connected to the host PC over either TRB or USBDBG, not including the
+    primary, if there are any.  The dialogue box allows the user to select one
+    of these as a secondary device to attach Pydbg to, or to cancel the process
+    and continue with a single-device Pydbg session.
+    """
+    try:
+        from csr.front_end.pydbg_front_end import get_attached_trb_and_usbdbg_devices
+    except ImportError:
+        return None
+    
+    # Get all the attached devices
+    trb_devices, usbdbg_devices = get_attached_trb_and_usbdbg_devices()
+    
+    class TrbDesc(object):
+        def __init__(self, trb_dev):
+            self.id = trb_dev.id
+            self.description = trb_dev.description
+            self.driver = trb_dev.driver
+        def __str__(self):
+            return "usb2trb device with ID %s" % self.id
+        
+    class UsbdbgDesc(object):
+        def __init__(self, usbdbg_dev):
+            self.id = usbdbg_dev.id
+        def __str__(self):
+            return "usb2tc device with ID %s" % self.id
+    
+    # Eliminate the one that QMDE knows about (i.e. the primary device) and
+    # create descriptive wrappers around the native dongle type classes 
+    primary_device_type = primary_device_url.split(":",1)[0]
+    primary_device_id = int(primary_device_url.split(":")[-1])
+    
+    if primary_device_type in ("trb",):
+        other_trb_devices = [TrbDesc(trb_dev) for trb_dev in trb_devices 
+                                                if trb_dev.id != primary_device_id]
+        other_usbdbg_devices = [UsbdbgDesc(usbdbg_dev) for usbdbg_dev in usbdbg_devices]
+    elif primary_device_type in ("tc","usb2tc"):
+        other_trb_devices = [TrbDesc(trb_dev) for trb_dev in trb_devices]
+        other_usbdbg_devices = [UsbdbgDesc(usbdbg_dev) for usbdbg_dev in usbdbg_devices 
+                                                if usbdbg_dev.id != primary_device_id]
+    else:
+        print("WARNING: unrecognised primary device URL '%s' during secondary "
+              "device selection: aborting secondary device selection" % primary_device_url)
+        return None
+
+    # Set up the list of radio button descriptions
+    device_descs = [str(dev) for dev in other_trb_devices + other_usbdbg_devices]
+
+    # If there are any other devices attached, bring up the dialogue box
+    if device_descs:
+        # Grab the QMDE icon to make the dialogue box look slightly more professional
+        if os.path.exists(os.path.join(devkit_root, 'res', 'qmde_allsizes.ico')):
+            qmde_icon = os.path.join(devkit_root, 'res', 'qmde_allsizes.ico')
+        else:
+            qmde_icon = None
+
+        selector = SimpleRadioBoxUI("Pydbg secondary device", 
+                                    device_descs, "Please select secondary device, or cancel "
+                                            "for a single-device session", icon=qmde_icon)
+    
+        selected = selector.selected
+
+        # If the user pressed cancel or closed the window, we infer that they 
+        # didn't want a multi-device session
+        if selected is None:
+            return None
+        
+        # Otherwise, construct the URL of the secondary device, to be added to
+        # the Pydbg command line
+        if selected < len(other_trb_devices):
+            selected_url = "trb:usb2trb:%d" % other_trb_devices[selected].id
+        else:
+            selected -= len(other_trb_devices)
+            selected_url = "usb2tc:%s" % other_usbdbg_devices[selected].id
+    
+        return selected_url
+    
+    # No other devices connected - identical result to user cancelling.
+    return None
+
 def get_pylib_target(devkit_target):
     """
     Munge Heracles' syntax for dongles into pydbg's
@@ -278,9 +421,15 @@ if __name__ == "__main__":
         except KeyError:
             pass
 
+        primary_device_url = get_pylib_target(args.debug)
+        secondary_device_url = prompt_secondary_device_selection(args.kit,
+                                                                 primary_device_url)
+
         #Setup the calling string for pydbg
         command_line = [args.pydbg_path]
-        command_line += ["-d", get_pylib_target(args.debug)]
+        command_line += ["-d", primary_device_url]
+        if secondary_device_url:
+            command_line[-1] += "," + secondary_device_url
         if firmware_args:
             command_line += ["-f", ",".join(firmware_args)] 
         if args.tab_type:

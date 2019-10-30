@@ -9,6 +9,7 @@ var structpeer_find_role_task_data =
     [ "gatt_encrypted", "structpeer_find_role_task_data.html#a47a66e8e636a12945f4e916cb0b1b02b", null ],
     [ "media_busy", "structpeer_find_role_task_data.html#a03de26d2a9a5c71ef888bccd7dc8fb82", null ],
     [ "my_addr", "structpeer_find_role_task_data.html#a79f5658141045c050fedc47049ea3017", null ],
+    [ "peer_connection_typed_bdaddr", "structpeer_find_role_task_data.html#ad136eca1ce4b36f62420d049adebc287", null ],
     [ "prepare_tasks", "structpeer_find_role_task_data.html#a6ab8573c04d814d0cbbd44239cea8e0f", null ],
     [ "primary_addr", "structpeer_find_role_task_data.html#a89c3317f75fdbffaa6ee0ad9ab5f59d5", null ],
     [ "remote_role", "structpeer_find_role_task_data.html#af616344b20f78729e5e4d3fdd61063c2", null ],

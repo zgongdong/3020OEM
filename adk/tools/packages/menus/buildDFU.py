@@ -257,6 +257,8 @@ def process_apps_filesystem_project(build_runner, parsed_args, project,
     path = None
     build_output_folder = parsed_args.build_output_folder
 
+    os.chdir(os.path.dirname(project))
+
     if build_runner.run_build(project, "filesystem", True) == True:
         filesystem_name = "%s_filesystem_dfu.xuv" %(project_type)
         if build_output_folder is None:

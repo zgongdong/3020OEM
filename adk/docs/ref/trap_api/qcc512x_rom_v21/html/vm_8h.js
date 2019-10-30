@@ -5,6 +5,8 @@ var vm_8h =
     [ "VmClearAdvertisingReportFilter", "group__trapset__att.html#ga06c4a776c5a7679f81f753db690c788a", null ],
     [ "VmDeepSleepEnable", "group__trapset__core.html#ga9a1785ecca01fc9ebeb000252198ca36", null ],
     [ "VmDeepSleepWakeSourcesEnable", "group__trapset__core.html#ga6b3943587bd8218a9ca0878aa4e983db", null ],
+    [ "VmGetAclMode", "group__trapset__bluestack.html#ga4eb51076a93f160ca1ae2ba1db45681a", null ],
+    [ "VmGetAclRole", "group__trapset__bluestack.html#ga9576d235fcdbdfed5df63c8e79e490b3", null ],
     [ "VmGetAvailableAllocations", "group__trapset__core.html#ga02aaa28a27ec99b81a57cfda05500a72", null ],
     [ "VmGetBdAddrtFromCid", "group__trapset__bluestack.html#ga6e104a1dc884af12dbccd18a608018fa", null ],
     [ "VmGetClock", "group__trapset__core.html#ga03af15948e7d1e33957f054880b91878", null ],

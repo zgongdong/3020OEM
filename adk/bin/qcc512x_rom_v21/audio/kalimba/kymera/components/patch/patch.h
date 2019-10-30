@@ -268,6 +268,18 @@ enum patch_index {
     patch_fn_celt_decode_wrapper_shared_patchpoint_index,
     patch_fn_celt_decode_wrapper_process_data_index,
 #endif
+#ifdef INSTALL_OPERATOR_OPUS_CELT_ENCODE
+    patch_fn_opus_celt_encode_cap_shared_patchpoint_index,
+    patch_fn_opus_celt_encode_celt_encoder_shared_patchpoint_index,
+    patch_fn_opus_celt_encode_opus_encoder_shared_patchpoint_index,
+    patch_fn_opus_celt_encode_bands_shared_patchpoint_index,
+    patch_fn_opus_celt_encode_quantbands_shared_patchpoint_index,
+    patch_fn_opus_celt_encode_core_index,
+    patch_fn_opus_celt_encode_entenc_index,
+    patch_fn_opus_celt_encode_kiss_fft_index,
+    patch_fn_opus_celt_encode_laplace_index,
+    patch_fn_opus_celt_encode_mdct_index,
+#endif
 #ifdef INSTALL_OPERATOR_CHANNEL_MIXER
     patch_fn_channel_mixer_process_data_index,
 #endif

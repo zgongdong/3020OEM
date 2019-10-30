@@ -1,3 +1,25 @@
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this file.
+
+Copyright (C) 1997-2019 by Dimitri van Heesch
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of version 2 of the GNU General Public License as published by
+the Free Software Foundation
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this file
+*/
 var NAVTREE =
 [
   [ "Earbud Application", "index.html", [
@@ -10,12 +32,11 @@ var NAVTREE =
       [ "Data Structures", "annotated.html", "annotated_dup" ],
       [ "Data Fields", "functions.html", [
         [ "All", "functions.html", null ],
-        [ "Functions", "functions_func.html", null ],
         [ "Variables", "functions_vars.html", null ]
       ] ]
     ] ],
-    [ "Files", null, [
-      [ "File List", "files.html", "files" ],
+    [ "Files", "files.html", [
+      [ "File List", "files.html", "files_dup" ],
       [ "Globals", "globals.html", [
         [ "All", "globals.html", "globals_dup" ],
         [ "Functions", "globals_func.html", "globals_func" ],
@@ -30,10 +51,10 @@ var NAVTREE =
 
 var NAVTREEINDEX =
 [
-".html",
-"earbud__sm_8h.html#a05260ed8fe4bef15a3dfb6b230da8270",
-"earbud__test_8h.html#a74f835b08877581b7ac1ce1b0b995e8d",
-"unionadxl362__power__control__register.html#ac644bb65c4b0f03ee17771a24540cf1b"
+"adxl362_8c.html",
+"earbud__sm_8h.html#a140f2ac99ac3d996a3950ae92ce5cd28a1803561fb4c9abe24663559153dd8291",
+"earbud__test_8h.html#a7fb379b349a128601ad035e2a916f009",
+"unionadxl362__power__control__register.html#ab712f0c1595dadeed080875fc3b5a064"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

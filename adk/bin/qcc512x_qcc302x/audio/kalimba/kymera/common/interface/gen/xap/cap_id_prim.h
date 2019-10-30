@@ -338,6 +338,8 @@
     KSP
                    - Kymera Stream Probe, streaming of connection buffers' data
                      to a host
+    OPUS_CELT_ENCODE
+                   - Opus-CELT encoder
     TEST_CONSUMER
                    - Capability for consuming arbitrary data.
     CVSD_LOOPBACK
@@ -635,6 +637,8 @@
     DOWNLOAD_KSP
                    - Kymera Stream Probe, streaming of connection buffers' data
                      to a host
+    DOWNLOAD_OPUS_CELT_ENCODE
+                   - Downloadable Opus-CELT encoder
     DUMMY_ID_FORCE_INT
                    - Dummy value to enforce enum uses int type
 
@@ -793,6 +797,7 @@ typedef enum
     CAP_ID_CONVERT_FROM_AUDIO = 0x00BD,
     CAP_ID_CONVERT_TO_AUDIO = 0x00BE,
     CAP_ID_KSP = 0x00BF,
+    CAP_ID_OPUS_CELT_ENCODE = 0x00C0,
     CAP_ID_TEST_CONSUMER = 0x3FF5,
     CAP_ID_CVSD_LOOPBACK = 0x3FF6,
     CAP_ID_TEST_STALL_DROP = 0x3FF7,
@@ -939,6 +944,7 @@ typedef enum
     CAP_ID_DOWNLOAD_CONVERT_FROM_AUDIO = 0x408F,
     CAP_ID_DOWNLOAD_CONVERT_TO_AUDIO = 0x4090,
     CAP_ID_DOWNLOAD_KSP = 0x4093,
+    CAP_ID_DOWNLOAD_OPUS_CELT_ENCODE = 0x4096,
     CAP_ID_DUMMY_ID_FORCE_INT = INT_MAX
 } CAP_ID;
 

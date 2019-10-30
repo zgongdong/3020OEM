@@ -1,5 +1,5 @@
-# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909171759/kalimba/kymera/build/gen_config.py
-# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909171759/kalimba/kymera/build/config/config.stre_rom_kalsim_kalcmd2_release
+# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091823/kalimba/kymera/build/gen_config.py
+# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091823/kalimba/kymera/build/config/config.stre_rom_kalsim_kalcmd2_release
 # Any changes will be lost the next time the configuration is generated.
 
 CONFIG = stre_rom_kalsim_kalcmd2_release
@@ -94,6 +94,7 @@ ALL_INCDIRS = capabilities \
 	../lib_private/cvc_modules/vad410 \
 	../lib_private/cvc_modules/vad400 \
 	../lib_private/cvc_processing \
+	../lib_private/opus_celt \
 	../lib_private/plc100 \
 	../lib_private/security \
 	../lib_private/sva \
@@ -250,6 +251,7 @@ CFG_CAPABILITIES = AAC_DECODE \
 	DBE \
 	IIR_RESAMPLER \
 	MIXER \
+	OPUS_CELT_ENCODE \
 	PEQ \
 	QVA \
 	RATE_ADJUST \
@@ -294,6 +296,7 @@ CFG_LIBS = capabilities/aac_decode/aac_decode \
 	capabilities/encoder/encoder \
 	capabilities/iir_resampler/iir_resampler \
 	capabilities/mixer/mixer \
+	capabilities/opus_celt_encode/opus_celt_encode \
 	capabilities/peq/peq \
 	capabilities/qva/qva \
 	capabilities/rate_adjust/rate_adjust \
@@ -411,6 +414,7 @@ CFG_LIBS = capabilities/aac_decode/aac_decode \
 	../lib_private/basic_op/basic_op \
 	../lib_private/cvc_modules/cvc_modules \
 	../lib_private/cvc_processing/cvc_processing \
+	../lib_private/opus_celt/opus_celt \
 	../lib_private/plc100/plc100 \
 	../lib_private/security/security \
 	../lib_private/sva/sva \
@@ -428,6 +432,7 @@ MAXIM_LIBS = ../lib/aac/aac \
 	../lib_private/aptx_processing/aptx_processing \
 	../lib_private/cvc_modules/cvc_modules \
 	../lib_private/cvc_processing/cvc_processing \
+	../lib_private/opus_celt/opus_celt \
 	../lib_private/plc100/plc100 \
 	../lib_private/security/security \
 	../lib_private/third_party_security/third_party_security \

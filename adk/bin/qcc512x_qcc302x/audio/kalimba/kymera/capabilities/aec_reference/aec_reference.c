@@ -2968,10 +2968,10 @@ bool aec_reference_opmsg_obpm_get_status(OPERATOR_DATA *op_data, void *message_d
         {
             ref_st_drop = get_sink_overflow_disgard_drops(st_disgard_op);
         }
-#ifdef AEC_REFERENCE_LATENCY_DEBUG
+
         ref_spkr_refdrop = op_extra_data->sync_block.speaker_drops + op_extra_data->sync_block.speaker_inserts;
         ref_micref_delay = op_extra_data->sync_block.speaker_delay;
-#endif
+
         if(insert_op)
         {
             num_inserts_total  = get_aec_ref_cbops_inserts_total(insert_op);
@@ -3624,12 +3624,47 @@ void aec_reference_update_mic_reference_sync( AEC_REFERENCE_OP_DATA * op_extra_d
             }
         }
 
+        /*
+         * Requirements for REF-OUT latency:
+         *
+         *   1- No or very smooth variation, echo cancellers can cope with slight
+         *      latency variation but not with sudden change.
+
+         *   2- Must always be in this range: [ref_delay, ref_delay+jitter]
+         *
+         *   (1) is accomodated by this function where we continuously apply the overal
+         *       INPUT->OUTPUT rate to REFERENCE path (see aecref_calc_ref_rate function).
+         *   (2) is guaranteed by cbops latency operator, if latency ever reaches beyond the
+         *       limits it will force it back to the withing range by discarding/inserting
+         *       samples from/into the REFERENCE path.
+         *
+         *   However to avoid any need to discard/insert in long runs (will cause echo canceller
+         *   re-adaptation) we make sure that latency is always tending towards the centre of the
+         *   desired range.
+         */
+
+        if(op_extra_data->sync_block.block_size != 0)
+        {
+            int ref_mic_delay_to_centre =
+                (int) op_extra_data->sync_block.ref_delay +
+                (int) (op_extra_data->sync_block.jitter/2) -
+                (int) op_extra_data->sync_block.speaker_delay;
+            op_extra_data->ref_mic_adj_fix += ref_mic_delay_to_centre * AEC_REFERENCE_REF_MIC_ADJ_COEFF;
+            op_extra_data->ref_mic_adj_fix = pl_min(op_extra_data->ref_mic_adj_fix, AEC_REFERENCE_REF_MIC_ADJ_MAX);
+            op_extra_data->ref_mic_adj_fix = pl_max(op_extra_data->ref_mic_adj_fix, -AEC_REFERENCE_REF_MIC_ADJ_MAX);
+        }
+        else
+        {
+            /* Note: REF-MIC latency control is disabled for block_size == 0 */
+            op_extra_data->ref_mic_adj_fix = 0;
+        }
+
         if(op_extra_data->mic_sync_enable)
         {
             /* if we are syncronising MIC to REF then calculate the rate needs
              * to be applied to the mic path, so it will be syncronised to
              * REFERENCE output(i.e. speaker input)*/
-            int new_mic_ra = aecref_calc_sync_mic_rate(spkr_ra,spkr_rt,mic_rt);
+            int new_mic_ra = (int) aecref_calc_sync_mic_rate(spkr_ra,spkr_rt,mic_rt) - op_extra_data->ref_mic_adj_fix;
             int diff = new_mic_ra - mic_ra;
             if(diff != 0)
             {
@@ -3654,7 +3689,7 @@ void aec_reference_update_mic_reference_sync( AEC_REFERENCE_OP_DATA * op_extra_d
             /* We are synchronising REFERENCE to MIC output,
              * Update reference SW rate adjustment.
              */
-            op_extra_data->sync_block.rm_adjustment = aecref_calc_ref_rate(mic_rt,mic_ra,spkr_rt,spkr_ra);
+            op_extra_data->sync_block.rm_adjustment = (int) aecref_calc_ref_rate(mic_rt,mic_ra,spkr_rt,spkr_ra) + op_extra_data->ref_mic_adj_fix;
 
             /* update rate adjust for reference path */
             cbops_sra_set_rate_adjust(op_extra_data->ref_sw_rateadj_op,

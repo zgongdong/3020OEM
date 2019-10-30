@@ -10,7 +10,7 @@ var modules =
     [ "connection", "group__connection.html", "group__connection" ],
     [ "gatt", "group__gatt.html", "group__gatt" ],
     [ "hfp", "group__hfp.html", "group__hfp" ],
-    [ "library", "group__library.html", "group__library" ],
+    [ "library", "group__library.html", null ],
     [ "nfc_cl", "group__nfc__cl.html", "group__nfc__cl" ],
     [ "print", "group__print.html", null ],
     [ "region", "group__region.html", "group__region" ],

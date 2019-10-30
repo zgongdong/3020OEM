@@ -2,6 +2,8 @@ import xml.etree.ElementTree as ET
 import os
 import sys
 
+LOGICAL_INPUT_MESSAGE_BASE = 0x2900
+
 class Pio:
     def __init__(self, element):
         self.name = element.find("pinFriendlyName").text
@@ -27,13 +29,11 @@ class PioDebounce:
                 self.period = int(_period)
     
 class Message:
-    _id = 1000
-
     def __init__(self, element, pio_dict):
+        self.device_specific = element.get("device_specific", default="false")
+
         self.name = element.find("messageName").text
         self.event = element.find("buttonEvent").text
-        self.id = Message._id
-        Message._id += 1
 
         _timeout_ms = element.find("timeout_ms")
         if _timeout_ms != None:
@@ -69,9 +69,9 @@ def AutoValidateXML(xsd, xml):
     except ImportError:
         sys.stderr.write("Skipping XML schema validation, lxml library not available\n")
     else:
+        xmlschema_doc = etree.parse(xsd)
+        xmlschema = etree.XMLSchema(xmlschema_doc)
         try:
-            xmlschema_doc = etree.parse(xsd)
-            xmlschema = etree.XMLSchema(xmlschema_doc)
             doc = etree.parse(xml)
             xmlschema.assertValid(doc)
         except:
@@ -98,20 +98,28 @@ def ParsePioXml(xml):
     return pio_dict
 
 def ParseMessageXml(xml, pio_dict):
-    message_dict = dict()
+    message_group_dict = dict()
     tree = ET.parse(xml)
     root = tree.getroot()
 
-    for element in root.findall("message"):
-        message = Message(element, pio_dict)
-        message_dict[message.name] = message
+    for message_group in root.findall("message_group"):
+        message_dict = dict()
+        message_group_dict[message_group.attrib["name"]] = message_dict
 
-    return message_dict
+        for element in message_group.findall("message"):
+            message = Message(element, pio_dict)
+            message_dict[message.name] = message
+
+    return message_group_dict
 
 
 
 
-
+def OutputMessageGroups(message_group_dict):
+    message_groups_str = ""
+    for message_group_name, message_dict in message_group_dict.iteritems():
+        message_groups_str += "extern const InputActionMessage_t " + message_group_name + "[" + str(len(message_dict)) + "];\n"
+    return message_groups_str + "\n"
 
 def OutputInputDefines(pio_dict):
     define_str = ""
@@ -119,13 +127,34 @@ def OutputInputDefines(pio_dict):
         define_str += "#define " + format(pio.name, "20s") + " (1UL << " + format(pio.input_event_id, "2d") + ")\n"
     return define_str
 
-def OutputMessageIds(message_dict):
-    message_str = ""
-    for msg in message_dict.itervalues():
-        message_str += "#define " + format(msg.name, "40s") + " " + format(msg.id, "4d") + "\n"
+def OutputMessageIds(message_group_dict):
+    device_specific_messages = set()
+    non_device_specific_messages = set()
+
+    for message_group in message_group_dict.itervalues():
+        for msg in message_group.itervalues():
+            if msg.device_specific == "true" or msg.device_specific == "1":
+                device_specific_messages.add(msg.name)
+            else:
+                non_device_specific_messages.add(msg.name)
+
+    device_specific_message_id = LOGICAL_INPUT_MESSAGE_BASE - len(device_specific_messages)
+    non_device_specific_message_id = LOGICAL_INPUT_MESSAGE_BASE
+
+    message_str = "#define MIN_INPUT_ACTION_MESSAGE_ID " + format(device_specific_message_id, "#4x") + "\n"
+    message_str += "#define MAX_INPUT_ACTION_MESSAGE_ID " + format(non_device_specific_message_id + len(non_device_specific_messages) - 1, "#4x") + "\n\n"
+
+    for message in device_specific_messages:
+        message_str += "#define " + format(message, "40s") + " " + format(device_specific_message_id, "#4x") + "\n"
+        device_specific_message_id += 1
+
+    for message in non_device_specific_messages:
+        message_str += "#define " + format(message, "40s") + " " + format(non_device_specific_message_id, "#4x") + "\n"
+        non_device_specific_message_id += 1
+
     return message_str
 
-def OutputPioConfigTable(pio_debounce, pio_dict, config_name):
+def OutputPioConfigTable(pio_debounce, pio_dict):
 
     # Create array of all possible PIOs, populate with PIOs in use
     pio_list = [-1] * 96
@@ -158,10 +187,10 @@ def OutputPioConfigTable(pio_debounce, pio_dict, config_name):
 
     debounce_str = "\t/* PIO debounce settings */\n\t" + str(pio_debounce.num_reads) + ", " + str(pio_debounce.period) + "\n"
 
-    return "const InputEventConfig_t " + config_name + "  = \n{\n" + table_str + "\n" + bank_str + debounce_str + "};\n"
+    return "const InputEventConfig_t input_event_config = \n{\n" + table_str + "\n" + bank_str + debounce_str + "};\n"
 
 
-def OutputButtonTable(message_dict, action_name):
+def OutputButtonTable(message_group_dict):
 
     def OutputButtonAction(message_dict, action):
         button_str = ""
@@ -192,32 +221,37 @@ def OutputButtonTable(message_dict, action_name):
                 button_str += "\t},\n"
         return button_str
 
-    table_str = "const InputActionMessage_t " + action_name + "[] = \n{\n"
-    table_str += OutputButtonAction(message_dict, "ENTER")
-    table_str += OutputButtonAction(message_dict, "HELD")
-    table_str += OutputButtonAction(message_dict, "SINGLE_CLICK")
-    table_str += OutputButtonAction(message_dict, "HELD_RELEASE")
-    table_str += OutputButtonAction(message_dict, "DOUBLE_CLICK")
-    table_str += OutputButtonAction(message_dict, "RELEASE")
-    table_str += "};\n"
+    table_str = ""
+    for message_group_name, message_dict in message_group_dict.iteritems():
+        table_str += "\nconst InputActionMessage_t " + message_group_name + "[" + str(len(message_dict)) + "] = \n"
+
+        table_str += "{\n"
+        table_str += OutputButtonAction(message_dict, "ENTER")
+        table_str += OutputButtonAction(message_dict, "HELD")
+        table_str += OutputButtonAction(message_dict, "SINGLE_CLICK")
+        table_str += OutputButtonAction(message_dict, "HELD_RELEASE")
+        table_str += OutputButtonAction(message_dict, "DOUBLE_CLICK")
+        table_str += OutputButtonAction(message_dict, "RELEASE")
+        table_str += "};\n"
+
     return table_str
 
-def generate_header(args, pio_dict, message_dict):
+def generate_header(args, pio_dict, message_group_dict):
     h_file = "#ifndef BUTTON_CONFIG_H\n#define BUTTON_CONFIG_H\n\n" + \
-             "#include \"input_event_manager.h\"\n" + \
-             "extern const InputEventConfig_t " + args.config_name + ";\n" + \
-             "extern const InputActionMessage_t " + args.action_name + "[" + str(len(message_dict)) + "];\n\n" + \
+             "#include \"input_event_manager.h\"\n\n" + \
+             "extern const InputEventConfig_t input_event_config;\n\n" + \
+             OutputMessageGroups(message_group_dict) + \
              OutputInputDefines(pio_dict) + "\n" + \
-             OutputMessageIds(message_dict) + \
+             OutputMessageIds(message_group_dict) + \
              "\n#endif\n"
     print h_file
 
-def generate_source(args, pio_debounce, pio_dict, message_dict):
+def generate_source(args, pio_debounce, pio_dict, message_group_dict):
     output_h_file = os.path.basename(os.path.splitext(args.msg_xml)[0] + '.h')
     c_file = "#include \"input_event_manager.h\"\n\n" + \
              "#include \"" + output_h_file + "\"\n\n" + \
-             OutputPioConfigTable(pio_debounce, pio_dict, args.config_name) + "\n" + \
-             OutputButtonTable(message_dict, args.action_name) + "\n"
+             OutputPioConfigTable(pio_debounce, pio_dict) + "\n" + \
+             OutputButtonTable(message_group_dict) + "\n"
     print c_file
 
 if __name__ == "__main__":
@@ -229,8 +263,6 @@ if __name__ == "__main__":
     parser.add_argument('--xsd', type=str, help='xsd file containing XML Schema')
     parser.add_argument('--header', action='store_true')
     parser.add_argument('--source', action='store_true')
-    parser.add_argument('--config_name', type=str, default='InputEventConfig', help='Basename for generated config structure')
-    parser.add_argument('--action_name', type=str, default='InputEventActions', help='Basename for generated action table')
     args = parser.parse_args()
 
     try:
@@ -238,15 +270,15 @@ if __name__ == "__main__":
             for xml in (args.msg_xml, args.pio_xml):
                 AutoValidateXML(args.xsd, xml)
 
-            pio_debounce = ParsePioDebounce(args.pio_xml)
-            pio_dict = ParsePioXml(args.pio_xml)
-            message_dict = ParseMessageXml(args.msg_xml, pio_dict)
+        pio_debounce = ParsePioDebounce(args.pio_xml)
+        pio_dict = ParsePioXml(args.pio_xml)
+        message_group_dict = ParseMessageXml(args.msg_xml, pio_dict)
 
         if args.header:
-            generate_header(args, pio_dict, message_dict)
+            generate_header(args, pio_dict, message_group_dict)
 
         if args.source:
-            generate_source(args, pio_debounce, pio_dict, message_dict)
+            generate_source(args, pio_debounce, pio_dict, message_group_dict)
 
     except XmlValidationException as inst:
         sys.stderr.write("ERROR: Generation of input event files failed...\n")

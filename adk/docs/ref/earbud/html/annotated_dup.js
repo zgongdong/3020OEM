@@ -1,8 +1,5 @@
 var annotated_dup =
 [
-    [ "earbud_log_decoder", null, [
-      [ "EarbudLogDecoder", "classearbud__log__decoder_1_1_earbud_log_decoder.html", "classearbud__log__decoder_1_1_earbud_log_decoder" ]
-    ] ],
     [ "__accelerometer_config", "struct____accelerometer__config.html", "struct____accelerometer__config" ],
     [ "__proximity_config", "struct____proximity__config.html", "struct____proximity__config" ],
     [ "__proximity_state", "struct____proximity__state.html", "struct____proximity__state" ],

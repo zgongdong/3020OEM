@@ -1,5 +1,8 @@
 var NAVTREEINDEX27 =
 {
+"vmal_8h.html#a8ac2883f4ff8c6d9e73d192e58397b2e":[5,0,87,0,22],
+"vmal_8h.html#a8ba22358d696f221ddac37016e504f32":[5,0,87,0,2],
+"vmal_8h.html#a8d68a0dda958f3a4b7d71eaef495a222":[5,0,87,0,4],
 "vmal_8h.html#aa9f0efcbd48efe8890c374cb38385d88":[5,0,87,0,20],
 "vmal_8h.html#aae440f179c6606715748520761ad44b4":[5,0,87,0,18],
 "vmal_8h.html#aba2240bac2b5b7e212e41ff5018271ff":[5,0,87,0,6],

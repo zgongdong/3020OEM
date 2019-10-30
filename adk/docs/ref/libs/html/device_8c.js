@@ -9,8 +9,8 @@ var device_8c =
     [ "Device_GetPropertyU8", "device_8c.html#a4a3b79f44bf58e1a8d537a3dff4c584c", null ],
     [ "Device_IsPropertySet", "device_8c.html#ae16588050956c3b881fcaee40a549c54", null ],
     [ "Device_RemoveProperty", "device_8c.html#a1b60848148ce5000c2d3a0b3472ae817", null ],
-    [ "Device_SetProperty", "device_8c.html#a6f0af6d6c52b44700952f8fee72f958e", null ],
-    [ "Device_SetPropertyPtr", "device_8c.html#a2b9d46ff6aaf8c7103c55f18f2f79f4c", null ],
+    [ "Device_SetProperty", "device_8c.html#ad3f0c34b93553be1fc4b535faec3d549", null ],
+    [ "Device_SetPropertyPtr", "device_8c.html#a5ea5db0aa09c5d10bd1badbcefef9c90", null ],
     [ "Device_SetPropertyU16", "device_8c.html#af4837878b79b0e68f36c7cb420ef3cf1", null ],
     [ "Device_SetPropertyU32", "device_8c.html#ad2535ebd2a929d77174ad3cad0d00025", null ],
     [ "Device_SetPropertyU8", "device_8c.html#a7155d12778a11a969a8aa5f781b98781", null ]

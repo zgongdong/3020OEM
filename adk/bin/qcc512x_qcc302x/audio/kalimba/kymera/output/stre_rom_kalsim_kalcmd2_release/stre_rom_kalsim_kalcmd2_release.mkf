@@ -1,5 +1,5 @@
-# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/build/gen_config.py
-# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1909131532/kalimba/kymera/build/config/config.stre_rom_kalsim_kalcmd2_release
+# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091617/kalimba/kymera/build/gen_config.py
+# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091617/kalimba/kymera/build/config/config.stre_rom_kalsim_kalcmd2_release
 # Any changes will be lost the next time the configuration is generated.
 
 CONFIG = stre_rom_kalsim_kalcmd2_release
@@ -95,6 +95,7 @@ ALL_INCDIRS = capabilities \
 	../lib_private/cvc_modules/ssr \
 	../lib_private/cvc_modules/vad400 \
 	../lib_private/cvc_processing \
+	../lib_private/opus_celt \
 	../lib_private/plc100 \
 	../lib_private/security \
 	../lib_private/sva \
@@ -250,6 +251,7 @@ CFG_CAPABILITIES = AAC_DECODE \
 	DBE \
 	IIR_RESAMPLER \
 	MIXER \
+	OPUS_CELT_ENCODE \
 	PEQ \
 	QVA \
 	RINGTONE_GENERATOR \
@@ -290,6 +292,7 @@ CFG_LIBS = capabilities/aac_decode/aac_decode \
 	capabilities/encoder/encoder \
 	capabilities/iir_resampler/iir_resampler \
 	capabilities/mixer/mixer \
+	capabilities/opus_celt_encode/opus_celt_encode \
 	capabilities/peq/peq \
 	capabilities/qva/qva \
 	capabilities/ringtone_generator/ringtone_generator \
@@ -402,6 +405,7 @@ CFG_LIBS = capabilities/aac_decode/aac_decode \
 	../lib_private/basic_op/basic_op \
 	../lib_private/cvc_modules/cvc_modules \
 	../lib_private/cvc_processing/cvc_processing \
+	../lib_private/opus_celt/opus_celt \
 	../lib_private/plc100/plc100 \
 	../lib_private/security/security \
 	../lib_private/sva/sva \
@@ -422,6 +426,7 @@ MAXIM_LIBS = ../lib/aac/aac \
 	../lib_private/aptx_processing/aptx_processing \
 	../lib_private/cvc_modules/cvc_modules \
 	../lib_private/cvc_processing/cvc_processing \
+	../lib_private/opus_celt/opus_celt \
 	../lib_private/plc100/plc100 \
 	../lib_private/security/security \
 	../lib/sbc/sbc 
@@ -460,7 +465,6 @@ PRIVATE_LIBS = components/adaptor \
 #
 
 COMPILE_EXTRA_DEFS = -DADDR_PER_WORD=4 \
-	-DAEC_REFERENCE_LATENCY_DEBUG \
 	-DAMBER_STYLE_INT_CTRL \
 	-DAPTX_ENABLE_MERGED_HD \
 	-DAPTX_LICENCE_EXTENSIONS \

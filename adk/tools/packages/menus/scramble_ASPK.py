@@ -5,7 +5,7 @@ import sys
 TOOL = '..\\bin\\SecurityCmd.exe'
 TOOLCMD = 'scrambleaspk '
 PRODUCT = '-product CDA'
-PARAM_FILE = '..\..\extensions\pydbg_menus\py\user_defined_mod_seed_aspk.json'
+PARAM_FILE = os.path.join(os.path.dirname(__file__), 'user_defined_mod_seed_aspk.json')
 
 def get_value(data, value):
     return data.get(value, None)

@@ -197,15 +197,14 @@ $cbops.aec_ref_latency_speaker.amount_to_use:
    if POS jump cbops.aec_ref_latency_speaker.amount_to_use.done;
    		M[r0]=r2;
 
-#ifdef AEC_REFERENCE_LATENCY_DEBUG
+     // update counter for number of dropped samples
      r0 = M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_DROPS_FIELD];
      r0 = r0 - r3;
      M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_DROPS_FIELD] = r0;
-#endif
 
-   		Words2Addr(r3);
-   		M1 = r3;
-   		// Get Buffer
+       Words2Addr(r3);
+       M1 = r3;
+       // Get Buffer
       r0 = M[r5 + $cbops_c.cbops_buffer_struct.RW_PTR_FIELD];
       I0 = r0;
       r0 = M[r5 + $cbops_c.cbops_buffer_struct.SIZE_FIELD];
@@ -328,11 +327,10 @@ $cbops.aec_ref_latency_speaker.main:
    r1 = r1 - r3;
    M[r7] = r0;
 
-#ifdef AEC_REFERENCE_LATENCY_DEBUG
+   // update counter for number of dropped samples
    r0 = M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_DROPS_FIELD];
    r0 = r0 + r3;
    M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_DROPS_FIELD] = r0;
-#endif
 
 
 cbops.aec_ref_latency_speaker.main.rm_update:
@@ -376,11 +374,10 @@ cbops.aec_ref_latency_speaker.main.done:
    // Update speaker_data and clear signal from MIC
    M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_DATA_FIELD] = r1;
 
-#ifdef AEC_REFERENCE_LATENCY_DEBUG
+   // update ref-mic delay
    r2 = M[r6 + $aec_reference_latency.aec_latency_common_struct.MIC_DATA_FIELD];
    r1 = r1 - r2;
    M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_DELAY_FIELD] = r1;
-#endif
 
    rts;
 
@@ -400,11 +397,10 @@ cbops.aec_ref_latency_speaker.main.insert:
    M[r7] = r0;
    r1 = r3 + r4;
 
-#ifdef AEC_REFERENCE_LATENCY_DEBUG
+   // update counter for number of inserted samples
    r0 = M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_INSERTS_FIELD];
    r0 = r0 + r10;
    M[r6 + $aec_reference_latency.aec_latency_common_struct.SPEAKER_INSERTS_FIELD] = r0;
-#endif
 
    // Number of insertions (negated)
    r3 = NULL - r10;

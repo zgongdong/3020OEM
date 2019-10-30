@@ -78,6 +78,9 @@
 #ifdef INSTALL_OPERATOR_CELT_ENCODE
 #include "celt_encode/celt_encode.h"
 #endif
+#ifdef INSTALL_OPERATOR_OPUS_CELT_ENCODE
+#include "opus_celt_encode/opus_celt_encode_core.h"
+#endif
 #ifdef INSTALL_OPERATOR_CONVERT_FROM_AUDIO
 #include "convert_from_audio/conv_from_audio.h"
 #endif
@@ -240,6 +243,9 @@ const CAPABILITY_DATA* const capability_data_table[] = {
 #endif
 #ifdef INSTALL_OPERATOR_CELT_ENCODE
     &celt_encode_cap_data,
+#endif
+#ifdef INSTALL_OPERATOR_OPUS_CELT_ENCODE
+    &opus_celt_encode_cap_data,
 #endif
 #ifdef INSTALL_OPERATOR_AAC_DECODE
     &aac_decode_cap_data,

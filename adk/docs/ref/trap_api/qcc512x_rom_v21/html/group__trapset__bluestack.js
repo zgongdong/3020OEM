@@ -6,6 +6,8 @@ var group__trapset__bluestack =
     [ "SinkGetL2capCid", "group__trapset__bluestack.html#ga5789ebdfd7814f743c051b45289b58b6", null ],
     [ "SinkPollAwayTime", "group__trapset__bluestack.html#gad8993b3833971180e7154a9d8e100832", null ],
     [ "StreamL2capSink", "group__trapset__bluestack.html#ga382089ef9cc353b61de31b31c47ceae3", null ],
+    [ "VmGetAclMode", "group__trapset__bluestack.html#ga4eb51076a93f160ca1ae2ba1db45681a", null ],
+    [ "VmGetAclRole", "group__trapset__bluestack.html#ga9576d235fcdbdfed5df63c8e79e490b3", null ],
     [ "VmGetBdAddrtFromCid", "group__trapset__bluestack.html#ga6e104a1dc884af12dbccd18a608018fa", null ],
     [ "VmGetHandleFromPointer", "group__trapset__bluestack.html#gac29e1496922249cd04d17dd64558faab", null ],
     [ "VmGetLocalIrk", "group__trapset__bluestack.html#ga64c8a83677acdc389f0b3454c4ea7b7f", null ],

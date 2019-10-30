@@ -1,0 +1,5 @@
+../../../adk/tools/packages
+../../../adk/src/qcc512x_rom_v21/os/fw/tools
+../../../adk/src/qcc512x_rom_v21/os/fw/tools/make
+../../../adk/bin/qcc512x_rom_v21/audio/tools/acat
+../../../adk/bin/qcc512x_rom_v21/audio/tools/packages

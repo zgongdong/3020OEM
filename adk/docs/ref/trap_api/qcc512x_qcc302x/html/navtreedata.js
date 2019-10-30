@@ -1,3 +1,25 @@
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this file.
+
+Copyright (C) 1997-2019 by Dimitri van Heesch
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of version 2 of the GNU General Public License as published by
+the Free Software Foundation
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+@licend  The above is the entire license notice
+for the JavaScript code in this file
+*/
 var NAVTREE =
 [
   [ "Trap API", "index.html", [
@@ -24,11 +46,12 @@ var NAVTREE =
         [ "Variables", "functions_vars.html", null ]
       ] ]
     ] ],
-    [ "Files", null, [
-      [ "File List", "files.html", "files" ],
+    [ "Files", "files.html", [
+      [ "File List", "files.html", "files_dup" ],
       [ "Globals", "globals.html", [
         [ "All", "globals.html", "globals_dup" ],
         [ "Functions", "globals_func.html", "globals_func" ],
+        [ "Variables", "globals_vars.html", null ],
         [ "Typedefs", "globals_type.html", null ],
         [ "Enumerations", "globals_enum.html", null ],
         [ "Enumerator", "globals_eval.html", null ]
@@ -40,10 +63,10 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "acl_8h.html",
-"group__trapset__core.html#ga09b4b66d1e139080ef57eea9693ad2cc",
-"group__trapset__imageupgrade.html#ga0b1370fc3f7a2ace5860b80a864487f8",
-"group__trapset__status.html#gaa73667e552cfb8659bf7c63f37e5784b",
-"stream_8h.html#ab9b4144438226d6e65588aaf0c5a468f"
+"group__trapset__core.html#ga04c5032d8f7be7ce07da6ee9f41244b3",
+"group__trapset__iic.html#ga029c837fda007e0e97e0f28b8863cbd8",
+"group__trapset__shunt.html#ga65ea2439973100b7ed68ff640aa6d36b",
+"panic_8h.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

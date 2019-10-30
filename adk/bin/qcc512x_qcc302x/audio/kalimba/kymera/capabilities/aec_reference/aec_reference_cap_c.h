@@ -178,6 +178,28 @@ typedef enum
 #endif
 }AEC_REFERENCE_SIDETONE_METHOD;
 
+/*
+ * The latency between REFERENCE and MIC outputs are kept in acceptable range,
+ * typically in range of 1ms to 2.5ms. Echo cancellers will be OK with any value
+ * of latency in this range, however please notice that abrupt change in latencies
+ * won't be acceptable and will cause echo cancellers to re converge. To meet this
+ * requirement AEC_REFERENCE continuously synchronises REFERENCE output to MIC output,
+ * this is done using applying the overal INPUT->OUTPUT to a rate adjustment in
+ * REFERENCE path. However the absolute REF-OUT latency is still prone to long-run
+ * drift, so there is a chance that after several hours it goes out of the acceptable
+ * range. To avoid this we add a small fix to applied rate to REF path to make sure
+ * the latency in overall moves toward the centre of the range. The fix is so extremely
+ * small that won't cause any sudden change in latency
+ */
+/* max = 1e-7, means that for example if the latency is 0.5ms avay from centre point,
+ * it will take at least 5000 seconds to gradually shift it to centre
+ */
+#define AEC_REFERENCE_REF_MIC_ADJ_MAX  FRACTIONAL(1e-7)
+/* determines the speed of convergence, but remember it is always
+ * limited to AEC_REFERENCE_REF_MIC_MAX_ADJUST
+ */
+#define AEC_REFERENCE_REF_MIC_ADJ_COEFF 1
+
 /* Extended data for Capability */
 typedef struct aec_ref_root {
     tCbuffer *input_stream[AEC_REF_NUM_SINK_TERMINALS];          /**< Pointer to Sink Terminals  */
@@ -354,6 +376,12 @@ typedef struct aec_ref_root {
                                               * value of 8.7ms will be used */
     unsigned input_buffer_size;              /* required buffer size for input terminals, if 0 default
                                               * value of 3ms will be used */
+    /* small amount of fix applied to reference rate adjust to make sure
+     * ref-mic output latency always tends to the centre of acceptable range.
+     * No initialisation is required for this field since it is always limit
+     * checked and limits are extremely low.
+     */
+    int ref_mic_adj_fix;
 } AEC_REFERENCE_OP_DATA;
 
 /****************************************************************************

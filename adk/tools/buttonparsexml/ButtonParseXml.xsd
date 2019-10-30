@@ -172,6 +172,7 @@
         </xs:annotation>
       </xs:element>
     </xs:sequence>
+    <xs:attribute name="device_specific" type="xs:boolean" use="optional" />
   </xs:complexType>
 
   <!-- The complete definition of mapping pio events to messages -->
@@ -211,12 +212,26 @@
     <xs:complexType>
       <xs:sequence>
 
-        <xs:element name="message" type="message_t" maxOccurs="unbounded">
-          <xs:annotation>
-            <xs:documentation>
-              Required: Parameter that defines a message
-            </xs:documentation>
-          </xs:annotation>
+        <xs:element name="message_group" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:annotation>
+              <xs:documentation>
+                Required: Used to define one or more logical groups of messages
+              </xs:documentation>
+            </xs:annotation>
+            <xs:sequence>
+
+              <xs:element name="message" type="message_t" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    Required: Parameter that defines a message
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required" />
+          </xs:complexType>
         </xs:element>
 
       </xs:sequence>

@@ -1,5 +1,6 @@
 var NAVTREEINDEX14 =
 {
+"power__smb1352__adapter_8h.html":[5,0,69,0],
 "rtime_8h.html":[5,0,70,0],
 "rtime_8h.html#a008e42df68d2514ea431d4891cf0785f":[5,0,70,0,15],
 "rtime_8h.html#a022f9c435c6a6875735dadfac8eb0cd9":[5,0,70,0,9],
@@ -248,6 +249,5 @@ var NAVTREEINDEX14 =
 "struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_a_d___r_e_p_o_r_t___m_a_p___c_f_m.html#aa7e6f1e21878fd0697f4aaf82f84f558":[4,0,49,4],
 "struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_a_d___r_e_p_o_r_t___m_a_p___c_f_m.html#ad0b5d0439a4b62c08f3f3690df6b824b":[4,0,49,3],
 "struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_a_d___r_e_p_o_r_t___m_a_p___c_f_m.html#ade5461cce86413e42602e895c3977234":[4,0,49,1],
-"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_p_o_r_t___i_d___m_a_p___c_f_m.html":[4,0,50],
-"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_p_o_r_t___i_d___m_a_p___c_f_m.html#a88ac65c501a20b3cbdc34a99e3ef41ca":[4,0,50,2]
+"struct_____g_a_t_t___h_i_d___c_l_i_e_n_t___r_e_p_o_r_t___i_d___m_a_p___c_f_m.html":[4,0,50]
 };
