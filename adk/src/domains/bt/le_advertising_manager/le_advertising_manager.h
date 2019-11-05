@@ -367,4 +367,10 @@ bool LeAdvertisingManager_GetAdvertisingInterval(le_adv_common_parameters_t * in
 */
 bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_address_config);
 
+/*! \brief TODO: This is a test function to advertise Gaa Service untill VOICEUI-223  is fixed
+    \param
+    \return
+*/
+void LeAdvertisingManager_SetupPretendScanResponse(void);
+
 #endif /* LE_ADVERTSING_MANAGER_H_ */

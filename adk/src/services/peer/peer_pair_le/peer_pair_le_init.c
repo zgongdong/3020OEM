@@ -700,8 +700,6 @@ static void peer_pair_le_GattConnect(uint16 cid)
 {
     peerPairLeRunTimeData *ppl = PeerPairLeGetData();
     tp_bdaddr tpaddr;
-    typed_bdaddr connection_taddr;
-    typed_bdaddr peer_taddr;
     
     PEER_PAIR_LE_STATE state = peer_pair_le_get_state();
 
@@ -716,8 +714,6 @@ static void peer_pair_le_GattConnect(uint16 cid)
 
             ppl->gatt_cid = cid;
             PanicFalse(VmGetBdAddrtFromCid(cid, &tpaddr));
-            PanicFalse(BtDevice_GetPublicAddress(&tpaddr.taddr, &connection_taddr));
-            PanicFalse(BtDevice_GetPublicAddress(&ppl->peer, &peer_taddr));
             
             if (!BtDevice_BdaddrTypedIsSame(&tpaddr.taddr, &ppl->peer))
             {

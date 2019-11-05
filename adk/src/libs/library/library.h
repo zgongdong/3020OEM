@@ -173,7 +173,7 @@ typedef enum
 #define     GATT_AMS_PROXY_SERVER_MESSAGE_BASE          0x6700
 #define     GATT_ANCS_PROXY_SERVER_MESSAGE_BASE         0x6710
 #define     GATT_BMS_SERVER_MESSAGE_BASE                0x6720
-#define     GATT_BISTO_COMM_SERVER_MESSAGE_BASE         0x6730
+#define     GATT_GAA_COMM_SERVER_MESSAGE_BASE         0x6730
 
 
 /*! @brief  Message base for non profile libraries */

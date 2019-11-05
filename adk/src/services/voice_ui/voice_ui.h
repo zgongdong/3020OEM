@@ -23,9 +23,7 @@ The Voice Ui uses  \ref audio_domain Audio domain and \ref bt_domain BT domain.
 /*! \brief Voice UI Provider contexts */
 typedef enum
 {
-    context_voice_ui_idle = 0,
-    context_voice_ui_available,
-    context_voice_ui_capture_in_progress,
+    context_voice_ui_default = 0
 } voice_ui_context_t;
 
 

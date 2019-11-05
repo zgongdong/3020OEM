@@ -80,6 +80,21 @@ const promptConfig prompt_config[] =
         .rate = 48000,
         .format = PROMPT_FORMAT_SBC,
     },
+    [PROMPT_MIC_OPEN] = {
+        .filename = "mic_open.sbc",
+        .rate = 16000,
+        .format = PROMPT_FORMAT_SBC,
+    },
+    [PROMPT_MIC_CLOSE] = {
+        .filename = "mic_close.sbc",
+        .rate = 16000,
+        .format = PROMPT_FORMAT_SBC,
+    },
+    [PROMPT_VA_NOT_CONNECTED] = {
+        .filename = "bt_va_not_connected.sbc",
+        .rate = 48000,
+        .format = PROMPT_FORMAT_SBC,
+    }
 };
 
 static promptsTaskData* prompts_GetTaskData(void)

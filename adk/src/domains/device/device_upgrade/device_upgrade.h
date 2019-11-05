@@ -39,7 +39,7 @@ typedef enum {
 typedef enum {
     APP_UPGRADE_CONTEXT_UNUSED = 0,
     APP_UPGRADE_CONTEXT_GAIA,
-    APP_UPGRADE_CONTEXT_BISTO_OTA
+    APP_UPGRADE_CONTEXT_GAA_OTA
 } app_upgrade_context_t;
 
 /*! Structure holding data for the Upgrade module */

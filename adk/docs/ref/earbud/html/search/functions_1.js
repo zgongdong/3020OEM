@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['celsius_5fto_5fkelvin_767',['celsius_to_kelvin',['../namespacethermistor.html#a920f5ab5a155f72a9dd519f4df2e29fb',1,'thermistor']]]
+  ['celsius_5fto_5fkelvin_765',['celsius_to_kelvin',['../namespacethermistor.html#a920f5ab5a155f72a9dd519f4df2e29fb',1,'thermistor']]]
 ];

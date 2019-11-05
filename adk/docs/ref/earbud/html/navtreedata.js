@@ -53,8 +53,8 @@ var NAVTREEINDEX =
 [
 "adxl362_8c.html",
 "earbud__sm_8h.html#a140f2ac99ac3d996a3950ae92ce5cd28a1803561fb4c9abe24663559153dd8291",
-"earbud__test_8h.html#a7fb379b349a128601ad035e2a916f009",
-"unionadxl362__power__control__register.html#ab712f0c1595dadeed080875fc3b5a064"
+"earbud__test_8h.html#a82fc1242c1bb112a080e93b0e16b44cd",
+"unionadxl362__status__register.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

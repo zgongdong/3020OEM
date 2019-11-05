@@ -317,6 +317,8 @@ static tws_topology_goal_id twsTopology_FirstGoalFromMask(tws_topology_goal_msk 
         goal++;
     } while (one_bit != 0x1);
 
+    PanicFalse(goal < TWS_TOPOLOGY_GOAL_NUMBER_IDS);
+
     return goal;
 }
 
@@ -453,6 +455,7 @@ static bool twsTopology_HandleExclusiveGoals(tws_topology_goal_id new_goal,
     /* does the goal have an exclusive goal specified and that exclusive goal
      * is currently active? */
     if (    (exclusive_goal != tws_topology_goal_none)
+         && (exclusive_goal < TWS_TOPOLOGY_GOAL_NUMBER_IDS)
          && (TwsTopology_IsGoalActive(exclusive_goal)))
     {
         DEBUG_LOG("twsTopology_HandleExclusiveGoals exclusive goal %d", new_goal);

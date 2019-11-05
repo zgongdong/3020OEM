@@ -10,6 +10,8 @@
 #include "voice_assistant_container.h"
 #include "voice_assistant_state.h"
 
+static voice_assistant_handle_t *active_va = NULL;
+
 /*! \brief Container that holds the handle to created voice assistants */
 voice_assistant_handle_t* voice_assistant_list[MAX_NO_VA_SUPPORTED];
 
@@ -75,7 +77,7 @@ voice_assistant_handle_t* VoiceAssistants_Register(voice_assistant_if* va_table)
   /* Find a free slot in the container */
   for(va_index=0;va_index<MAX_NO_VA_SUPPORTED;va_index++)
   {
-     if(NULL == voice_assistant_list[va_index])
+     if(!voice_assistant_list[va_index])
         break;
   }
 
@@ -89,6 +91,20 @@ voice_assistant_handle_t* VoiceAssistants_Register(voice_assistant_if* va_table)
 
      /* Copy the handle into the voice assistant container */
      voice_assistant_list[va_index] = va_handle;
+
+     if(!active_va)
+     {
+         VoiceAssistant_SetActiveVa(va_handle);
+     }
+     else
+     {
+         voice_assistant_provider_t active_va_provider = active_va->voice_assistant->GetProvider();
+         voice_assistant_provider_t new_va_provider = va_handle->voice_assistant->GetProvider();
+        
+         /* Provider id is used to determine a voice assistants priority upon registration */
+         if(active_va_provider > new_va_provider)
+            VoiceAssistant_SetActiveVa(va_handle);
+     }
   }
 
   /* return the voice assistant handle */
@@ -104,7 +120,16 @@ void VoiceAssistants_SetVaState(voice_assistant_handle_t* va_handle, voice_assis
        va_handle->voice_assistant_state = state; 
        VoiceAssistant_HandleState(va_handle,state);
    }
+}
 
+voice_assistant_handle_t* VoiceAssistant_GetActiveVa(void)
+{
+    return active_va;
+}
+
+void VoiceAssistant_SetActiveVa(voice_assistant_handle_t *va_handle)
+{
+    active_va = va_handle;
 }
 
 /*! \brief Function to handle voice assistant events */

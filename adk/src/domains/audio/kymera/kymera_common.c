@@ -134,7 +134,7 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
         case KYMERA_STATE_A2DP_STREAMING:
         case KYMERA_STATE_A2DP_STREAMING_WITH_FORWARDING:
         {
-            if(appKymera_IsVoiceCaptureActive())
+            if(Kymera_IsVoiceCaptureActive())
             {
                 cconfig.active_mode = AUDIO_DSP_TURBO_CLOCK;
                 mode = AUDIO_POWER_SAVE_MODE_1;
@@ -173,7 +173,7 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
             }
         }
         break;
-        
+
         case KYMERA_STATE_SCO_ACTIVE:
         case KYMERA_STATE_SCO_ACTIVE_WITH_FORWARDING:
         case KYMERA_STATE_SCO_SLAVE_ACTIVE:
@@ -218,7 +218,7 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
 
         case KYMERA_STATE_TONE_PLAYING:
         {
-            if(appKymera_IsVoiceCaptureActive())
+            if(Kymera_IsVoiceCaptureActive())
             {
                 /* Can't be in low power-mode with an active voice capture chain
                     while playig tone */
@@ -237,7 +237,7 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
     /* Make clock faster when running from SQIF */
     cconfig.active_mode += 1;
 #endif
-    
+
     PanicFalse(AudioDspClockConfigure(&cconfig));
     PanicFalse(AudioPowerSaveModeSet(mode));
 

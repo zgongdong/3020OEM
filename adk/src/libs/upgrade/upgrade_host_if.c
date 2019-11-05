@@ -171,6 +171,7 @@ void UpgradeHostIFTransportDisconnect(void)
     }
 }
 
+
 /****************************************************************************
 NAME
     UpgradeHostIFTransportInUse

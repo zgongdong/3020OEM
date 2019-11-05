@@ -26,11 +26,12 @@ typedef struct
     uint8*              num_service_instances;
 }gatt_client_priority_list_t;
 
+static void GattServiceDisovery_HandleMessage(Task task, MessageId id, Message message);
+static void gattServiceDiscovery_ProcessClientPriorityList(uint16 cid);
+
 static TaskData gsd_taskdata = {.handler = GattServiceDisovery_HandleMessage};
 static gatt_service_discovery_state_t discovery_state = {0};
 static gatt_client_priority_list_t client_priority_list = {NULL, 0, NULL};
-
-static void gattServiceDiscovery_ProcessClientPriorityList(uint16 cid);
 
 static void gattServiceDiscovery_AppDiscoveryGattConnect(uint16 cid)
 {
@@ -102,7 +103,7 @@ static void gattServiceDiscovery_ProcessClientPriorityList(uint16 cid)
 
 }
 
-void GattServiceDisovery_HandleMessage(Task task, MessageId id, Message message)
+static void GattServiceDisovery_HandleMessage(Task task, MessageId id, Message message)
 {
     UNUSED(task);
 
@@ -115,6 +116,33 @@ void GattServiceDisovery_HandleMessage(Task task, MessageId id, Message message)
         default:
         break;
     }
+}
+
+static void gattServiceDiscovery_Init(const client_id_t* gatt_client_prioritised_id[], uint8 num_elements)
+{
+    /* Init may be called once only */
+    PanicNotZero(client_priority_list.clients);
+
+    client_priority_list.clients = gatt_client_prioritised_id;
+    client_priority_list.size = num_elements;
+    client_priority_list.num_service_instances = PanicUnlessMalloc(sizeof(*client_priority_list.num_service_instances)*num_elements);
+    discovery_state.gsd_status = gsd_in_idle;
+
+    GattConnect_RegisterObserver(&gatt_observer_callback);
+}
+
+bool GattServiceDiscovery_Init(Task init_task)
+{
+    UNUSED(init_task);
+    static const client_id_t* client_priority_discover[] =
+    {
+        &gatt_ams_client_id,
+        &gatt_ancs_client_id,
+    };
+
+    GattClientInit(client_priority_discover);
+    gattServiceDiscovery_Init(client_priority_discover, sizeof(client_priority_discover)/sizeof(client_priority_discover[0]));
+    return TRUE;
 }
 
 bool GattServiceDiscovery_StartDiscovery(uint16 cid)
@@ -132,21 +160,6 @@ bool GattServiceDiscovery_StartDiscovery(uint16 cid)
     }
 
     return (discovery_state.gsd_status == gsd_in_progress);
-}
-
-bool GattServiceDiscovery_Init(const client_id_t* gatt_client_prioritised_id[],uint8 num_elements)
-{
-    /* Init may be called once only */
-    PanicNotZero(client_priority_list.clients);
-
-    client_priority_list.clients = gatt_client_prioritised_id;
-    client_priority_list.size = num_elements;
-    client_priority_list.num_service_instances = PanicUnlessMalloc(sizeof(*client_priority_list.num_service_instances)*num_elements);
-    discovery_state.gsd_status = gsd_in_idle;    
-
-    GattConnect_RegisterObserver(&gatt_observer_callback);
-
-    return TRUE;
 }
 
 bool GattServiceDiscovery_DestroyClients(uint16 cid)

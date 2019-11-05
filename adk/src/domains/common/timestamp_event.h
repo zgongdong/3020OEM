@@ -103,6 +103,12 @@ typedef enum
     /*! A2DP shadowing is connected */
     TIMESTAMP_EVENT_A2DP_SHADOWING_CONNECTED,
 
+    /*! Clean connections starting */
+    TIMESTAMP_EVENT_CLEAN_CONNECTIONS_STARTED,
+
+    /*! Clean connections completed */
+    TIMESTAMP_EVENT_CLEAN_CONNECTIONS_COMPLETED,
+
     /*! Always the final event id */
     NUMBER_OF_TIMESTAMP_EVENTS,
 

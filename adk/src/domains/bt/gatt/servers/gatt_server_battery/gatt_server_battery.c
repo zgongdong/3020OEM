@@ -511,29 +511,47 @@ static void gattServerBattery_RemoveClient(uint16 cid)
     }
 }
 
+static bool gattBatteryServer_CanAdvertiseService(const le_adv_data_params_t * params)
+{
+    if(params->data_set != le_adv_data_set_handset_identifiable)
+    {
+        return FALSE;
+    }
+    
+    if(params->completeness != le_adv_data_completeness_full)
+    {
+        return FALSE;
+    }
+    
+    if(params->placement != le_adv_data_placement_advert)
+    {
+        return FALSE;
+    }
+    
+    return TRUE;
+}
+
 static unsigned int gattServerBattery_NumberOfAdvItems(const le_adv_data_params_t * params)
 {
-    if((le_adv_data_set_handset_identifiable == params->data_set) && \
-        (le_adv_data_completeness_full == params->completeness) && \
-        (le_adv_data_placement_advert == params->placement))
+    if(gattBatteryServer_CanAdvertiseService(params))
+    {
         return NUMBER_OF_ADVERT_DATA_ITEMS;
-    else
-        return 0;
+    }
+    
+    return 0;
 }
 
 static le_adv_data_item_t gattServerBattery_GetAdvDataItems(const le_adv_data_params_t * params, unsigned int id)
 {
     UNUSED(id);
 
-    if((le_adv_data_set_handset_identifiable == params->data_set) && \
-        (le_adv_data_completeness_full == params->completeness) && \
-        (le_adv_data_placement_advert == params->placement))
-        return gatt_battery_advert;
-    else
+    if(gattBatteryServer_CanAdvertiseService(params))
     {
-        Panic();
         return gatt_battery_advert;
-    };
+    }
+    
+    Panic();
+    return gatt_battery_advert;
 }
 
 static void gattServerBattery_ReleaseAdvDataItems(const le_adv_data_params_t * params)

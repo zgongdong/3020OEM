@@ -73,3 +73,41 @@ bool appGattGetPublicAddrFromCid(uint16 cid, bdaddr *public_addr)
     
     return addr_found;
 }
+
+uint16 GattHandler_GetGattStartHandle(gatt_server_t gatt_server)
+{
+    uint16 start_handle = 0;
+    switch(gatt_server)
+    {
+        case gatt_server_gaa:
+#ifdef INCLUDE_GAA_COMM_SERVER
+            start_handle = HANDLE_GAA_COMM_SERVICE;
+#endif
+            break;
+
+        default:
+            Panic();
+            break;
+    }
+
+    return start_handle;
+}
+
+uint16 GattHandler_GetGattEndHandle(gatt_server_t gatt_server)
+{
+    uint16 end_handle = 0;
+    switch(gatt_server)
+    {
+        case gatt_server_gaa:
+#ifdef INCLUDE_GAA_COMM_SERVER
+            end_handle = HANDLE_GAA_COMM_SERVICE_END;
+#endif
+            break;
+
+        default:
+            Panic();
+            break;
+    }
+
+    return end_handle;
+}

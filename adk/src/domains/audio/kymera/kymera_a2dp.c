@@ -73,6 +73,7 @@ bool appKymeraHandleInternalA2dpStart(const KYMERA_INTERNAL_A2DP_START_T *msg)
     else if (appA2dpIsSeidTwsSink(seid))
     {
         appKymeraPreStartSanity(theKymera);
+        appKymeraSetState(KYMERA_STATE_A2DP_STARTING_SLAVE);
         appKymeraA2dpStartSlave(&msg->codec_settings, msg->volume_in_db);
         theKymera->a2dp_seid = seid;
         theKymera->output_rate = rate;
@@ -90,7 +91,7 @@ bool appKymeraHandleInternalA2dpStart(const KYMERA_INTERNAL_A2DP_START_T *msg)
         {
             /* Ignore attempts to start forwarding when not streaming */
             DEBUG_LOGF("appKymeraHandleInternalA2dpStart, ignoring start forwarding in state %u", appKymeraGetState());
-        }            
+        }
     }
     else
     {
@@ -143,7 +144,7 @@ void appKymeraHandleInternalA2dpStop(const KYMERA_INTERNAL_A2DP_STOP_T *msg)
         {
             /* Ignore attempts to stop forwarding when not forwarding */
             DEBUG_LOGF("appKymeraHandleInternalA2dpStop, ignoring stop forwarding in state %u", appKymeraGetState());
-        }                    
+        }
     }
     else
     {

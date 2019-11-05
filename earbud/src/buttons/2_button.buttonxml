@@ -89,23 +89,41 @@
         </message>
 
         <message>
-            <messageName>APP_BUTTON_FORWARD</messageName>
+            <messageName>APP_VA_BUTTON_DOWN</messageName>
+            <buttonEvent>ENTER</buttonEvent>
+            <activePinFriendlyName>MFB</activePinFriendlyName>
+        </message>
+
+        <message>
+            <messageName>APP_VA_BUTTON_RELEASE</messageName>
             <buttonEvent>RELEASE</buttonEvent>
             <activePinFriendlyName>MFB</activePinFriendlyName>
         </message>
 
         <message>
-            <messageName>APP_BUTTON_FORWARD_HELD</messageName>
-            <buttonEvent>HELD</buttonEvent>
+            <messageName>APP_VA_BUTTON_SINGLE_CLICK</messageName>
+            <buttonEvent>SINGLE_CLICK</buttonEvent>
             <activePinFriendlyName>MFB</activePinFriendlyName>
-            <timeout_ms>500</timeout_ms>
         </message>
 
         <message>
-            <messageName>APP_BUTTON_FORWARD_HELD_RELEASE</messageName>
+            <messageName>APP_VA_BUTTON_HELD_RELEASE</messageName>
             <buttonEvent>HELD_RELEASE</buttonEvent>
             <activePinFriendlyName>MFB</activePinFriendlyName>
-            <timeout_ms>500</timeout_ms>
+            <timeout_ms>1000</timeout_ms>
+        </message>
+
+        <message>
+            <messageName>APP_VA_BUTTON_DOUBLE_CLICK</messageName>
+            <buttonEvent>DOUBLE_CLICK</buttonEvent>
+            <activePinFriendlyName>MFB</activePinFriendlyName>
+        </message>
+
+        <message>
+            <messageName>APP_VA_BUTTON_HELD_1SEC</messageName>
+            <buttonEvent>HELD</buttonEvent>
+            <activePinFriendlyName>MFB</activePinFriendlyName>
+            <timeout_ms>1000</timeout_ms>
         </message>
 
     </message_group>

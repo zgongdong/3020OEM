@@ -68,15 +68,13 @@ const ui_config_table_content_t earbud_ui_config_table[] =
     {APP_MFB_BUTTON_HELD_RELEASE_6SEC, ui_provider_sm,              context_sm_out_of_case,               ui_input_sm_pair_handset                      },
     {APP_MFB_BUTTON_HELD_RELEASE_8SEC, ui_provider_sm,              context_sm_out_of_case,               ui_input_sm_delete_handsets                   },
 
-#if defined(HAVE_4_BUTTONS) || defined(HAVE_6_BUTTONS) || defined(HAVE_7_BUTTONS) || defined(HAVE_9_BUTTONS)
-    {APP_VA_BUTTON_DOWN,              ui_provider_voice_ui,        context_voice_ui_available,            ui_input_va_1                                 },
-    {APP_VA_BUTTON_SINGLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_available,            ui_input_va_3                                 },
-    {APP_VA_BUTTON_DOUBLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_capture_in_progress,  ui_input_va_4                                 },
-    {APP_VA_BUTTON_HELD_1SEC,         ui_provider_voice_ui,        context_voice_ui_capture_in_progress,  ui_input_va_5                                 },
-    {APP_VA_BUTTON_RELEASE,           ui_provider_voice_ui,        context_voice_ui_available,            ui_input_va_6                                 },
-    {APP_VA_BUTTON_RELEASE,           ui_provider_voice_ui,        context_voice_ui_capture_in_progress,  ui_input_va_6                                 },
-    {APP_VA_BUTTON_SINGLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_idle,                 ui_input_audio_tuning_mode_toggle             },
+    {APP_VA_BUTTON_DOWN,              ui_provider_voice_ui,        context_voice_ui_default,              ui_input_va_1                                 },
+    {APP_VA_BUTTON_SINGLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_default,              ui_input_va_3                                 },
+    {APP_VA_BUTTON_DOUBLE_CLICK,      ui_provider_voice_ui,        context_voice_ui_default,              ui_input_va_4                                 },
+    {APP_VA_BUTTON_HELD_1SEC,         ui_provider_voice_ui,        context_voice_ui_default,              ui_input_va_5                                 },
+    {APP_VA_BUTTON_RELEASE,           ui_provider_voice_ui,        context_voice_ui_default,              ui_input_va_6                                 },
     
+#if defined(HAVE_4_BUTTONS) || defined(HAVE_6_BUTTONS) || defined(HAVE_7_BUTTONS) || defined(HAVE_9_BUTTONS)
     {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_hfp,             context_hfp_voice_call_sco_active,    ui_input_hfp_volume_stop                      },
     {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_av,              context_av_is_streaming,              ui_input_av_volume_down_remote_stop           },
     {APP_BUTTON_VOLUME_UP_DOWN,       ui_provider_hfp,             context_hfp_connected,                ui_input_hfp_volume_stop                      },

@@ -63,7 +63,7 @@ bool AudioManager_StartCapture(voiceDataReceived voice_data_received, const audi
     {
         voice_capture_params_t params;
         audioManager_PopulateVoiceCaptureParam(&params, audio_config);
-        AppKymera_StartVoiceCapture(AudioManager_GetTask(), &params);
+        Kymera_StartVoiceCapture(AudioManager_GetTask(), &params);
         AudioManager_RegisterVoiceDataReceivedCallback(voice_data_received);
         /* Record the state change */
         AudioManager_StartCaptureInitiated();
@@ -82,7 +82,7 @@ bool AudioManager_StopCapture(void)
 
     if(AudioManager_IsStopCaptureAllowed())
     {
-        AppKymera_StopVoiceCapture(AudioManager_GetTask());
+        Kymera_StopVoiceCapture(AudioManager_GetTask());
          /* Record the state change */
         AudioManager_StopCaptureInitiated();
         return TRUE;

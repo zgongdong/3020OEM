@@ -91,3 +91,11 @@ void VoiceSources_InitiateCallUsingNumber(voice_source_t source, phone_number_t 
     }
 }
 
+void VoiceSources_InitiateVoiceDial(voice_source_t source)
+{
+    voiceSources_ValidateSource(source);
+    if(voiceSources_IsSourceRegistered(source) && (telephony_control_interface[source]->InitiateVoiceDial))
+    {
+        telephony_control_interface[source]->InitiateVoiceDial(source);
+    }
+}

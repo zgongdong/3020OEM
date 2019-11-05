@@ -248,6 +248,12 @@ void VoiceSources_TransferOngoingCallAudioToSelf(voice_source_t source);
  */
 void VoiceSources_InitiateCallUsingNumber(voice_source_t source, phone_number_t number);
 
+/*! \brief Initiates a voice dial with the handsets native voice service via a sources registered telephony control interface.
+
+    \param source The voice source
+ */
+void VoiceSources_InitiateVoiceDial(voice_source_t source);
+
 /*\}*/
 
 /* Misc Functions */

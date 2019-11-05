@@ -50,9 +50,11 @@ typedef struct
     /* Flag to store if handset has a BLE connection */
     bool ble_connected;
     
-
     /* Flag to indicate whether the device is BLE connectable */
     bool ble_connectable;
+    
+    /* Flag to indicate whether Handset Service is awaiting data set release confirmation */
+    bool is_awaiting_release_cfm;
 
     /* Handle for LE advertising */
     le_adv_data_set_handle le_advert_handle;

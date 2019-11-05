@@ -23,14 +23,6 @@
 */
 task_list_t * VoiceAssistant_GetMessageClients(void);
 
-/*! \brief Get the active Voice Assistant
-*/
-voice_assistant_handle_t* VoiceAssistant_GetActiveVa(void);
-
-/*! \brief Initialise the voice assistants service
- */
-void VoiceAssistant_SetActiveVa(voice_assistant_handle_t* va_handle);
-
 /*! \brief Get the active Voice Assistant state
 */
 voice_assistant_state_t VoiceAssistant_GetState(voice_assistant_handle_t * va_handle);

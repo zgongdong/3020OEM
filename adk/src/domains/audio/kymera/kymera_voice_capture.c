@@ -9,10 +9,11 @@
 
 #ifdef INCLUDE_KYMERA_VOICE_CAPTURE
 
+#include "kymera_voice_capture.h"
 #include "kymera.h"
 #include "kymera_private.h"
-#include "kymera_voice_capture.h"
-#include "chains/chain_voice_capture.h"
+#include "chains/chain_voice_capture_1mic_sbc.h"
+#include "chains/chain_voice_capture_2mic_sbc.h"
 #include "kymera_aec.h"
 
 #define AUDIO_FRAME_VA_DATA_LENGTH (9)
@@ -27,52 +28,67 @@ typedef enum
     KYMERA_INTERNAL_VOICE_CAPTURE_STOP
 } internal_message_ids;
 
-static void appKymera_VoiceCaptureMessageHandler(Task task, MessageId id, Message msg);
-static const TaskData msgHandler = { appKymera_VoiceCaptureMessageHandler };
+static void kymera_VoiceCaptureMessageHandler(Task task, MessageId id, Message msg);
+static const TaskData msgHandler = { kymera_VoiceCaptureMessageHandler };
 
 static kymera_chain_handle_t voice_capture_chain;
 
-static void appKymera_ConfigureSbcEncoder(sbc_encoder_params_t *sbc_params)
+static const chain_config_t * kymera_GetChainConfig(void)
+{
+#ifdef  KYMERA_VOICE_CAPTURE_USE_1MIC_CVC
+    return &chain_voice_capture_1mic_sbc_config;
+#else
+    return &chain_voice_capture_2mic_sbc_config;
+#endif
+}
+
+static void kymera_ConfigureSbcEncoder(sbc_encoder_params_t *sbc_params)
 {
     Operator sbc = ChainGetOperatorByRole(voice_capture_chain, OPR_SBC_ENCODER);
     PanicFalse(sbc);
     OperatorsSbcEncoderSetEncodingParams(sbc, sbc_params);
 }
 
-static void appKymera_ConfigureCvc(void)
+static void kymera_ConfigureCvc(void)
 {
     Operator cvc = ChainGetOperatorByRole(voice_capture_chain, OPR_CVC_SEND);
     PanicFalse(cvc);
     OperatorsStandardSetUCID(cvc, UCID_CVC_SEND_VA);
 }
 
-static void appKymera_ConfigureVoiceCaptureChain(voice_capture_params_t *params)
+static void kymera_ConfigureVoiceCaptureChain(voice_capture_params_t *params)
 {
-    appKymera_ConfigureSbcEncoder(&params->encoder_params.sbc);
-    appKymera_ConfigureCvc();
+    kymera_ConfigureSbcEncoder(&params->encoder_params.sbc);
+    kymera_ConfigureCvc();
 }
 
-static void appKymera_CreateVoiceCaptureChain(voice_capture_params_t *params)
+static void kymera_CreateVoiceCaptureChain(voice_capture_params_t *params)
 {
     PanicFalse(voice_capture_chain == NULL);
-    voice_capture_chain = PanicNull(ChainCreate(&chain_voice_capture_config));
-    appKymera_ConfigureVoiceCaptureChain(params);
+    voice_capture_chain = PanicNull(ChainCreate(kymera_GetChainConfig()));
+    OperatorsFrameworkSetKickPeriod(KICK_PERIOD_VOICE);
+    kymera_ConfigureVoiceCaptureChain(params);
     ChainConnect(voice_capture_chain);
 }
 
-static void appKymera_DestroyVoiceCaptureChain(void)
+static void kymera_DestroyVoiceCaptureChain(void)
 {
     PanicFalse(voice_capture_chain != NULL);
     ChainDestroy(voice_capture_chain);
     voice_capture_chain = NULL;
 }
 
-static void appKymera_ConnectVoiceCaptureChainToMics(void)
+static void kymera_ConnectVoiceCaptureChainToMics(void)
 {
-    Source mic1 = Kymera_GetMicrophoneSource(MIC_1, NULL, MIC_SAMPLE_RATE, high_priority_user);
-    Source mic2 = Kymera_GetMicrophoneSource(MIC_2, mic1, MIC_SAMPLE_RATE, high_priority_user);
+    Source mic1 = NULL, mic2 = NULL;
     Sink mic1_input = ChainGetInput(voice_capture_chain, EPR_VOICE_CAPTURE_MIC1_IN);
     Sink mic2_input = ChainGetInput(voice_capture_chain, EPR_VOICE_CAPTURE_MIC2_IN);
+
+    mic1 = Kymera_GetMicrophoneSource(MIC_1, NULL, MIC_SAMPLE_RATE, high_priority_user);
+    if (mic2_input)
+    {
+        mic2 = Kymera_GetMicrophoneSource(MIC_2, mic1, MIC_SAMPLE_RATE, high_priority_user);
+    }
 
 #ifdef INCLUDE_KYMERA_AEC
     aec_connect_audio_input_t connect_params = {0};
@@ -85,24 +101,35 @@ static void appKymera_ConnectVoiceCaptureChainToMics(void)
     Kymera_ConnectAudioInputToAec(&connect_params);
 #else
     PanicNull(StreamConnect(mic1, mic1_input));
-    PanicNull(StreamConnect(mic2, mic2_input));
+    if (mic2_input)
+    {
+        PanicNull(StreamConnect(mic2, mic2_input));
+    }
 #endif
 }
 
-static void appKymera_DisconnectVoiceCaptureChainFromMics(void)
+static void kymera_DisconnectVoiceCaptureChainFromMics(void)
 {
+    Sink mic2_input = ChainGetInput(voice_capture_chain, EPR_VOICE_CAPTURE_MIC2_IN);
+
 #ifdef INCLUDE_KYMERA_AEC
     Kymera_DisconnectAudioInputFromAec();
 #else
     StreamDisconnect(NULL, ChainGetInput(voice_capture_chain, EPR_VOICE_CAPTURE_MIC1_IN));
-    StreamDisconnect(NULL, ChainGetInput(voice_capture_chain, EPR_VOICE_CAPTURE_MIC2_IN));
+    if (mic2_input)
+    {
+        StreamDisconnect(NULL, mic2_input);
+    }
 #endif
 
     Kymera_CloseMicrophone(MIC_1, high_priority_user);
-    Kymera_CloseMicrophone(MIC_2, high_priority_user);
+    if (mic2_input)
+    {
+        Kymera_CloseMicrophone(MIC_2, high_priority_user);
+    }
 }
 
-static Source appKymera_GetVoiceCaptureOutput(void)
+static Source kymera_GetVoiceCaptureOutput(void)
 {
     Source capture_output = ChainGetOutput(voice_capture_chain, EPR_VOICE_CAPTURE_OUT);
 
@@ -111,7 +138,7 @@ static Source appKymera_GetVoiceCaptureOutput(void)
     return capture_output;
 }
 
-static void appKymera_DisconnectVoiceCaptureOutput(void)
+static void kymera_DisconnectVoiceCaptureOutput(void)
 {
     Source capture_output = ChainGetOutput(voice_capture_chain, EPR_VOICE_CAPTURE_OUT);
 
@@ -119,17 +146,17 @@ static void appKymera_DisconnectVoiceCaptureOutput(void)
     StreamDisconnect(capture_output, NULL);
 }
 
-static void appKymera_StartVoiceCaptureChain(void)
+static void kymera_StartVoiceCaptureChain(void)
 {
     ChainStart(voice_capture_chain);
 }
 
-static void appKymera_StopVoiceCaptureChain(void)
+static void kymera_StopVoiceCaptureChain(void)
 {
     ChainStop(voice_capture_chain);
 }
 
-static void appKymera_SendStartCaptureCfm(Task receiver, Source capture_source)
+static void kymera_SendStartCaptureCfm(Task receiver, Source capture_source)
 {
     MESSAGE_MAKE(message, KYMERA_START_VOICE_CAPTURE_CFM_T);
     message->status = FALSE;
@@ -142,67 +169,66 @@ static void appKymera_SendStartCaptureCfm(Task receiver, Source capture_source)
     MessageSend(receiver, KYMERA_START_VOICE_CAPTURE_CFM, message);
 }
 
-static void appKymera_SendStopCaptureCfm(Task receiver, bool status)
+static void kymera_SendStopCaptureCfm(Task receiver, bool status)
 {
     MESSAGE_MAKE(message, KYMERA_STOP_VOICE_CAPTURE_CFM_T);
     message->status = status;
     MessageSend(receiver, KYMERA_STOP_VOICE_CAPTURE_CFM, message);
 }
 
-static void appKymera_StartVoiceCapture(const KYMERA_INTERNAL_VOICE_CAPTURE_START_T *req)
+static void kymera_StartVoiceCapture(const KYMERA_INTERNAL_VOICE_CAPTURE_START_T *req)
 {
     if (voice_capture_chain == NULL)
     {
         Source capture_source = NULL;
-        OperatorsFrameworkSetKickPeriod(KICK_PERIOD_VOICE);
-        appKymera_CreateVoiceCaptureChain(&req->params);
-        appKymera_ConnectVoiceCaptureChainToMics();
-        capture_source = appKymera_GetVoiceCaptureOutput();
-        appKymera_StartVoiceCaptureChain();
-        appKymera_SendStartCaptureCfm(req->client, capture_source);
+        kymera_CreateVoiceCaptureChain(&req->params);
+        kymera_ConnectVoiceCaptureChainToMics();
+        capture_source = kymera_GetVoiceCaptureOutput();
+        kymera_StartVoiceCaptureChain();
+        kymera_SendStartCaptureCfm(req->client, capture_source);
 
-        DEBUG_LOG("appKymera_StartVoiceCapture: Audio capture has started");
+        DEBUG_LOG("kymera_StartVoiceCapture: Audio capture has started");
     }
     else
     {
-        appKymera_SendStartCaptureCfm(req->client, NULL);
+        kymera_SendStartCaptureCfm(req->client, NULL);
     }
 }
 
-static void appKymera_StopVoiceCapture(const KYMERA_INTERNAL_VOICE_CAPTURE_STOP_T *req)
+static void kymera_StopVoiceCapture(const KYMERA_INTERNAL_VOICE_CAPTURE_STOP_T *req)
 {
     if (voice_capture_chain)
     {
-        appKymera_DisconnectVoiceCaptureChainFromMics();
-        appKymera_StopVoiceCaptureChain();
-        appKymera_DisconnectVoiceCaptureOutput();
-        appKymera_DestroyVoiceCaptureChain();
-        appKymera_SendStopCaptureCfm(req->client, TRUE);
+        kymera_DisconnectVoiceCaptureChainFromMics();
+        kymera_StopVoiceCaptureChain();
+        kymera_DisconnectVoiceCaptureOutput();
+        kymera_DestroyVoiceCaptureChain();
+        kymera_SendStopCaptureCfm(req->client, TRUE);
 
-        DEBUG_LOG("appKymera_StopVoiceCapture: Audio capture has stopped");
+        DEBUG_LOG("kymera_StopVoiceCapture: Audio capture has stopped");
     }
     else
     {
-        appKymera_SendStopCaptureCfm(req->client, FALSE);
+        kymera_SendStopCaptureCfm(req->client, FALSE);
     }
 }
 
-static void appKymera_VoiceCaptureMessageHandler(Task task, MessageId id, Message msg)
+static void kymera_VoiceCaptureMessageHandler(Task task, MessageId id, Message msg)
 {
     UNUSED(task);
     switch (id)
     {
         case KYMERA_INTERNAL_VOICE_CAPTURE_START:
-            appKymera_StartVoiceCapture(msg);
+            kymera_StartVoiceCapture(msg);
         break;
 
         case KYMERA_INTERNAL_VOICE_CAPTURE_STOP:
-            appKymera_StopVoiceCapture(msg);
+            kymera_StopVoiceCapture(msg);
         break;
     }
 }
 
-void AppKymera_StartVoiceCapture(Task client, const voice_capture_params_t *params)
+void Kymera_StartVoiceCapture(Task client, const voice_capture_params_t *params)
 {
     MESSAGE_MAKE(message, KYMERA_INTERNAL_VOICE_CAPTURE_START_T);
     kymeraTaskData *theKymera = KymeraGetTaskData();
@@ -213,7 +239,7 @@ void AppKymera_StartVoiceCapture(Task client, const voice_capture_params_t *para
     MessageSendConditionally((Task) &msgHandler, KYMERA_INTERNAL_VOICE_CAPTURE_START, message, &theKymera->lock);
 }
 
-void AppKymera_StopVoiceCapture(Task client)
+void Kymera_StopVoiceCapture(Task client)
 {
     MESSAGE_MAKE(message, KYMERA_INTERNAL_VOICE_CAPTURE_STOP_T);
     kymeraTaskData *theKymera = KymeraGetTaskData();
@@ -223,7 +249,7 @@ void AppKymera_StopVoiceCapture(Task client)
     MessageSendConditionally((Task) &msgHandler, KYMERA_INTERNAL_VOICE_CAPTURE_STOP, message, &theKymera->lock);
 }
 
-bool appKymera_IsVoiceCaptureActive(void)
+bool Kymera_IsVoiceCaptureActive(void)
 {
     return (voice_capture_chain != NULL);
 }

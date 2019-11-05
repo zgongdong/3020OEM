@@ -92,9 +92,9 @@ void appKymeraGetA2dpCodecSettingsCore(const a2dp_codec_settings *codec_settings
     \param mode working mode to configure.
     \param rate The sample rate to configure in Hz.
     \param cp_enabled Content protection enabled.
+    \param buffer_size The size of the buffer to use in words. If zero the buffer size will not be configured.
  */
-void appKymeraConfigureRtpDecoder(Operator op, rtp_codec_type_t codec_type,
-                                  rtp_working_mode_t mode, uint32 rate, bool cp_header_enabled);
+void appKymeraConfigureRtpDecoder(Operator op, rtp_codec_type_t codec_type, rtp_working_mode_t mode, uint32 rate, bool cp_header_enabled, unsigned buffer_size);
 
 /*! \brief Helper function to initially configure the l/r mixer in the A2DP input chain.
 

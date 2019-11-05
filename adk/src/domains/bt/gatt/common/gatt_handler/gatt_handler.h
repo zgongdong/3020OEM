@@ -14,6 +14,9 @@
 
 #define APP_GATT_SERVER_INSTANCES   (1)
 
+/*! list of gatt servers */
+typedef enum {gatt_server_gaa} gatt_server_t;
+
 /*! Structure holding information for the gatt task */
 typedef struct
 {
@@ -50,5 +53,22 @@ bool GattHandlerInit(Task init_task);
 */
 bool appGattGetPublicAddrFromCid(uint16 cid, bdaddr *public_addr);
 
+
+/*! @brief Gets the GATT start handle for the requested GATT server
+
+    \param gatt_server  The GATT server
+
+    \returns The GATT start handle for the requested GATT server
+*/
+uint16 GattHandler_GetGattStartHandle(gatt_server_t gatt_server);
+
+
+/*! @brief Gets the GATT end handle for the requested GATT server
+
+    \param gatt_server  The GATT server
+
+    \returns The GATT end handle for the requested GATT server
+*/
+uint16 GattHandler_GetGattEndHandle(gatt_server_t gatt_server);
 
 #endif /* GATT_HANDLER_H_ */

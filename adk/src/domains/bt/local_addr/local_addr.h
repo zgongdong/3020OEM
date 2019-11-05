@@ -112,4 +112,11 @@ bool LocalAddr_ReleaseBleGeneration(Task task);
 */
 bool LocalAddr_HandleConnectionLibraryMessages(MessageId id, Message message, bool already_handled);
 
+/*
+    \brief Is the local device using its public address
+
+    \return TRUE if local address is public, otherwise FALSE
+*/
+bool LocalAddr_IsPublic(void);
+
 #endif /* _DOMAINS_BT_LOCAL_ADDR_ */

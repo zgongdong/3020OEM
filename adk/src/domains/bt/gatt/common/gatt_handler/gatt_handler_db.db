@@ -27,3 +27,15 @@
 ADD_BATTERY_SERVICE(LEFT)
 ADD_BATTERY_SERVICE(RIGHT)
 #endif
+
+#ifdef INCLUDE_GATT_AMS_PROXY
+#include "gatt_ams_proxy_server_db.dbi"
+#endif
+
+#ifdef INCLUDE_GATT_ANCS_PROXY
+#include "gatt_ancs_proxy_server_db.dbi"
+#endif
+
+#ifdef INCLUDE_GAA_COMM_SERVER
+#include "gatt_gaa_comm_server_db.dbi"
+#endif

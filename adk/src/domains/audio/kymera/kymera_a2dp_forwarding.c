@@ -22,10 +22,12 @@
 #include "chains/chain_aac_stereo_decoder_left.h"
 #include "chains/chain_aac_stereo_decoder_right.h"
 #include "chains/chain_forwarding_input_sbc_left.h"
-#include "chains/chain_forwarding_input_aptx_left.h"
-#include "chains/chain_forwarding_input_aac_left.h"
 #include "chains/chain_forwarding_input_sbc_right.h"
+#include "chains/chain_forwarding_input_aptx_left.h"
 #include "chains/chain_forwarding_input_aptx_right.h"
+#include "chains/chain_forwarding_input_aptx_left_no_pcm_buffer.h"
+#include "chains/chain_forwarding_input_aptx_right_no_pcm_buffer.h"
+#include "chains/chain_forwarding_input_aac_left.h"
 #include "chains/chain_forwarding_input_aac_right.h"
 #include "chains/chain_forwarding_input_aac_stereo_left.h"
 #include "chains/chain_forwarding_input_aac_stereo_right.h"
@@ -33,10 +35,29 @@
 /* L2CAP MTU targeting 2-DH5 packets. */
 #define L2CAP_MTU_2DH5 672
 
+
 static const chain_join_roles_t slave_inter_chain_connections[] =
 {
     { .source_role = EPR_SOURCE_DECODED_PCM, .sink_role = EPR_SINK_MIXER_MAIN_IN }
 };
+
+static bool appConfigAptxNoPcmLatencyBuffer(void)
+{
+#ifdef INCLUDE_GAA
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+static bool appConfigAacNoPcmLatencyBuffer(void)
+{
+#ifdef INCLUDE_GAA
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
 
 static void appKymeraGetA2dpCodecSettingsSBC(const a2dp_codec_settings *codec_settings,
                                              sbc_encoder_params_t *sbc_encoder_params)
@@ -49,8 +70,6 @@ static void appKymeraGetA2dpCodecSettingsSBC(const a2dp_codec_settings *codec_se
     sbc_encoder_params->number_of_blocks = (((sbc_format >> 4) & 3) + 1) * 4;
     sbc_encoder_params->allocation_method =  ((sbc_format >> 2) & 1);
 }
-
-
 
 /* These SBC encoder parameters are used when forwarding is disabled to save power */
 static void appKymeraSetLowPowerSBCParams(kymera_chain_handle_t chain, uint32 rate)
@@ -95,20 +114,26 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
                 case AV_SEID_SBC_SNK:  kick_period = KICK_PERIOD_MASTER_SBC;  break;
                 case AV_SEID_AAC_SNK:
                     kick_period = KICK_PERIOD_MASTER_AAC;
-                    if (appConfigAacStereoForwarding())
+                    if (appConfigAacStereoForwarding() && appConfigAacNoPcmLatencyBuffer())
                     {
                         pcm_latency_buffer_size = 0;
                     }
                     break;
-                case AV_SEID_APTX_SNK: kick_period = KICK_PERIOD_MASTER_APTX; break;
+                case AV_SEID_APTX_SNK:
+                    kick_period = KICK_PERIOD_MASTER_APTX;
+                    if (appConfigAptxNoPcmLatencyBuffer())
+                    {
+                        pcm_latency_buffer_size = 0;
+                    }
+                    break;
             }
             theKymera->output_rate = rate;
             appKymeraCreateOutputChain(kick_period, pcm_latency_buffer_size, volume_config);
             appKymeraSetOperatorUcids(FALSE, NO_SCO);
-            
+
         }
         return FALSE;
-        case KYMERA_STATE_A2DP_STARTING_B:	
+        case KYMERA_STATE_A2DP_STARTING_B:
         {
             const chain_config_t *config = NULL;
             bool is_left = appConfigIsLeft();
@@ -138,10 +163,19 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
                 break;
                 case AV_SEID_APTX_SNK:
                     DEBUG_LOG("appKymeraA2dpStartMaster, create standard TWS aptX input chain");
-                    config = is_left ? &chain_forwarding_input_aptx_left_config :
-                                       &chain_forwarding_input_aptx_right_config;
+
+                    if (appConfigAptxNoPcmLatencyBuffer())
+                    {
+                        config = is_left ? &chain_forwarding_input_aptx_left_no_pcm_buffer_config :
+                                           &chain_forwarding_input_aptx_right_no_pcm_buffer_config;
+                    }
+                    else
+                    {
+                        config = is_left ? &chain_forwarding_input_aptx_left_config :
+                                           &chain_forwarding_input_aptx_right_config;
+                    }
                 break;
-                    
+
                 default:
                     Panic();
                 break;
@@ -158,7 +192,9 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
             rtp_codec_type_t rtp_codec = -1;
             Operator op;
             Operator op_rtp_decoder = ChainGetOperatorByRole(chain_handle, OPR_RTP_DECODER);
+            unsigned rtp_buffer_size = PRE_DECODER_BUFFER_SIZE;
             rtp_working_mode_t mode = rtp_decode;
+
             switch (seid)
             {
                 case AV_SEID_SBC_SNK:
@@ -177,7 +213,13 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
                     if (appConfigAacStereoForwarding())
                     {
                         op = PanicZero(ChainGetOperatorByRole(chain_handle, OPR_SPLITTER));
-                        OperatorsConfigureSplitter(op, MS_TO_BUFFER_SIZE_CODEC(TWS_STANDARD_LATENCY_MAX_MS, MAX_CODEC_RATE_KBPS), FALSE, operator_data_format_encoded);
+                        OperatorsSplitterEnableSecondOutput(op, FALSE);
+                        OperatorsSplitterSetDataFormat(op, operator_data_format_encoded);
+
+                        if (appConfigAacNoPcmLatencyBuffer())
+                        {
+                            rtp_buffer_size = MS_TO_BUFFER_SIZE_CODEC(TWS_STANDARD_LATENCY_MAX_MS, MAX_CODEC_RATE_KBPS);
+                        }
                     }
 
                     op = ChainGetOperatorByRole(chain_handle, OPR_CONSUMER);
@@ -193,15 +235,23 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
                     op = PanicZero(ChainGetOperatorByRole(chain_handle, OPR_APTX_DEMUX));
                     OperatorsStandardSetSampleRate(op, rate);
                     op = PanicZero(ChainGetOperatorByRole(chain_handle, OPR_SWITCHED_PASSTHROUGH_CONSUMER));
-                     OperatorsStandardSetBufferSizeWithFormat(op, APTX_LATENCY_BUFFER_SIZE, operator_data_format_encoded);
+                    OperatorsStandardSetBufferSizeWithFormat(op, APTX_LATENCY_BUFFER_SIZE, operator_data_format_encoded);
                     appKymeraConfigureSpcDataFormat(op, ADF_GENERIC_ENCODED);
+                    if (appConfigAptxNoPcmLatencyBuffer())
+                    {
+                        unsigned latency_buffer_size = MS_TO_BUFFER_SIZE_CODEC(PCM_LATENCY_BUFFER_MS, APTX_MONO_CODEC_RATE_KBPS);
+                        op = PanicZero(ChainGetOperatorByRole(chain_handle, OPR_LATENCY_BUFFER));
+                        OperatorsSetPassthroughDataFormat(op, operator_data_format_encoded);
+                        OperatorsStandardSetBufferSizeWithFormat(op, latency_buffer_size, operator_data_format_encoded);
+                    }
                     if (!cp_header_enabled)
                     {
                         mode = rtp_ttp_only;
                     }
                 break;
             }
-            appKymeraConfigureRtpDecoder(op_rtp_decoder, rtp_codec, mode, rate, cp_header_enabled);
+
+            appKymeraConfigureRtpDecoder(op_rtp_decoder, rtp_codec, mode, rate, cp_header_enabled, rtp_buffer_size);
             ChainConnect(theKymera->chain_input_handle);
             /* Connect input and output chains together */
             PanicFalse(ChainConnectInput(theKymera->chainu.output_vol_handle,

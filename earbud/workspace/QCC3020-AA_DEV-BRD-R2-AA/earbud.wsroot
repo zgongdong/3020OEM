@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <aliases>
-<alias name="wsroot">../../../../../bin/qcc512x_qcc302x</alias>
+<alias name="wsroot">../../../adk/bin/qcc512x_qcc302x</alias>
 </aliases>

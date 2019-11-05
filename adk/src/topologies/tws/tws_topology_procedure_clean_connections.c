@@ -11,6 +11,7 @@
 #include "tws_topology_procedure_clean_connections.h"
 
 #include <connection_manager.h>
+#include <timestamp_event.h>
 
 #include <logging.h>
 
@@ -53,6 +54,15 @@ tws_topology_procedure_fns_t proc_clean_connections_fns = {
     NULL,
 };
 
+static void TwsTopology_ProcedureCleanConnectionsResetProc(void)
+{
+    DEBUG_LOG("TwsTopology_ProcedureCleanConnectionsResetProc");
+
+    TimestampEvent(TIMESTAMP_EVENT_CLEAN_CONNECTIONS_COMPLETED);
+
+    MessageCancelFirst(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT);
+    TwsTopProcCleanConnectionsGetTaskData()->active = FALSE;
+}
 
 void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
                                                 twstop_proc_start_cfm_func_t proc_start_cfm_fn,
@@ -69,6 +79,8 @@ void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
     td->complete_fn = proc_complete_fn;
     td->active = TRUE;
 
+    TimestampEvent(TIMESTAMP_EVENT_CLEAN_CONNECTIONS_STARTED);
+
     ConManagerTerminateAllAcls(TwsTopProcCleanConnectionsGetTask());
     MessageSendLater(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT, NULL, TWSTOP_PROC_CLOSE_ALL_CFM_TIMEOUT_MS);
 
@@ -80,8 +92,7 @@ void TwsTopology_ProcedureCleanConnectionsCancel(twstop_proc_cancel_cfm_func_t p
 {
     DEBUG_LOG("TwsTopology_ProcedureCleanConnectionsCancel");
 
-    MessageCancelFirst(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT);
-    TwsTopProcCleanConnectionsGetTaskData()->active = FALSE;
+    TwsTopology_ProcedureCleanConnectionsResetProc();
     proc_cancel_cfm_fn(tws_topology_procedure_clean_connections, proc_result_success);
 }
 
@@ -92,8 +103,7 @@ static void twsTopology_ProcCleanConnectionsHandleCloseAllCfm(void)
 
     if (TwsTopProcCleanConnectionsGetTaskData()->active)
     {
-        MessageCancelFirst(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT);
-        TwsTopProcCleanConnectionsGetTaskData()->active = FALSE;
+        TwsTopology_ProcedureCleanConnectionsResetProc();
         TwsTopProcCleanConnectionsGetTaskData()->complete_fn(tws_topology_procedure_clean_connections, 
                                                              proc_result_success);
     }

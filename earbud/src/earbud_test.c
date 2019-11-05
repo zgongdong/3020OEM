@@ -2031,9 +2031,3 @@ void appTestVaRelease(void)
     of a dedicated VA button */
     LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_6);
 }
-
-void appTestVaAudioTuningModeToggle(void)
-{
-    DEBUG_LOG("appTestVaAudioTuningModeToggle");
-    LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_audio_tuning_mode_toggle);
-}

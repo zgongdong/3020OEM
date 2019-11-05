@@ -15,6 +15,7 @@
 #include <task_list.h>
 
 #include "local_addr.h"
+#include "local_name.h"
 
 #include "le_advertising_manager.h"
 #include "le_advertising_manager_sm.h"
@@ -699,7 +700,7 @@ static void leAdvertisingManager_HandleSetAdvertisingDataCfm(const CL_DM_BLE_SET
     else
     {
         DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingDataCfm Failure, Message Received in Unexpected Blocking Condition %x", adv_task_data->blockingCondition);
-        Panic();
+        /* TODO: GAA LE Panic();*/
     }
 }
 
@@ -731,7 +732,7 @@ static void leAdvertisingManager_HandleSetScanResponseDataCfm(const CL_DM_BLE_SE
     {
         DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetScanResponseDataCfm Failure, Message Received in Unexpected Blocking Condition %x", adv_task_data->blockingCondition);    
             
-        Panic();
+       /* TODO: GAA LE Panic();*/
     }
 }
 
@@ -756,8 +757,8 @@ static void leAdvertisingManager_HandleSetAdvertisingParamCfm(const CL_DM_BLE_SE
         }
         else
         {            
-            DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingParamCfm Failure, CL_DM_BLE_SET_ADVERTISING_PARAMS_CFM received with failure");    
-            
+            DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingParamCfm Failure, CL_DM_BLE_SET_ADVERTISING_PARAMS_CFM received with failure");
+
             Panic();
         }
     }
@@ -1378,4 +1379,62 @@ bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_add
     own_address_config->timeout = BLE_RPA_TIMEOUT_DEFAULT;
     
     return TRUE;
+}
+
+/*! TODO: This is a test function to advertise Gaa Service untill VOICEUI-223  is fixed */
+void LeAdvertisingManager_SetupPretendScanResponse(void)
+{
+    uint16 size_name;
+    uint16 size_sr_data;
+
+    const char* name = (const char*)LocalName_GetPrefixedName(&size_name);
+
+    ConnectionDmBleSetAdvertiseEnable(FALSE);
+
+    uint8 ad_data[] =
+    {
+        2, ble_ad_type_flags, BLE_FLAGS_GENERAL_DISCOVERABLE_MODE | BLE_FLAGS_DUAL_CONTROLLER | BLE_FLAGS_DUAL_HOST,
+        5, ble_ad_type_complete_uuid16, 0x0F, 0x18, /* Battery */ 0x26, 0xFE, /* Gaa */
+    };
+
+    uint8 sr_data[31] =
+    {
+    /*  Gaa Comm service data; UUID = 0xFE26, ModelID = 0xF00100  */
+        6, ble_ad_type_service_data, 0x26, 0xFE, 0x00, 0x01, 0xF0
+    };
+
+    if (size_name > 22)
+    {
+        size_name = 22;
+        sr_data[8] = ble_ad_type_shortened_local_name;
+    }
+    else
+    {
+        sr_data[8] = ble_ad_type_complete_local_name;
+    }
+
+    size_sr_data = size_name + 9;
+    sr_data[7] = size_name + 1;
+
+    memcpy(sr_data + 9, name, size_name);
+
+    DEBUG_LOG("Advertising Data: %u", sizeof ad_data);
+
+    for(uint8 i = 0; i < sizeof ad_data; ++i)
+    {
+        uint8 ch = ad_data[i];
+        DEBUG_LOG("%3d 0x%02X %c", i, ch, ch > 31 && ch < 127 ? ch : '.');
+    }
+
+    DEBUG_LOG("Scan Response Data: %u", size_sr_data);
+
+    for(uint8 i = 0; i < size_sr_data; ++i)
+    {
+        uint8 ch = sr_data[i];
+        DEBUG_LOG("%3d 0x%02X %c", i, ch, ch > 31 && ch < 127 ? ch : '.');
+    }
+
+    ConnectionDmBleSetScanResponseDataReq(size_sr_data, sr_data);
+    ConnectionDmBleSetAdvertisingDataReq(sizeof ad_data, ad_data);
+    ConnectionDmBleSetAdvertiseEnable(TRUE);
 }

@@ -10,6 +10,7 @@ Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 #define GATT_SERVICE_DISCOVERY_H
 
 #include "gatt_client.h"
+#include "gatt_client_identifiers.h"
 
 /*! Enumerated type for service discovery status */
 typedef enum
@@ -20,14 +21,11 @@ typedef enum
     gsd_complete_failure /*! Service discovery failed */
 }service_discovery_status;
 
-/*! Function to initialise the GATT service discovery.
-
-    \param prioritised list which defines the order in which the
-           clients will be processed.
-
-    \return TRUE if initialised successfully, FALSE otherwise.
-*/
-bool GattServiceDiscovery_Init(const client_id_t* gatt_client_prioritised_id[],uint8 num_elements);
+/*! \brief Initialise the GATT Dervice Discovery component
+    \param[in] init_task - unused
+    \return bool TRUE
+ */
+bool GattServiceDiscovery_Init(Task init_task);
 
 /*! Function to initiate the GATT service procedure.
 
@@ -52,14 +50,5 @@ bool GattServiceDiscovery_DestroyClients(uint16 cid);
     \return Gatt service discovery component's present status.
 */
 service_discovery_status GattServiceDiscovery_GetStatus(void);
-
-/*! Function to handle the GATT discovery messages.
-
-    \param task    Task to which GATT discovery messages needs to be posted.
-    \param id      GATT Primitive message identifiers.
-    \param message GATT Service discovery message from lower layers.
-
-*/
-void GattServiceDisovery_HandleMessage(Task task, MessageId id, Message message);
 
 #endif

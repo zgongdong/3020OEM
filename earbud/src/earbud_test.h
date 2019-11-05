@@ -787,9 +787,4 @@ void appTestVaPressAndHold(void);
 */
 void appTestVaRelease(void);
 
-/*! \brief Send the VA AUDIO TUNING toggle command
-*/
-void appTestVaAudioTuningModeToggle(void);
-
-
 #endif /* EARBUD_TEST_H */

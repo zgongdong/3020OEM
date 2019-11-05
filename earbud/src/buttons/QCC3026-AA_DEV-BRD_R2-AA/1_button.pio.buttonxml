@@ -10,7 +10,7 @@
     </pio_debounce>
 
     <pio>
-        <pinFriendlyName>MFB_BUTTON</pinFriendlyName>
+        <pinFriendlyName>SYS_CTRL</pinFriendlyName>
         <pad>0</pad>
     </pio>
 </pio_map>

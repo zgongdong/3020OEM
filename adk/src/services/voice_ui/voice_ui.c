@@ -44,59 +44,18 @@ static void voiceUi_HandleUiInput(MessageId ui_input)
 {
     voice_assistant_handle_t* handle = VoiceAssistant_GetActiveVa();
 
-    if(handle && (handle->voice_assistant_state != VOICE_ASSISTANT_STATE_IDLE))
+    if(handle)
     {
         DEBUG_LOGF("voiceUi_HandleUiInput, state %u", handle->voice_assistant_state );
-
-        switch(ui_input)
-        {
-            case ui_input_va_1:
-            case ui_input_va_2:
-            case ui_input_va_3:
-            case ui_input_va_4:
-            case ui_input_va_5:
-            case ui_input_va_6:
-                VoiceAssistants_UiEventHandler(handle,(ui_input_t)ui_input);
-
-            default:
-                /* Un handled UI input */
-                break;
-        }
-    }
-    else
-    {
-        switch(ui_input)
-        {
-            case ui_input_audio_tuning_mode_toggle:
-                handle = VoiceAssistants_GetHandleFromProvider(voice_assistant_provider_audio_tuning);
-                VoiceAssistants_UiEventHandler(handle,(ui_input_t)ui_input);
-                break;
-            default:
-                /*Un handled UI input*/
-                break;
-    }
+        VoiceAssistants_UiEventHandler(handle, ui_input);
     }
 }
 
 static unsigned voiceUi_GetUiContext(void)
 {
     voice_assistant_state_t state = VoiceAssistant_GetState(VoiceAssistant_GetActiveVa());
-    voice_ui_context_t context = BAD_CONTEXT;
+    voice_ui_context_t context = context_voice_ui_default;
 
-    switch(state)
-    {
-        case VOICE_ASSISTANT_STATE_IDLE:
-            context = context_voice_ui_idle;
-            break;
-        case VOICE_ASSISTANT_STATE_CONNECTED:
-            context = context_voice_ui_available;
-            break;
-        case VOICE_ASSISTANT_STATE_ACTIVE:
-            context = context_voice_ui_capture_in_progress;
-            break;
-        default:
-            break;
-    }
     DEBUG_LOGF("voiceUi_GetUiContext, context %d, state %d", context,state);
     
     return (unsigned)context;

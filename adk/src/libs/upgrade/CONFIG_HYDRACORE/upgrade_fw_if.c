@@ -34,7 +34,6 @@ NOTES
 
 #include "upgrade_fw_if.h"
 #include "upgrade_fw_if_priv.h"
-
 #include <imageupgrade.h>
 
 /******************************************************************************

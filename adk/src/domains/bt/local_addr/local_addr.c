@@ -181,3 +181,8 @@ bool LocalAddr_HandleConnectionLibraryMessages(MessageId id, Message message, bo
     
     return already_handled;
 }
+
+bool LocalAddr_IsPublic(void)
+{
+    return (LocalAddr_GetBleType() == OWN_ADDRESS_PUBLIC);
+}

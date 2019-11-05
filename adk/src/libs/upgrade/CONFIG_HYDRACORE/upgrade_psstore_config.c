@@ -225,10 +225,10 @@ void UpgradeRevertUpgrades(void)
 /****************************************************************************
 NAME
     UpgradeIsRunningNewImage
-    
+
 DESCRIPTION
     See if we are have rebooted for an image upgrade.
-    
+
 RETURNS
     What the ImageUpgradeSwapTryStatus trap returns:
     TRUE if we have rebooted to try a new image and that new image is OK, else FALSE.

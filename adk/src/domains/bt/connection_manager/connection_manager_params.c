@@ -38,7 +38,7 @@ static const ble_connection_params low_latency_connection_params =
     LE_FIXED_PARAMS, LE_LL_CONNECTION_PARAMS
 };
 
-/* Taken from sink app Bisto parameters */
+/* Taken from sink app GAA parameters */
 #define LE_AUDIO_CONNECTION_PARAMS \
     .conn_interval_min  = 12, \
     .conn_interval_max  = 24, \

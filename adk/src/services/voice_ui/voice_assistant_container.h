@@ -40,23 +40,14 @@ typedef enum
     VOICE_ASSISTANT_STATE_ACTIVE            /*!< Voice Assistant is currently capturing the local microphone data. */
 } voice_assistant_state_t;
 
-/*! \brief Voice Assistant user events */
-typedef enum
-{
-    voice_assistant_user_event_1,
-    voice_assistant_user_event_2,
-    voice_assistant_user_event_3,
-    voice_assistant_user_event_4,
-    voice_assistant_user_event_5,
-    voice_assistant_user_event_6
-} voice_assistant_user_events_t;
 /*! \brief Voice Assistant provider names*/
 typedef enum
 {
-voice_assistant_provider_ama = 0,
-voice_assistant_provider_bisto,
-voice_assistant_provider_audio_tuning  
+voice_assistant_provider_audio_tuning = 0, 
+voice_assistant_provider_ama,
+voice_assistant_provider_gaa 
 } voice_assistant_provider_t;
+
 /*! \brief Voice Assistant Callback Routines */
 typedef struct
 {
@@ -68,8 +59,8 @@ typedef struct
 /*! \brief Voice assistant handle descriptor */
 typedef struct
 {
-   voice_assistant_state_t  voice_assistant_state;
-   voice_assistant_if*      voice_assistant;
+   voice_assistant_state_t    voice_assistant_state;
+   voice_assistant_if*        voice_assistant;
 }voice_assistant_handle_t;
 
 /*\{*/
@@ -98,6 +89,14 @@ voice_assistant_handle_t* VoiceAssistants_Register(voice_assistant_if* va_table)
  */
 void VoiceAssistants_SetVaState(voice_assistant_handle_t* va_handle,
                                                              voice_assistant_state_t va_state);
+
+/*! \brief Get the active Voice Assistant
+*/
+voice_assistant_handle_t* VoiceAssistant_GetActiveVa(void);
+
+/*! \brief Initialise the voice assistants service
+ */
+void VoiceAssistant_SetActiveVa(voice_assistant_handle_t* va_handle);
 
 /*! \brief Function called by voice assistant to handle ui events.
     \param

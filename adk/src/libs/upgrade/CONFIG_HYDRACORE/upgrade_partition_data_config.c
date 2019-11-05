@@ -22,7 +22,6 @@ NOTES
 #include <panic.h>
 #include <print.h>
 #include <imageupgrade.h>
-#include <rsa_decrypt.h>
 #include <ps.h>
 
 #include "upgrade_partition_data.h"
@@ -31,6 +30,7 @@ NOTES
 #include "upgrade_fw_if.h"
 #include "upgrade_psstore.h"
 #include "upgrade_partitions.h"
+#include "rsa_decrypt.h"
 #include "upgrade_peer.h"
 
 #if defined (UPGRADE_RSA_2048)

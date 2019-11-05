@@ -244,12 +244,16 @@ static void appAvrcpEnterDisconnected(avInstanceTaskData *theInst)
     if (theInst->avrcp.vendor_data)
         appAvrcpFinishAvrcpPassthroughRequest(theInst, avrcp_fail);
 
+    /* We're not going to get confirmation for any passthrough request, so clear lock */
+    appAvrcpClearLock(theInst, APP_AVRCP_LOCK_PASSTHROUGH_REQ);
+
     /* Clear any queued up messages */
     MessageCancelAll(&theInst->av_task, AV_INTERNAL_AVRCP_REMOTE_REQ);
 
     /*! Client disconnect requests are not confirmed, so it is acceptable to
     cancel any outstanding disconnect requests when entering disconnected. */
     MessageCancelAll(&theInst->av_task, AV_INTERNAL_AVRCP_DISCONNECT_REQ);
+    MessageCancelAll(&theInst->av_task, AV_INTERNAL_AVRCP_DISCONNECT_LATER_REQ);
 
     /* Clear AVRCP pointer */
     theInst->avrcp.avrcp = NULL;
@@ -257,8 +261,7 @@ static void appAvrcpEnterDisconnected(avInstanceTaskData *theInst)
     /* Clear client list and any locks */
     if (theInst->avrcp.client_list)
     {
-        TaskList_Destroy(theInst->avrcp.client_list);
-        theInst->avrcp.client_list = NULL;
+        TaskList_RemoveAllTasks(theInst->avrcp.client_list);
     }
     theInst->avrcp.client_lock = 0;
 
@@ -453,7 +456,7 @@ static bool appAvrcpAddClient(avInstanceTaskData *theInst, Task client)
 
 static bool appAvrcpRemoveClient(avInstanceTaskData *theInst, Task client_task)
 {
-    return TaskList_RemoveTask(theInst->avrcp.client_list, client_task);
+    return theInst->avrcp.client_list ? TaskList_RemoveTask(theInst->avrcp.client_list, client_task) : FALSE;
 }
 
 /*! \brief Request outgoing AVRCP connection
@@ -481,7 +484,10 @@ static void appAvrcpHandleInternalAvrcpConnectRequest(avInstanceTaskData *theIns
                 Task client_task = 0;
 
                 /* Copy avrcp client list to instance */
-                PanicNotNull(theInst->avrcp.client_list);
+                if (theInst->avrcp.client_list)
+                {
+                    TaskList_Destroy(theInst->avrcp.client_list);
+                }
                 PanicNotZero(theInst->avrcp.client_lock);
                 theInst->avrcp.client_list = TaskList_Duplicate(&AvGetTaskData()->avrcp_client_list);
 
@@ -711,7 +717,10 @@ static void appAvrcpHandleInternalAvrcpConnectIndication(avInstanceTaskData *the
         case AVRCP_STATE_DISCONNECTED:
         {
             /* Copy avrcp client list to instance */
-            PanicNotNull(theInst->avrcp.client_list);
+            if (theInst->avrcp.client_list)
+            {
+                TaskList_Destroy(theInst->avrcp.client_list);
+            }
             PanicNotZero(theInst->avrcp.client_lock);
             theInst->avrcp.client_list = TaskList_Duplicate(&AvGetTaskData()->avrcp_client_list);
 
@@ -1026,7 +1035,7 @@ static void appAvrcpHandleInternalAvrcpPlayRequest(avInstanceTaskData *theInst)
 
 static void appAvrcpHandleInternalAvrcpPauseRequest(avInstanceTaskData *theInst)
 {
-    DEBUG_LOGF("appAvrcpHandleInternalAvrcpPlayRequest(%p)", theInst);
+    DEBUG_LOGF("appAvrcpHandleInternalAvrcpPauseRequest(%p)", theInst);
     if (appAvrcpIsPlaybackLocked(theInst))
     {
         /* Re-send message if lock set, as it may be delayed message */
@@ -1213,9 +1222,6 @@ static void appAvrcpHandleAvrcpDisconnectIndication(avInstanceTaskData *theInst,
                 message->status = ind->status;
                 TaskList_MessageSend(theInst->avrcp.client_list, AV_AVRCP_DISCONNECT_IND, message);
 
-                /* We're not going to get confirmation for any passthrough request, so clear lock */
-                appAvrcpClearLock(theInst, APP_AVRCP_LOCK_PASSTHROUGH_REQ);
-
                 /* Move to 'disconnected' state */
                 appAvrcpSetState(theInst, AVRCP_STATE_DISCONNECTED);
             }
@@ -1230,8 +1236,7 @@ static void appAvrcpHandleAvrcpDisconnectIndication(avInstanceTaskData *theInst,
                 /* Clear client list and any locks */
                 if (theInst->avrcp.client_list)
                 {
-                    TaskList_Destroy(theInst->avrcp.client_list);
-                    theInst->avrcp.client_list = NULL;
+                    TaskList_RemoveAllTasks(theInst->avrcp.client_list);
                 }
                 theInst->avrcp.client_lock = 0;
 

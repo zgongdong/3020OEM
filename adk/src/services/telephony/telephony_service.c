@@ -106,6 +106,10 @@ static void telephonyService_HandleUiInput(Task task, MessageId ui_input, Messag
             VoiceSources_TransferOngoingCallAudioToSelf(source);
             break;
 
+        case ui_input_hfp_voice_dial:
+            VoiceSources_InitiateVoiceDial(source);
+            break;
+
         default:
             break;
     }

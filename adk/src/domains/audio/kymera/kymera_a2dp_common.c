@@ -45,7 +45,7 @@ void appKymeraGetA2dpCodecSettingsCore(const a2dp_codec_settings *codec_settings
     }
 }
 
-void appKymeraConfigureRtpDecoder(Operator op, rtp_codec_type_t codec_type, rtp_working_mode_t mode, uint32 rate, bool cp_header_enabled)
+void appKymeraConfigureRtpDecoder(Operator op, rtp_codec_type_t codec_type, rtp_working_mode_t mode, uint32 rate, bool cp_header_enabled, unsigned buffer_size)
 {
     const uint32 filter_gain = FRACTIONAL(0.997);
     const uint32 err_scale = FRACTIONAL(-0.00000001);
@@ -75,7 +75,12 @@ void appKymeraConfigureRtpDecoder(Operator op, rtp_codec_type_t codec_type, rtp_
     */
 
     OperatorsStandardSetLatencyLimits(op, appConfigTwsTimeBeforeTx(), US_PER_MS*TWS_STANDARD_LATENCY_MAX_MS);
-    OperatorsStandardSetBufferSizeWithFormat(op, PRE_DECODER_BUFFER_SIZE, operator_data_format_encoded);
+
+    if (buffer_size)
+    {
+        OperatorsStandardSetBufferSizeWithFormat(op, buffer_size, operator_data_format_encoded);
+    }
+
     OperatorsRtpSetContentProtection(op, cp_header_enabled);
     /* Sending this message trashes the RTP operator sample rate */
     PanicFalse(OperatorMessage(op, ttp_params_msg._data, OPMSG_COMMON_MSG_SET_TTP_PARAMS_WORD_SIZE, NULL, 0));

@@ -2027,7 +2027,9 @@ bool appAvConnectPeer(const bdaddr* peer_addr)
 bool appAvDisconnectPeer(const bdaddr* peer_addr)
 {
     avInstanceTaskData *av_inst = appAvInstanceFindFromBdAddr(peer_addr);
-    return appAvA2dpDisconnectRequest(av_inst) || appAvAvrcpDisconnectRequest(&av_inst->av_task, av_inst);
+    bool a2dp_pending = appAvA2dpDisconnectRequest(av_inst);
+    bool avrcp_pending = appAvAvrcpDisconnectRequest(&av_inst->av_task, av_inst);
+    return (a2dp_pending || avrcp_pending);
 }
 
 

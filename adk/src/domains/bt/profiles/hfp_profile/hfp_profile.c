@@ -238,11 +238,6 @@ static void appHfpHandleUiInput(MessageId  ui_input)
         case ui_input_sco_fwd_volume_stop:
             ScoFwdVolumeStop(-hfpConfigGetHfpVolumeStep());
             break;
-
-        case ui_input_hfp_voice_dial:
-            if(appHfpIsConnected())
-                appHfpCallVoice();
-            break;
             
         default:
             break;
@@ -2736,40 +2731,7 @@ void appHfpCallLastDialed(void)
 void appHfpCallVoice(void)
 {
     DEBUG_LOG("appHfpCallVoice");
-
-    switch (appHfpGetState())
-    {
-        case HFP_STATE_DISCONNECTED:
-        {
-            /* if we don't have a HFP connection but SCO FWD is connected, it means that we are the slave */
-            if(ScoFwdIsConnected())
-            {
-                /* we send the command across the SCO FWD OTA channel asking the master to
-                    trigger the CALL VOICE */
-                ScoFwdCallVoice();
-                break;
-            }
-            /* if SCO FWD is not connected we can try to enstablish SLC and proceed */
-            else if(!appHfpConnectHandset())
-            {
-                Telephony_NotifyError(HfpProfile_VoiceSourceDeviceMappingGetSourceForIndex(hfp_primary_link));
-                break;
-            }
-        }
-
-        case HFP_STATE_CONNECTING_LOCAL:
-        case HFP_STATE_CONNECTING_REMOTE:
-        case HFP_STATE_CONNECTED_IDLE:
-        {
-            /* Send message into HFP state machine */
-            MessageSendConditionally(appGetHfpTask(), HFP_INTERNAL_HFP_VOICE_DIAL_REQ,
-                                     NULL, &appHfpGetLock());
-        }
-        break;
-
-        default:
-            break;
-    }
+    VoiceSources_InitiateVoiceDial(voice_source_hfp_1);
 }
 
 /*! \brief Disable voice dial

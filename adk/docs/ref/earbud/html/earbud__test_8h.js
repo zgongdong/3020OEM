@@ -103,7 +103,6 @@ var earbud__test_8h =
     [ "appTestSetTestNumber", "earbud__test_8h.html#ad2fde783be17bde0a4b1341f60f99642", null ],
     [ "appTestThermistorDegreesCelsiusToMillivolts", "earbud__test_8h.html#afb6975ec0e55775a85f55bc6cc9ef718", null ],
     [ "appTestUpgradeResetState", "earbud__test_8h.html#a31104e2fff2b77cd7433d09f3df3bf4f", null ],
-    [ "appTestVaAudioTuningModeToggle", "earbud__test_8h.html#a031ce9ba08c0cda840940f2eb69ce816", null ],
     [ "appTestVaDoubleTap", "earbud__test_8h.html#a783e07ced76d38af25357d677d83da85", null ],
     [ "appTestVaPressAndHold", "earbud__test_8h.html#ac604c2ebf9c6f8335535ff256876198b", null ],
     [ "appTestVaRelease", "earbud__test_8h.html#accb2d4f59c089760a8cdfe32579c9240", null ],

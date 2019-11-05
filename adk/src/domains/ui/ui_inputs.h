@@ -82,7 +82,6 @@
     UI_INPUT(ui_input_va_4) \
     UI_INPUT(ui_input_va_5) \
     UI_INPUT(ui_input_va_6) \
-    UI_INPUT(ui_input_audio_tuning_mode_toggle) \
     UI_INPUT(ui_input_invalid = UI_INPUTS_BOUNDS_CHECK_MESSAGE_BASE) \
 
 #define GENERATE_ENUM(ENUM) ENUM,

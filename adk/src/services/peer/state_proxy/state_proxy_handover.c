@@ -195,6 +195,8 @@ static void stateProxy_Commit(bool is_primary)
     /* On both devices, swap peer addresses, since handover results in address swap */
     loc_peer = stateProxy_GetPeerConnection(stateProxy_GetLocalData());
     rem_peer = stateProxy_GetPeerConnection(stateProxy_GetRemoteData());
+    PanicNull(loc_peer);
+    PanicNull(rem_peer);
     tmp_addr = loc_peer->device;
     loc_peer->device = rem_peer->device;
     rem_peer->device = tmp_addr;

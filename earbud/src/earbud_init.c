@@ -100,6 +100,19 @@
 #include <stdio.h>
 #include <feature.h>
 
+#ifdef INCLUDE_GAA
+#include <gaa.h>
+#endif
+
+#ifdef INCLUDE_GAA_COMM_SERVER
+#include <gatt_server_gaa_comm.h>
+#endif
+
+#ifdef INCLUDE_GATT_SERVICE_DISCOVERY
+#include <gatt_client.h>
+#include <gatt_client_identifiers.h>
+#include <gatt_service_discovery.h>
+#endif
 
 /*!< Structure used while initialising */
 initData    app_init;
@@ -400,6 +413,9 @@ static const init_table_entry_t appInitTable[] =
 #endif
     {GattServerGatt_Init,   0, NULL},
     {GattServerGap_Init,    0, NULL},
+#ifdef INCLUDE_GAA_COMM_SERVER
+    {GattServerGaaComm_Init, 0, NULL},
+#endif
     {appSmInit,             0, NULL},
 #ifdef INCLUDE_DFU
     {appUpgradeInit,        UPGRADE_INIT_CFM, NULL},    // Upgrade wants to start a connection (can be gatt)
@@ -425,8 +441,16 @@ static const init_table_entry_t appInitTable[] =
 #ifdef INCLUDE_FAST_PAIR
     {FastPair_Init,         0, NULL},
 #endif
+
+#ifdef INCLUDE_GATT_SERVICE_DISCOVERY
+    {GattServiceDiscovery_Init, 0, NULL},
+#endif
     // All GATT Servers MUST be initialised before GATT initialisation is complete.    
     {GattConnect_ServerInitComplete, GATT_CONNECT_SERVER_INIT_COMPLETE_CFM, NULL},
+
+#ifdef INCLUDE_GAA
+    {Gaa_Init, 0, NULL},
+#endif
 };
 
 void appInit(void)

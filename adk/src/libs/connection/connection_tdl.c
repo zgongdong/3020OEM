@@ -1850,10 +1850,10 @@ uint16 connectionAuthGetIndexedAttributeSizeNow( uint16 mru_index )
     if (mru_index < MAX_TRUSTED_DEVICES &&
         GET_TDI_CACHE.element[mru_index].order != TDI_ORDER_UNUSED )
     {
-        /* Read attribute data size */
+        /* Read attribute data size, convert the value to octets */
         size = PsRetrieve(
                 PSKEY_TDL_ATTRIBUTE_BASE + GET_TDI_CACHE.element[mru_index].order,
-                NULL, 0);
+                NULL, 0) * sizeof(uint16);
     }
     return size;
 }

@@ -54,21 +54,21 @@ typedef struct
     \param params Parameters based on which the audio capture will be configured.
     \return A KYMERA_START_VOICE_CAPTURE_CFM message will be send to the client task.
 */
-void AppKymera_StartVoiceCapture(Task client, const voice_capture_params_t *params);
+void Kymera_StartVoiceCapture(Task client, const voice_capture_params_t *params);
 
 /*! \brief Stop voice capture.
     \param client Task to send the CFM response to.
     \return A KYMERA_STOP_VOICE_CAPTURE_CFM message will be send to the client task.
 */
-void AppKymera_StopVoiceCapture(Task client);
+void Kymera_StopVoiceCapture(Task client);
 
 /*! \brief Check if voice capture chain is up
 */
-bool appKymera_IsVoiceCaptureActive(void);
+bool Kymera_IsVoiceCaptureActive(void);
 #else
-#define AppKymera_StartVoiceCapture(client, params) ((void)(0))
-#define AppKymera_StopVoiceCapture(client) ((void)(0))
-#define appKymera_IsVoiceCaptureActive() FALSE
+#define Kymera_StartVoiceCapture(client, params) ((void)(0))
+#define Kymera_StopVoiceCapture(client) ((void)(0))
+#define Kymera_IsVoiceCaptureActive() FALSE
 #endif /* INCLUDE_KYMERA_VOICE_CAPTURE */
 
 #endif /* KYMERA_VOICE_CAPTURE_H */

@@ -61,7 +61,7 @@ static void audioTuningMode_EventHandler(ui_input_t event_id)
 {
     switch(event_id)
     {
-        case ui_input_audio_tuning_mode_toggle:
+        case ui_input_va_3:
             audioTuningMode_Toggle();
             break;
         default:
