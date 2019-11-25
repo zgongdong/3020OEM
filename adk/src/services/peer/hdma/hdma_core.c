@@ -24,9 +24,13 @@
 #include "types.h"
 #endif
 
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+/*! \todo remove unused after development */
+#pragma unitsuppress Unused
 static int16 hdma_Filter(hdma_timestamp timestamp, queue_t *queue, int16 halfLife_ms,int16 maxAge_ms, queue_type_t type);
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
 static void hdma_ValidateVoiceQuality(hdma_timestamp timestamp,hdma_core_handover_urgency_t *urgency, hdma_core_handover_urgency_t *suppressUrgency );
+#endif
+#ifdef INCLUDE_HDMA_RSSI_EVENT
 static hdma_core_handover_urgency_t hdma_ValidateLink(hdma_timestamp timestamp);
 #endif
 static void hdma_SetHandoverEvent(hdma_core_handover_result_t newResult);
@@ -83,7 +87,9 @@ uint8 Hdma_CoreInit(void){
     hdma_BudInit(&(hdma_core_data->local_bud));
     hdma_BudInit(&(hdma_core_data->remote_bud));
 #ifndef DEBUG_HDMA_UT
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
     StateProxy_GetLocalAndRemoteBatteryStates(&(hdma_core_data->local_bud.batteryStatus),&(hdma_core_data->remote_bud.batteryStatus));
+#endif
     hdma_core_data->local_bud.inCase = StateProxy_IsInCase();
     hdma_core_data->local_bud.inEar = StateProxy_IsInEar();
     hdma_core_data->remote_bud.inCase = StateProxy_IsPeerInCase();
@@ -226,7 +232,7 @@ static void hdma_StateUpdate(hdma_timestamp timestamp)
     {
         result = hdma_MergeResult(result, hdma_NewResult(HDMA_CORE_HANDOVER_REASON_IN_CASE, HDMA_CORE_HANDOVER_URGENCY_CRITICAL));
     }
-
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
     /*  Case (2) battery is critical    */
     if((hdma_core_data->local_bud.batteryStatus == HDMA_CORE_BATTERY_CRITICAL) && (!(hdma_core_data->remote_bud.batteryStatus == HDMA_CORE_BATTERY_CRITICAL)))
     {
@@ -243,6 +249,7 @@ static void hdma_StateUpdate(hdma_timestamp timestamp)
             result = hdma_MergeResult(result, hdma_NewResult(HDMA_CORE_HANDOVER_REASON_BATTERY_LEVEL, HDMA_CORE_HANDOVER_URGENCY_HIGH));
         }
     }
+#endif
     /*  If the devices are in ear then update the times  */
     if (hdma_BudGetInEar(hdma_core_data->local_bud))
     {
@@ -263,11 +270,15 @@ static void hdma_StateUpdate(hdma_timestamp timestamp)
             result = hdma_MergeResult(result, hdma_NewResult(HDMA_CORE_HANDOVER_REASON_OUT_OF_EAR, HDMA_CORE_HANDOVER_URGENCY_HIGH));
         }
     }
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
     hdma_core_handover_urgency_t urgency, suppressUrgency;
+#ifdef INCLUDE_HDMA_RSSI_EVENT
     /*  Case (4) RSSIs: skip this if the secondary is unable to be handed over to    */
-    uint8 skipRSSIChk = ((hdma_BudGetInEar(hdma_core_data->local_bud) && (!hdma_BudGetInEar(hdma_core_data->remote_bud))) || (hdma_core_data->remote_bud.inCase) || (hdma_core_data->remote_bud.batteryStatus == HDMA_CORE_BATTERY_CRITICAL));
-
+    uint8 skipRSSIChk = ((hdma_BudGetInEar(hdma_core_data->local_bud) && (!hdma_BudGetInEar(hdma_core_data->remote_bud))) || (hdma_core_data->remote_bud.inCase)
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
+                         || (hdma_core_data->remote_bud.batteryStatus == HDMA_CORE_BATTERY_CRITICAL));
+#else
+                         );
+#endif
     if (!skipRSSIChk)
     {
         urgency = hdma_ValidateLink(timestamp);
@@ -276,6 +287,8 @@ static void hdma_StateUpdate(hdma_timestamp timestamp)
             result = hdma_MergeResult(result, hdma_NewResult(HDMA_CORE_HANDOVER_REASON_SIGNAL_QUALITY, urgency));
         }
     }
+#endif
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
     /*  Case (5) Mic quality during a voice call    */
     uint8 skipVoiceChk = (!hdma_core_data->inCall) || (hdma_core_data->remote_bud.inCase);
     uint8 suppress;
@@ -317,6 +330,7 @@ static void hdma_StateUpdate(hdma_timestamp timestamp)
     hdma_SetHandoverEvent(result);
 }
 
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
 void Hdma_CoreHandleBatteryStatus(hdma_timestamp timestamp, uint8 isThisBud, hdma_core_battery_state_t batteryStatus)
 {
     if(DEBUG)
@@ -334,7 +348,7 @@ void Hdma_CoreHandleBatteryStatus(hdma_timestamp timestamp, uint8 isThisBud, hdm
     }
     hdma_StateUpdate(timestamp);
 }
-
+#endif
 uint8 Hdma_CoreHandleExternalReq(hdma_timestamp timestamp,hdma_core_handover_urgency_t urgency)
 {
     hdma_core_handover_result_t handover = hdma_NewResult(HDMA_CORE_HANDOVER_REASON_EXTERNAL, urgency);
@@ -427,14 +441,18 @@ static hdma_core_handover_result_t hdma_MergeResult(hdma_core_handover_result_t 
 static uint8 hdma_BudInit(hdma_bud_info_t *bud_info)
 {
     memset(bud_info, 0, sizeof(hdma_bud_info_t));
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
     Hdma_QueueCreate(&(bud_info->voiceQuality));
+#endif
+#ifdef INCLUDE_HDMA_RSSI_EVENT
     Hdma_QueueCreate(&(bud_info->phoneRSSI));
+#endif
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
+    bud_info->batteryStatus = HDMA_CORE_BATTERY_UNKNOWN;
 #endif
     bud_info->lastTimeInEar = INVALID_TIMESTAMP;
     bud_info->inEar = HDMA_UNKNOWN;
     bud_info->inCase = FALSE;
-    bud_info->batteryStatus = HDMA_CORE_BATTERY_UNKNOWN;
     return TRUE;
 }
 
@@ -458,7 +476,7 @@ static uint8 hdma_BudGetInEar(hdma_bud_info_t bud_info)
         return bud_info.inEar;
     }
 }
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
 void Hdma_CoreHandleVoiceQuality(hdma_timestamp timestamp, uint8 isThisBud, uint8 voiceQuality)
 {
     if(DEBUG)
@@ -476,23 +494,6 @@ void Hdma_CoreHandleVoiceQuality(hdma_timestamp timestamp, uint8 isThisBud, uint
         {
             Hdma_QueueInsert(&(hdma_core_data->remote_bud.voiceQuality), voiceQuality, timestamp);
         }
-    }
-    hdma_StateUpdate(timestamp);
-}
-
-void Hdma_CoreHandleLinkQuality(hdma_timestamp timestamp,uint8 isThisBud, uint8 isPeerLink, hdma_core_link_quality_t linkQuality)
-{
-    if(DEBUG)
-    {
-        HDMA_DEBUG_LOG("Hdma_CoreHandleLinkQuality: Timestamp = %u", timestamp);
-    }
-    if(isThisBud && !isPeerLink)
-    {
-        Hdma_QueueInsert(&(hdma_core_data->local_bud.phoneRSSI), linkQuality.rssi, timestamp);
-    }
-    else if ((!isThisBud) && (!isPeerLink))
-    {
-        Hdma_QueueInsert(&(hdma_core_data->remote_bud.phoneRSSI), linkQuality.rssi, timestamp);
     }
     hdma_StateUpdate(timestamp);
 }
@@ -518,6 +519,7 @@ static void hdma_CheckVoiceQuality(hdma_timestamp timestamp, int16 vqHalfLife, i
         HDMA_DEBUG_LOG("hdma_CheckVoiceQuality: otherIsBetter = %u, thisIsBetter = %u", *otherIsBetter, *thisIsBetter);
     }
 }
+
 
 /*! \brief Check the voice quality to see if a handover is generated at any level of urgency.
 
@@ -580,6 +582,25 @@ static void hdma_ValidateVoiceQuality(hdma_timestamp timestamp,hdma_core_handove
     *urgency = HDMA_CORE_HANDOVER_URGENCY_INVALID;
     *suppressUrgency = HDMA_CORE_HANDOVER_URGENCY_INVALID;
 }
+#endif
+
+#ifdef INCLUDE_HDMA_RSSI_EVENT
+void Hdma_CoreHandleLinkQuality(hdma_timestamp timestamp,uint8 isThisBud, uint8 isPeerLink, hdma_core_link_quality_t linkQuality)
+{
+    if(DEBUG)
+    {
+        HDMA_DEBUG_LOG("Hdma_CoreHandleLinkQuality: Timestamp = %u", timestamp);
+    }
+    if(isThisBud && !isPeerLink)
+    {
+        Hdma_QueueInsert(&(hdma_core_data->local_bud.phoneRSSI), linkQuality.rssi, timestamp);
+    }
+    else if ((!isThisBud) && (!isPeerLink))
+    {
+        Hdma_QueueInsert(&(hdma_core_data->remote_bud.phoneRSSI), linkQuality.rssi, timestamp);
+    }
+    hdma_StateUpdate(timestamp);
+}
 
 /*! \brief Filter an RSSI for a single set of urgency settings and determine if a handover is necessary.
 
@@ -631,6 +652,7 @@ static hdma_core_handover_urgency_t hdma_ValidateLink(hdma_timestamp timestamp)
     return urgency;
 }
 
+#endif
 /*! \brief Filter data according ot the specified parameters.
 
     \param[in] timestamp Time at which event is received.
@@ -719,7 +741,6 @@ static int16 hdma_Filter(hdma_timestamp timestamp, queue_t *queue, int16 halfLif
     return val;
 }
 
-#endif
 #ifdef DEBUG_HDMA_UT
 /* Code only for UT */
 hdma_core_result_data_t Hdma_GetCoreHdmaData(void)
@@ -732,21 +753,27 @@ hdma_core_result_data_t Hdma_GetCoreHdmaData(void)
     data.hdma_result.reason = hdma_core_data->hdma_result.reason;
     data.hdma_result.urgency = hdma_core_data->hdma_result.urgency;
     data.timestamp = hdma_core_data->timestamp;
-
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
     data.other_bud.batteryStatus = hdma_core_data->remote_bud.batteryStatus;
+    data.local_bud.batteryStatus = hdma_core_data->local_bud.batteryStatus;
+#else
+    data.other_bud.batteryStatus = HDMA_CORE_BATTERY_UNKNOWN;
+    data.local_bud.batteryStatus = HDMA_CORE_BATTERY_UNKNOWN;
+#endif
     data.other_bud.debugLevel = 0;
     data.other_bud.inCase = hdma_core_data->remote_bud.inCase;
     data.other_bud.inEar = hdma_BudGetInEar(hdma_core_data->remote_bud);
     data.other_bud.lastTimeInEar = hdma_core_data->remote_bud.lastTimeInEar;
-    data.local_bud.batteryStatus = hdma_core_data->local_bud.batteryStatus;
     data.local_bud.debugLevel = 0;
     data.local_bud.inCase = hdma_core_data->local_bud.inCase;
     data.local_bud.inEar = hdma_BudGetInEar(hdma_core_data->local_bud);
     data.local_bud.lastTimeInEar = hdma_core_data->local_bud.lastTimeInEar;
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+#ifdef INCLUDE_HDMA_RSSI_EVENT
     Hdma_PopulateQueueResult(&(hdma_core_data->remote_bud.phoneRSSI), &data.other_bud.phoneRSSI,HDMA_QUEUE_RSSI);
-    Hdma_PopulateQueueResult(&(hdma_core_data->remote_bud.voiceQuality), &data.other_bud.voiceQuality,HDMA_QUEUE_MIC);
     Hdma_PopulateQueueResult(&(hdma_core_data->local_bud.phoneRSSI), &data.local_bud.phoneRSSI,HDMA_QUEUE_RSSI);
+#endif
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
+    Hdma_PopulateQueueResult(&(hdma_core_data->remote_bud.voiceQuality), &data.other_bud.voiceQuality,HDMA_QUEUE_MIC);
     Hdma_PopulateQueueResult(&(hdma_core_data->local_bud.voiceQuality), &data.local_bud.voiceQuality,HDMA_QUEUE_MIC);
 #endif
     return data;

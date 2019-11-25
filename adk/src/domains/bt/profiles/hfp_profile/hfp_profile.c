@@ -2479,7 +2479,7 @@ static void appHfpHandleConManagerConnectionInd(CON_MANAGER_CONNECTION_IND_T *in
      * the HFP profile at having a pending detach */
     if (!ind->connected && ind->reason != hci_error_conn_timeout)
     {
-        if (!appHfpIsDisconnected() && BdaddrIsSame(&ind->bd_addr, &appGetHfp()->ag_bd_addr))
+        if (!appHfpIsDisconnected() && BdaddrIsSame(&ind->bd_addr, &appGetHfp()->ag_bd_addr) && !ind->ble)
         {
             DEBUG_LOG("appHfpHandleConManagerConnectionInd, detach pending");
             appGetHfp()->bitfields.detach_pending = TRUE;

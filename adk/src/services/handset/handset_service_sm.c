@@ -113,6 +113,9 @@ static bool handsetServiceSm_AllConnectionsDisconnected(handset_service_state_ma
         ble_connected = HandsetServiceSm_IsLeConnected(sm);
     }
 
+    DEBUG_LOG("handsetServiceSm_AllConnectionsDisconnected bredr %d profiles 0x%x le %d",
+              bredr_connected, connected_profiles, ble_connected);
+
     return (!bredr_connected 
             && (connected_profiles == 0)
             && !ble_connected
@@ -271,14 +274,15 @@ static void handsetServiceSm_ExitConnectedBredr(handset_service_state_machine_t 
 static void handsetServiceSm_EnterDisconnectingBredr(handset_service_state_machine_t *sm)
 {
     uint8 profiles_connected = BtDevice_GetConnectedProfiles(sm->handset_device);
+    uint8 profiles_to_disconnect = (sm->profiles_requested | profiles_connected);
     uint8 profile_list[4];
 
     HS_LOG("handsetServiceSm_EnterDisconnectingBredr requested 0x%x connected 0x%x, to_disconnect 0x%x",
-           sm->profiles_requested, profiles_connected, (sm->profiles_requested | profiles_connected));
+           sm->profiles_requested, profiles_connected, profiles_to_disconnect);
 
     /* Disconnect any profiles that were either requested or are currently
        connected. */
-    handsetServiceSm_ConvertProfilesToProfileList((sm->profiles_requested | profiles_connected),
+    handsetServiceSm_ConvertProfilesToProfileList(profiles_to_disconnect,
                                                   profile_list, ARRAY_DIM(profile_list));
     Device_SetProperty(sm->handset_device,
                        device_property_profiles_disconnect_order,
@@ -369,7 +373,7 @@ void HandsetServiceSm_SetState(handset_service_state_machine_t *sm, handset_serv
     /* It is not valid to re-enter the same state */
     assert(old_state != state);
 
-    HS_LOG("HandsetServiceSm_SetState state(%02x) old_state(%02x)", state, old_state);
+    HS_LOG("HandsetServiceSm_SetState %d->%d", old_state, state);
 
     /* Handle state exit functions */
     switch (sm->state)
@@ -706,19 +710,31 @@ static void handsetServiceSm_HandleProfileManagerConnectCfm(handset_service_stat
         }
         else
         {
-            handsetServiceSm_SetBdedrDisconnectedState(sm);
+            if (handsetServiceSm_AllConnectionsDisconnected(sm, TRUE))
+            {
+                handsetServiceSm_SetBdedrDisconnectedState(sm);
+            }
+            else
+            {
+                HandsetServiceSm_SetState(sm, HANDSET_SERVICE_STATE_DISCONNECTING_BREDR);
+            }
         }
         break;
 
     case HANDSET_SERVICE_STATE_CONNECTED_BREDR:
-        /* The connected profiles are stored in the device properties 
-           so nothing else to do. */
+        /* Nothing more to do as we are already connected.
+           Note: Should only get a CONNECT_PROFILES_CFM in this state if a
+                 client has requested to connect more profiles while already
+                 connected. */
         break;
 
     case HANDSET_SERVICE_STATE_DISCONNECTING_BREDR:
         /* Connect has been cancelled already but this CFM may have been
            in-flight already. */
-        handsetServiceSm_SetBdedrDisconnectedState(sm);
+        if (handsetServiceSm_AllConnectionsDisconnected(sm, TRUE))
+        {
+            handsetServiceSm_SetBdedrDisconnectedState(sm);
+        }
         break;
 
     default:
@@ -803,8 +819,8 @@ void HandsetServiceSm_HandleProfileManagerConnectedInd(handset_service_state_mac
 void HandsetServiceSm_HandleProfileManagerDisconnectedInd(handset_service_state_machine_t *sm,
     const DISCONNECTED_PROFILE_IND_T *ind)
 {
-    HS_LOG("HandsetServiceSm_HandleProfileManagerDisconnectedInd state 0x%x profile 0x%x",
-           sm->state, ind->profile);
+    HS_LOG("HandsetServiceSm_HandleProfileManagerDisconnectedInd state 0x%x profile 0x%x reason %d",
+           sm->state, ind->profile, ind->reason);
 
     assert(sm->handset_device == ind->device);
 
@@ -820,16 +836,12 @@ void HandsetServiceSm_HandleProfileManagerDisconnectedInd(handset_service_state_
 
     case HANDSET_SERVICE_STATE_CONNECTED_BREDR:
         {
-            /* Because we are in the CONNECTED state, assume this is a remote
-               initiated disconnect and remove it from the last connected
-               profiles.
-               
-               TBD: If disconnect was due to link-loss don't remove the profile
-                    from last connected profiles. But the IND doesn't have a 
-                    "reason". */
-            BtDevice_SetLastConnectedProfilesForDevice(sm->handset_device, ind->profile, FALSE);
+            /* Note: don't remove the profile from the 'last connected'
+               profiles because we don't have enough information to know if the
+               handset disconnected the profile on its own, or as part of
+               a full disconnect. */
 
-            /* Only go to disconnected state when there are no profiles connected. */
+            /* Only go to disconnected state if there are no other handset connections. */
             if (handsetServiceSm_AllConnectionsDisconnected(sm, TRUE))
             {
                 handsetServiceSm_SetBdedrDisconnectedState(sm);
@@ -838,8 +850,8 @@ void HandsetServiceSm_HandleProfileManagerDisconnectedInd(handset_service_state_
         break;
 
     case HANDSET_SERVICE_STATE_DISCONNECTING_BREDR:
-        /* A disconnect request to the profile manager is in progress
-           already, so just wait for the DISCONNECT_PROFILES_CFM. */
+        /* A disconnect request to the profile manager is in progress, so wait
+           for the DISCONNECT_PROFILES_CFM and the ACL to be disconnected. */
         break;
 
     default:
@@ -852,6 +864,11 @@ static void HandsetServiceSm_HandleConManagerBredrDisconnectionInd(handset_servi
     const CON_MANAGER_CONNECTION_IND_T *ind)
 {
     HS_LOG("HandsetServiceSm_HandleConManagerBredrDisconnectionInd");
+
+    if(sm->handset_device == 0)
+    {
+        return;
+    }
 
     assert(sm->handset_device == BtDevice_GetDeviceForBdAddr(&ind->bd_addr));
 
@@ -869,7 +886,7 @@ static void HandsetServiceSm_HandleConManagerBredrDisconnectionInd(handset_servi
         break;
 
     default:
-        HS_LOG("handsetServiceSm_HandleConManagerConnectionInd unhandled");
+        HS_LOG("HandsetServiceSm_HandleConManagerBredrDisconnectionInd unhandled");
         break;
 
     }

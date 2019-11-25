@@ -7,6 +7,8 @@
 \brief      Implementation of the GATT Battery Server module.
 */
 
+#ifdef INCLUDE_GATT_BATTERY_SERVER
+
 #include "gatt_server_battery.h"
 
 #include "earbud_config.h"
@@ -572,3 +574,5 @@ bool GattServerBattery_Init(Task init_task)
 
     return TRUE;
 }
+
+#endif /* INCLUDE_GATT_BATTERY_SERVER */

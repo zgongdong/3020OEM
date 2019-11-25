@@ -12,6 +12,7 @@
 #include "fast_pair_gfps.h"
 #include "fast_pair_pairing_if.h"
 #include "fast_pair_session_data.h"
+#include "fast_pair_account_key_sync.h"
 #include "fast_pair_events.h"
 
 
@@ -127,6 +128,8 @@ static bool fastpair_ProviderPasskeyEventHandler(fast_pair_state_event_provider_
                 will take care of updating list to track most recently used account keys 
               */
              fastPair_StoreAccountKey((uint8 *)theFastPair->session_data.aes_key);
+             /*! Account Key Sharing*/
+             fastPair_AccountKeySync_Sync();
          }  
          pairing_successful = TRUE;
          status = TRUE;

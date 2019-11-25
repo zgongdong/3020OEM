@@ -1060,9 +1060,18 @@ void UpgradePeerDeInit(void);
 
 /*!
     @brief Check in Upgrade Peer is initialized or not.
-    Returns None
+
+    @return TRUE if Upgrade Peer is initialised and this is the primary 
+            device, FALSE otherwise
 */
 bool UpgradePeerIsSupported(void);
+
+/*! @brief Check if we are a secondary device in an upgrade 
+
+    @return TRUE if Upgrade Peer is initialised and this is the secondary
+            device, FALSE otherwise.
+ */
+bool UpgradePeerIsSecondary(void);
 
 /*!
     @brief Store MD5 for DFU file for peer device.

@@ -670,6 +670,7 @@ static void RequestApplicationReconnectIfNeeded(void)
     case UPGRADE_RESUME_POINT_ERROR:
         {
             bool is_dfu_mode;
+
             UpgradePeerGetDFUInfo(NULL, &is_dfu_mode);
 
             if (UpgradeCtxGetPSKeys()->id_in_progress || is_dfu_mode)

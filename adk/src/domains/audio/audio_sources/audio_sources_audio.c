@@ -13,17 +13,46 @@
 
 #include "audio_sources_interface_registry.h"
 
+
+/*! \brief Interface obtaining function
+
+    \param source Audio source type
+
+    \return Pointer to the interface
+*/
+static audio_source_audio_interface_t *audioSources_GetRegisteredInterface(audio_source_t source)
+{
+    interface_list_t interface_list = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    return (((audio_source_audio_interface_t **)interface_list.interfaces)[0]);
+}
+
 void AudioSources_RegisterAudioInterface(audio_source_t source, const audio_source_audio_interface_t * interface)
 {
     PanicNull((void *)interface);
     DEBUG_LOG("AudioSources_RegisterAudioInterface source=%d interface=%p", source, interface);
+
+    /* Retrieve the registered inteface list */
+    interface_list_t interface_list = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    audio_source_audio_interface_t **audio_interface_list = (audio_source_audio_interface_t **)interface_list.interfaces;
+
+    /* Check if the interface is already registered */
+    if(interface_list.number_of_interfaces)
+    {
+        if(interface == audio_interface_list[0])
+            return;
+
+        /* If the interface does not match, unregister the old interface */
+        AudioInterface_UnRegister(source, audio_interface_type_audio_source_registry, audio_interface_list[0]);
+    }
+
+    /* Register the interface*/
     AudioInterface_Register(source, audio_interface_type_audio_source_registry, interface);
 }
 
 bool AudioSources_GetConnectParameters(audio_source_t source, source_defined_params_t * source_params)
 {
     bool return_value = FALSE;
-    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    audio_source_audio_interface_t * interface = audioSources_GetRegisteredInterface(source);
 
     if ((interface != NULL) && (interface->GetConnectParameters))
     {
@@ -35,7 +64,7 @@ bool AudioSources_GetConnectParameters(audio_source_t source, source_defined_par
 
 void AudioSources_ReleaseConnectParameters(audio_source_t source, source_defined_params_t * source_params)
 {
-    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    audio_source_audio_interface_t * interface = audioSources_GetRegisteredInterface(source);
 
     if ((interface != NULL) && (interface->ReleaseConnectParameters))
     {
@@ -47,7 +76,7 @@ void AudioSources_ReleaseConnectParameters(audio_source_t source, source_defined
 bool AudioSources_GetDisconnectParameters(audio_source_t source, source_defined_params_t * source_params)
 {
     bool return_value = FALSE;
-    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    audio_source_audio_interface_t * interface = audioSources_GetRegisteredInterface(source);
 
     if ((interface != NULL) && (interface->GetDisconnectParameters))
     {
@@ -59,7 +88,7 @@ bool AudioSources_GetDisconnectParameters(audio_source_t source, source_defined_
 
 void AudioSources_ReleaseDisconnectParameters(audio_source_t source, source_defined_params_t * source_params)
 {
-    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    audio_source_audio_interface_t * interface = audioSources_GetRegisteredInterface(source);
 
     if ((interface != NULL) && (interface->ReleaseDisconnectParameters))
     {
@@ -70,7 +99,7 @@ void AudioSources_ReleaseDisconnectParameters(audio_source_t source, source_defi
 
 bool AudioSources_IsAudioAvailable(audio_source_t source)
 {
-    audio_source_audio_interface_t * interface = AudioInterface_Get(source, audio_interface_type_audio_source_registry);
+    audio_source_audio_interface_t * interface = audioSources_GetRegisteredInterface(source);
     bool is_available = FALSE;
 
     if ((interface != NULL) && (interface->IsAudioAvailable))

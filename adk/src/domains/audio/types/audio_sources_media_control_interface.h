@@ -13,6 +13,8 @@
 #include "media_control_types.h"
 #include "audio_sources_list.h"
 
+#define MAX_MEDIA_CONTROL_INTERFACES (1)
+
 typedef struct
 {
     void (*Play)(audio_source_t source);

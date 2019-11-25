@@ -66,9 +66,6 @@ typedef enum
 typedef struct {
     /*! Cached handover message notification from HDMA  */
     hdma_handover_decision_t hdma_message;
-
-    /*! handover retry attempt count */
-    uint16 handover_retry_count;
 }handover_data_t;
 
 /*! Structure holding information for the TWS Topology task */

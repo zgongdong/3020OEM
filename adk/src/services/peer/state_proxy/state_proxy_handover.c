@@ -27,7 +27,7 @@ static bool stateProxy_Marshal(const bdaddr *bd_addr,
                                marshal_type_t type,
                                void **marshal_obj);
 
-static void stateProxy_Unmarshal(const bdaddr *bd_addr,
+static app_unmarshal_status_t stateProxy_Unmarshal(const bdaddr *bd_addr,
                                  marshal_type_t type,
                                  void *unmarshal_obj);
 
@@ -108,13 +108,15 @@ static bool stateProxy_Marshal(const bdaddr *bd_addr,
     \param[in] bd_addr      Bluetooth address of the link to be unmarshalled.
     \param[in] type         Type of the unmarshalled data.
     \param[in] unmarshal_obj Address of the unmarshalled object.
-
+    \return unmarshalling result. Based on this, caller decides whether to free
+            the marshalling object or not.
 */
-static void stateProxy_Unmarshal(const bdaddr *bd_addr,
+static app_unmarshal_status_t stateProxy_Unmarshal(const bdaddr *bd_addr,
                                  marshal_type_t type,
                                  void *unmarshal_obj)
 {
     DEBUG_LOG("stateProxy_Unmarshal");
+    app_unmarshal_status_t result = UNMARSHAL_FAILURE;
     UNUSED(bd_addr);
 
     switch (type)
@@ -124,14 +126,15 @@ static void stateProxy_Unmarshal(const bdaddr *bd_addr,
         {
             free(stateProxy_GetRemoteData());
             stateProxy_GetRemoteData() = (state_proxy_data_t*)unmarshal_obj;
+            result = UNMARSHAL_SUCCESS_DONT_FREE_OBJECT;
         }
         break;
 
         default:
-            /* Should have never come here*/
-            Panic();
             break;
     }
+
+    return result;
 }
 
 #define COPY_FLAG_LOCAL_TO_REMOTE(flag_name) stateProxy_GetRemoteFlag(flag_name) = stateProxy_GetLocalFlag(flag_name)
@@ -183,11 +186,9 @@ static void stateProxy_Commit(bool is_primary)
 
     /* Clear flags that cannot be active on the secondary device during handover */
     clearflags->a2dp_connected = FALSE;
-    clearflags->a2dp_streaming = FALSE;
     clearflags->avrcp_connected = FALSE;
     clearflags->hfp_connected = FALSE;
     clearflags->is_pairing = FALSE;
-    clearflags->sco_active = FALSE;
     clearflags->dfu_in_progress = FALSE;
     clearflags->advertising = FALSE;
     clearflags->ble_connected = FALSE;

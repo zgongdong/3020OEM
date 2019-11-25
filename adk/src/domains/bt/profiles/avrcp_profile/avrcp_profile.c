@@ -90,6 +90,17 @@ static void appAvrcpForwardAvrcpPassthroughIndication(avInstanceTaskData *theIns
     AvrcpPassthroughResponse(ind->avrcp, avctp_response_accepted);
 }
 
+static void appAvrcpSuppressAbsoluteVolume(avInstanceTaskData *theInst)
+{
+    theInst->avrcp.suppress_absolute_volume = TRUE;
+    MessageSendLater(&theInst->av_task, AV_INTERNAL_ALLOW_ABSOLUTE_VOLUME, NULL, 2000);
+}
+
+static void appAvrcpAllowAbsoluteVolume(avInstanceTaskData *theInst)
+{
+    theInst->avrcp.suppress_absolute_volume = FALSE;
+}
+
 /*! \brief Enter 'connecting local' state
 
     The AVRCP state machine has entered 'connecting local' state, set the
@@ -184,6 +195,7 @@ static void appAvrcpEnterConnected(avInstanceTaskData *theInst)
 {
     DEBUG_LOGF("appAvrcpEnterConnected(%p)", (void *)theInst);
 
+    appAvrcpSuppressAbsoluteVolume(theInst);
     appAvInstanceAvrcpConnected(theInst);
 
     /* Mark this device as supporting AVRCP */
@@ -1675,6 +1687,7 @@ static void appAvrcpHandleRegisterNotificationInd(avInstanceTaskData *theInst, A
     }
 }
 
+
 /*! \brief Absolute volume change from A2DP Source (Handset or TWS Master)
 */
 static void appAvrcpHandleSetAbsoluteVolumeInd(avInstanceTaskData *theInst, AVRCP_SET_ABSOLUTE_VOLUME_IND_T *ind, bool send_response)
@@ -1682,41 +1695,52 @@ static void appAvrcpHandleSetAbsoluteVolumeInd(avInstanceTaskData *theInst, AVRC
     assert(theInst->avrcp.avrcp == ind->avrcp);
     DEBUG_LOGF("appAvrcpHandleSetAbsoluteVolumeInd(%p), volume %u", (void *)theInst, ind->volume);
 
-    /* Calculate time since last AVRCP_SET_ABSOLUTE_VOLUME_IND */
-    rtime_t delta = theInst->avrcp.bitfields.volume_time_valid ? rtime_sub(VmGetClock(), theInst->avrcp.volume_time) : 0;
-    
-    /* If time since last AVRCP_SET_ABSOLUTE_VOLUME_IND is less than 200ms, delay handling of message
-     * by sending it back to ourselves with a delay */
-    if ((delta > 0) && (delta < 200))
+    if(appDeviceIsHandset(&theInst->bd_addr) && theInst->avrcp.suppress_absolute_volume)
     {
-        const uint32_t delay = 200 - delta;        
-        MAKE_AV_MESSAGE(AVRCP_SET_ABSOLUTE_VOLUME_IND);
-        message->avrcp = ind->avrcp;
-        message->volume = ind->volume;
-        MessageCancelFirst(&theInst->av_task, AV_INTERNAL_SET_ABSOLUTE_VOLUME_IND);
-        MessageSendLater(&theInst->av_task, AV_INTERNAL_SET_ABSOLUTE_VOLUME_IND, message, delay);
-        DEBUG_LOGF("appAvrcpHandleSetAbsoluteVolumeInd(%p), delaying for %ums", (void *)theInst, delay);
-
-        /* Accept the volume change, but wait to actually use it */
-        AvrcpSetAbsoluteVolumeResponse(ind->avrcp, avctp_response_accepted, ind->volume);
+        DEBUG_LOGF("appAvrcpHandleSetAbsoluteVolumeInd(%p) suppressed, overriding response with %u", (void *)theInst, AudioSources_GetVolume(audio_source_a2dp_1).value);
+        if(send_response)
+        {
+            AvrcpSetAbsoluteVolumeResponse(ind->avrcp, avctp_response_accepted, AudioSources_GetVolume(audio_source_a2dp_1).value);
+        }
     }
     else
     {
-        /* Send set volume ind to all clients */
-        MAKE_AV_MESSAGE(AV_AVRCP_SET_VOLUME_IND)
-        message->av_instance = theInst;
-        message->bd_addr = theInst->bd_addr;
-        message->volume = ind->volume;
-        TaskList_MessageSend(theInst->avrcp.client_list, AV_AVRCP_SET_VOLUME_IND, message);
+        /* Calculate time since last AVRCP_SET_ABSOLUTE_VOLUME_IND */
+        rtime_t delta = theInst->avrcp.bitfields.volume_time_valid ? rtime_sub(VmGetClock(), theInst->avrcp.volume_time) : 0;
 
-        /* Accept the volume change */
-        if (send_response)
+        /* If time since last AVRCP_SET_ABSOLUTE_VOLUME_IND is less than 200ms, delay handling of message
+         * by sending it back to ourselves with a delay */
+        if ((delta > 0) && (delta < 200))
+        {
+            const uint32_t delay = 200 - delta;
+            MAKE_AV_MESSAGE(AVRCP_SET_ABSOLUTE_VOLUME_IND);
+            message->avrcp = ind->avrcp;
+            message->volume = ind->volume;
+            MessageCancelFirst(&theInst->av_task, AV_INTERNAL_SET_ABSOLUTE_VOLUME_IND);
+            MessageSendLater(&theInst->av_task, AV_INTERNAL_SET_ABSOLUTE_VOLUME_IND, message, delay);
+            DEBUG_LOGF("appAvrcpHandleSetAbsoluteVolumeInd(%p), delaying for %ums", (void *)theInst, delay);
+
+            /* Accept the volume change, but wait to actually use it */
             AvrcpSetAbsoluteVolumeResponse(ind->avrcp, avctp_response_accepted, ind->volume);
+        }
+        else
+        {
+            /* Send set volume ind to all clients */
+            MAKE_AV_MESSAGE(AV_AVRCP_SET_VOLUME_IND)
+            message->av_instance = theInst;
+            message->bd_addr = theInst->bd_addr;
+            message->volume = ind->volume;
+            TaskList_MessageSend(theInst->avrcp.client_list, AV_AVRCP_SET_VOLUME_IND, message);
 
-        /* Remember time AVRCP_SET_ABSOLUTE_VOLUME_IND was handled, so that we can check
-         * timing of subsequent messages */
-        theInst->avrcp.volume_time = VmGetClock();
-        theInst->avrcp.bitfields.volume_time_valid = TRUE;    
+            /* Accept the volume change */
+            if (send_response)
+                AvrcpSetAbsoluteVolumeResponse(ind->avrcp, avctp_response_accepted, ind->volume);
+    
+            /* Remember time AVRCP_SET_ABSOLUTE_VOLUME_IND was handled, so that we can check
+             * timing of subsequent messages */
+            theInst->avrcp.volume_time = VmGetClock();
+            theInst->avrcp.bitfields.volume_time_valid = TRUE;
+        }
     }
 }
 
@@ -1967,6 +1991,10 @@ void appAvrcpInstanceHandleMessage(avInstanceTaskData *theInst, MessageId id, Me
 
         case AV_INTERNAL_SET_ABSOLUTE_VOLUME_IND:
             appAvrcpHandleSetAbsoluteVolumeInd(theInst, (AVRCP_SET_ABSOLUTE_VOLUME_IND_T *) message, FALSE);
+            return;
+
+        case AV_INTERNAL_ALLOW_ABSOLUTE_VOLUME:
+            appAvrcpAllowAbsoluteVolume(theInst);
             return;
 
     }

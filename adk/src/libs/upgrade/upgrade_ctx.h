@@ -84,7 +84,9 @@ typedef struct
     
     /* CSR Valid message received flag */
     bool isCsrValidDoneReqReceived;
-    
+
+    /*! Force erase when a START_REQ is received */
+    bool force_erase;
 } UpgradeCtx;
 
 void UpgradeCtxSet(UpgradeCtx *ctx);

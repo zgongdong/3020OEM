@@ -23,6 +23,7 @@
 #include <panic.h>
 #include <marshal.h>
 #include <logging.h>
+#include <stdlib.h>
 
 #define EB_HANDOVER_DEBUG_VERBOSE_LOG DEBUG_LOG
 
@@ -46,13 +47,23 @@ const marshal_type_descriptor_t * const  mtd_handover_app[] = {
 static bool earbudHandover_Veto(void);
 static bool earbudHandover_Marshal(const tp_bdaddr *addr, uint8 *buffer, uint16 buffer_size, uint16 *written);
 static bool earbudHandover_Unmarshal(const tp_bdaddr *addr, const uint8 *buffer, uint16 buffer_size, uint16 *consumed);
-static void earbudHandover_Commit(const bool role);
+static void earbudHandover_Commit(const tp_bdaddr *tp_bd_addr, const bool role);
+static void earbudHandover_Complete(const bool role);
 static void earbudHandover_Abort(void);
 static const registered_handover_interface_t * getNextInterface(void);
 
 /******************************************************************************
  * Local Structure Definitions
  ******************************************************************************/
+/*! \brief Stores unmarshalled data received from Primary earbud */
+typedef struct {
+    /* Pointer to unmarshalled data */
+    void * data;
+    /* Marshal Type of unmarshalled data */
+    uint8 type;
+    /* Result of unmarshalling */
+    app_unmarshal_status_t unmarshalling_status;
+} handover_app_unmarshal_data_t;
 
 /*! \brief Handover context maintains the handover state for the application */
 typedef struct {
@@ -78,6 +89,12 @@ typedef struct {
     const registered_handover_interface_t *curr_interface;
     /* Index of current marshal type undergoing marshalling */
     uint8 *curr_type;
+    /* List of Unmarshalled objects received from Primary earbud */
+    handover_app_unmarshal_data_t * unmarshal_data_list;
+    /* Index to the next free entry in unmarshalled data list */
+    uint8 unmarshal_data_list_free_index;
+    /* Size of unmarshal data list. This can be less than interfaces_len since not all clients will marshal data */
+    uint8 unmarshal_data_list_size;
 } handover_app_context_t;
 
 /******************************************************************************
@@ -91,6 +108,7 @@ const handover_interface application_handover_interface =
     &earbudHandover_Marshal,
     &earbudHandover_Unmarshal,
     &earbudHandover_Commit,
+    &earbudHandover_Complete,    
     &earbudHandover_Abort
 };
 
@@ -110,6 +128,56 @@ static handover_app_context_t handover_app;
 /******************************************************************************
  * Local Function Definitions
  ******************************************************************************/
+/*! \brief Deinitilaize list of unmarshalled data */
+static void deinitializeUnmarshalDataList(void)
+{
+    handover_app_context_t * app_data = earbudHandover_Get();
+    uint8 index;
+
+    /* Initialize list data to NULL */
+    for (index = 0; 
+         index < app_data->unmarshal_data_list_free_index; 
+         index++)
+    {
+        /* If we have null data, free_index is probably incorrect. Panic!! */
+        PanicNull(app_data->unmarshal_data_list[index].data);
+
+        if(app_data->unmarshal_data_list[index].unmarshalling_status != UNMARSHAL_SUCCESS_DONT_FREE_OBJECT)
+        {            
+            free(app_data->unmarshal_data_list[index].data);
+        }
+    }
+
+    app_data->unmarshal_data_list_free_index = 0;
+    free(app_data->unmarshal_data_list);    
+    app_data->unmarshal_data_list = NULL;
+}
+
+/*! \brief Create and initialize list of unmarshalled data
+    \note Size of list is equal to the number of clients which have data to be marshalled.
+    List is expected to be initialized during Unmarshalling and Deinitialized on
+    Commit or Abort.    
+*/
+static void initializeUnmarshalDataList(void)
+{
+    handover_app_context_t * app_data = earbudHandover_Get();
+    uint8 number_of_marshal_types = 0;
+    const registered_handover_interface_t * curr_inf;
+
+    /* Get number of interfaces which have data to be marshalled */
+    for(curr_inf = app_data->interfaces;
+        curr_inf < (app_data->interfaces + app_data->interfaces_len);
+        curr_inf++)
+    {
+        /* We only need interfaces which have valid Marshal Types. */
+        if(curr_inf->type_list)
+            number_of_marshal_types += curr_inf->type_list->list_size;
+    }
+
+    app_data->unmarshal_data_list = (handover_app_unmarshal_data_t *)PanicNull(calloc(number_of_marshal_types, sizeof(handover_app_unmarshal_data_t)));
+    app_data->unmarshal_data_list_size = number_of_marshal_types;
+    app_data->unmarshal_data_list_free_index = 0;
+}
 
 /*! \brief Find the registered interface which handles a given marshal type.
     Only used during unmarshaling procedure.
@@ -153,15 +221,22 @@ static void earbudHandover_DeinitializeMarshaller(void)
     if(app_data->marshal_state == MARSHAL_STATE_MARSHALING)
     {
         if(app_data->marshal.marshaller)
+        {
             MarshalDestroy(app_data->marshal.marshaller, FALSE);
+        }
         app_data->marshal.unmarshaller = NULL;
     }
 
     if(app_data->marshal_state == MARSHAL_STATE_UNMARSHALING)
     {
         if(app_data->marshal.unmarshaller)
+        {
             UnmarshalDestroy(app_data->marshal.unmarshaller, FALSE);
+        }
         app_data->marshal.unmarshaller = NULL;
+        
+        /* Remove unmarshalling data */
+        deinitializeUnmarshalDataList();
     }
 
     app_data->marshal_state = MARSHAL_STATE_INITIALIZED;
@@ -175,7 +250,7 @@ static bool earbudHandover_Veto(void)
     handover_app_context_t * app_data = earbudHandover_Get();
     const registered_handover_interface_t *curr_inf = NULL;
     bool veto = FALSE;
-    PanicFalse(app_data->marshal_state == MARSHAL_STATE_INITIALIZED);
+    PanicFalse(app_data->marshal_state == MARSHAL_STATE_MARSHALING);
     DEBUG_LOG("earbudHandover_Veto");
 
     for(curr_inf = app_data->interfaces;
@@ -215,12 +290,47 @@ static const registered_handover_interface_t * getNextInterface(void)
 }
 
 /*! \brief Commit the roles on all registered components.
+    \param[in] tp_bd_addr Bluetooth address of the connected device / handset.
     \param[in] role TRUE if primary, FALSE otherwise
 */
-static void earbudHandover_Commit(const bool role)
+static void earbudHandover_Commit(const tp_bdaddr *tp_bd_addr, const bool role)
+{
+    DEBUG_LOG("earbudHandover_Commit");
+    handover_app_context_t * app_data = earbudHandover_Get();
+    const registered_handover_interface_t * curr_inf;
+    handover_app_unmarshal_data_t * unmarshal_data;
+    app_unmarshal_status_t result;
+    uint8 index;
+    
+    if(role)
+    {
+        PanicFalse(app_data->marshal_state == MARSHAL_STATE_UNMARSHALING);
+        for (index = 0;
+             index < app_data->unmarshal_data_list_free_index;
+             index++)
+        {
+            /* Call unmarshal and store the result */
+            unmarshal_data = &app_data->unmarshal_data_list[index];
+            curr_inf = earbudHandover_GetInterfaceForType(unmarshal_data->type);
+            result = curr_inf->Unmarshal(&tp_bd_addr->taddr.addr, unmarshal_data->type, unmarshal_data->data);
+            PanicFalse(result > UNMARSHAL_FAILURE);
+            app_data->unmarshal_data_list[index].unmarshalling_status = result;
+            EB_HANDOVER_DEBUG_VERBOSE_LOG("earbud Handover Client update complete for type: %d", unmarshal_data->type);
+        }
+    }
+    else
+    {
+        /* Nothing to be done for primary */
+    }
+}
+
+/*! \brief Commit the roles on all registered components.
+    \param[in] role TRUE if primary, FALSE otherwise
+*/
+static void earbudHandover_Complete(const bool role)
 {
     handover_app_context_t * app_data = earbudHandover_Get();
-    DEBUG_LOG("earbudHandover_Commit");
+    DEBUG_LOG("earbudHandover_Complete");
 
     const const registered_handover_interface_t *curr_inf = app_data->interfaces;
     for(curr_inf = app_data->interfaces;
@@ -228,9 +338,9 @@ static void earbudHandover_Commit(const bool role)
         curr_inf++)
     {
         curr_inf->Commit(role);
-    }
+    }    
 
-    /* Commit is the final interface invoked during handover. Cleanup now. */
+    /* Complete is the final interface invoked during handover. Cleanup now. */
     earbudHandover_DeinitializeMarshaller();
 }
 
@@ -351,8 +461,9 @@ static bool earbudHandover_Unmarshal(const tp_bdaddr *addr, const uint8 *buffer,
 {
     handover_app_context_t * app_data = earbudHandover_Get();
     bool unmarshalled = TRUE;
-    marshal_type_t type;
-    void * data = NULL;
+    handover_app_unmarshal_data_t * data = NULL;
+    
+    UNUSED(addr);
 
     PanicFalse(buffer);
     PanicFalse(buffer_size);
@@ -370,6 +481,9 @@ static bool earbudHandover_Unmarshal(const tp_bdaddr *addr, const uint8 *buffer,
         app_data->marshal_state = MARSHAL_STATE_UNMARSHALING;
         app_data->marshal.unmarshaller = UnmarshalInit(mtd_handover_app, NUMBER_OF_SERVICE_MARSHAL_OBJECT_TYPES);
         PanicNull(app_data->marshal.unmarshaller);
+        
+        /*Initialize list of unmarshalled data*/
+        initializeUnmarshalDataList();
     }
 
     UnmarshalSetBuffer(app_data->marshal.unmarshaller, buffer, buffer_size);
@@ -377,21 +491,25 @@ static bool earbudHandover_Unmarshal(const tp_bdaddr *addr, const uint8 *buffer,
     /* Loop until all types are extracted from buffer */
     while(unmarshalled && (*consumed < buffer_size))
     {
-        if(Unmarshal(app_data->marshal.unmarshaller, &data, &type))
+        data = &app_data->unmarshal_data_list[app_data->unmarshal_data_list_free_index];
+        PanicFalse(app_data->unmarshal_data_list_free_index < app_data->unmarshal_data_list_size);
+
+        if(Unmarshal(app_data->marshal.unmarshaller, &data->data, &data->type))
         {
-            const registered_handover_interface_t * curr_inf = earbudHandover_GetInterfaceForType(type);
+            const registered_handover_interface_t * curr_inf = earbudHandover_GetInterfaceForType(data->type);
             /* Could not find interface for marshal_type */
             if(curr_inf == NULL)
             {
-                DEBUG_LOG("earbudHandover_Unmarshal - Could not find interface for type: %d", type);
+                DEBUG_LOG("earbudHandover_Unmarshal - Could not find interface for type: %d", data->type);
                 Panic();
             }
-            else
-            {
-                EB_HANDOVER_DEBUG_VERBOSE_LOG("earbudHandover_Unmarshal - Unmarshaling complete for type: %d", type);
-                curr_inf->Unmarshal(&addr->taddr.addr, type, data);
-                *consumed = UnmarshalConsumed(app_data->marshal.unmarshaller);
-            }
+                       
+            app_data->unmarshal_data_list_free_index++;
+            *consumed = UnmarshalConsumed(app_data->marshal.unmarshaller);
+            EB_HANDOVER_DEBUG_VERBOSE_LOG("earbudHandover_Unmarshal - Unmarshalling successfull for type: %d, Index: %d, Consumed: %d", 
+                                          data->type,
+                                          app_data->unmarshal_data_list_free_index - 1,
+                                          *consumed);
         }
         else
         {
@@ -410,9 +528,6 @@ static bool earbudHandover_Unmarshal(const tp_bdaddr *addr, const uint8 *buffer,
  */
 static void earbudHandover_Abort(void)
 {
-    handover_app_context_t * app_data = earbudHandover_Get();
-    PanicFalse(app_data->marshal_state == MARSHAL_STATE_UNMARSHALING ||
-               app_data->marshal_state == MARSHAL_STATE_MARSHALING);
     earbudHandover_DeinitializeMarshaller();
 }
 

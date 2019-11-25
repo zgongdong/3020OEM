@@ -84,6 +84,8 @@ enum    av_headset_conn_manager_messages
     CON_MANAGER_HANDSET_CONNECT_ALLOW_IND,
     /*! Message ID sent when handset connections are not allowed */
     CON_MANAGER_HANDSET_CONNECT_DISALLOW_IND,
+    /*! Message ID sent when all BLE connections have been disconnected. */
+    CON_MANAGER_DISCONNECT_ALL_LE_CONNECTIONS_CFM,
 };
 
 /*! Definition of message sent to clients to indicate connection status. */
@@ -464,5 +466,28 @@ void ConManagerSetMaxQos(cm_qos_t qos);
                 message
  */
 void ConManagerTerminateAllAcls(Task requester);
+
+/*! \brief Close all BLE links.
+
+    For all open BLE connections:
+        * notify any clients that the link will be disconnected, such
+          that they can clean up and release any L2CAP channels using
+          the BLE ACL.
+        * wait for DM_ACL_CLOSED_IND notification from Bluestack
+
+    Once all LE links are disconnected, send CON_MANAGER_DISCONNECT_ALL_LE_CONNECTIONS_CFM
+    to the requester task.
+        
+    \note This API will cleanly disconnect LE links, it *does not* forcibly
+    disconnect BLE ACLs.
+
+    \note The function does not protect against any new connections
+    being created. This should be blocked by calls to 
+    ConManagerAllowConnection().
+
+    \param[in] requester task to be sent CON_MANAGER_DISCONNECT_ALL_LE_CONNECTIONS_CFM 
+                message
+*/    
+void ConManagerDisconnectAllLeConnectionsRequest(Task requester);
 
 #endif

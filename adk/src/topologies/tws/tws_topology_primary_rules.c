@@ -73,8 +73,8 @@ DEFINE_RULE(ruleTwsTopPriCancelFindRole);
 DEFINE_RULE(ruleTwsTopPriPeerLostFindRole);
 DEFINE_RULE(ruleTwsTopPriHandsetLinkLossReconnect);
 DEFINE_RULE(ruleTwsTopHandoverStart);
-DEFINE_RULE(ruleTwsTopHandoverIncaseTimeout);
-DEFINE_RULE(ruleTwsTopHandoverIncaseFailed);
+DEFINE_RULE(ruleTwsTopHandoverFailed);
+DEFINE_RULE(ruleTwsTopHandoverFailureHandled);
 
 DEFINE_RULE(ruleTwsTopPriEnableConnectableHandset);
 DEFINE_RULE(ruleTwsTopPriDisableConnectableHandset);
@@ -83,6 +83,7 @@ DEFINE_RULE(ruleTwsTopPriOutCaseConnectHandset);
 DEFINE_RULE(ruleTwsTopPriInCaseDisconnectHandset);
 
 DEFINE_RULE(ruleTwsTopPriSwitchToDfuRole);
+DEFINE_RULE(ruleTwsTopPriEnableLeConnectableHandset);
 
 /*! \} */
 
@@ -188,6 +189,9 @@ const rule_entry_t twstop_primary_rules_set[] =
     /* When role switch completed, decide if page scan should be enabled for handset connections. */
     RULE(TWSTOP_RULE_EVENT_ROLE_SWITCH,                ruleTwsTopPriEnableConnectableHandset,    TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET),
 
+    /* When role switch completed, decide if LE advertisement should be enabled for handset connections. */
+    RULE(TWSTOP_RULE_EVENT_ROLE_SWITCH,     ruleTwsTopPriEnableLeConnectableHandset,    TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET),
+
     /* Connect handset after role switch to Primary */
     RULE(TWSTOP_RULE_EVENT_ROLE_SWITCH,                ruleTwsTopPriRoleSwitchConnectHandset,    TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET),
 
@@ -201,11 +205,11 @@ const rule_entry_t twstop_primary_rules_set[] =
     /* After HDMA recommendation, decide whether to initiate Handover. */
     RULE(TWSTOP_RULE_EVENT_HANDOVER, ruleTwsTopHandoverStart, TWSTOP_PRIMARY_GOAL_HANDOVER_START),
 
-    /* Decide what to do when handover timed out when earbud entered in case */
-    RULE(TWSTOP_RULE_EVENT_HANDOVER_INCASE_TIMEOUT, ruleTwsTopHandoverIncaseTimeout, TWSTOP_PRIMARY_GOAL_HANDOVER_INCASE_TIMEOUT),
-
     /* Decide what to do when handover failed when earbud entered in case */
-    RULE(TWSTOP_RULE_EVENT_HANDOVER_INCASE_FAILED, ruleTwsTopHandoverIncaseFailed, TWSTOP_PRIMARY_GOAL_NO_ROLE_IDLE),
+    RULE(TWSTOP_RULE_EVENT_HANDOVER_FAILED, ruleTwsTopHandoverFailed, TWSTOP_PRIMARY_GOAL_HANDOVER_FAILED),
+
+    /* Decide what to do after a dynamic handover failure handling */
+    RULE(TWSTOP_RULE_EVENT_HANDOVER_FAILURE_HANDLED,ruleTwsTopHandoverFailureHandled,TWSTOP_PRIMARY_GOAL_NO_ROLE_IDLE)
 
     /*! \todo Connect after pairing - TWS+ only rule */
     /*! \todo Handset Disconnected BREDR - opportunity to re-evaluate role */
@@ -241,6 +245,14 @@ static rule_action_t ruleTwsTopPriFindRole(void)
     if (TwsTopology_IsGoalActive(tws_topology_goal_pair_peer))
     {
         TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriFindRole, ignore as peer pairing active");
+        return rule_action_ignore;
+    }
+
+    if (TwsTopology_IsGoalActive(tws_topology_goal_dynamic_handover) 
+        || TwsTopology_IsGoalActive(tws_topology_goal_dynamic_handover_failure))
+    {
+        /* Ignore as there is a handover goal running  */
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriFindRole, Ignore as dynamic handover is still in progress ");
         return rule_action_ignore;
     }
 
@@ -393,11 +405,10 @@ static rule_action_t ruleTwsTopPriNoRoleIdle(void)
 
     if (TwsTopologyConfig_DynamicHandoverSupported())
     {
-        if (TwsTopologyGetTaskData()->hdma_created
-            && !appDeviceIsHandsetA2dpStreaming())
+        if (TwsTopologyGetTaskData()->hdma_created)
         {
-            TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriNoRoleIdle, ignore as HDMA is Active");
-            return rule_action_ignore;
+            TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriNoRoleIdle, defer as HDMA is Active");
+            return rule_action_defer;
         }
     }
     else
@@ -407,6 +418,13 @@ static rule_action_t ruleTwsTopPriNoRoleIdle(void)
             TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriNoRoleIdle, defer as HDMA is active");
             return rule_action_defer;
         }
+    }
+
+    if(TwsTopology_IsGoalActive(tws_topology_goal_dynamic_handover) 
+       || TwsTopology_IsGoalActive(tws_topology_goal_dynamic_handover_failure))
+    {
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriNoRoleIdle, Defer as dynamic handover is Active");
+        return rule_action_defer;
     }
 
     TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriNoRoleIdle, run as primary in case");
@@ -553,6 +571,22 @@ static rule_action_t ruleTwsTopPriEnableConnectableHandset(void)
 
     TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriEnableConnectableHandset, run as primary out of case not connected to handset");
     return RULE_ACTION_RUN_PARAM(enable_connectable);
+}
+
+static rule_action_t ruleTwsTopPriEnableLeConnectableHandset(void)
+{
+    bdaddr handset_addr;
+    const TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET_T enable_le_adverts =
+        {.enable = TRUE};
+
+    if (appPhyStateGetState() == PHY_STATE_IN_CASE)
+    {
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriEnableLeConnectableHandset, ignore as in case ");
+        return rule_action_ignore;
+    }
+
+    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopPriEnableLeConnectableHandset, run as primary out of case not connected to handset");
+    return RULE_ACTION_RUN_PARAM(enable_le_adverts);
 }
 
 static rule_action_t ruleTwsTopPriDisableConnectableHandset(void)
@@ -702,7 +736,7 @@ static rule_action_t ruleTwsTopPriSwitchToDfuRole(void)
 */
 static rule_action_t ruleTwsTopHandoverStart(void)
 {
-    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverStart, run if conditions permit");
+    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverStart");
 
     /* Check if Handover is allowed by application */
     if(TwsTopologyGetTaskData()->app_prohibit_handover)
@@ -711,9 +745,11 @@ static rule_action_t ruleTwsTopHandoverStart(void)
         return rule_action_ignore;
     }
 
-    if (TwsTopologyConfig_DynamicHandoverSupported() && appDeviceIsHandsetA2dpStreaming())
+    if (TwsTopology_IsGoalActive(tws_topology_goal_dynamic_handover) 
+         || TwsTopology_IsGoalActive(tws_topology_goal_dynamic_handover_failure))
     {
-        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverStart, Ignored as handover is not yet supported when active");
+        /* Ignore any further handover requests as there is already one in progress */
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverStart, Ignored as dynamic handover is still in progress ");
         return rule_action_ignore;
     }
 
@@ -721,30 +757,30 @@ static rule_action_t ruleTwsTopHandoverStart(void)
     return rule_action_run;
 }
 
-/*! A previous handover timed out. Run the incase timeout rule. */ 
-static rule_action_t ruleTwsTopHandoverIncaseTimeout(void)
+/*! A previous handover failed. Run failed rule. */ 
+static rule_action_t ruleTwsTopHandoverFailed(void)
 {
-    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverIncaseTimeout ");
+    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverFailed");
 
-    /* Check if Handover is still allowed by application */
-    if(TwsTopologyGetTaskData()->app_prohibit_handover)
+    /* Run the rule now */
+    return rule_action_run;
+}
+
+/*! A previous handover failure has been handled. Run failure handled rule. */ 
+static rule_action_t ruleTwsTopHandoverFailureHandled(void)
+{
+    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverFailureHandled");
+
+    if (appPhyStateGetState() != PHY_STATE_IN_CASE)
     {
-        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverIncaseTimeout, Ignored as App has blocked ");
+        TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverFailureHandled, ignore as not in case anymore");
         return rule_action_ignore;
     }
-
     /* Run the rule now */
     return rule_action_run;
+
 }
 
-/*! A previous handover failed. Run the incase failed rule. */ 
-static rule_action_t ruleTwsTopHandoverIncaseFailed(void)
-{
-    TWSTOP_PRIMARY_RULE_LOG("ruleTwsTopHandoverIncaseFailed ");
-
-    /* Run the rule now */
-    return rule_action_run;
-}
 
 /*****************************************************************************
  * END RULES FUNCTIONS

@@ -12,6 +12,8 @@
 #include "audio_sources_list.h"
 #include "source_param_types.h"
 
+#define MAX_AUDIO_INTERFACES (1)
+
 typedef struct
 {
     bool (*GetConnectParameters)(audio_source_t source, source_defined_params_t * source_params);
@@ -20,6 +22,5 @@ typedef struct
     void (*ReleaseDisconnectParameters)(audio_source_t source, source_defined_params_t * source_params);
     bool (*IsAudioAvailable)(audio_source_t source);
 } audio_source_audio_interface_t;
-
 
 #endif /* AUDIO_SOURCES_AUDIO_INTERFACE_H_ */

@@ -22,13 +22,7 @@
     system reading the initialised flag */
 #define HDMA_INIT_COMPLETED_MAGIC (0x2D)
 
-#ifdef INCLUDE_HDMA_ONLY_PHY_EVENT
-#define HDMA_EVENTS_REGISTER state_proxy_event_type_phystate
-#else
-#define HDMA_EVENTS_REGISTER state_proxy_event_type_phystate| state_proxy_event_type_battery_state| \
-                             state_proxy_event_type_link_quality| state_proxy_event_type_mic_quality| \
-                             state_proxy_event_type_hfp_conn| state_proxy_event_type_hfp_discon
-#endif
+
 /*! \brief HDMA internal state. */
 typedef struct
 {
@@ -44,7 +38,7 @@ typedef struct
 /*! Internal messages sent by hdma to itself. */
 typedef enum
 {
-    HDMA_INTERNAL_TIMER_OUT_OF_CASE = INTERNAL_MESSAGE_BASE
+    HDMA_INTERNAL_TIMER_EVENT = INTERNAL_MESSAGE_BASE
 }hdma_internal_messages;
 
 /* Defined in hdma.c */
@@ -67,7 +61,7 @@ void hdma_HandleBatteryLevelStatus(bool is_this_bud,uint32 timestamp,
 
     \param[in] is_this_bud source of the event (true:-this bud, false:- peer bud).
     \param[in] timestamp Time at which event is raised.
-    \param[in] voice_quality voice quality indicator, 0 = worst, 15 = best, 0xFF unknown. 
+    \param[in] voice_quality voice quality indicator, 0 = worst, 15 = best, 0xFF unknown.
 
 */
 void hdma_HandleVoiceQuality(bool is_this_bud,uint32 timestamp,
@@ -82,7 +76,7 @@ void hdma_HandleVoiceQuality(bool is_this_bud,uint32 timestamp,
 */
 void hdma_HandlePhyState(bool is_this_bud,uint32 timestamp,
                         phy_state_event phy_state);
-    
+
 
 /*! \brief Handle the link quality event from State Proxy
 
@@ -102,18 +96,18 @@ void hdma_HandleLinkQuality(bool is_this_bud,bool isPeerLink,uint32 timestamp,
 void hdma_HandleExternalReq(uint32 timestamp, hdma_handover_urgency_t urgency);
 
 /*! \brief Handle the Call connect/disconnect event from the State Proxy.
-           
+
     \param[in] timestamp Time at which event is raised.
-    \param[in] isconnect Call is connected or disconnected, 1 = connect, 2 = disconnect 
+    \param[in] isconnect Call is connected or disconnected, 1 = connect, 2 = disconnect
 */
 
 void hdma_HandleCallEvent(uint32 timestamp, bool isconnect);
 
 /*! \brief HDMA Message Handler.
-           
+
     \param[in] task Task.
     \param[in] id Message id
-    \param[in] message Message data 
+    \param[in] message Message data
 */
 void hdma_HandleMessage(Task task, MessageId id, Message message);
 #endif

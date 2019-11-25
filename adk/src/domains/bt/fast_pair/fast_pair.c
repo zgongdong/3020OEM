@@ -20,13 +20,16 @@
 #include "fast_pair_wait_pairing_request_state.h"
 #include "fast_pair_wait_passkey_state.h"
 #include "fast_pair_wait_account_key_state.h"
+#include "fast_pair_account_key_sync.h"
 
 #include "earbud_init.h"
 #include "bt_device_class.h"
 #include "device_properties.h"
+#include "phy_state.h"
 
 #include <connection_manager.h>
 #include <connection_message_dispatcher.h>
+#include <local_addr.h>
 
 #include <panic.h>
 #include <connection.h>
@@ -211,15 +214,28 @@ void FastPair_HandleMessage(Task task, MessageId id, Message message)
             fastPair_TimerExpired();
         break;
 
-        case ui_input_factory_reset_request:
-            fastPair_DeleteAllAccountKeys();
+        case LOCAL_ADDR_CONFIGURE_BLE_GENERATION_CFM:
+        {
+            LOCAL_ADDR_CONFIGURE_BLE_GENERATION_CFM_T *cfm = (LOCAL_ADDR_CONFIGURE_BLE_GENERATION_CFM_T *)message;
+            DEBUG_LOG("FastPair_HandleMessage. LOCAL_ADDR_CONFIGURE_BLE_GENERATION_CFM status : %d",cfm->status);
+        }
         break;
 
-#if 0
-        case ui_input_power_off:
-            fastPair_PowerOff();
+        case ui_input_factory_reset_request:
+            fastPair_DeleteAllAccountKeys();
+            /*! Account Key Sharing  on deletion*/
+            fastPair_AccountKeySync_Sync();
         break;
-#endif
+
+        case PHY_STATE_CHANGED_IND:
+        {
+            PHY_STATE_CHANGED_IND_T* msg = (PHY_STATE_CHANGED_IND_T *)message;
+            if(msg->new_state == PHY_STATE_IN_CASE)
+            {
+                fastPair_PowerOff();
+            }
+        }
+        break;
 
         default:
             DEBUG_LOG("Unhandled MessageID = %d\n", id);
@@ -381,7 +397,10 @@ bool FastPair_Init(Task init_task)
     ConManagerRegisterAllowedConnectionsObserver(&theFastPair->task);
 
     Ui_RegisterUiInputConsumer(&theFastPair->task, fp_ui_inputs, ARRAY_DIM(fp_ui_inputs));
-    
+
+    /* Register with Physical state as observer to know if there are any physical state changes */
+    appPhyStateRegisterClient(&theFastPair->task);
+
     /* Init the GATT Fast Pair Server library */
     status = fastPair_GattFPServerInitialize(&theFastPair->task);
     
@@ -395,6 +414,12 @@ bool FastPair_Init(Task init_task)
     fastPair_DeviceInit();
 
     fastPair_InitSessionData();
+
+    /* Initialize the Fast Pair Account Key Sync Interface */
+    fastPair_AccountKeySync_Init();
+
+    /* Configure Resolvable Private Address (RPA) */
+    LocalAddr_ConfigureBleGeneration(&theFastPair->task, local_addr_host_gen_resolvable, local_addr_controller_gen_rpa);
 
     /* Ready to start Fast Pair. Move to Idle state */
     theFastPair->state = FAST_PAIR_STATE_IDLE;

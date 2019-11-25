@@ -33,16 +33,19 @@ static bool a2dpUnmarshal(const tp_bdaddr *tp_bd_addr,
                          uint16 length,
                          uint16 *consumed);
 
-static void a2dpMarshalCommit( const bool newRole );
+static void a2dpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole);
 
-static void a2dpMarshalAbort( void );
+static void a2dpHandoverComplete( const bool newRole );
+
+static void a2dpHandoverAbort( void );
 
 extern const handover_interface a2dp_handover_if =  {
         &a2dpVeto,
         &a2dpMarshal,
         &a2dpUnmarshal,
-        &a2dpMarshalCommit,
-        &a2dpMarshalAbort};
+        &a2dpHandoverCommit,
+        &a2dpHandoverComplete,        
+        &a2dpHandoverAbort};
 
 /****************************************************************************
 NAME    
@@ -68,16 +71,38 @@ bool a2dpVeto( void )
 
 /****************************************************************************
 NAME    
-    a2dpMarshalCommit
+    a2dpHandoverCommit
 
 DESCRIPTION
-    The A2DP library commits to the specified new role (primary or
-    secondary)
+    The A2DP library performs time-critical actions to commit to the specified 
+    new role (primary or  secondary)
 
 RETURNS
     void
 */
-static void a2dpMarshalCommit( const bool newRole )
+static void a2dpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
+{
+    UNUSED(tp_bd_addr);
+    UNUSED(newRole);
+    
+    /* Not supported in this configuration */
+    Panic();
+    
+    return;
+}
+
+/****************************************************************************
+NAME    
+    a2dpHandoverComplete
+
+DESCRIPTION
+    The A2DP library performs pending actions and completes the transition to 
+    the specified new role.
+
+RETURNS
+    void
+*/
+static void a2dpHandoverComplete( const bool newRole )
 {
     UNUSED(newRole);
     
@@ -87,10 +112,9 @@ static void a2dpMarshalCommit( const bool newRole )
     return;
 }
 
-
 /****************************************************************************
 NAME    
-    a2dpMarshalAbort
+    a2dpHandoverAbort
 
 DESCRIPTION
     Abort the A2DP Handover process, free any memory
@@ -99,7 +123,7 @@ DESCRIPTION
 RETURNS
     void
 */
-static void a2dpMarshalAbort(void)
+static void a2dpHandoverAbort(void)
 {
     /* Not supported in this configuration */
     Panic();

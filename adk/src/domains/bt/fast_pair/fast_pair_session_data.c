@@ -20,6 +20,7 @@
 
 #include "device_db_serialiser.h"
 #include "device_properties.h"
+#include "fast_pair_account_key_sync.h"
 
 #include "earbud_config.h"
 
@@ -125,7 +126,7 @@ static void fastpair_print_account_keys(uint16 num_keys, uint8* account_keys)
 void fastPair_DeviceInit(void)
 {
     DeviceDbSerialiser_RegisterPersistentDeviceDataUser(
-    0x2,
+    0x1,
     fastpair_get_device_data_len,
     fastpair_serialise_persistent_device_data,
     fastpair_deserialise_persistent_device_data);
@@ -451,6 +452,26 @@ bool fastPair_StoreAccountKey(const uint8* account_key)
     else
     {
         DEBUG_LOG("Fastpair session data : Invalid account key received");
+    }
+    return result;
+}
+
+/*! \brief Store the Fast Pair account keys with the index values
+ */
+bool fastPair_StoreAllAccountKeys(fast_pair_account_key_sync_req_t *account_key_info)
+{
+    bool result = FALSE;
+    deviceType type = DEVICE_TYPE_SELF;
+    /* Find the SELF deivce to add account keys to */
+    device_t my_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_type, &type, sizeof(deviceType));
+    if(my_device)
+    {
+        DEBUG_LOG("Fastpair session data : Storing the complete account key info.");
+        Device_SetProperty(my_device, device_property_fast_pair_account_key_index, &account_key_info->account_key_index, sizeof(account_key_info->account_key_index));
+        Device_SetProperty(my_device, device_property_fast_pair_account_keys, &account_key_info->account_keys, sizeof(account_key_info->account_keys));
+
+        result = TRUE;
+        DeviceDbSerialiser_Serialise();
     }
     return result;
 }

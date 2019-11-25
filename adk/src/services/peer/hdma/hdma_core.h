@@ -86,9 +86,13 @@ typedef struct{
     hdma_timestamp lastTimeInEar;
     uint8 inEar;
     uint8 inCase;
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
     hdma_core_battery_state_t batteryStatus;
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+#endif
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
     queue_t voiceQuality;
+#endif
+#ifdef INCLUDE_HDMA_RSSI_EVENT
     queue_t phoneRSSI;
 #endif
 }hdma_bud_info_t;
@@ -123,6 +127,7 @@ void Hdma_CoreHandleInternalEvent( hdma_timestamp timestamp);
 */
 void Hdma_CoreHandleEvent( hdma_timestamp timestamp, hdma_core_event_t event);
 
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
 /*! \brief Handle the battery level status event from HDMA
 
     \param[in] timestamp Time at which event is received.
@@ -131,8 +136,9 @@ void Hdma_CoreHandleEvent( hdma_timestamp timestamp, hdma_core_event_t event);
 
 */
 void Hdma_CoreHandleBatteryStatus(hdma_timestamp timestamp, uint8 isThisBud, hdma_core_battery_state_t batteryStatus);
+#endif
 
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
 /*! \brief Handle the voice quality event from HDMA.
            This event will be raised only during an active  HFP call.
 
@@ -142,7 +148,9 @@ void Hdma_CoreHandleBatteryStatus(hdma_timestamp timestamp, uint8 isThisBud, hdm
 
 */
 void Hdma_CoreHandleVoiceQuality(hdma_timestamp timestamp, uint8 isThisBud, uint8 voiceQuality);      
+#endif
 
+#ifdef INCLUDE_HDMA_RSSI_EVENT
 /*! \brief Handle the link quality event from HDMA
 
     \param[in] timestamp Time at which event is received.
@@ -185,11 +193,9 @@ typedef struct {
     uint8 inCase;
     int8 inEar;
     hdma_timestamp lastTimeInEar; //check for time
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
     hdma_core_result_queue_t peerRSSI;
     hdma_core_result_queue_t phoneRSSI;
     hdma_core_result_queue_t voiceQuality;
-#endif
 }hdma_core_result_bud_t;
 
 typedef struct {

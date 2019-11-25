@@ -334,6 +334,17 @@ static void conManagerCheckForForcedDisconnect(tp_bdaddr *tpaddr)
     }
 }
 
+/*! \brief If there are no remaining LE links send the confirmation message. */
+static void conManagerCheckForAllLeDisconnected(void)
+{
+    if (   con_manager.all_le_disconnect_requester
+        && !ConManagerFindFirstActiveLink(cm_transport_ble))
+    {
+        DEBUG_LOG("conManagerCheckForAllLeDisconnected all LE links disconnected");
+        MessageSend(con_manager.all_le_disconnect_requester, CON_MANAGER_DISCONNECT_ALL_LE_CONNECTIONS_CFM, NULL);
+        con_manager.all_le_disconnect_requester = NULL;
+    }
+}
 
 /*  ACL opened indication handler
 
@@ -433,6 +444,10 @@ static void ConManagerHandleClDmAclClosedIndication(const CL_DM_ACL_CLOSED_IND_T
         }
 
         conManagerCheckForForcedDisconnect(&tpaddr);
+
+        /* check if we were trying to disconnect all LE links and they're all now
+         * gone, so the confirmation message should be sent */
+        conManagerCheckForAllLeDisconnected();
     }
 
     /* Indicate to client the connection to this connection has gone */
@@ -765,7 +780,7 @@ void ConManagerTerminateAllAcls(Task requester)
 
     PanicFalse(!con_manager.forced_disconnect || (con_manager.forced_disconnect  == requester));
 
-    if (!ConManagerFindFirstActiveLink())
+    if (!ConManagerFindFirstActiveLink(cm_transport_all))
     {
         con_manager.forced_disconnect = NULL;
         MessageSend(requester, CON_MANAGER_CLOSE_ALL_CFM, NULL);
@@ -777,5 +792,38 @@ void ConManagerTerminateAllAcls(Task requester)
 
     con_manager.forced_disconnect = requester;
     ConnectionDmAclDetach(&addr, hci_error_unspecified, TRUE);
+}
+
+/******************************************************************************/
+void ConManagerDisconnectAllLeConnectionsRequest(Task requester)
+{
+    bool have_le_connection = FALSE;
+    cm_list_iterator_t iterator;
+    cm_connection_t* connection = ConManagerListHeadConnection(&iterator);
+
+    DEBUG_LOG("ConManagerDisconnectAllLeConnections");
+
+    PanicFalse(!con_manager.all_le_disconnect_requester);
+
+    while (connection)
+    {
+        cm_connection_state_t state = conManagerGetConnectionState(connection);
+
+        if (   connection->tpaddr.transport == TRANSPORT_BLE_ACL
+            && state != ACL_DISCONNECTED
+            && state != ACL_DISCONNECTED_LINK_LOSS)
+        {
+            have_le_connection = TRUE;
+            con_manager.all_le_disconnect_requester = requester;
+            conManagerReleaseAclImpl(&connection->tpaddr);
+        }
+
+        connection = ConManagerListNextConnection(&iterator);
+    }
+
+    if (!have_le_connection)
+    {
+        MessageSend(requester, CON_MANAGER_DISCONNECT_ALL_LE_CONNECTIONS_CFM, NULL);
+    }
 }
 

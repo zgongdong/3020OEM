@@ -8,6 +8,7 @@
 
 #ifndef FAST_PAIR_SESSION_DATA_H_
 #define FAST_PAIR_SESSION_DATA_H_
+#include "fast_pair_account_key_sync.h"
 
 /*! \brief Initialize the Fast Pair Session Data Module
 
@@ -66,6 +67,16 @@ uint16 fastPair_GetNumAccountKeys(void);
     \return bool TRUE if account key is stored else FALSE
  */
 bool fastPair_StoreAccountKey(const uint8* account_key);
+
+/*! \brief Store the Fast Pair account keys with the index values
+ *
+    This inteface can be used to store the complete fast pair account key info
+
+    \param fast_pair_account_key_sync_req_t* reference to the fast pair account key info
+
+    \return bool TRUE if account keys are stored else FALSE
+ */
+bool fastPair_StoreAllAccountKeys(fast_pair_account_key_sync_req_t* account_key_info);
 
 /*! \brief Delete the Fast Pair account keys
 

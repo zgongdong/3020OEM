@@ -143,24 +143,29 @@ static cm_connection_t *conManagerFindConnectionFromState(cm_transport_t transpo
     return NULL;
 }
 
-cm_connection_t *ConManagerFindFirstActiveLink(void)
+/******************************************************************************/
+cm_connection_t *ConManagerFindFirstActiveLink(cm_transport_t transport_mask)
 {
     cm_connection_t *connection;
 
     for_all_connections(connection)
     {
-        if (   connection->bitfields.state != ACL_DISCONNECTED
+        cm_transport_t connection_transport = TransportToCmTransport(connection->tpaddr.transport);
+
+        if (   connection_transport & transport_mask
+            && connection->bitfields.state != ACL_DISCONNECTED
             && connection->bitfields.state != ACL_DISCONNECTED_LINK_LOSS)
         {
-            DEBUG_LOG("ConManagerFindFirstActiveLink. Found 0x%x. State: %x Lock:%x Users:%x",
-                        connection->tpaddr.taddr.addr.lap, 
-                        connection->bitfields.state, connection->lock,
-                        connection->bitfields.users);
+            DEBUG_LOG("ConManagerFindFirstActiveLink. Found 0x%x. State: %x Lock:%x Users:%x Trans:0x%x",
+                    connection->tpaddr.taddr.addr.lap, 
+                    connection->bitfields.state, connection->lock,
+                    connection->bitfields.users,
+                    connection->tpaddr.transport);
             return connection;
         }
     }
 
-    DEBUG_LOG("ConManagerFindFirstActiveLink. None found.");
+    DEBUG_LOG("ConManagerFindFirstActiveLink. None found for transport mask 0x%x", transport_mask);
     return NULL;
 }
 

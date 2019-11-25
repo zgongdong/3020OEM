@@ -88,7 +88,7 @@ static void peer_find_role_set_server_score(grss_figure_of_merit_t score)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    DEBUG_LOG("peer_find_role_set_server_score cid 0x%x", pfr->gatt_cid);
+    DEBUG_LOG("peer_find_role_set_server_score cid 0x%x score 0x%x", pfr->gatt_cid, score);
 
     if (INVALID_CID != pfr->gatt_cid)
     {

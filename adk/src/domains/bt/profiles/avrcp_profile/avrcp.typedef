@@ -62,5 +62,6 @@
         <member marshal="false" doc="Time of last volume change, only valid if volume_time_valid is set">rtime_t volume_time</member>
         <member marshal="true" doc="Current play status of the AVRCP connection. This is not always known. See \ref avrcp_play_hint">avrcp_play_status play_status</member>
         <member marshal="true" doc="Our local guess at the play status. Not always accurate.">avrcp_play_status play_hint</member>
+        <member marshal="false" doc="Temporarily suppress changes in absolute volume">bool suppress_absolute_volume</member>
     </typedef_struct>
 </types>

@@ -141,7 +141,7 @@ void PeerFindRole_PrepareResponse(void)
 {
     switch (peer_find_role_get_state())
     {
-    case PEER_FIND_ROLE_STATE_SERVER:
+    case PEER_FIND_ROLE_STATE_SERVER_PREPARING:
     case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
         /* Only send the internal prepared message if we are in a state that is
            waiting for it. */
@@ -168,7 +168,7 @@ static bool peer_find_role_handle_encryption_change(const CL_SM_ENCRYPTION_CHANG
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    if (BdaddrTypedIsSame(&ind->tpaddr.taddr, &pfr->peer_connection_typed_bdaddr))
+    if (BtDevice_LeDeviceIsPeer(&ind->tpaddr))
     {
         DEBUG_LOG("peer_find_role_handle_encryption_change. CL_SM_ENCRYPTION_CHANGE_IND %d state %d",
                     ind->encrypted, peer_find_role_get_state());

@@ -250,6 +250,7 @@ bool UpgradePartitionDataInit(bool *waitForEraseComplete)
     UpgradePartitionDataCtx *ctx;
     *waitForEraseComplete = FALSE;
 
+
     ctx = UpgradeCtxGetPartitionData();
     if (!ctx)
     {
@@ -268,9 +269,12 @@ bool UpgradePartitionDataInit(bool *waitForEraseComplete)
 
     UpgradeFWIFInit();
     UpgradeFWIFValidateInit();
+
+    /* \todo May need to take the status of peer into account, but not directly available */
     if ((UpgradeCtxGetPSKeys()->upgrade_in_progress_key == UPGRADE_RESUME_POINT_START) &&
         (UpgradeCtxGetPSKeys()->state_of_partitions == UPGRADE_PARTITIONS_UPGRADING) &&
-        (UpgradeCtxGetPSKeys()->last_closed_partition > 0))
+        (UpgradeCtxGetPSKeys()->last_closed_partition > 0) &&
+        !UpgradeCtxGet()->force_erase)
     {
         /* A partial update has been interrupted. Don't erase. */
         PRINT(("Partial update interrupted. Not erasing.\n"));
@@ -311,6 +315,8 @@ UpgradeHostErrorCode UpgradePartitionDataHandleHeaderState(uint8 *data, uint16 l
     uint8 *ptr; /* Pointer into variable length portion of header */
     unsigned i;
     UNUSED(len);
+
+
     if(!reqComplete)
     {
         /* TODO: Handle a case when header is bigger than blockSize.
@@ -696,6 +702,7 @@ UpgradeHostErrorCode UpgradePartitionDataHandleDataState(uint8 *data, uint16 len
         closeStatus = UpgradeFWIFPartitionClose(ctx->partitionHdl);
         if(UPGRADE_HOST_SUCCESS != closeStatus)
         {
+
             return closeStatus;
         }
 

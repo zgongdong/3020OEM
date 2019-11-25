@@ -435,6 +435,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earb
 bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__test_8c.html#a201f47ee47b3fca854cdd45ce91aab65">appTestPtsSetAsPeer</a> (void)</td></tr>
 <tr class="memdesc:a201f47ee47b3fca854cdd45ce91aab65"><td class="mdescLeft">&#160;</td><td class="mdescRight">configure the Pts device as a peer device <br /></td></tr>
 <tr class="separator:a201f47ee47b3fca854cdd45ce91aab65"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2304c1ea358e7491b2d04db7be7f5c7c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__test_8c.html#a2304c1ea358e7491b2d04db7be7f5c7c">appTestResetHappened</a> (void)</td></tr>
+<tr class="memdesc:a2304c1ea358e7491b2d04db7be7f5c7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determine if a reset has happened Will return TRUE only once after a reset. All subsequent calls will return FALSE.  <a href="earbud__test_8c.html#a2304c1ea358e7491b2d04db7be7f5c7c">More...</a><br /></td></tr>
+<tr class="separator:a2304c1ea358e7491b2d04db7be7f5c7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a823aea967743c2c4e0c307321155aec4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="earbud__test_8c.html#a823aea967743c2c4e0c307321155aec4">appTestScoFwdConnect</a> (void)</td></tr>
 <tr class="memdesc:a823aea967743c2c4e0c307321155aec4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Requests that the L2CAP link used for SCO forwarding is connected.  <a href="earbud__test_8c.html#a823aea967743c2c4e0c307321155aec4">More...</a><br /></td></tr>
 <tr class="separator:a823aea967743c2c4e0c307321155aec4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1653,6 +1656,27 @@ Variables</h2></td></tr>
 <div class="line"> |   |-uint16 nap : 0x0002</div>
 <div class="line">&gt;&gt;&gt;</div>
 </div><!-- fragment --><dl class="section return"><dt>Returns</dt><dd>TRUE if the primary address is that originally assigned to this board, FALSE otherwise FALSE </dd></dl>
+
+</div>
+</div>
+<a id="a2304c1ea358e7491b2d04db7be7f5c7c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2304c1ea358e7491b2d04db7be7f5c7c">&#9670;&nbsp;</a></span>appTestResetHappened()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool appTestResetHappened </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Determine if a reset has happened Will return TRUE only once after a reset. All subsequent calls will return FALSE. </p>
+<p>Determine if a reset has happened Will return TRUE until cleared by appTestResetHappenedClear() </p>
 
 </div>
 </div>

@@ -190,7 +190,7 @@ void Microphones_TurnOffMicrophone(microphone_number_t microphone_number, microp
 void Microphones_Init(void)
 {
     unsigned microphone_number = 0;
-    while(++microphone_number < MAX_SUPPORTED_MICROPHONES)
+    while(++microphone_number <= MAX_SUPPORTED_MICROPHONES)
     {
         microphones[MicrophoneNumberToIndex(microphone_number)].non_exclusive_users = 0;
         microphones[MicrophoneNumberToIndex(microphone_number)].microphone_user = invalid_user;

@@ -88,18 +88,22 @@ typedef enum
         (potentially) start closing the connection */
     tws_topology_procedure_release_peer,
 
-    tws_topology_procedure_handover,
-    tws_topology_procedure_handover_entering_case,
-    tws_topology_procedure_handover_entering_case_timeout,
-
     tws_topology_procedure_command_role_switch,
     tws_topology_procedure_wait_peer_link_drop,
     tws_topology_procedure_secondary_static_handover,
     tws_topology_procedure_primary_static_handover_in_case,
+
     tws_topology_procedure_event_suppress,
     tws_topology_procedure_primary_static_handover,
     tws_topology_procedure_dfu_in_case,
+    
+    /* Procedure for handling dynamic handover  */
+    tws_topology_procedure_handover,
+    tws_topology_procedure_dynamic_handover,
+    tws_topology_procedure_dynamic_handover_failure,
 
+    tws_topology_procedure_le_connectable,
+    tws_topology_procedure_disconnect_le_connections,
 } tws_topology_procedure;
 
 /*! Callback used by procedure to indicate it has started. */

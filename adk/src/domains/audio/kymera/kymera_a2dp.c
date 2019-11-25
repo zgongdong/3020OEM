@@ -74,9 +74,9 @@ bool appKymeraHandleInternalA2dpStart(const KYMERA_INTERNAL_A2DP_START_T *msg)
     {
         appKymeraPreStartSanity(theKymera);
         appKymeraSetState(KYMERA_STATE_A2DP_STARTING_SLAVE);
-        appKymeraA2dpStartSlave(&msg->codec_settings, msg->volume_in_db);
         theKymera->a2dp_seid = seid;
         theKymera->output_rate = rate;
+        appKymeraA2dpStartSlave(&msg->codec_settings, msg->volume_in_db);
         appKymeraSetState(KYMERA_STATE_A2DP_STREAMING);
     }
     else if (appA2dpIsSeidSource(seid))

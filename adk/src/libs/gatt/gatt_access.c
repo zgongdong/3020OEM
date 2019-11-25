@@ -125,15 +125,15 @@ static void gatt_access_ind_queued_write(const ATT_ACCESS_IND_T *ind, const uint
     }
     else
     {
-        uint16 new_size = (sizeof(GATT_ACCESS_IND_T) - sizeof(uint8)) +
-                                            stash->size_value + ind->size_value;
+        uint16 base_size= sizeof(GATT_ACCESS_IND_T) - sizeof(uint8);
+        uint16 new_size = stash->size_value + ind->size_value;
 
         /* This can cause a realloc operation for EVERY queued message that exceeds
          * the MAX_ACCESS_IND_LEN value.
          */
         if (new_size > MAX_ACCESS_IND_LEN)
         {
-            conn->data.stash = PanicNull( realloc(stash, new_size) );
+            conn->data.stash = PanicNull( realloc(stash, base_size+new_size) );
             stash = (GATT_ACCESS_IND_T *) conn->data.stash;
         }
         memmove(

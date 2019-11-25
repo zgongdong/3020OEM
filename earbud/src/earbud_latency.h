@@ -18,7 +18,12 @@ slave.
 #include <hydra_macros.h>
 
 /*! The TWS standard target latency in milli-seconds. */
+#ifdef INCLUDE_SHADOWING
+#define TWS_STANDARD_LATENCY_MS 250
+#else
 #define TWS_STANDARD_LATENCY_MS 300
+#endif
+
 /*! The TWS standard target latency in micro-seconds. */
 #define TWS_STANDARD_LATENCY_US (1000 * TWS_STANDARD_LATENCY_MS)
 

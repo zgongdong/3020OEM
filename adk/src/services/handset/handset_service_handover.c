@@ -20,21 +20,12 @@
  * Local Function Prototypes
  ******************************************************************************/
 static bool handsetService_Veto(void);
-
-static bool handsetService_Marshal(const bdaddr *bd_addr, 
-                                    marshal_type_t type,
-                                    void **marshal_obj);
-
-static void handsetService_Unmarshal(const bdaddr *bd_addr, 
-                                      marshal_type_t type,
-                                      void *unmarshal_obj);
-
 static void handsetService_Commit(bool is_primary);
 
 /******************************************************************************
  * Global Declarations
  ******************************************************************************/
-REGISTER_HANDOVER_INTERFACE(HANDSET_SERVICE, NULL, handsetService_Veto, handsetService_Marshal, handsetService_Unmarshal, handsetService_Commit);
+REGISTER_HANDOVER_INTERFACE_NO_MARSHALLING(HANDSET_SERVICE, handsetService_Veto, handsetService_Commit);
 
 /******************************************************************************
  * Local Function Definitions
@@ -55,49 +46,6 @@ static bool handsetService_Veto(void)
     }
 
     return veto;
-}
-
-/*!
-    \brief The function shall set marshal_obj to the address of the object to 
-           be marshalled.
-
-    \param[in] bd_addr      Bluetooth address of the link to be marshalled
-                            \ref bdaddr
-    \param[in] type         Type of the data to be marshalled \ref marshal_type_t
-    \param[out] marshal_obj Holds address of data to be marshalled.
-    \return TRUE: Required data has been copied to the marshal_obj.
-            FALSE: No data is required to be marshalled. marshal_obj is set to NULL.
-
-*/
-static bool handsetService_Marshal(const bdaddr *bd_addr, 
-                                    marshal_type_t type, 
-                                    void **marshal_obj)
-{
-    UNUSED(bd_addr);
-    UNUSED(type);
-    *marshal_obj = NULL;
-    /* Nothing to be marshalled for handset service */
-    return FALSE;
-}
-
-/*! 
-    \brief The function shall copy the unmarshal_obj associated to specific 
-            marshal type \ref marshal_type_t
-
-    \param[in] bd_addr      Bluetooth address of the link to be unmarshalled
-                            \ref bdaddr
-    \param[in] type         Type of the unmarshalled data \ref marshal_type_t
-    \param[in] unmarshal_obj Address of the unmarshalled object.
-
-*/
-static void handsetService_Unmarshal(const bdaddr *bd_addr, 
-                                      marshal_type_t type, 
-                                      void *unmarshal_obj)
-{
-    UNUSED(bd_addr);
-    UNUSED(type);
-    UNUSED(unmarshal_obj);
-    /* Nothing to be unmarshalled for handset service */
 }
 
 /*!

@@ -944,13 +944,31 @@ bool appTestPhyStateIsInCase(void)
     return (PHY_STATE_IN_CASE == appPhyStateGetState());
 }
 
+static bool reset_happened = TRUE;
+
 /*! \brief Reset an Earbud to factory defaults.
     Will drop any connections, delete all pairing and reboot.
 */
 void appTestFactoryReset(void)
 {
     DEBUG_LOG("appTestFactoryReset");
+    reset_happened = FALSE;
     LogicalInputSwitch_SendPassthroughDeviceSpecificLogicalInput(ui_input_factory_reset_request);
+}
+
+/*! \brief Determine if a reset has happened
+    Will return TRUE only once after a reset.
+    All subsequent calls will return FALSE
+*/
+bool appTestResetHappened(void)
+{
+    bool result = reset_happened;
+
+    if(reset_happened) {
+        reset_happened = FALSE;
+    }
+
+    return result;
 }
 
 /*! \brief Determine if the earbud has a paired peer earbud.
@@ -1348,48 +1366,75 @@ extern void appTestAncSetup(void);
 void appTestAncSetup(void)
 {
     const uint16 sample_rate = 48000;
+    Source adc_a = NULL, adc_b = NULL;
+    Sink dac_l = NULL, dac_r = NULL;
 
     OperatorFrameworkEnable(1);
 
-    /* Set up MICs */
-    Source ADC_A = Microphones_TurnOnMicrophone(appConfigAncFeedForwardMic(), sample_rate, high_priority_user);
-    Source ADC_B = Microphones_TurnOnMicrophone(appConfigAncFeedBackMic(), sample_rate, high_priority_user);
-    SourceSynchronise(ADC_A, ADC_B);
+    if(appConfigAncFeedForwardMic())
+    {
+        adc_a = Microphones_TurnOnMicrophone(appConfigAncFeedForwardMic(), sample_rate, high_priority_user);
+    }
+    if(appConfigAncFeedBackMic())
+    {
+        adc_b = Microphones_TurnOnMicrophone(appConfigAncFeedBackMic(), sample_rate, high_priority_user);
+    }
+    SourceSynchronise(adc_a, adc_b);
 
     /* Get the DAC output sinks */
-    Sink DAC_L = (Sink)PanicFalse(StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_A));
-    PanicFalse(SinkConfigure(DAC_L, STREAM_CODEC_OUTPUT_RATE, sample_rate));
-    PanicFalse(SinkConfigure(DAC_L, STREAM_CODEC_OUTPUT_GAIN, 12));
-    Sink DAC_R = (Sink)StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_B);
-    if (DAC_R)
+    dac_l = (Sink)PanicFalse(StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_A));
+    PanicFalse(SinkConfigure(dac_l, STREAM_CODEC_OUTPUT_RATE, sample_rate));
+    PanicFalse(SinkConfigure(dac_l, STREAM_CODEC_OUTPUT_GAIN, 12));
+    dac_r = (Sink)StreamAudioSink(AUDIO_HARDWARE_CODEC, AUDIO_INSTANCE_0, AUDIO_CHANNEL_B);
+    if(dac_r)
     {
-        PanicFalse(SinkConfigure(DAC_R, STREAM_CODEC_OUTPUT_RATE, sample_rate));
-        PanicFalse(SinkConfigure(DAC_R, STREAM_CODEC_OUTPUT_GAIN, 12));
+        PanicFalse(SinkConfigure(dac_r, STREAM_CODEC_OUTPUT_RATE, sample_rate));
+        PanicFalse(SinkConfigure(dac_r, STREAM_CODEC_OUTPUT_GAIN, 12));
     }
 
     /* Set DAC gains */
-    PanicFalse(SinkConfigure(DAC_L, STREAM_CODEC_RAW_OUTPUT_GAIN, 7));
-    if (DAC_R)
-        PanicFalse(SinkConfigure(DAC_R, STREAM_CODEC_RAW_OUTPUT_GAIN, 7));
+    if(dac_l)
+    {
+        PanicFalse(SinkConfigure(dac_r, STREAM_CODEC_RAW_OUTPUT_GAIN, 7));
+    }
+    if(dac_r)
+    {
+        PanicFalse(SinkConfigure(dac_r, STREAM_CODEC_RAW_OUTPUT_GAIN, 7));
+    }
 
     /* feedforward or feedback with analog mics */
-    PanicFalse(SourceConfigure(ADC_A, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_0));
-    if (DAC_R && ADC_B)
-        PanicFalse(SourceConfigure(ADC_B, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_1));
-    PanicFalse(SourceConfigure(ADC_A, STREAM_ANC_INPUT, AUDIO_ANC_PATH_ID_FFA));
-    if (DAC_R && ADC_B)
-        PanicFalse(SourceConfigure(ADC_B, STREAM_ANC_INPUT, AUDIO_ANC_PATH_ID_FFA));
+    if(dac_l && adc_a)
+    {
+        PanicFalse(SourceConfigure(adc_a, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_0));
+    }
+    if(dac_r && adc_b)
+    {
+        PanicFalse(SourceConfigure(adc_b, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_1));
+    }
+    if(dac_l && adc_a)
+    {
+        PanicFalse(SourceConfigure(adc_a, STREAM_ANC_INPUT, AUDIO_ANC_PATH_ID_FFA));
+    }
+    if(dac_r && adc_b)
+    {
+        PanicFalse(SourceConfigure(adc_b, STREAM_ANC_INPUT, AUDIO_ANC_PATH_ID_FFA));
+    }
 
     /* Associate DACS */
-    PanicFalse(SinkConfigure(DAC_L, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_0));
-    if (DAC_R && ADC_B)
-        PanicFalse(SinkConfigure(DAC_R, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_1));
+    if(dac_l && adc_a)
+    {
+        PanicFalse(SinkConfigure(dac_l, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_0));
+    }
+    if(dac_r && adc_b)
+    {
+        PanicFalse(SinkConfigure(dac_r, STREAM_ANC_INSTANCE, AUDIO_ANC_INSTANCE_1));
+    }
 
     /* Setup ANC filters */
     appTestAncSetFilters();
 
     /* Turn on ANC */
-    PanicFalse(AudioAncStreamEnable(0x9, DAC_R && ADC_B ? 0x09 : 0x0));
+    PanicFalse(AudioAncStreamEnable(0x9, dac_r && adc_b ? 0x09 : 0x0));
 
     appKymeraExternalAmpSetup();
     appKymeraExternalAmpControl(TRUE);

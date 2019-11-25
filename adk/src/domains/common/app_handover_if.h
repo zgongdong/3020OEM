@@ -67,6 +67,16 @@ extern const app_handover_interface_t component_handover_if;
 #include <hydra_macros.h>
 #include <app/marshal/marshal_if.h>
 
+/*! Return codes for unmarshalling interface */
+typedef enum {
+    /* unmarshalling has failed. */
+    UNMARSHAL_FAILURE,
+    /* unmarshalling is successfull and object can be freed. */
+    UNMARSHAL_SUCCESS_FREE_OBJECT,
+    /* unmarshalling is successfull and object is in use. Don't free the object. */
+    UNMARSHAL_SUCCESS_DONT_FREE_OBJECT,
+}app_unmarshal_status_t;
+
 /*!
     \brief Component veto the Handover process
 
@@ -107,9 +117,13 @@ typedef bool (*app_handover_marshal_t)(const bdaddr *bd_addr,
                             \ref bdaddr
     \param[in] type         Type of the unmarshalled data \ref marshal_type_t
     \param[in] unmarshal_obj Address of the unmarshalled object.
+    \return UNMARSHAL_FAILURE: Unmarshalling failed
+            UNMARSHAL_SUCCESS_FREE_OBJECT: Unmarshalling complete. Caller can free the unmarshal_obj.
+            UNMARSHAL_SUCCESS_DONT_FREE_OBJECT: Unmarshalling complete. Caller cannot free the 
+                unmarshal_obj, as component is using it.
 
 */
-typedef void (*app_handover_unmarshal_t)(const bdaddr *bd_addr,
+typedef app_unmarshal_status_t (*app_handover_unmarshal_t)(const bdaddr *bd_addr,
                                   marshal_type_t type,
                                   void *unmarshal_obj);
 

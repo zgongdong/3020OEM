@@ -75,13 +75,18 @@
 
     SERVER_AWAITING_ENCRYPTION : Encrypt the link on entry
     SERVER_AWAITING_ENCRYPTION : Wait for encryption to complete
-    SERVER_AWAITING_ENCRYPTION --> SERVER : Link encrypted successfully
+    SERVER_AWAITING_ENCRYPTION --> SERVER_PREPARING : Link encrypted successfully
     SERVER_AWAITING_ENCRYPTION --> DISCOVER : Link disconnected\nConnection manager
     SERVER_AWAITING_ENCRYPTION --> INITIALISED : Error encrypting the link
 
+    SERVER_PREPARING : Request & wait for system to be ready for role selection
+    SERVER_PREPARING --> SERVER : Received "prepared" response from client
+    SERVER_PREPARING --> SERVER : No client registered to receive prepare indication
+    SERVER_PREPARING --> DISCOVER : Link disconnected\nConnection manager
+
     SERVER : Connected as a GATT server
-    SERVER : Request the app to prepare on entry
-    SERVER : Wait for client to finish
+    SERVER : Calculate score
+    SERVER : Wait for client to select role
     SERVER --> AWAITING_COMPLETION_SERVER : Commanded to change state.
     SERVER --> DISCOVER : Link disconnected\nConnection manager
 
@@ -140,6 +145,8 @@ typedef enum
     PEER_FIND_ROLE_STATE_CONNECTING_TO_DISCOVERED,
         /*! Waiting for confirmation the link is encrypted. */
     PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION,
+        /*! Waiting for the response to a "prepare for role selection" indication */
+    PEER_FIND_ROLE_STATE_SERVER_PREPARING,
         /*! Connected as a GATT client (someone connected to us) */
     PEER_FIND_ROLE_STATE_CLIENT,
         /*! Connected as a GATT server */

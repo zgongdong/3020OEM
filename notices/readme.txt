@@ -2,5 +2,5 @@ PLEASE NOTE: BY USING THIS RELEASE YOU ACCEPT THAT IT IS SUBJECT TO THE PRODUCT
 KIT LICENSE AGREEMENT THAT YOU HAVE ACCEPTED ELECTRONICALLY, A COPY OF WHICH IS
 AVAILABLE AT https://createpoint.qti.qualcomm.com/dashboard/pkla/license.
 
-See the document “QCC512x_QCC302x.SRC.1.0 Release Note” (80-CH182-1) for
-details of this release.
+Relevant notice files can be found be in the appropriate notices folders within
+the repository hierarchy for which they apply.

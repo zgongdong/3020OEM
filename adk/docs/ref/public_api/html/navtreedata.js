@@ -45,9 +45,9 @@ var NAVTREEINDEX =
 [
 "_c_1_2ws_2j_qcc512x_qcc302x_2temp_2_staging_2_q_c_c512x__q_c_c302x_8_s_r_c_81_80_2adk_2src_2serv2a81ba1fdd8bf39e4f5df21ec36a86fe.html",
 "struct_a_v___i_n_t_e_r_n_a_l___a2_d_p___d_i_s_c_o_n_n_e_c_t___r_e_q___t.html#a8b08a4d2ec878257d64c55f64a62242c",
-"struct_p_e_e_r___s_i_g___p_a_i_r___h_a_n_d_s_e_t___i_n_d___t.html#abde3a699231ebf9cbde8b2871cc5d479",
-"structled_pattern.html#a56dc4455d04b83cfa7cefe5f46ba81c2",
-"structstate__proxy__task__data__t.html#a7c508d74f2275f4bc88b2870ec101499"
+"struct_p_e_e_r___s_i_g___p_a_i_r___h_a_n_d_s_e_t___c_f_m___t.html#abde3a699231ebf9cbde8b2871cc5d479",
+"structle__scan__manager__data__t.html#aded1adbb77fad51b003abcf14f2673e1",
+"structstate__proxy__task__data__t.html#a410042bed920bbc06efeb5554b51ba68"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -15,6 +15,13 @@
 
 /*\{*/
 
+/*! \brief Audio Interface Type */
+typedef struct
+{
+    void ** interfaces;
+    uint8 number_of_interfaces;
+} interface_list_t;
+
 /*! \brief Supported audio interface types */
 typedef enum
 {
@@ -27,7 +34,9 @@ typedef enum
     /*!< Volume registration interface enumeration */
     audio_interface_type_volume_control,
     /*!< Volume observer registration interface enumeration */
-    audio_interface_type_observer_registry
+    audio_interface_type_observer_registry,
+    /*!< Maximum number of interface type */
+    audio_interface_type_max
 } audio_interface_types_t;
 
 
@@ -45,15 +54,28 @@ void AudioInterface_Init(void);
 */
 void AudioInterface_Register(audio_source_t source, audio_interface_types_t interface_type, const void * interface);
 
+/*! \brief Interface unregistration function
+
+    \param source Audio source type to be unregistered
+
+    \param interface_type Audio interface type to be unregistered
+
+    \param interface The interface to be unregistered
+*/
+void AudioInterface_UnRegister(audio_source_t source, audio_interface_types_t interface_type, const void * interface);
+
 /*! \brief Interface obtaining function
 
-    \param source Audio source type to be obtained
+    \param source Audio source type
 
-    \param interface_type Audio interface type to be obtained
+    \param interface_type Audio interface type
 
-    \return Pointer to the registered interface
+    \param[out] num_interfaces Number of registerd interfaces for the given interface_type
+
+    \return Pointer to the registered interface list
 */
-void * AudioInterface_Get(audio_source_t source, audio_interface_types_t interface_type);
+interface_list_t AudioInterface_Get(audio_source_t source, audio_interface_types_t interface_type);
+
 
 /*\}*/
 

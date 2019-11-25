@@ -35,7 +35,7 @@ fastpair_advert_data_t fastpair_advert;
 #define FAST_PAIR_GOOGLE_IDENTIFIER 0xFE2C
 #define FAST_PAIR_MODEL_IDENTIFIER   0x9D893B
 
-#define FAST_PAIR_ADV_ITEM_GOOGLE_ID 0
+#define FAST_PAIR_ADV_ITEM_BLE_FLAGS 0 /* BLE flags required for fast pairing */
 #define FAST_PAIR_ADV_ITEM_MODEL_ID 1 /*During BR/EDR Connectable and Discoverable*/
 #define FAST_PAIR_ADV_ITEM_BLOOM_FILTER_ID 1 /*During BR/EDR Connectable and Non-Discoverable*/
 
@@ -43,7 +43,6 @@ fastpair_advert_data_t fastpair_advert;
 /*Note transmit power needed for fastpair adverts will go as part of Tx_power module*/
 #define FAST_PAIR_AD_ITEMS_IDENTIFIABLE 2
 #define FAST_PAIR_AD_ITEMS_UNIDENTIFIABLE_WITH_ACCOUNT_KEYS 2
-#define FAST_PAIR_AD_ITEMS_UNIDENTIFIABLE_EMPTY_ACCOUNT_KEYS 1 /*Only Google Id will be advertised*/
 
 /*All Adv Interval values are in ms (units of 0.625)*/
 /* Adv interval when BR/EDR is discoverable should be <=100ms*/
@@ -57,11 +56,27 @@ fastpair_advert_data_t fastpair_advert;
 /*! Const fastpair advertising data in Length, Tag, Value format*/
 #define FP_SIZE_AD_TYPE_FIELD 1 
 #define FP_SIZE_LENGTH_FIELD 1
+#define FP_SIZE_BLE_FLAGS 1
 
 #define SIZE_GOOGLE_ID 2
 #define SIZE_GOOGLE_ID_ADV (FP_SIZE_LENGTH_FIELD+FP_SIZE_AD_TYPE_FIELD+SIZE_GOOGLE_ID)
 
+#define SIZE_BLE_FLAGS_ADV (FP_SIZE_LENGTH_FIELD+FP_SIZE_AD_TYPE_FIELD+FP_SIZE_BLE_FLAGS)
+
 static bool IsHandsetConnAllowed = FALSE;
+
+static const uint8 fp_ble_flags_adv[SIZE_BLE_FLAGS_ADV] = 
+{ 
+    SIZE_BLE_FLAGS_ADV - 1,
+    ble_ad_type_flags, 
+    (BLE_FLAGS_GENERAL_DISCOVERABLE_MODE | BLE_FLAGS_DUAL_CONTROLLER | BLE_FLAGS_DUAL_HOST)
+};
+
+static const le_adv_data_item_t fp_ble_flags_data_item =
+{
+    SIZE_BLE_FLAGS_ADV,
+    fp_ble_flags_adv
+};
 
 static const uint8 fp_google_id_adv[SIZE_GOOGLE_ID_ADV] = 
 { 
@@ -79,12 +94,14 @@ static const le_adv_data_item_t fp_google_id_data_item =
 
 /*! Const fastpair advertising data in Length, Tag, Value format*/
 #define SIZE_MODEL_ID 3
-#define SIZE_MODEL_ID_ADV (FP_SIZE_LENGTH_FIELD+FP_SIZE_AD_TYPE_FIELD+SIZE_MODEL_ID)
+#define SIZE_MODEL_ID_ADV (FP_SIZE_LENGTH_FIELD+FP_SIZE_AD_TYPE_FIELD+SIZE_MODEL_ID + SIZE_GOOGLE_ID)
 
 static const uint8 fp_model_id_adv[SIZE_MODEL_ID_ADV] = 
 { 
     SIZE_MODEL_ID_ADV - 1,
-    ble_ad_type_service_data, 
+    ble_ad_type_service_data,
+    FAST_PAIR_GOOGLE_IDENTIFIER & 0xFF,
+    (FAST_PAIR_GOOGLE_IDENTIFIER >> 8) & 0xFF,
     (FAST_PAIR_MODEL_IDENTIFIER>> 16) & 0xFF,
     (FAST_PAIR_MODEL_IDENTIFIER >> 8) & 0xFF,
     FAST_PAIR_MODEL_IDENTIFIER & 0xFF
@@ -186,25 +203,28 @@ static unsigned int fastPair_AdvGetNumberOfItems(const le_adv_data_params_t * pa
 {
     unsigned int number=0;
 
-    fastpair_SetIdentifiable(params->data_set);
-    /* Add debug logs if existing advertising interval is not in range */
-    fastpair_CheckAdvIntervalInRange(params->data_set);
+    if(params->data_set != le_adv_data_set_peer)
+    {
+        fastpair_SetIdentifiable(params->data_set);
+        /* Add debug logs if existing advertising interval is not in range */
+        fastpair_CheckAdvIntervalInRange(params->data_set);
 
-    /*Check for BR/EDR connectable*/
-    if (IsHandsetConnAllowed && FASTPAIR_ADV_PARAMS_REQUESTED(params))
-    {
-        if (IS_IDENTIFIABLE(params->data_set))
+        /*Check for BR/EDR connectable*/
+        if (IsHandsetConnAllowed && FASTPAIR_ADV_PARAMS_REQUESTED(params))
         {
-            number = FAST_PAIR_AD_ITEMS_IDENTIFIABLE;
+            if (IS_IDENTIFIABLE(params->data_set))
+            {
+                number = FAST_PAIR_AD_ITEMS_IDENTIFIABLE;
+            }
+            else if (IS_UNIDENTIFIABLE(params->data_set))
+            {
+                number = FAST_PAIR_AD_ITEMS_UNIDENTIFIABLE_WITH_ACCOUNT_KEYS;
+            }
         }
-        else if (IS_UNIDENTIFIABLE(params->data_set))
+        else
         {
-            number = (fastPair_GetNumAccountKeys())?(FAST_PAIR_AD_ITEMS_UNIDENTIFIABLE_WITH_ACCOUNT_KEYS):(FAST_PAIR_AD_ITEMS_UNIDENTIFIABLE_EMPTY_ACCOUNT_KEYS);
+            DEBUG_LOG("FP ADV: fastPair_AdvGetNumberOfItems: Non-connectable \n");
         }
-    }
-    else
-    {
-        DEBUG_LOG("FP ADV: fastPair_AdvGetNumberOfItems: Non-connectable \n");
     }
 
     return number;
@@ -219,17 +239,16 @@ static le_adv_data_item_t fastPair_GetDataIdentifiable(uint16 data_set_identifie
 {   
     le_adv_data_item_t data_item={0};
 
-    if (data_set_identifier==FAST_PAIR_ADV_ITEM_GOOGLE_ID)
-    {
-        DEBUG_LOG("FP ADV: fastPair_GetDataIdentifiable: Google Id data item \n");
-        return fp_google_id_data_item;
-    }
-    else if (data_set_identifier==FAST_PAIR_ADV_ITEM_MODEL_ID)
+    if (data_set_identifier==FAST_PAIR_ADV_ITEM_MODEL_ID)
     {   
         DEBUG_LOG("FP ADV: fastPair_GetDataIdentifiable: Model Id data item \n");
         return fp_model_id_data_item;
     }
-
+    else if(data_set_identifier==FAST_PAIR_ADV_ITEM_BLE_FLAGS)
+    {
+        DEBUG_LOG("FP ADV: fastPair_GetDataIdentifiable: BLE flags \n");
+        return fp_ble_flags_data_item;
+    }
     DEBUG_LOG("FP ADV: fastPair_GetDataIdentifiable: Invalid data_set_identifier %d \n", data_set_identifier);
     return data_item;
 }
@@ -251,12 +270,14 @@ static le_adv_data_item_t fastPairGetAccountKeyFilterAdvData(void)
     
     if (bloom_filter_size)
     {
-        adv_size=FP_SIZE_LENGTH_FIELD+FP_SIZE_AD_TYPE_FIELD+bloom_filter_size;/*To accomodate service type and length*/
+        adv_size=SIZE_GOOGLE_ID_ADV+bloom_filter_size;/*To accomodate service type and length*/
         
         fastpair_advert.account_key_filter_adv_data = PanicUnlessMalloc(adv_size);
         fastpair_advert.account_key_filter_adv_data[0] = adv_size-FP_SIZE_LENGTH_FIELD;
         fastpair_advert.account_key_filter_adv_data[1] = ble_ad_type_service_data;
-        memcpy(&fastpair_advert.account_key_filter_adv_data[2], fastPairGetBloomFilterData(), bloom_filter_size);
+        fastpair_advert.account_key_filter_adv_data[2] = (uint8)(FAST_PAIR_GOOGLE_IDENTIFIER & 0xFF);
+        fastpair_advert.account_key_filter_adv_data[3] = (uint8)((0xFE2C >> 8) & 0xFF);
+        memcpy(&fastpair_advert.account_key_filter_adv_data[4], fastPairGetBloomFilterData(), bloom_filter_size);
         DEBUG_LOG("FP ADV: fastPairGetAccountKeyFilterAdvData: bloom_filter_size %d\n", bloom_filter_size);
     }
 
@@ -277,26 +298,28 @@ static le_adv_data_item_t fastPair_GetDataUnIdentifiable(uint16 data_set_identif
 
     DEBUG_LOG("FP ADV: fastPair_GetDataUnIdentifiable: data_set_identifier %d \n", data_set_identifier);
     
-    if (data_set_identifier==FAST_PAIR_ADV_ITEM_GOOGLE_ID)
+    if(data_set_identifier==FAST_PAIR_ADV_ITEM_BLE_FLAGS)
     {
-        DEBUG_LOG("FP ADV: fastPair_GetDataUnIdentifiable: Google Id data item \n");
-        return fp_google_id_data_item;
+        DEBUG_LOG("FP ADV: fastPair_GetDataIdentifiable: BLE flags \n");
+        return fp_ble_flags_data_item;
     }
     else if (data_set_identifier==FAST_PAIR_ADV_ITEM_BLOOM_FILTER_ID)
     {
-        if (!fastPair_GetNumAccountKeys())
+        if(!fastPair_GetNumAccountKeys())
         {
-            Panic();
+            DEBUG_LOG("FP ADV: fastPair_GetDataUnIdentifiable: Google Id data item with empty Account Key\n");
+            return fp_google_id_data_item;
         }
-        
-        data_item = fastPairGetAccountKeyFilterAdvData();
-        
-        /*Generate new bloom filter and keep it ready for advertisements in BR/EDR Connectable and non-discoverable mode
-        This will ensure next callback would have new Salt*/
-        DEBUG_LOG("FP ADV: fastPair_GetDataUnIdentifiable: fastPair_GenerateBloomFilter\n");
-        fastPair_GenerateBloomFilter();
+        else
+        {
+            DEBUG_LOG("FP ADV: fastPair_GetDataUnIdentifiable: Google Id data item with Account Key\n");
+            data_item = fastPairGetAccountKeyFilterAdvData();
+            /*Generate new bloom filter and keep it ready for advertisements in BR/EDR Connectable and non-discoverable mode
+            This will ensure next callback would have new Salt*/
+            DEBUG_LOG("FP ADV: fastPair_GetDataUnIdentifiable: fastPair_GenerateBloomFilter\n");
+            fastPair_GenerateBloomFilter();
+        }
     }
-
     return data_item;
 }
 
@@ -309,15 +332,18 @@ static le_adv_data_item_t fastPair_AdvGetDataItem(const le_adv_data_params_t * p
 {
     le_adv_data_item_t data_item={0};
 
-    if (IsHandsetConnAllowed && FASTPAIR_ADV_PARAMS_REQUESTED(params))
+    if(params->data_set != le_adv_data_set_peer)
     {
-        if (IS_IDENTIFIABLE(params->data_set))
+        if (IsHandsetConnAllowed && FASTPAIR_ADV_PARAMS_REQUESTED(params))
         {
-            return fastPair_GetDataIdentifiable(id);
-        }
-        else if (IS_UNIDENTIFIABLE(params->data_set))
-        {
-            return fastPair_GetDataUnIdentifiable(id);
+            if (IS_IDENTIFIABLE(params->data_set))
+            {
+                return fastPair_GetDataIdentifiable(id);
+            }
+            else if (IS_UNIDENTIFIABLE(params->data_set))
+            {
+                return fastPair_GetDataUnIdentifiable(id);
+            }
         }
     }
 

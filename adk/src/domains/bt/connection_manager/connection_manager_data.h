@@ -27,6 +27,9 @@ typedef struct
 
     /*! Task that has requested a forced disconnect */
     Task forced_disconnect;
+
+    /*! Task that has requested all LE connections are disconnected */
+    Task all_le_disconnect_requester;
 } conManagerTaskData;
 
 

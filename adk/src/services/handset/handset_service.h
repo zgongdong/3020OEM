@@ -76,6 +76,9 @@ typedef enum
 
     /*! Confirmation of completion of a cancel connect request. */
     HANDSET_SERVICE_CONNECT_STOP_CFM,
+
+    /*! Confirmation of completion of a ble connectable request. */
+    HANDSET_SERVICE_LE_CONNECTABLE_IND,
 } handset_service_msg_t;
 
 /*! \brief Status codes for the handset service. */
@@ -88,6 +91,21 @@ typedef enum
     handset_service_status_connected,
     handset_service_status_disconnected,
 } handset_service_status_t;
+
+
+/*! \brief Confirmation for a handset ble connectable request.
+
+    This message will get sent each time for a previously placed
+    ble connectable request.
+*/
+typedef struct
+{ 
+    /*! Reason for a previously placed ble connectable request */
+    handset_service_status_t status;
+
+    /*! Flag to indicate whether the device is LE connectable */
+    bool le_connectable;
+} HANDSET_SERVICE_LE_CONNECTABLE_IND_T;
 
 
 /*! \brief Notification that a handset has connected.

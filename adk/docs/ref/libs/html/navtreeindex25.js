@@ -1,5 +1,6 @@
 var NAVTREEINDEX25 =
 {
+"structreceiver__csb__params.html#a2f8e8e66aa6b2c495459eaa8d71672a0":[4,0,769,5],
 "structreceiver__csb__params.html#a46ca0470ffd1b0a74a43fd52d0aebec2":[4,0,769,7],
 "structreceiver__csb__params.html#a8c2c2f9541d08ca51e1c0271e7084287":[4,0,769,4],
 "structreceiver__csb__params.html#abd2eca18d58a59fc7c00d0424713e3d6":[4,0,769,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX25 =
 "tws__packetiser_8h.html#af74a55d5ff79383f6443fba040bb1d04":[5,0,82,0,14],
 "tws__packetiser_8h.html#af9c3950a207a5727891e6bc6b003269d":[5,0,82,0,4],
 "tws__synchronised__control_8h.html":[5,0,83,0],
-"tws__synchronised__control_8h.html#a3074743219fa0d0d76fd74c7924abbbc":[5,0,83,0,3],
-"tws__synchronised__control_8h.html#a37a1545575e0b3289796886e80fe60ed":[5,0,83,0,5]
+"tws__synchronised__control_8h.html#a3074743219fa0d0d76fd74c7924abbbc":[5,0,83,0,3]
 };

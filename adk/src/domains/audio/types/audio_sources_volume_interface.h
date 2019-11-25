@@ -13,6 +13,8 @@
 #include "audio_sources_list.h"
 #include "volume_types.h"
 
+#define MAX_VOLUME_INTERFACES (1)
+
 /*! \brief The audio source volume interface
 */
 typedef struct

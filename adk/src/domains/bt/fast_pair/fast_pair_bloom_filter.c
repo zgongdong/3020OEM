@@ -27,8 +27,10 @@
 typedef struct
 {
     uint8 bloom_filter_len;
-    uint8 *bloom_filter;/*allocated everytime bloom filter is generated */
-
+    uint8 bloom_filter_ready_len;
+    bool sha_hash_lock;
+    uint8 *bloom_filter_generating;/*Buffer used to hold bloom filter while it is getting generated */
+    uint8* bloom_filter_ready;/*Buffer used to hold ready bloom filter data*/
     uint16 num_account_keys;
     uint8 *account_keys;/*allocated everytime fastPair_GetAccountKeys() is called*/
 
@@ -65,10 +67,12 @@ static uint8 fastPair_CalculateAccountKeyData(uint8 *acc_keys, uint8 *bloom_filt
     uint8 size=0;
     uint8 num_keys = fastpair_bloom_filter.num_account_keys;
 
+    DEBUG_LOG("fastPair_CalculateAccountKeyData");
+
     if (num_keys)
     {        
         fastpair_bloom_filter.filter_size = num_keys * 6 / 5 + 3;/* Size of bloom filter */
-        size = fastpair_bloom_filter.filter_size + 3;/*Including Salt field*/
+        size = fastpair_bloom_filter.filter_size + 4;/*Including Flag & Salt field*/
 
         if ((bloom_filter) && (acc_keys))
         {         
@@ -79,15 +83,15 @@ static uint8 fastPair_CalculateAccountKeyData(uint8 *acc_keys, uint8 *bloom_filt
             fastpair_bloom_filter.number_of_keys_processed = 0;
 
             memset(bloom_filter, 0, size);
-
-            bloom_filter[0] = (fastpair_bloom_filter.filter_size << 4) & 0xF0;
+            bloom_filter[0] = 0x00; /* Flags for furture use */
+            bloom_filter[1] = (fastpair_bloom_filter.filter_size << 4) & 0xF0;
             bloom_filter[size - 2] = 0x11;
             bloom_filter[size - 1] = salt;
 
             fastpair_bloom_filter.temp[ACCOUNT_KEY_LEN] = salt;
             
             memmove(fastpair_bloom_filter.temp, acc_keys, ACCOUNT_KEY_LEN);
-
+            fastpair_bloom_filter.sha_hash_lock = TRUE;
             fastPair_HashData(fastpair_bloom_filter.temp);
             
             fastpair_bloom_filter.number_of_keys_processed++;
@@ -114,11 +118,11 @@ static void fastPairReleaseAccountKeys(void)
  */
 static void fastPairReleaseBloomFilter(void)
 {
-    if (fastpair_bloom_filter.bloom_filter)
+    if (fastpair_bloom_filter.bloom_filter_generating)
     {
         DEBUG_LOG("fastPairReleaseBloomFilter\n");
-        free(fastpair_bloom_filter.bloom_filter);
-        fastpair_bloom_filter.bloom_filter=NULL;
+        free(fastpair_bloom_filter.bloom_filter_generating);
+        fastpair_bloom_filter.bloom_filter_generating=NULL;
         fastpair_bloom_filter.bloom_filter_len=NO_BLOOM_FILTER_LEN;
     }
 }
@@ -144,22 +148,26 @@ void fastPair_InitBloomFilter(void)
  */
 void fastPair_GenerateBloomFilter(void)
 {
-    /*Housekeeping*/
-    fastPairReleaseAccountKeys();
-    fastPairReleaseBloomFilter();
-
-    /*Start with checking the num account keys*/
-    fastpair_bloom_filter.num_account_keys = fastPair_GetAccountKeys(&fastpair_bloom_filter.account_keys);
-    
-    if (fastpair_bloom_filter.num_account_keys)
+    if(!fastpair_bloom_filter.sha_hash_lock)
     {
+        DEBUG_LOG("fastPair_GenerateBloomFilter:");
+        /*Housekeeping*/
+        fastPairReleaseAccountKeys();
+        fastPairReleaseBloomFilter();
 
-        fastpair_bloom_filter.bloom_filter_len = fastPair_CalculateAccountKeyData(fastpair_bloom_filter.account_keys, NULL);
-        fastpair_bloom_filter.bloom_filter = PanicUnlessMalloc(fastpair_bloom_filter.bloom_filter_len);
-
-        if (fastpair_bloom_filter.bloom_filter_len)
+        /*Start with checking the num account keys*/
+        fastpair_bloom_filter.num_account_keys = fastPair_GetAccountKeys(&fastpair_bloom_filter.account_keys);
+        
+        if (fastpair_bloom_filter.num_account_keys)
         {
-           fastPair_CalculateAccountKeyData(fastpair_bloom_filter.account_keys, fastpair_bloom_filter.bloom_filter);
+
+            fastpair_bloom_filter.bloom_filter_len = fastPair_CalculateAccountKeyData(fastpair_bloom_filter.account_keys, NULL);
+            fastpair_bloom_filter.bloom_filter_generating = PanicUnlessMalloc(fastpair_bloom_filter.bloom_filter_len);
+
+            if (fastpair_bloom_filter.bloom_filter_len)
+            {
+               fastPair_CalculateAccountKeyData(fastpair_bloom_filter.account_keys, fastpair_bloom_filter.bloom_filter_generating);
+            }
         }
     }
 }
@@ -169,15 +177,15 @@ void fastPair_GenerateBloomFilter(void)
  */
 uint8 fastPairGetBloomFilterLen(void)
 {
-    DEBUG_LOG("FP Bloom Filter Len: %d \n", fastpair_bloom_filter.bloom_filter_len);
-    return fastpair_bloom_filter.bloom_filter_len;
+    DEBUG_LOG("FP Bloom Filter Len: %d \n", fastpair_bloom_filter.bloom_filter_ready_len);
+    return fastpair_bloom_filter.bloom_filter_ready_len;
 }
 
 /*! @brief Private API to return the generated bloom filter 
  */
 uint8* fastPairGetBloomFilterData(void)
 {
-    return fastpair_bloom_filter.bloom_filter;
+    return fastpair_bloom_filter.bloom_filter_ready;
 }
 
 
@@ -203,10 +211,10 @@ void fastPair_AdvHandleHashCfm(CL_CRYPTO_HASH_CFM_T *cfm)
 
     /* Allocated bloom filter buffer holds data from fields LACF to SALT.
     Generated bloom filter to be copied from field VLACF. Assign VLCAF index i.e. 1 to temporary place holder */
-    uint8* key_filter_ptr = &fastpair_bloom_filter.bloom_filter[1];
 
-    if ((fastpair_bloom_filter.bloom_filter) && (cfm->status==success))
+    if ((fastpair_bloom_filter.bloom_filter_generating) && (cfm->status==success))
     {
+        uint8* key_filter_ptr = &fastpair_bloom_filter.bloom_filter_generating[2];
         for (index = 0; index < ACCOUNT_KEY_LEN; index += 2)
         {
             hash_value  = ((uint32) cfm->hash[index] & 0x00FF) << 24;
@@ -222,7 +230,20 @@ void fastPair_AdvHandleHashCfm(CL_CRYPTO_HASH_CFM_T *cfm)
          {
             /*Account Key Filter generated successfully*/
             DEBUG_LOG("FP Bloom Filter Data: fastPair_AdvHandleHashCfm success \n");
+            if(!fastpair_bloom_filter.bloom_filter_ready)
+            {
+                fastpair_bloom_filter.bloom_filter_ready = PanicUnlessMalloc(fastpair_bloom_filter.bloom_filter_len);
+            }
+            else
+            {
+                uint8* buf = fastpair_bloom_filter.bloom_filter_ready;
+                fastpair_bloom_filter.bloom_filter_ready = PanicNull(realloc(buf, fastpair_bloom_filter.bloom_filter_len));
+            }
+            
+            memcpy(fastpair_bloom_filter.bloom_filter_ready, fastpair_bloom_filter.bloom_filter_generating, fastpair_bloom_filter.bloom_filter_len);
+            fastpair_bloom_filter.bloom_filter_ready_len = fastpair_bloom_filter.bloom_filter_len;
             fastPairReleaseAccountKeys();
+            fastpair_bloom_filter.sha_hash_lock = FALSE;
          }  
           
          if (fastpair_bloom_filter.number_of_keys_processed < fastpair_bloom_filter.num_account_keys)
@@ -237,6 +258,7 @@ void fastPair_AdvHandleHashCfm(CL_CRYPTO_HASH_CFM_T *cfm)
         DEBUG_LOG("FP Bloom Filter Data: fastPair_AdvHandleHashCfm failure\n");
         fastPairReleaseAccountKeys();
         fastPairReleaseBloomFilter();
+        fastpair_bloom_filter.sha_hash_lock = FALSE;
     }
 }
 

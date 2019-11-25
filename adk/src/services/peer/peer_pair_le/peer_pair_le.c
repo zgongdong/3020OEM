@@ -203,6 +203,7 @@ bool PeerPairLe_HandleConnectionLibraryMessages(MessageId id, Message message,
                                               bool already_handled)
 {
     UNUSED(already_handled);
+    UNUSED(message);
 
     bool handled = FALSE;
 
@@ -213,15 +214,6 @@ bool PeerPairLe_HandleConnectionLibraryMessages(MessageId id, Message message,
         {
             case CL_DM_BLE_SET_SCAN_PARAMETERS_CFM:
                 DEBUG_LOG("PeerPairLeHandleConnectionLibraryMessages. CL_DM_BLE_SET_SCAN_PARAMETERS_CFM");
-                break;
-
-            case CL_SM_AUTH_REPLACE_IRK_CFM:
-                {
-                    const CL_SM_AUTH_REPLACE_IRK_CFM_T *csaric = (const CL_SM_AUTH_REPLACE_IRK_CFM_T *)message;
-
-                    DEBUG_LOG("PeerPairLeHandleConnectionLibraryMessages. CL_SM_AUTH_REPLACE_IRK_CFM. Sts:%d 0x%04x",csaric->status,csaric->bd_addr.lap);
-                    handled = TRUE;
-                }
                 break;
 
             default:

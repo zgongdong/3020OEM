@@ -47,6 +47,7 @@ static bool peer_find_role_advertising_state(PEER_FIND_ROLE_STATE state)
         case PEER_FIND_ROLE_STATE_CHECKING_PEER:
         case PEER_FIND_ROLE_STATE_DISCOVER:
         case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
+        case PEER_FIND_ROLE_STATE_SERVER_PREPARING:
         case PEER_FIND_ROLE_STATE_CLIENT:
         case PEER_FIND_ROLE_STATE_SERVER:
         case PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION:
@@ -548,14 +549,17 @@ static void peer_find_role_enter_server_awaiting_encryption(void)
                                ble_connection_master_directed);
 }
 
+/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_SERVER_PREPARING
 
-/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_SERVER
+    On entering the state we request to the prepare client to prepare the
+    system/application for role selection.
 
-    On entering the state we request security.
+    If no prepare client is registered assume system is good for role selection
+    and go directly to SERVER state.
  */
-static void peer_find_role_enter_server(void)
+static void peer_find_role_enter_server_preparing(void)
 {
-    DEBUG_LOG("peer_find_role_enter_server");
+    DEBUG_LOG("peer_find_role_enter_server_preparing");
 
     if (peer_find_role_prepare_client_registered())
     {
@@ -566,11 +570,52 @@ static void peer_find_role_enter_server(void)
     }
     else
     {
-        /* No PREPARE client registered so immediately calculate the score. */
-        peer_find_role_update_server_score();
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER);
     }
 }
 
+/*! Internal function for exiting the state #PEER_FIND_ROLE_STATE_SERVER_PREPARING
+
+    Cancel any outstanding PEER_FIND_ROLE_INTERNAL_PREPARED messages because
+    they will be ignored outside of this state anyway.
+ */
+static void peer_find_role_exit_server_preparing(void)
+{
+    DEBUG_LOG("peer_find_role_exit_server_preparing");
+
+    MessageCancelAll(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_PREPARED);
+}
+
+/*! Internal function for entering the state #PEER_FIND_ROLE_STATE_SERVER
+
+    On entering we calculate the figure of merit for the local device and
+    update the gatt server characteristic with this value.
+
+    Then wait for the client to send the result of the role selection.
+ */
+static void peer_find_role_enter_server(void)
+{
+    DEBUG_LOG("peer_find_role_enter_server");
+
+    /* Calculate the score and update the gatt server figure of merit. */
+    peer_find_role_update_server_score();
+
+    /* Start a timeout in case we don't get given a role by the client. */
+    MessageSendLater(PeerFindRoleGetTask(),
+                     PEER_FIND_ROLE_INTERNAL_TIMEOUT_SERVER_ROLE_SELECTED, NULL,
+                     PeerFindRoleConfigServerRoleSelectedTimeoutMs());
+}
+
+/*! Internal function for exiting the state #PEER_FIND_ROLE_STATE_SERVER
+
+    Cancel any outstanding SERVER_ROLE_SELECTED timeout messages.
+ */
+static void peer_find_role_exit_server(void)
+{
+    DEBUG_LOG("peer_find_role_exit_server");
+
+    MessageCancelAll(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_TIMEOUT_SERVER_ROLE_SELECTED);
+}
 
 /*! Internal function for entering the state #PEER_FIND_ROLE_STATE_AWAITING_ENCRYPTION
 
@@ -609,6 +654,18 @@ static void peer_find_role_enter_client_preparing(void)
     }
 }
 
+/*! Internal function for exiting the state #PEER_FIND_ROLE_STATE_CLIENT_PREPARING
+
+    Cancel any outstanding PEER_FIND_ROLE_INTERNAL_PREPARED messages because
+    they will be ignored outside of this state anyway.
+ */
+static void peer_find_role_exit_client_preparing(void)
+{
+    DEBUG_LOG("peer_find_role_exit_client_preparing");
+
+    MessageCancelAll(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_PREPARED);
+}
+
 
 /*! Internal function for entering the state #PEER_FIND_ROLE_STATE_DECIDING
 
@@ -630,6 +687,8 @@ static void peer_find_role_enter_deciding(void)
 
 static void peer_find_role_enter_completed(void)
 {
+    DEBUG_LOG("peer_find_role_enter_completed");
+
     /* If link disconnection not initiated jump to next state */
     if (!peer_find_role_disconnect_link())
     {
@@ -675,8 +734,20 @@ void peer_find_role_set_state(PEER_FIND_ROLE_STATE new_state)
             peer_find_role_exit_connecting_to_discovered(new_state);
             break;
 
+        case PEER_FIND_ROLE_STATE_SERVER:
+            peer_find_role_exit_server();
+            break;
+
+        case PEER_FIND_ROLE_STATE_SERVER_PREPARING:
+            peer_find_role_exit_server_preparing();
+            break;
+
         case PEER_FIND_ROLE_STATE_AWAITING_COMPLETION_SERVER:
             peer_find_role_exit_awaiting_completion_server();
+            break;
+
+        case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
+            peer_find_role_exit_client_preparing();
             break;
 
         default:
@@ -728,6 +799,10 @@ void peer_find_role_set_state(PEER_FIND_ROLE_STATE new_state)
 
         case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
             peer_find_role_enter_server_awaiting_encryption();
+            break;
+
+        case PEER_FIND_ROLE_STATE_SERVER_PREPARING:
+            peer_find_role_enter_server_preparing();
             break;
 
         case PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION:

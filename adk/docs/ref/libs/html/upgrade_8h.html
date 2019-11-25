@@ -377,9 +377,11 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgr
 <tr class="memitem:a3e71fc9b73372f281ceef7d6c6cca3ec"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a3e71fc9b73372f281ceef7d6c6cca3ec">UpgradePeerIsPeerDFUAborted</a> (void)</td></tr>
 <tr class="memdesc:a3e71fc9b73372f281ceef7d6c6cca3ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the abort status of Peer DFU.  <a href="upgrade_8h.html#a3e71fc9b73372f281ceef7d6c6cca3ec">More...</a><br /></td></tr>
 <tr class="separator:a3e71fc9b73372f281ceef7d6c6cca3ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a67920e947e99657a9e62b54e407b024b"><td class="memItemLeft" align="right" valign="top"><a id="a67920e947e99657a9e62b54e407b024b"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a67920e947e99657a9e62b54e407b024b">UpgradePeerIsSupported</a> (void)</td></tr>
-<tr class="memdesc:a67920e947e99657a9e62b54e407b024b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check in Upgrade Peer is initialized or not. Returns None. <br /></td></tr>
+<tr class="memitem:a7bb65d47354c5ba292ce920cf3368f6e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a7bb65d47354c5ba292ce920cf3368f6e">UpgradePeerIsSecondary</a> (void)</td></tr>
+<tr class="memdesc:a7bb65d47354c5ba292ce920cf3368f6e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if we are a secondary device in an upgrade.  <a href="upgrade_8h.html#a7bb65d47354c5ba292ce920cf3368f6e">More...</a><br /></td></tr>
+<tr class="separator:a7bb65d47354c5ba292ce920cf3368f6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67920e947e99657a9e62b54e407b024b"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a67920e947e99657a9e62b54e407b024b">UpgradePeerIsSupported</a> (void)</td></tr>
+<tr class="memdesc:a67920e947e99657a9e62b54e407b024b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check in Upgrade Peer is initialized or not.  <a href="upgrade_8h.html#a67920e947e99657a9e62b54e407b024b">More...</a><br /></td></tr>
 <tr class="separator:a67920e947e99657a9e62b54e407b024b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1fc3347d844d16614f4250c394f081db"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgrade_8h.html#a1fc3347d844d16614f4250c394f081db">UpgradePeerProcessDataRequest</a> (<a class="el" href="upgrade_8h.html#a5c92ea9010911c80c4075b0b70176887">upgrade_peer_app_msg_t</a> iD, uint8 *data, uint16 dataSize)</td></tr>
 <tr class="memdesc:a1fc3347d844d16614f4250c394f081db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle data request from APP.  <a href="upgrade_8h.html#a1fc3347d844d16614f4250c394f081db">More...</a><br /></td></tr>
@@ -1686,6 +1688,48 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="upgr
 <p>Return the abort status of Peer DFU. </p>
 <p>Returns TRUE if peer DFU is aborted, else FALSE</p>
 <p>Return the abort status of Peer DFU. </p>
+
+</div>
+</div>
+<a id="a7bb65d47354c5ba292ce920cf3368f6e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7bb65d47354c5ba292ce920cf3368f6e">&#9670;&nbsp;</a></span>UpgradePeerIsSecondary()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool UpgradePeerIsSecondary </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if we are a secondary device in an upgrade. </p>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if Upgrade Peer is initialised and this is the secondary device, FALSE otherwise. </dd></dl>
+
+</div>
+</div>
+<a id="a67920e947e99657a9e62b54e407b024b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67920e947e99657a9e62b54e407b024b">&#9670;&nbsp;</a></span>UpgradePeerIsSupported()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool UpgradePeerIsSupported </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check in Upgrade Peer is initialized or not. </p>
+<dl class="section return"><dt>Returns</dt><dd>TRUE if Upgrade Peer is initialised and this is the primary device, FALSE otherwise </dd></dl>
 
 </div>
 </div>

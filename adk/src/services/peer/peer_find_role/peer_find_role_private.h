@@ -210,6 +210,10 @@ typedef enum
         /*! Timer for disconnecting link from server side, if not done */
     PEER_FIND_ROLE_INTERNAL_TIMEOUT_NOT_DISCONNECTED,
 
+        /*! Timer for completing the server role selection if the client does
+            not tell the server what role it should be in. */
+    PEER_FIND_ROLE_INTERNAL_TIMEOUT_SERVER_ROLE_SELECTED,
+
         /*! App has responded to a "prepare for role selection" request */
     PEER_FIND_ROLE_INTERNAL_PREPARED,
 

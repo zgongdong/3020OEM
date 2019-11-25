@@ -524,13 +524,14 @@ static void appEnterInCaseDfu(void)
     }
     
 
+    UpgradePeerSetDeviceRolePrimary(!secondary);
+
     /* If it is secondary device, store DFU role and device role in PSKEY so 
        if it is reset before DFU starts on secondary, it goes back to DFU mode.
      */
     if(secondary)
     {
         UpgradePeerSetDFUMode(TRUE);
-        UpgradePeerSetDeviceRolePrimary(FALSE);
 
         /*! \todo assuming that when we have entered case as secondary, 
             it is appropriate to cancel DFU timeouts 
@@ -1724,11 +1725,19 @@ static void appSmHandlePeerSigConnectionInd(const PEER_SIG_CONNECTION_IND_T *ind
 {
     if (ind->status == peerSigStatusConnected)
     {
+        Sink sink = appPeerSigGetSink();
+
+        DEBUG_LOG("appSmHandlePeerSigConnectionInd setting wallclock for UI synchronisation %p", sink);
+        appLedSetWallclock(sink);
+
         appSmRulesResetEvent(RULE_EVENT_PEER_DISCONNECTED);
         appSmRulesSetEvent(RULE_EVENT_PEER_CONNECTED);
     }
     else
     {
+        DEBUG_LOG("appSmHandlePeerSigConnectionInd clearing wallclock for UI synchronisation");
+        appLedSetWallclock((Sink)0);
+
         appSmRulesResetEvent(RULE_EVENT_PEER_CONNECTED);
         appSmRulesSetEvent(RULE_EVENT_PEER_DISCONNECTED);
     }
@@ -1775,15 +1784,6 @@ static void appSmHandleAvAvrcpConnectedInd(const AV_AVRCP_CONNECTED_IND_T *ind)
         appSmRulesSetEvent(RULE_EVENT_HANDSET_AVRCP_CONNECTED);
     }
 
-    /* Check if connected to TWS+ device (handset or earbud) */
-    if (appDeviceIsTwsPlusHandset(&ind->bd_addr) || appDeviceIsPeer(&ind->bd_addr))
-    {
-        DEBUG_LOG("appSmHandleAvAvrcpConnectedInd, using wallclock for UI synchronisation");
-
-        /* Use wallclock on this connection to synchronise LEDs */
-        appLedSetWallclock(ind->sink);
-    }
-
     if (appDeviceIsPeer(&ind->bd_addr))
     {
 #ifdef INCLUDE_SCOFWD
@@ -1807,14 +1807,6 @@ static void appSmHandleAvAvrcpDisconnectedInd(const AV_AVRCP_DISCONNECTED_IND_T 
             {
                 appSmRulesResetEvent(RULE_EVENT_HANDSET_AVRCP_CONNECTED);
                 appSmRulesSetEvent(RULE_EVENT_HANDSET_AVRCP_DISCONNECTED);
-            }
-
-            /* Check if disconnected from TWS+ device (handset or earbud) */
-            if (appDeviceIsTwsPlusHandset(&ind->bd_addr) || appDeviceIsPeer(&ind->bd_addr))
-            {
-                /* Don't use wallclock */
-                appLedSetWallclock(0);
-
             }
 
             if (appDeviceIsPeer(&ind->bd_addr))
@@ -2605,7 +2597,7 @@ static void earbudSm_HandleBatteryUpdate(MESSAGE_BATTERY_LEVEL_UPDATE_STATE_T *m
 {
     DEBUG_LOG("earbudSm_HandleBatteryUpdate");
 
-    if (msg->state == battery_level_critical)
+    if (msg->state == battery_level_too_low)
     {
         appPowerOffRequest();
     }

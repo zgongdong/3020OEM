@@ -418,6 +418,7 @@ enum av_internal_messages
     AV_INTERNAL_AVRCP_PLAY_TOGGLE_REQ,        /*!< Internal request to send AVRCP play or pause depending on current playback status */
     AV_INTERNAL_AVRCP_CLEAR_PLAYBACK_LOCK_IND, /*!< Timeout waiting for playback status notifiation, clear lock */
     AV_INTERNAL_SET_ABSOLUTE_VOLUME_IND,      /*!< Internal message to apply volume */
+    AV_INTERNAL_ALLOW_ABSOLUTE_VOLUME,        /*!< Internal message to stop absolute volume suppression */
     AV_INTERNAL_AVRCP_TOP,
 
     AV_INTERNAL_VOLUME_STORE_REQ,

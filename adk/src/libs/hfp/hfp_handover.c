@@ -32,21 +32,24 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
                          uint16 length,
                          uint16 *consumed);
 
-static void hfpMarshalCommit( const bool newRole );
+static void hfpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole);
 
-static void hfpMarshalAbort( void );
+static void hfpHandoverComplete( const bool newRole );
+
+static void hfpHandoverAbort( void );
 
 extern const handover_interface hfp_handover_if =  {
         &hfpVeto,
         &hfpMarshal,
         &hfpUnmarshal,
-        &hfpMarshalCommit,
-        &hfpMarshalAbort};
+        &hfpHandoverCommit,
+        &hfpHandoverComplete,
+        &hfpHandoverAbort};
 
 
 /****************************************************************************
 NAME    
-    hfpMarshalAbort
+    hfpHandoverAbort
 
 DESCRIPTION
     Abort the HFP Handover process, free any memory
@@ -55,7 +58,7 @@ DESCRIPTION
 RETURNS
     void
 */
-static void hfpMarshalAbort(void)
+static void hfpHandoverAbort(void)
 {
     /* Not supported in this configuration */
     Panic();
@@ -140,16 +143,38 @@ bool hfpVeto( void )
 
 /****************************************************************************
 NAME    
-    hfpMarshalCommit
+    hfpHandoverCommit
 
 DESCRIPTION
-    The HFP library commits to the specified new role (primary or
-    secondary)
+    The HFP library performs time-critical actions to commit to the specified
+    new role (primary or secondary)
 
 RETURNS
     void
 */
-static void hfpMarshalCommit( const bool newRole )
+static void hfpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
+{
+    UNUSED(tp_bd_addr);
+    UNUSED(newRole);
+    
+    /* Not supported in this configuration */
+    Panic();
+    
+    return;
+}
+
+/****************************************************************************
+NAME    
+    hfpHandoverComplete
+
+DESCRIPTION
+    The HFP library performs pending actions and completes transition to 
+    specified new role (primary or secondary)
+
+RETURNS
+    void
+*/
+static void hfpHandoverComplete( const bool newRole )
 {
     UNUSED(newRole);
     

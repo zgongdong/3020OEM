@@ -138,10 +138,6 @@ static void appA2dpSyncHandleA2dpSyncConnectResponse(avInstanceTaskData *theInst
 {
     avA2dpState local_state = appA2dpGetState(theInst);
 
-    /* This will cancel any responses sent 'later' to catch the other instance
-       not responding in time. */
-    PanicFalse(MessageCancelAll(&theInst->av_task, AUDIO_SYNC_CONNECT_RES) <= 1);
-
     if (((res->sync_id + 1) & 0xff) != theInst->a2dp.sync_counter)
     {
         /* This means whilst waiting for a sync response from the other instance,
@@ -151,6 +147,10 @@ static void appA2dpSyncHandleA2dpSyncConnectResponse(avInstanceTaskData *theInst
             theInst, local_state, res->sync_id, theInst->a2dp.sync_counter);
         return;
     }
+
+    /* This will cancel any responses sent 'later' to catch the other instance
+       not responding in time. */
+    PanicFalse(MessageCancelAll(&theInst->av_task, AUDIO_SYNC_CONNECT_RES) <= 1);
 
     A2DP_SYNC_LOG("appA2dpSyncHandleA2dpSyncConnectResponse(%p) state(0x%x) sync_id(%d)",
                theInst, local_state, res->sync_id);
@@ -232,10 +232,6 @@ static void appA2dpSyncHandleA2dpSyncActivateResponse(avInstanceTaskData *theIns
 {
     avA2dpState local_state = appA2dpGetState(theInst);
 
-    /* This will cancel any responses sent 'later' to catch the other instance
-       not responding in time. */
-    PanicFalse(MessageCancelAll(&theInst->av_task, AUDIO_SYNC_ACTIVATE_RES) <= 1);
-
     if (((res->sync_id + 1) & 0xff) != theInst->a2dp.sync_counter)
     {
         /* This means whilst waiting for a sync response from the other instance,
@@ -245,6 +241,10 @@ static void appA2dpSyncHandleA2dpSyncActivateResponse(avInstanceTaskData *theIns
                        theInst, local_state, res->sync_id, theInst->a2dp.sync_counter);
         return;
     }
+
+    /* This will cancel any responses sent 'later' to catch the other instance
+       not responding in time. */
+    PanicFalse(MessageCancelAll(&theInst->av_task, AUDIO_SYNC_ACTIVATE_RES) <= 1);
 
     A2DP_SYNC_LOG("appA2dpSyncHandleA2dpSyncActivateResponse(%p) state(0x%x) sync_id(%d)",
                    theInst, local_state, res->sync_id);

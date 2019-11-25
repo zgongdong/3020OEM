@@ -153,10 +153,11 @@ const tp_bdaddr* ConManagerGetConnectionTpAddr(cm_connection_t* connection);
 void ConManagerSetConnectionTpAddr(cm_connection_t* connection, const tp_bdaddr* new_addr);
 
 /*! \brief Find an active connection
-
+    \param transport_mask Set to cm_transport_all to check all connections, or 
+           cm_transport_bredr/ble to only look for connections on specific transport
     \return A connection that is not in a disconnected state or NULL
             if not found */
-cm_connection_t *ConManagerFindFirstActiveLink(void);
+cm_connection_t *ConManagerFindFirstActiveLink(cm_transport_t transport_mask);
 
 /*! \brief Copy the state of one connection to another.
     \param dest The destiation connection.

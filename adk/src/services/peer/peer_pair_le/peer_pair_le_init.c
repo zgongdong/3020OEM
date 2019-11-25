@@ -157,7 +157,7 @@ static void peer_pair_le_handle_scan_timeout(void)
     {
         DEBUG_LOG("peer_pair_le_handle_scan_timeout: peer not empty: %02x %04x %02x %06x",
                   ppl->peer.type, ppl->peer.addr.nap, ppl->peer.addr.uap, ppl->peer.addr.lap);
-        Panic();
+        return;
     }
 
     /* Eliminate the scan result if RSSI too close */
@@ -432,17 +432,21 @@ static void peer_pair_le_handle_client_keys_written(const GATT_ROOT_KEY_CLIENT_W
        /* We have updated the keys on our peer, so the IRK we have for them is wrong */
         ConnectionSmGetLocalIrk(&irk);
         ConnectionReplaceIrk(PeerPairLeGetTask(), &peer_taddr.addr, &irk);
-
-        peer_pair_le_clone_peer_keys();
-
-        peer_pair_le_add_paired_device_entries(DEVICE_FLAGS_SECONDARY_ADDR, DEVICE_FLAGS_SHADOWING_C_ROLE |
-                                                                            DEVICE_FLAGS_PRIMARY_ADDR);
-        peer_pair_le_send_pair_confirm(status);
-        peer_pair_le_set_state(PEER_PAIR_LE_STATE_COMPLETED);
+        DEBUG_LOG("peer_pair_le_handle_client_keys_written - ConnectionReplaceIrk");
     }
-
 }
 
+static void peer_pair_le_handle_irk_replaced(const CL_SM_AUTH_REPLACE_IRK_CFM_T * cfm)
+{
+    DEBUG_LOG("peer_pair_le_handle_irk_replaced Sts:%d 0x%04x", cfm->status, cfm->bd_addr.lap);
+    
+    peer_pair_le_clone_peer_keys();
+
+    peer_pair_le_add_paired_device_entries(DEVICE_FLAGS_SECONDARY_ADDR, DEVICE_FLAGS_SHADOWING_C_ROLE |
+                                                                        DEVICE_FLAGS_PRIMARY_ADDR);
+    peer_pair_le_send_pair_confirm(peer_pair_le_status_success);
+    peer_pair_le_set_state(PEER_PAIR_LE_STATE_COMPLETED);
+}
 
 static void peer_pair_le_handle_server_challenge_ind(const GATT_ROOT_KEY_SERVER_CHALLENGE_IND_T *challenge)
 {
@@ -588,6 +592,10 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
         /* ---- connection library responses (directed to this task) ---- */
         case CL_DM_LOCAL_BD_ADDR_CFM:
             peer_pair_le_handle_local_bdaddr((const CL_DM_LOCAL_BD_ADDR_CFM_T *)message);
+            break;
+
+        case CL_SM_AUTH_REPLACE_IRK_CFM:
+            peer_pair_le_handle_irk_replaced((const CL_SM_AUTH_REPLACE_IRK_CFM_T *)message);
             break;
 
         /* ---- Advertising Manager messages ---- */

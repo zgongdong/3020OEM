@@ -624,7 +624,7 @@ $(foreach c,$(CONFIG_LIST), \
 
 doc_hdrs := $(sort $(wildcard $(addprefix $(firmware_inc_dir)/,*.h */*.h */*/*.h) $(all_hdrs)))
 
-doc_header_stamp_file = $(BLUELAB)/../doc/reference/header_files
+doc_header_stamp_file = $(BLUELAB)/../docs/ref/libs/header_files.txt
 
 $(shell $(mkdir) $(dir $(doc_header_stamp_file)))
 $(shell $(recordflags) $(doc_header_stamp_file) $(doc_hdrs))

@@ -195,6 +195,9 @@ typedef enum
     /*! Channel ID for Key Sync messages. */
     PEER_SIG_MSG_CHANNEL_KEY_SYNC,
 
+    /*! Channel ID for Fast Pair Account Key Sync messages */
+    PEER_SIG_MSG_CHANNEL_FP_ACCOUNT_KEY_SYNC,
+
     /*! Channel ID for shadow profile messages. */
     PEER_SIG_MSG_CHANNEL_SHADOW_PROFILE,
 

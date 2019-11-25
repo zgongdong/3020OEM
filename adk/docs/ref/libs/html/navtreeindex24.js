@@ -111,10 +111,11 @@ var NAVTREEINDEX24 =
 "structgdiss__t.html":[4,0,576],
 "structgyro__sleep__setting.html":[4,0,580],
 "structhandover__interface.html":[4,0,581],
-"structhandover__interface.html#a048091623586909496ffd8a30de8d26e":[4,0,581,3],
-"structhandover__interface.html#a09d7f233b7ee6bc7ccb1c11965eb1b15":[4,0,581,4],
+"structhandover__interface.html#a048091623586909496ffd8a30de8d26e":[4,0,581,4],
+"structhandover__interface.html#a09d7f233b7ee6bc7ccb1c11965eb1b15":[4,0,581,5],
 "structhandover__interface.html#a9d93c56b981059e2efd494c3abf7ed12":[4,0,581,0],
-"structhandover__interface.html#af28b4a81b6ca7e98315c5a9e75818a00":[4,0,581,2],
+"structhandover__interface.html#ad67c304c9d6814c12fd21f8a4bcd40fd":[4,0,581,2],
+"structhandover__interface.html#af28b4a81b6ca7e98315c5a9e75818a00":[4,0,581,3],
 "structhandover__interface.html#afefd6646f727377b9488d794d770f0c4":[4,0,581,1],
 "structhfp__audio__params.html":[3,9,4],
 "structhfp__csr__features.html":[3,9,14],
@@ -248,6 +249,5 @@ var NAVTREEINDEX24 =
 "structreceiver__csb__params.html":[4,0,769],
 "structreceiver__csb__params.html#a086fb3dec6c8c335bf58491ed0bf6105":[4,0,769,0],
 "structreceiver__csb__params.html#a18e909d2af56de5274cb992b0eb6f7fe":[4,0,769,3],
-"structreceiver__csb__params.html#a1d0ebf8f8984b6b982f17b6eea25f39f":[4,0,769,1],
-"structreceiver__csb__params.html#a2f8e8e66aa6b2c495459eaa8d71672a0":[4,0,769,5]
+"structreceiver__csb__params.html#a1d0ebf8f8984b6b982f17b6eea25f39f":[4,0,769,1]
 };

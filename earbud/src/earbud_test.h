@@ -432,6 +432,11 @@ bool appTestPhyStateIsInCase(void);
 */
 void appTestFactoryReset(void);
 
+/*! \brief Determine if a reset has happened
+    Will return TRUE until cleared by appTestResetHappenedClear()
+*/
+bool appTestResetHappened(void);
+
 /*! \brief Connect to default handset. */
 void appTestConnectHandset(void);
 

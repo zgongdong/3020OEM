@@ -23,6 +23,18 @@
 
 #define MIXER_GAIN_RAMP_SAMPLES 24000
 
+/*! Defines used for audio sync source configuration */
+
+/* Synchronisation interval (in msec) for audio sync source stream.*/
+#define AUDIO_SYNC_MS_INTERVAL (100)
+
+/* MTU for audio sync source stream. It should be multiple of audio
+ * sync sample (6 bytes). It has been set to 48 in order to fit the
+ * the source stream packet in 2-DH1 (56 bytes) radio packet which
+ * also contains 2 byte header and 4 bytes L2CAP header.
+ */
+#define AUDIO_SYNC_PACKET_MTU (48)
+
 /*! \brief Start A2DP master.
 
     \param codec_settings The A2DP codec settings to use.

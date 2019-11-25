@@ -129,6 +129,7 @@ var upgrade_8h =
     [ "UpgradePeerGetDFUInfo", "upgrade_8h.html#a70af8b5ac9116d041dee4329c4c40fb7", null ],
     [ "UpgradePeerInit", "upgrade_8h.html#a9e37d1b8435fe9fa9de6fb35fe88ee36", null ],
     [ "UpgradePeerIsPeerDFUAborted", "upgrade_8h.html#a3e71fc9b73372f281ceef7d6c6cca3ec", null ],
+    [ "UpgradePeerIsSecondary", "upgrade_8h.html#a7bb65d47354c5ba292ce920cf3368f6e", null ],
     [ "UpgradePeerIsSupported", "upgrade_8h.html#a67920e947e99657a9e62b54e407b024b", null ],
     [ "UpgradePeerProcessDataRequest", "upgrade_8h.html#a1fc3347d844d16614f4250c394f081db", null ],
     [ "UpgradePeerSetDeviceRolePrimary", "upgrade_8h.html#af6915b0169b6bf8e045f215fb5db6516", null ],

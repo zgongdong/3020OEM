@@ -30,7 +30,7 @@ enum
 #undef EXPAND_AS_ENUMERATION
 
 
-static void *convertL2capCidToSink(void *dest, const void *src, size_t n);
+static void *copyCid(void *dest, const void *src, size_t n);
 static void *convertSinkToL2capCid(void *dest, const void *src, size_t n);
 
 
@@ -85,7 +85,7 @@ const marshal_type_descriptor_t mtd_tp_bdaddr = MAKE_MARSHAL_TYPE_DEFINITION(tp_
 static const marshal_custom_copy_cbs read_write_cb_L2capSink =
 {
     convertSinkToL2capCid,
-    convertL2capCidToSink
+    copyCid,
 };
 
 const marshal_type_descriptor_t mtd_L2capSink =
@@ -100,23 +100,13 @@ const marshal_type_descriptor_t mtd_L2capSink =
     0                                                       /* Not a dynamic type */
 };
 
-
-/* Converts CID to L2CAP Sink */
-static void *convertL2capCidToSink(void *dest, const void *src, size_t n)
+/* Copies CID during unmarshalling. Till now P0 data is not unmarshalled, so
+ * we cannot convert CID to Sink. This will be done during commit
+ */
+static void * copyCid(void *dest, const void *src, size_t n)
 {
-    Sink sink = NULL;
-    uint16 cid = 0;
-
-    PanicFalse(n == sizeof(sink));
-
-    memcpy (&cid, src, sizeof(uint16));
-
-    if (cid != L2CA_CID_INVALID)
-    {
-        sink = StreamL2capSink(cid);
-    }
-
-    return memcpy(dest, &sink, sizeof(sink));
+    PanicFalse(n = sizeof(Sink));
+    return memcpy(dest, src, sizeof(uint16));
 }
 
 /* Converts L2CAP Sink to CID */
@@ -133,4 +123,15 @@ static void *convertSinkToL2capCid(void *dest, const void *src, size_t n)
     }
 
     return memcpy(dest, &cid, sizeof(cid));
+}
+
+/* Convert L2CAP CID to Sink */
+void convertL2capCidToSink(Sink * sink)
+{
+    uint16 cid;
+    memcpy(&cid, sink, sizeof(uint16));
+    if (cid != L2CA_CID_INVALID)
+    {
+        *sink = StreamL2capSink(cid);
+    }
 }

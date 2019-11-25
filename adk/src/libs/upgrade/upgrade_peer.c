@@ -1042,6 +1042,11 @@ bool UpgradePeerIsSupported(void)
     return ((upgradePeerInfo != NULL) && upgradePeerInfo->is_primary_device);
 }
 
+bool UpgradePeerIsSecondary(void)
+{
+    return upgradePeerInfo && !upgradePeerInfo->is_primary_device;
+}
+
 static void UpgradePeerCtxInit(void)
 {
     if(upgradePeerInfo != NULL)

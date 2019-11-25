@@ -6,11 +6,14 @@ Copyright (c) 2018 Qualcomm Technologies International, Ltd.
 #define VERSIONS_H
 
 /** Default value used as a placeholder for development builds
- * When devkit packages are crated the version for each library is defined
+ * When devkit packages are created, the version for each library is defined
  * in the command line at build time.
  * I.e. by adding:
  *      DEFS=LIB_VERSION_MY_LIB_NAME=123456
  * to the make command
+ *
+ * Add *lib_version* to the specific MY_LIB_NAME.symbols file to ensure the
+ * version information is not stripped from the private archive file.
  */
 #define LIB_VERSIONS_DEV_VERSION 0xCAFECAFE
 

@@ -34,6 +34,7 @@ bool Hdma_Destroy(void)
 #include <panic.h>
 #include <stdlib.h>
 
+state_proxy_event_type HDMA_EVENTS_REGISTER = state_proxy_event_type_phystate;
 /* HDMA instance. External variable */
 hdma_task_data_t *hdma = NULL;
 static void hdma_StartIntervalTimerMessage(void);
@@ -61,10 +62,21 @@ bool Hdma_Init(Task client_task)
     /* Initialise TaskList */
     hdma->client_task = client_task;
     Hdma_CoreInit();
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
+    HDMA_EVENTS_REGISTER |= state_proxy_event_type_battery_state;
+#endif
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
+    HDMA_EVENTS_REGISTER |= state_proxy_event_type_mic_quality|state_proxy_event_type_hfp_conn|state_proxy_event_type_hfp_discon;
+#endif
+#ifdef INCLUDE_HDMA_RSSI_EVENT
+    HDMA_EVENTS_REGISTER |= state_proxy_event_type_link_quality;
+#endif
     events = HDMA_EVENTS_REGISTER;
     /* get state proxy events */
     StateProxy_EventRegisterClient(&hdma->task, events);
     hdma->initialised = HDMA_INIT_COMPLETED_MAGIC;
+    MessageSendLater(&(hdma->task), HDMA_INTERNAL_TIMER_EVENT,
+                 NULL, MIN_HANDOVER_RETRY_TIME_LOW_MS);
     return TRUE;
 }
 
@@ -74,7 +86,7 @@ bool Hdma_Destroy(void)
     DEBUG_LOG("Hdma_Destroy");
     state_proxy_event_type events = 0;
     if(hdma && hdma->initialised == HDMA_INIT_COMPLETED_MAGIC)
-    {        
+    {
         events = HDMA_EVENTS_REGISTER;
         StateProxy_EventUnregisterClient(&hdma->task, events);
         hdma_DestroyIntervalTimerMessage();
@@ -98,24 +110,28 @@ static void hdma_HandleStateProxyEvent(const STATE_PROXY_EVENT_T* sp_event)
             DEBUG_LOG("hdma_HandleStateProxyEvent: Phy State %u", sp_event->event.phystate);
             hdma_HandlePhyState(is_this_bud, sp_event->timestamp, sp_event->event.phystate.event);
             break;
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
         case state_proxy_event_type_hfp_conn:
             hdma_HandleCallEvent(sp_event->timestamp, TRUE);
             break;
         case state_proxy_event_type_hfp_discon:
             hdma_HandleCallEvent(sp_event->timestamp, FALSE);
             break;
+        case state_proxy_event_type_mic_quality:
+            DEBUG_LOG("hdma_HandleStateProxyEvent: Audio Quality %u", sp_event->event.mic_quality);
+            hdma_HandleVoiceQuality(is_this_bud, sp_event->timestamp, &(sp_event->event.mic_quality));
+            break;
+#endif
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
         case state_proxy_event_type_battery_state:
             DEBUG_LOG("hdma_HandleStateProxyEvent: Battery State %u", (MESSAGE_BATTERY_LEVEL_UPDATE_STATE_T *)(&(sp_event->event)));
             hdma_HandleBatteryLevelStatus(is_this_bud, sp_event->timestamp, (MESSAGE_BATTERY_LEVEL_UPDATE_STATE_T *)(&(sp_event->event)));
             break;
+#endif
+#ifdef INCLUDE_HDMA_RSSI_EVENT
         case state_proxy_event_type_link_quality:
             DEBUG_LOG("hdma_HandleStateProxyEvent: Link Quality %u", sp_event->event.link_quality);
             hdma_HandleLinkQuality(is_this_bud, sp_event->event.link_quality.flags.is_peer, sp_event->timestamp, &(sp_event->event.link_quality));
-            break;
-        case state_proxy_event_type_mic_quality:
-            DEBUG_LOG("hdma_HandleStateProxyEvent: Audio Quality %u", sp_event->event.mic_quality);
-            hdma_HandleVoiceQuality(is_this_bud, sp_event->timestamp, &(sp_event->event.mic_quality));
             break;
 #endif
         default:
@@ -131,7 +147,7 @@ static void hdma_StartIntervalTimerMessage(void)
 {
     if(!Hdma_IsOutOfEarEnabled())
     {
-        MessageSendLater(&(hdma->task), HDMA_INTERNAL_TIMER_OUT_OF_CASE,
+        MessageSendLater(&(hdma->task), HDMA_INTERNAL_TIMER_EVENT,
                      NULL, OUT_OF_EAR_TIME_BEFORE_HANDOVER_MS);
     }
 }
@@ -143,15 +159,15 @@ static void hdma_DestroyIntervalTimerMessage(void)
 {
     if(Hdma_IsOutOfEarEnabled())
     {
-        MessageCancelAll(&(hdma->task), HDMA_INTERNAL_TIMER_OUT_OF_CASE);
+        MessageCancelAll(&(hdma->task), HDMA_INTERNAL_TIMER_EVENT);
     }
 }
 
 /*! \brief HDMA Message Handler.
-           
+
     \param[in] task Time at which event is raised.
     \param[in] id Message id
-    \param[in] message Message data 
+    \param[in] message Message data
 */
 void hdma_HandleMessage(Task task, MessageId id, Message message)
 {
@@ -162,7 +178,7 @@ void hdma_HandleMessage(Task task, MessageId id, Message message)
         case STATE_PROXY_EVENT:
             hdma_HandleStateProxyEvent((const STATE_PROXY_EVENT_T*)message);
             break;
-        case HDMA_INTERNAL_TIMER_OUT_OF_CASE:
+        case HDMA_INTERNAL_TIMER_EVENT:
             Hdma_CoreHandleInternalEvent(timestamp);
             break;
         default:
@@ -225,8 +241,8 @@ void hdma_HandlePhyState(bool is_this_bud,uint32 timestamp,
     }
     Hdma_CoreHandleEvent( timestamp, evt);
 }
-#ifndef INCLUDE_HDMA_ONLY_PHY_EVENT
 
+#ifdef INCLUDE_HDMA_BATTERY_EVENT
 /*! \brief Handle the battery level status event from the State Proxy
 
     \param[in] is_this_bud source of the event (true:-this bud, false:- peer bud).
@@ -240,11 +256,13 @@ void hdma_HandleBatteryLevelStatus(bool is_this_bud,uint32 timestamp,
     DEBUG_LOG("hdma_HandleBatteryLevelStatus: Timestamp = %u is_this_bud = %u, battery_level = %u", timestamp, is_this_bud, battery_level->state);
     Hdma_CoreHandleBatteryStatus(timestamp, is_this_bud, (hdma_core_battery_state_t)battery_level->state);
 }
+#endif
 
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
 /*! \brief Handle the Call connect/disconnect event from the State Proxy.
-           
+
     \param[in] timestamp Time at which event is raised.
-    \param[in] isconnect Call is connected or disconnected, 1 = connect, 2 = disconnect 
+    \param[in] isconnect Call is connected or disconnected, 1 = connect, 2 = disconnect
 */
 void hdma_HandleCallEvent(uint32 timestamp, bool isconnect)
 {
@@ -259,6 +277,23 @@ void hdma_HandleCallEvent(uint32 timestamp, bool isconnect)
     }
 }
 
+/*! \brief Handle the voice quality event from the State Proxy.
+           This event will be raised only during an active  HFP call.
+
+    \param[in] is_this_bud source of the event (true:-this bud, false:- peer bud).
+    \param[in] timestamp Time at which event is raised.
+    \param[in] voice_quality voice quality indicator, 0 = worst, 15 = best, 0xFF unknown.
+
+*/
+void hdma_HandleVoiceQuality(bool is_this_bud, uint32 timestamp,
+                        STATE_PROXY_MIC_QUALITY_T* voice_quality)
+{
+    DEBUG_LOG("hdma_HandleVoiceQuality: Timestamp = %u is_this_bud = %u, mic_quality = %u", timestamp, is_this_bud, voice_quality->mic_quality);
+    Hdma_CoreHandleVoiceQuality(timestamp, is_this_bud, voice_quality->mic_quality);
+}
+#endif
+
+#ifdef INCLUDE_HDMA_RSSI_EVENT
 /*! \brief Handle the link quality event from State Proxy
 
     \param[in] is_this_bud source of the event (true:-this bud, false:- peer bud).
@@ -276,21 +311,7 @@ void hdma_HandleLinkQuality(bool is_this_bud,bool isPeerLink,uint32 timestamp,
     DEBUG_LOG("hdma_HandleLinkQuality: Timestamp = %u is_this_bud = %u, isPeerLink = %u, RSSI = %d, link_quality = %u", timestamp, is_this_bud, isPeerLink, link_quality->rssi, link_quality->link_quality);
     Hdma_CoreHandleLinkQuality(timestamp, is_this_bud, isPeerLink, qual);
 }
-   
-/*! \brief Handle the voice quality event from the State Proxy.
-           This event will be raised only during an active  HFP call.
-
-    \param[in] is_this_bud source of the event (true:-this bud, false:- peer bud).
-    \param[in] timestamp Time at which event is raised.
-    \param[in] voice_quality voice quality indicator, 0 = worst, 15 = best, 0xFF unknown. 
-
-*/
-void hdma_HandleVoiceQuality(bool is_this_bud, uint32 timestamp,
-                        STATE_PROXY_MIC_QUALITY_T* voice_quality)
-{
-    DEBUG_LOG("hdma_HandleVoiceQuality: Timestamp = %u is_this_bud = %u, mic_quality = %u", timestamp, is_this_bud, voice_quality->mic_quality);
-    Hdma_CoreHandleVoiceQuality(timestamp, is_this_bud, voice_quality->mic_quality);
-}
+#endif
 
 /*! \brief This function will force handover with specified urgency
 
@@ -320,9 +341,8 @@ void hdma_HandleExternalReq(uint32 timestamp, hdma_handover_urgency_t urgency)
             break;
         default:
             DEBUG_LOG("hdma_HandleExternalReq: Invalid urgency request %d", urgency);
-            break;
+            return;
     }
     Hdma_CoreHandleExternalReq( timestamp, core_urgency);
 }
-#endif
 #endif /* INCLUDE_HDMA */

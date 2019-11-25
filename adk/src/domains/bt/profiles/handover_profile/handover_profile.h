@@ -75,8 +75,6 @@ typedef HANDOVER_PROFILE_CONNECT_CFM_T HANDOVER_PROFILE_DISCONNECT_CFM_T;
 
 #define HandoverProfile_Handover(remote_addr) (HANDOVER_PROFILE_STATUS_HANDOVER_FAILURE)
 
-#define HandoverProfile_HandleConnectionLibraryMessages(id, message, already_handled) (already_handled)
-
 #define HandoverProfile_HandleSdmSetBredrSlaveAddressInd(ind) /* Nothing to do */
 
 

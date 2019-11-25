@@ -21,6 +21,15 @@ NOTES
 #include "marshal_common_desc.h"
 #include "types.h"
 #include "app/marshal/marshal_if.h"
+#include "hfp_private.h"
+
+/* This single object is marshalled by HFP */
+typedef struct
+{
+    uint8 channel;
+    hfp_link_data *link;
+    hfp_task_data_bitfields bitfields;
+} hfp_marshalled_obj;
 
 
 #define HFP_MARSHAL_TYPES_TABLE(ENTRY) \
@@ -33,7 +42,8 @@ NOTES
     ENTRY(hfp_hf_indicators) \
     ENTRY(hfp_audio_params) \
     ENTRY(sync_pkt_type) \
-    ENTRY(hfp_link_data)
+    ENTRY(hfp_link_data) \
+    ENTRY(hfp_marshalled_obj)
 
 
 /* Use xmacro to expand type table as enumeration of marshal types */

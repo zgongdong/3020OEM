@@ -704,6 +704,7 @@ static void peer_find_role_handle_connection_ind(const CON_MANAGER_CONNECTION_IN
             case PEER_FIND_ROLE_STATE_CLIENT_AWAITING_ENCRYPTION:
             case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
             case PEER_FIND_ROLE_STATE_SERVER:
+            case PEER_FIND_ROLE_STATE_SERVER_PREPARING:
             case PEER_FIND_ROLE_STATE_SERVER_AWAITING_ENCRYPTION:
             case PEER_FIND_ROLE_STATE_DECIDING:
             case PEER_FIND_ROLE_STATE_AWAITING_CONFIRM:
@@ -889,7 +890,7 @@ static void peer_find_role_handle_ble_security(const CL_DM_BLE_SECURITY_CFM_T *c
     else
     {
         DEBUG_LOG("peer_find_role_handle_ble_security. success");
-        peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER);
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER_PREPARING);
     }
 }
 
@@ -912,8 +913,9 @@ static void peer_find_role_handle_adv_report_ind(const LE_SCAN_MANAGER_ADV_REPOR
         DEBUG_LOG("peer_find_role_handle_adv_report_ind ADDR:%06x PERM:%06x",
                         advert->current_taddr.addr.lap, advert->permanent_taddr.addr.lap);
 
-        if (BdaddrIsSame(&advert->permanent_taddr.addr, &pfr->primary_addr))
+        if (appDeviceIsPeer(&advert->permanent_taddr.addr))
         {
+            DEBUG_LOG("peer_find_role_handle_adv_report_ind. Is peer");
             memcpy(&pfr->peer_connection_typed_bdaddr, &advert->current_taddr, sizeof(typed_bdaddr));
 
             peer_find_role_set_state(PEER_FIND_ROLE_STATE_DISCOVERED_DEVICE);
@@ -994,39 +996,41 @@ static void peer_find_role_handle_disconnect_timeout(void)
     }
 }
 
+/*! Internal handler for the timeout message
+    #PEER_FIND_ROLE_INTERNAL_TIMEOUT_SERVER_ROLE_SELECTED
+
+    This timeout message is received if we are the server and have not
+    received the result of role selection from the client.
+ */
+static void peer_find_role_handle_server_role_selected_timeout(void)
+{
+    DEBUG_LOG("peer_find_role_handle_server_role_selected_timeout");
+
+    if (PEER_FIND_ROLE_STATE_SERVER == peer_find_role_get_state())
+    {
+        /* Disconnect the link - after disconnection advertising will be re-started. */
+        peer_find_role_disconnect_link();
+    }
+    else
+    {
+        DEBUG_LOG("peer_find_role_handle_server_role_selected_timeout. Expired after already left state");
+    }
+}
+
 static bool peer_find_role_is_peer_le_address(const tp_bdaddr *tpaddr)
 {
     bool peer_address = FALSE;
-    tp_bdaddr public_tpaddr = {0};
-    tp_bdaddr primary = {0};
     
     DEBUG_LOG("peer_find_role_is_peer_le_address. type %d tpaddr %04x:%02x:%06x",
                         tpaddr->taddr.type,
-                        tpaddr->taddr.addr.uap,
                         tpaddr->taddr.addr.nap,
+                        tpaddr->taddr.addr.uap,
                         tpaddr->taddr.addr.lap
                         );
     
     if (tpaddr->transport == TRANSPORT_BLE_ACL)
     {
-        if (tpaddr->taddr.type == TYPED_BDADDR_RANDOM)
-        {
-            VmGetPublicAddress(tpaddr, &public_tpaddr);
-        }
-        else
-        {
-            memcpy(&public_tpaddr, tpaddr, sizeof(tp_bdaddr));
-        }
-        
-        DEBUG_LOG("peer_find_role_is_peer_le_address. public addr %04x:%02x:%06x",
-                        public_tpaddr.taddr.addr.uap,
-                        public_tpaddr.taddr.addr.nap,
-                        public_tpaddr.taddr.addr.lap
-                        );
-        
-        peer_find_role_get_primary_as_tp_bdaddr(&primary);
-
-        if (BdaddrTpIsSame(&public_tpaddr, &primary))
+        if (BtDevice_LeDeviceIsPeer(tpaddr))
         {
             DEBUG_LOG("peer_find_role_is_peer_le_address. Is peer");
             peer_address = TRUE;
@@ -1094,9 +1098,8 @@ static void peer_find_role_handle_prepared(void)
 
     switch (state)
     {
-    case PEER_FIND_ROLE_STATE_SERVER:
-        /* re-calculate the score and update the server characteristic */
-        peer_find_role_update_server_score();
+    case PEER_FIND_ROLE_STATE_SERVER_PREPARING:
+        peer_find_role_set_state(PEER_FIND_ROLE_STATE_SERVER);
         break;
 
     case PEER_FIND_ROLE_STATE_CLIENT_PREPARING:
@@ -1217,6 +1220,10 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
 
             case PEER_FIND_ROLE_INTERNAL_TIMEOUT_NOT_DISCONNECTED:
                 peer_find_role_handle_disconnect_timeout();
+                break;
+
+            case PEER_FIND_ROLE_INTERNAL_TIMEOUT_SERVER_ROLE_SELECTED:
+                peer_find_role_handle_server_role_selected_timeout();
                 break;
 
             case PEER_FIND_ROLE_INTERNAL_PREPARED:

@@ -47,8 +47,9 @@
     A value of 0 will disable TTP.  */
 #define appConfigScoChainTTP(wesco)     (wesco * 0)
 
-/*! The time before the TTP at which a packet should be transmitted */
-#define appConfigTwsTimeBeforeTx()  MAX(70000, TWS_STANDARD_LATENCY_US-200000)
+/*! The time before the TTP at which a packet should be transmitted.
+    This is only relevant for TWS forwarding topology.  */
+#define appConfigTwsTimeBeforeTx() MAX(70000, TWS_STANDARD_LATENCY_US-200000)
 
 /*! The last time before the TTP at which a packet may be transmitted */
 #define appConfigTwsDeadline()      MAX(35000, TWS_STANDARD_LATENCY_US-250000)

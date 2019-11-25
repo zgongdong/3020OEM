@@ -1378,13 +1378,13 @@ void a2dpHandleL2capDisconnect(Sink sink, l2cap_disconnect_status status)
                     }
                 }
                 else
-                {   /* Signalling channel has gone, remove any remaining media channels */
-                    if ( a2dpDisconnectAllMedia( device ) )
+                {   /* If signalling channel has gone, remove any remaining media channels */
+                    if ( status != l2cap_disconnect_transferred && a2dpDisconnectAllMedia( device ) )
                     {   /* Media channels being disconnected.  Mark signalling as disconnected but postpone removal of data structure and app indication */
                         signalling->status.connection_state = avdtp_connection_idle;
                     }
                     else
-                    {   /* No media channels are connected, so remove device from list */
+                    {   /* Either no media channels are connected or L2CAP has been transferred, so remove device from list */
                         a2dpSignallingDisconnectInd(device, convertDisconnectStatusCode(status));
                         a2dpStreamReset(device);
                         removeDevice( device ); /* Will remove signalling and media channel data too */

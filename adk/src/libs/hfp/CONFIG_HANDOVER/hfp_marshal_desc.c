@@ -126,6 +126,17 @@ static const marshal_type_descriptor_t mtd_hfp_link_data =
                                  mmd_hfp_link_data);
 
 
+static const marshal_member_descriptor_t mmd_hfp_marshalled_obj[] =
+{
+    MAKE_MARSHAL_MEMBER(hfp_marshalled_obj, uint8, channel),
+    MAKE_MARSHAL_MEMBER_POINTER(hfp_marshalled_obj, hfp_link_data, link),
+    MAKE_MARSHAL_MEMBER(hfp_marshalled_obj, hfp_task_data_bitfields, bitfields),
+};
+
+static const marshal_type_descriptor_t mtd_hfp_marshalled_obj =
+    MAKE_MARSHAL_TYPE_DEFINITION(hfp_marshalled_obj,
+                                 mmd_hfp_marshalled_obj);
+
 /* Use xmacro to expand type table as array of type descriptors */
 #define EXPAND_AS_TYPE_DEFINITION(type) (const marshal_type_descriptor_t *) &mtd_##type,
 const marshal_type_descriptor_t * const  mtd_hfp[] =

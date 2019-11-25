@@ -20,7 +20,7 @@ DESCRIPTION
 
         Libraries that will be marshalled should internally
         implement the interface functions defined below
-        for veto, marshal, unmarshal, commit and abort.
+        for veto, marshal, unmarshal, commit, complete and abort.
         These are then exposed through the handover_interface
         struct
 
@@ -47,16 +47,18 @@ static bool libraryUnmarshal(const tp_bdaddr *tp_bd_addr,
                          const uint8 *buf,
                          uint16 length,
                          uint16 *consumed);
-static void libraryMarshalCommit( const bool newRole );
-static void libraryMarshalAbort( void );
+static void libraryHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole);
+static void libraryHandoverComplete( const bool newRole );
+static void libraryHandoverAbort( void );
 
 
 const handover_interface library_handover_if =  {
         &libraryVeto,
         &libraryMarshal,
         &libraryUnMarshal,
-        &libraryMarshalCommit,
-        &libraryMarshalAbort};
+        &libraryHandoverCommit,
+        &libraryHandoverComplete,
+        &libraryHandoverAbort};
 
 
 * library.h - main library header file
@@ -125,10 +127,26 @@ typedef bool (*handover_unmarshal)(const tp_bdaddr *tp_bd_addr,
                                   uint16 *consumed);
 
 /*!
-    \brief Module commits to the specified role
+    \brief Module performs time-critical actions to commit to the specified role.
 
-    The library should take any actions necessary to commit to the
-    new role.
+    This function would be invoked once for each connected device.
+    The library should perform time-critical actions to commit to the new role.
+
+    \param tp_bd_addr Bluetooth address of the connected device.
+    \param is_primary TRUE if TWS primary role requested, else
+                      secondary
+
+    \return void
+
+*/
+typedef void (*handover_commit)(const tp_bdaddr *tp_bd_addr, const bool is_primary);
+
+/*!
+    \brief Module performs pending actions and completes the transition to 
+    the specified new role.
+
+    This function will be invoked only once during the handover procedure.
+    The library should perform pending actions and transition to the new role.
 
     \param is_primary TRUE if TWS primary role requested, else
                       secondary
@@ -136,7 +154,7 @@ typedef bool (*handover_unmarshal)(const tp_bdaddr *tp_bd_addr,
     \return void
 
 */
-typedef void (*handover_commit)( const bool is_primary );
+typedef void (*handover_complete)( const bool is_primary );
 
 /*!
     \brief Abort the Handover process
@@ -166,6 +184,7 @@ typedef struct
     handover_marshal    pFnMarshal;     /*!< Pointer to the module's handover_marshal function */
     handover_unmarshal  pFnUnmarshal;   /*!< Pointer to the module's handover_unmarshal function */
     handover_commit     pFnCommit;      /*!< Pointer to the module's handover_commit function */
+    handover_complete   pFnComplete;    /*!< Pointer to the module's handover_complete function */
     handover_abort      pFnAbort;       /*!< Pointer to the module's handover_abort function */
 } handover_interface;
 

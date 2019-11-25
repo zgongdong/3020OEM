@@ -47,12 +47,13 @@
 #include "tws_topology_procedure_set_role.h"
 #include "tws_topology_procedure_switch_to_secondary.h"
 #include "tws_topology_procedure_handover.h"
-#include "tws_topology_procedure_handover_entering_case.h"
-#include "tws_topology_procedure_handover_entering_case_timeout.h"
 #include "tws_topology_procedure_sec_forced_role_switch.h"
 #include "tws_topology_procedure_pri_forced_role_switch.h"
 #include "tws_topology_procedure_primary_static_handover.h"
 #include "tws_topology_procedure_dfu_in_case.h"
+#include "tws_topology_procedure_dynamic_handover.h"
+#include "tws_topology_procedure_dynamic_handover_failure.h"
+#include "tws_topology_procedure_le_connectable_handset.h"
 
 #include <logging.h>
 
@@ -191,26 +192,30 @@ const tws_topology_goal_entry_t goals[] =
     GOAL(tws_topology_goal_release_peer, tws_topology_procedure_release_peer, 
          &proc_release_peer_fns, tws_topology_goal_none),
          
-    SCRIPT_GOAL_TIMEOUT_OR_FAILED(tws_topology_goal_handover_entering_case, tws_topology_procedure_handover_entering_case,
-                        &handover_entering_case_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_HANDOVER_INCASE_TIMEOUT, TWSTOP_RULE_EVENT_HANDOVER_INCASE_FAILED),
-
-    SCRIPT_GOAL_TIMEOUT_OR_FAILED(tws_topology_goal_handover_incase_timeout, tws_topology_procedure_handover_entering_case_timeout,
-                &handover_entering_case_timeout_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_HANDOVER_INCASE_TIMEOUT, TWSTOP_RULE_EVENT_HANDOVER_INCASE_FAILED),
-
-    SCRIPT_GOAL_CANCEL_SUCCESS_FAILED(tws_topology_goal_secondary_static_handover,
+    SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_secondary_static_handover,
                                       tws_topology_procedure_secondary_static_handover,
                                       &secondary_static_handover_script, tws_topology_goal_none,
-                                      TWSTOP_RULE_EVENT_ROLE_SWITCH, TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED),
+                                       TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED),
 
     SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_primary_static_handover_in_case,
                               tws_topology_procedure_primary_static_handover_in_case,
                               &primary_static_handover_in_case_script, tws_topology_goal_none,
                               TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED),
     
-    SCRIPT_GOAL_CANCEL_SUCCESS_FAILED(tws_topology_goal_primary_static_handover,
+    SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_primary_static_handover,
                                       tws_topology_procedure_primary_static_handover,
                                       &primary_static_handover_script, tws_topology_goal_none,
-                                      TWSTOP_RULE_EVENT_ROLE_SWITCH, TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED),
+                                      TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED),
+
+    SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_dynamic_handover, tws_topology_procedure_dynamic_handover,
+            &dynamic_handover_script, tws_topology_goal_none,TWSTOP_RULE_EVENT_HANDOVER_FAILED),
+            
+    SCRIPT_GOAL_SUCCESS(tws_topology_goal_dynamic_handover_failure, tws_topology_procedure_dynamic_handover_failure,
+            &dynamic_handover_failure_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_HANDOVER_FAILURE_HANDLED),
+
+    GOAL(tws_topology_goal_le_connectable_handset, tws_topology_procedure_le_connectable,
+            &proc_le_connectable_fns, tws_topology_goal_none)
+
 };
 
 /******************************************************************************
@@ -809,18 +814,32 @@ tws_topology_goal_id twstopology_GetHandoverGoal(hdma_handover_reason_t reason)
         case HDMA_HANDOVER_REASON_IN_CASE:
             if (TwsTopologyConfig_DynamicHandoverSupported())
             {
-                goal = tws_topology_goal_handover_entering_case;
+                goal = tws_topology_goal_dynamic_handover;
             }
             else
             {
                 goal = tws_topology_goal_primary_static_handover_in_case;
             }
-        break;
+            break;
+
+        case HDMA_HANDOVER_REASON_OUT_OF_EAR:
+        case HDMA_HANDOVER_REASON_BATTERY_LEVEL:
+        case HDMA_HANDOVER_REASON_VOICE_QUALITY:
+            if (TwsTopologyConfig_DynamicHandoverSupported())
+            {
+                goal = tws_topology_goal_dynamic_handover;
+            }
+            break;
+
+        case HDMA_HANDOVER_REASON_SIGNAL_QUALITY:
+        case HDMA_HANDOVER_REASON_EXTERNAL:
+            DEBUG_LOG("twstopology_GetHandoverGoal HDMA handover reason code 0x%x Not Supported", reason);
+            break;
 
         default:
             DEBUG_LOG("twstopology_GetHandoverGoal invalid HDMA handover reason code 0x%x", reason);
             Panic();
-        break;
+            break;
     }
 
     return goal;
@@ -940,7 +959,11 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
         case TWSTOP_DFU_GOAL_CONNECTABLE_HANDSET:
             TwsTopology_AddGoal(tws_topology_goal_connectable_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECTABLE_HANDSET_T), new_goal);
             break;
-        
+
+        case TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET:
+            TwsTopology_AddGoal(tws_topology_goal_le_connectable_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET_T), new_goal);
+            break;
+
         case TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET:
             TwsTopology_AddGoal(tws_topology_goal_connect_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET_T), new_goal);
             break;
@@ -952,9 +975,9 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
         case TWSTOP_PRIMARY_GOAL_HANDOVER_START:
             TwsTopology_AddGoal(twstopology_GetHandoverGoal(td->handover_info.hdma_message.reason), id, NULL, 0, new_goal);
             break;
-
-        case TWSTOP_PRIMARY_GOAL_HANDOVER_INCASE_TIMEOUT:
-            TwsTopology_AddGoal(tws_topology_goal_handover_incase_timeout, id, NULL, 0, new_goal);
+            
+        case TWSTOP_PRIMARY_GOAL_HANDOVER_FAILED:
+            TwsTopology_AddGoal(tws_topology_goal_dynamic_handover_failure, id, NULL, 0, new_goal);
             break;
 #if 0
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_HANDSET:

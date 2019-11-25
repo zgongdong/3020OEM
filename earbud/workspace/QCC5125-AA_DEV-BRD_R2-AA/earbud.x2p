@@ -50,6 +50,7 @@
         <file path="../../../adk/src/domains/audio/kymera/kymera_a2dp_common.c"/>
         <file path="../../../adk/src/domains/audio/kymera/kymera_a2dp_forwarding.c"/>
         <file path="../../../adk/src/domains/audio/kymera/kymera_a2dp_shadow.c"/>
+        <file path="../../../adk/src/domains/audio/kymera/kymera_a2dp_shadow_handover.c"/>
         <file path="../../../adk/src/domains/audio/kymera/kymera_aec.c"/>
         <file path="../../../adk/src/domains/audio/kymera/kymera_anc.c"/>
         <file path="../../../adk/src/domains/audio/kymera/kymera_common.c"/>
@@ -93,6 +94,7 @@
         <file path="../../../adk/src/domains/bt/device_db_serialiser/device_db_serialiser.c"/>
         <file path="../../../adk/src/domains/bt/device_db_serialiser/device_properties.c"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair.c"/>
+        <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_account_key_sync.c"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_advertising.c"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_bloom_filter.c"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_events.c"/>
@@ -256,13 +258,15 @@
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dfu_role.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dfu_secondary_after_boot.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_handset.c"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_le_connections.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_peer_find_role.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_peer_profiles.c"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dynamic_handover.c"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dynamic_handover_failure.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_event_suppress.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_find_role.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_handover.c"/>
-        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_handover_entering_case.c"/>
-        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_handover_entering_case_timeout.c"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_le_connectable_handset.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_no_role_find_role.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_no_role_idle.c"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_pair_peer.c"/>
@@ -430,6 +434,7 @@
         <file path="../../../adk/src/domains/bt/device_db_serialiser/device_db_serialiser.h"/>
         <file path="../../../adk/src/domains/bt/device_db_serialiser/device_properties.h"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair.h"/>
+        <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_account_key_sync.h"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_advertising.h"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_bloom_filter.h"/>
         <file path="../../../adk/src/domains/bt/fast_pair/fast_pair_events.h"/>
@@ -616,13 +621,15 @@
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dfu_role.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dfu_secondary_after_boot.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_handset.h"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_le_connections.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_peer_find_role.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_disconnect_peer_profiles.h"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dynamic_handover.h"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_dynamic_handover_failure.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_event_suppress.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_find_role.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_handover.h"/>
-        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_handover_entering_case.h"/>
-        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_handover_entering_case_timeout.h"/>
+        <file path="../../../adk/src/topologies/tws/tws_topology_procedure_le_connectable_handset.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_no_role_find_role.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_no_role_idle.h"/>
         <file path="../../../adk/src/topologies/tws/tws_topology_procedure_pair_peer.h"/>
@@ -661,7 +668,7 @@
             <property name="CHIP_TYPE">qcc512x_qcc302x</property>
             <property name="DBG_CORE">app/p1</property>
             <property name="DEFAULT_LIBS">usb_early_init</property>
-            <property name="DEFS">AV_DEBUG BLUELAB CHIP_LED_BASE_PIO=66 CHIP_NUM_LEDS=6 DEBUG DISABLE_TWS_PLUS HAVE_1_BUTTON HAVE_1_LED HAVE_32BIT_DATA_WIDTH HAVE_THERMISTOR HYDRA HYDRACORE INCLUDE_AV INCLUDE_CHARGER INCLUDE_DFU INCLUDE_DFU_PEER INCLUDE_GATT INCLUDE_GATT_BATTERY_SERVER INCLUDE_GATT_GAIA_SERVER INCLUDE_HDMA INCLUDE_HDMA_ONLY_PHY_EVENT INCLUDE_HFP INCLUDE_MICFWD INCLUDE_PROMPTS INCLUDE_SCOFWD INCLUDE_TEMPERATURE INCLUDE_TONES INSTALL_HYDRA_LOG KYMERA_VOICE_CAPTURE_USE_1MIC_CVC QCC5125_AA_DEV_BRD_R2_AA THERMISTOR_ADC=adcsel_led5 THERMISTOR_DATA_FILE=thermistor_lp4549652p3m.h THERMISTOR_ON=THERMISTOR_PIO_UNUSED USE_BDADDR_FOR_LEFT_RIGHT __KALIMBA__</property>
+            <property name="DEFS">AV_DEBUG BLUELAB CHIP_LED_BASE_PIO=66 CHIP_NUM_LEDS=6 DEBUG DISABLE_TWS_PLUS HAVE_1_BUTTON HAVE_1_LED HAVE_32BIT_DATA_WIDTH HAVE_THERMISTOR HYDRA HYDRACORE INCLUDE_AV INCLUDE_CHARGER INCLUDE_DFU INCLUDE_DFU_PEER INCLUDE_GATT INCLUDE_GATT_BATTERY_SERVER INCLUDE_GATT_GAIA_SERVER INCLUDE_HDMA INCLUDE_HDMA_BATTERY_EVENT INCLUDE_HFP INCLUDE_MICFWD INCLUDE_PROMPTS INCLUDE_SCOFWD INCLUDE_TEMPERATURE INCLUDE_TONES INSTALL_HYDRA_LOG KYMERA_VOICE_CAPTURE_USE_1MIC_CVC QCC5125_AA_DEV_BRD_R2_AA THERMISTOR_ADC=adcsel_led5 THERMISTOR_DATA_FILE=thermistor_lp4549652p3m.h THERMISTOR_ON=THERMISTOR_PIO_UNUSED USE_BDADDR_FOR_LEFT_RIGHT __KALIMBA__</property>
             <property name="EXTRA_WARNINGS">FALSE</property>
             <property name="FLASH_CONFIG">../../64Mbit_default_flash_config.py</property>
             <property name="HW_VARIANT"></property>

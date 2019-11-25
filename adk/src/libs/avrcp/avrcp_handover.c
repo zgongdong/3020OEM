@@ -29,8 +29,9 @@ static bool avrcpUnmarshal(const tp_bdaddr *tp_bd_addr,
                            const uint8 *buf,
                            uint16 length,
                            uint16 *consumed);
-static void avrcpMarshalCommit( const bool newRole );
-static void avrcpMarshalAbort(void);
+static void avrcpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole);
+static void avrcpHandoverComplete( const bool newRole );
+static void avrcpHandoverAbort(void);
 
 
 const handover_interface avrcp_handover =
@@ -38,14 +39,15 @@ const handover_interface avrcp_handover =
     avrcpVeto,
     avrcpMarshal,
     avrcpUnmarshal,
-    avrcpMarshalCommit,
-    avrcpMarshalAbort
+    avrcpHandoverCommit,
+    avrcpHandoverComplete,
+    avrcpHandoverAbort
 };
 
 
 /****************************************************************************
 NAME    
-    avrcpMarshalAbort
+    avrcpHandoverAbort
 
 DESCRIPTION
     Abort the AVRCP library Handover process, free any memory
@@ -54,7 +56,7 @@ DESCRIPTION
 RETURNS
     void
 */
-static void avrcpMarshalAbort(void)
+static void avrcpHandoverAbort(void)
 {
     /* Not supported in this configuration */
     Panic();
@@ -116,17 +118,18 @@ static bool avrcpUnmarshal(const tp_bdaddr *tp_bd_addr,
 
 /****************************************************************************
 NAME    
-    avrcpMarshalCommit
+    avrcpHandoverCommit
 
 DESCRIPTION
-    The AVRCP  library commits to the specified new role (primary or
-    secondary)
+    The AVRCP  library performs time-critical actions to commit to the specified
+    new role (primary or secondary)
 
 RETURNS
     void
 */
-static void avrcpMarshalCommit( const bool newRole )
+static void avrcpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
 {
+    UNUSED(tp_bd_addr);
     UNUSED(newRole);
     
     /* Not supported in this configuration */
@@ -135,6 +138,26 @@ static void avrcpMarshalCommit( const bool newRole )
     return;
 }
 
+/****************************************************************************
+NAME    
+    avrcpHandoverComplete
+
+DESCRIPTION
+    The AVRCP  library performs pending actions and completes transition to 
+    specified new role (primary or secondary)
+
+RETURNS
+    void
+*/
+static void avrcpHandoverComplete( const bool newRole )
+{
+    UNUSED(newRole);
+    
+    /* Not supported in this configuration */
+    Panic();
+    
+    return;
+}
 
 /****************************************************************************
 NAME    

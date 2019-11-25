@@ -39,16 +39,20 @@ static bool connectionUnmarshal(const tp_bdaddr *tp_bd_addr,
                          uint16 length,
                          uint16 *consumed);
 
-static void connectionMarshalCommit( const bool newRole );
+static void connectionHandoverCommit(const tp_bdaddr *tp_bd_addr, 
+                                     const bool newRole );
 
-static void connectionMarshalAbort( void );
+static void connectionHandoverComplete( const bool newRole);
+
+static void connectionHandoverAbort( void );
 
 extern const handover_interface connection_handover_if =  {
         &connectionVeto,
         &connectionMarshal,
         &connectionUnmarshal,
-        &connectionMarshalCommit,
-        &connectionMarshalAbort};
+        &connectionHandoverCommit,
+        &connectionHandoverComplete,
+        &connectionHandoverAbort};
 
 
 /****************************************************************************
@@ -127,16 +131,38 @@ bool connectionUnmarshal(const tp_bdaddr *tp_bd_addr,
 
 /****************************************************************************
 NAME    
-    connectionMarshalCommit
+    connectionHandoverCommit
 
 DESCRIPTION
-    The Connection library commits to the specified new role (primary or
-    secondary)
+    The Connection library performs time-critical actions to commit to specified
+    new role (primary or secondary)
 
 RETURNS
     void
 */
-void connectionMarshalCommit( const bool newRole )
+void connectionHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
+{
+    UNUSED(tp_bd_addr);
+    UNUSED(newRole);
+    
+    /* Not supported in this configuration */
+    Panic();
+    
+    return;
+}
+
+/****************************************************************************
+NAME    
+    connectionHandoverComplete
+
+DESCRIPTION
+    The Connection library performs pending actions and complestes transition to
+    specified new role (primary or secondary)
+
+RETURNS
+    void
+*/
+void connectionHandoverComplete( const bool newRole )
 {
     UNUSED(newRole);
     
@@ -148,7 +174,7 @@ void connectionMarshalCommit( const bool newRole )
 
 /****************************************************************************
 NAME    
-    connectionMarshalAbort
+    connectionHandoverAbort
 
 DESCRIPTION
     Abort the Connection library Handover process, free any memory
@@ -157,7 +183,7 @@ DESCRIPTION
 RETURNS
     void
 */
-void connectionMarshalAbort( void )
+void connectionHandoverAbort( void )
 {
     /* Not supported in this configuration */
     Panic();

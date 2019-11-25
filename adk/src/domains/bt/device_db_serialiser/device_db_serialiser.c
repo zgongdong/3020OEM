@@ -22,8 +22,6 @@
 #define LEN_OFFSET_IN_FRAME     SIZE_OF_TYPE
 #define PAYLOAD_OFFSET_IN_FRAME SIZE_OF_TYPE_AND_LEN
 
-#define DEFAULT_PDD_FRAME_LEN_BYTES     32
-
 #define DBS_PDD_FRAME_TYPE      0xDB
 
 #define MAX_NUM_DEVICES_IN_PDL  8
@@ -42,9 +40,12 @@ device_db_serialiser_registered_pddu_t *registered_pddu_list = NULL;
 
 uint8 num_registered_pddus = 0;
 
+static bool deserialised = FALSE;
+
 void DeviceDbSerialiser_Init(void)
 {
     num_registered_pddus = 0;
+    deserialised = FALSE;
 }
 
 void DeviceDbSerialiser_RegisterPersistentDeviceDataUser(
@@ -172,20 +173,6 @@ void DeviceDbSerialiser_Serialise(void)
     DeviceList_Iterate(deviceDbSerialiser_SerialiseDevice, NULL);
 }
 
-static void deviceDbSerialiser_checkMemAllocForPddFrame(uint8 pdl_index, uint8 **pdd_frame)
-{
-    typed_bdaddr taddr = {0};
-    uint8 len_pdd_frame = (*pdd_frame)[LEN_OFFSET_IN_FRAME];
-    if (len_pdd_frame > DEFAULT_PDD_FRAME_LEN_BYTES)
-    {
-        *pdd_frame = realloc(*pdd_frame, len_pdd_frame);
-
-        PanicFalse(*pdd_frame);
-        PanicFalse(ConnectionSmGetIndexedAttributeNowReq(0, pdl_index, len_pdd_frame, *pdd_frame, &taddr));
-        PanicFalse((*pdd_frame)[TYPE_OFFSET_IN_FRAME] == DBS_PDD_FRAME_TYPE);
-    }
-}
-
 static device_db_serialiser_registered_pddu_t * deviceDbSerialiser_getRegisteredPddu(uint8 id)
 {
     device_db_serialiser_registered_pddu_t * pddu = NULL;
@@ -226,16 +213,15 @@ static void deviceDbSerialiser_deserialisePddFrame(device_t device, uint8 *pdd_f
     PanicFalse(pddu_frame_counter_watchdog);
 }
 
-static void deviceDbSerialiser_GetDeviceAttributesFromPdlAndDeserialise(uint8 pdl_index, uint8 **pdd_frame)
+static void deviceDbSerialiser_GetDeviceAttributesFromPdlAndDeserialise(uint8 pdl_index, uint8 **pdd_frame, uint16 pdd_frame_length)
 {
     typed_bdaddr taddr = {0};
-    if (ConnectionSmGetIndexedAttributeNowReq(0, pdl_index, DEFAULT_PDD_FRAME_LEN_BYTES, *pdd_frame, &taddr))
+    
+    if (pdd_frame_length && ConnectionSmGetIndexedAttributeNowReq(0, pdl_index, pdd_frame_length, *pdd_frame, &taddr))
     {
         device_t device = NULL;
 
         PanicFalse((*pdd_frame)[TYPE_OFFSET_IN_FRAME] == DBS_PDD_FRAME_TYPE);
-
-        deviceDbSerialiser_checkMemAllocForPddFrame(pdl_index, pdd_frame);
 
         device = Device_Create();
         Device_SetProperty(device, device_property_bdaddr, &taddr.addr, sizeof(bdaddr));
@@ -247,12 +233,16 @@ static void deviceDbSerialiser_GetDeviceAttributesFromPdlAndDeserialise(uint8 pd
 
 void DeviceDbSerialiser_Deserialise(void)
 {
-    uint8 *pdd_frame = (uint8 *)PanicUnlessMalloc(DEFAULT_PDD_FRAME_LEN_BYTES);
-    
-    for (uint8 pdl_index = 0; pdl_index < MAX_NUM_DEVICES_IN_PDL; pdl_index++)
+    if(!deserialised)
     {
-        deviceDbSerialiser_GetDeviceAttributesFromPdlAndDeserialise(pdl_index, &pdd_frame);
-    }
+        for (uint8 pdl_index = 0; pdl_index < MAX_NUM_DEVICES_IN_PDL; pdl_index++)
+        {
+            uint16 pdd_frame_length = ConnectionSmGetIndexedAttributeSizeNowReq(pdl_index);
+            uint8 *pdd_frame = (uint8 *)PanicUnlessMalloc(pdd_frame_length);
+            deviceDbSerialiser_GetDeviceAttributesFromPdlAndDeserialise(pdl_index, &pdd_frame, pdd_frame_length);
+            free(pdd_frame);
+        }
 
-    free(pdd_frame);
+        deserialised = TRUE;
+    }
 }

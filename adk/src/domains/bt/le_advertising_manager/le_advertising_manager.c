@@ -73,6 +73,14 @@ static void handleMessage(Task task, MessageId id, Message message)
     
 }
 
+/* Populate the interval pair min/max input with the default advertising interval values */
+static void leAdvertisingManager_GetDefaultAdvertisingIntervalParams(le_adv_common_parameters_t * param)
+{
+    param->le_adv_interval_min = DEFAULT_ADVERTISING_INTERVAL_MIN_IN_SLOTS;
+    param->le_adv_interval_max = DEFAULT_ADVERTISING_INTERVAL_MAX_IN_SLOTS;
+    
+}
+
 /* Local Function to Set Advertising Interval */
 static ble_adv_params_t leAdvertisingManager_GetAdvertisingIntervalParams(void)
 {
@@ -84,8 +92,10 @@ static ble_adv_params_t leAdvertisingManager_GetAdvertisingIntervalParams(void)
     
     if(NULL == handle)
     {
-        params.undirect_adv.adv_interval_min = 0xA0;
-        params.undirect_adv.adv_interval_max = 0xC0;
+        le_adv_common_parameters_t interval_pair;
+        leAdvertisingManager_GetDefaultAdvertisingIntervalParams(&interval_pair);
+        params.undirect_adv.adv_interval_min = interval_pair.le_adv_interval_min;
+        params.undirect_adv.adv_interval_max = interval_pair.le_adv_interval_max;
     }
     else
     {
@@ -823,20 +833,24 @@ static void leAdvertisingManager_HandleSetAdvertisingEnableCfm(const CL_DM_BLE_S
     {
         if(LeAdvertisingManagerSm_IsSuspending())
         {
+            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in suspending state");    
+                        
             /* Assume failure to disable is due to advertising already being disabled */
             LeAdvertisingManagerSm_SetState(le_adv_mgr_state_suspended);
             MessageCancelAll(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE);
-            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM received with success");    
-                DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in suspending state");    
-                DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in starting state");    
+    
         }
         else if(LeAdvertisingManagerSm_IsAdvertisingStarting() && cfm->status == hci_success)
         {
+            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in starting state");    
+            
             LeAdvertisingManagerSm_SetState(le_adv_mgr_state_started); 
             MessageSendLater(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE, NULL, D_SEC(BLE_RPA_TIMEOUT_DEFAULT));
         }
         else
         {
+            DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingEnableCfm Failure, CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM received with failure");    
+            
             leAdvertisingManager_HandleSetAdvertisingEnableCfmFailure();
         }
         
@@ -844,6 +858,8 @@ static void leAdvertisingManager_HandleSetAdvertisingEnableCfm(const CL_DM_BLE_S
     }
     else
     {
+        DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingEnableCfm Failure, Message Received in Unexpected Blocking Condition %x", adv_task_data->blockingCondition);    
+        
         Panic();
     }
 }
@@ -1322,8 +1338,11 @@ bool LeAdvertisingManager_ParametersSelect(uint8 index)
     if(index != adv_task_data->params_handle->active_params_set)
     {
         adv_task_data->params_handle->active_params_set = index;
+        
         if(LeAdvertisingManagerSm_IsAdvertisingStarting() || LeAdvertisingManagerSm_IsAdvertisingStarted())
         {
+            DEBUG_LOG_LEVEL_2("LeAdvertisingManager_ParametersSelect Info, Advertising in progress, suspend and reschedule advertising");
+            
             leAdvertisingManager_EnableAdvertising(FALSE);
             
             leAdvertisingManager_ScheduleAdvertisingStart(start_params.set);
@@ -1353,7 +1372,9 @@ bool LeAdvertisingManager_GetAdvertisingInterval(le_adv_common_parameters_t * in
     
     if(NULL == adv_task_data->params_handle)
     {
-        return FALSE;
+        leAdvertisingManager_GetDefaultAdvertisingIntervalParams(interval);
+        
+        return TRUE;
     }
     
     if(le_adv_preset_advertising_interval_max >= adv_task_data->params_handle->active_params_set)
@@ -1365,6 +1386,7 @@ bool LeAdvertisingManager_GetAdvertisingInterval(le_adv_common_parameters_t * in
     return TRUE;
 }
 
+
 /* API function to retrieve LE advertising own address configuration */
 bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_address_config)
 {
@@ -1375,7 +1397,7 @@ bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_add
         return FALSE;
     }
     
-    own_address_config->own_address_type = le_adv_own_address_type_public;
+    own_address_config->own_address_type = LocalAddr_GetBleType();
     own_address_config->timeout = BLE_RPA_TIMEOUT_DEFAULT;
     
     return TRUE;

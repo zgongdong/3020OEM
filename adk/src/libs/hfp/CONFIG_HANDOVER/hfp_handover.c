@@ -43,79 +43,28 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
                          uint16 length,
                          uint16 *consumed);
 
-static void hfpMarshalCommit( const bool newRole );
+static void hfpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole);
 
-static void hfpMarshalAbort( void );
+static void hfpHandoverComplete( const bool newRole );
+
+static void hfpHandoverAbort( void );
 
 extern const handover_interface hfp_handover_if =  {
         &hfpVeto,
         &hfpMarshal,
         &hfpUnmarshal,
-        &hfpMarshalCommit,
-        &hfpMarshalAbort};
-
+        &hfpHandoverCommit,
+        &hfpHandoverComplete,
+        &hfpHandoverAbort};
 
 typedef struct
 {
-    enum
-    {
-        HFP_MARSHAL_STATE_BITFIELDS,        /* Bitfields of hfp_task_data */
-        HFP_MARSHAL_STATE_SERVER_CHANNEL,   /* Marshal remote server channel */
-        HFP_MARSHAL_STATE_LINK,             /* Marshal connection information */
-    } state;
-
-    union
-    {
-        marshaller_t marshaller;
-        unmarshaller_t unmarshaller;
-    } marshal;
-
-
-    uint8 *server_channel;
-    uint8 channel;
-    hfp_link_data *link;
-
+    unmarshaller_t unmarshaller;
+    hfp_marshalled_obj *data;
+    tp_bdaddr bd_addr;
 } hfp_marshal_instance_t;
 
 static hfp_marshal_instance_t *hfp_marshal_inst = NULL;
-
-/****************************************************************************
-NAME    
-    stitchLink
-
-DESCRIPTION
-    Stitch an unmarshalled HFP connection 
-
-RETURNS
-    void
-*/    
-static void stitchLink(hfp_link_data *unmarshalled_link, const tp_bdaddr *tp_bd_addr)
-{
-    uint16 conn_id;
-    hfp_link_data *link = hfpGetIdleLink();
-
-    PanicNull(link);
-
-    unmarshalled_link->identifier.bd_addr = tp_bd_addr->taddr.addr;
-    unmarshalled_link->identifier.sink = StreamRfcommSinkFromServerChannel(tp_bd_addr,
-                                                                           *(hfp_marshal_inst->server_channel));
-    *link = *unmarshalled_link;
-    /* The sink should always be valid, do the state copy first, so its easier
-       to debug by looking at appHfp state */
-    PanicNull(unmarshalled_link->identifier.sink);
-
-    conn_id = SinkGetRfcommConnId(link->identifier.sink);
-    PanicFalse(VmOverrideRfcommConnContext(conn_id, (conn_context_t)&theHfp->task));
-    /* Stitch the RFCOMM sink and the task */
-    MessageStreamTaskFromSink(link->identifier.sink, &theHfp->task);
-    /* Configure RFCOMM sink messages */
-    SinkConfigure(link->identifier.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);    
-
-    free(unmarshalled_link);
-    free(hfp_marshal_inst->server_channel);
-
-    hfp_marshal_inst->server_channel = NULL;
-}
 
 
 /****************************************************************************
@@ -148,23 +97,21 @@ static uint8 getRemoteServerChannel(hfp_link_data *link)
 }
 
 /****************************************************************************
-NAME    
-    hfpMarshalAbort
-
-DESCRIPTION
-    Abort the HFP Handover process, free any memory
-    associated with the marshalling process.
+NAME
+    hfpHandoverAbort
 
 RETURNS
     void
 */
-static void hfpMarshalAbort(void)
+static void hfpHandoverAbort(void)
 {
-    MarshalDestroy(hfp_marshal_inst->marshal.marshaller,
-                   FALSE);
-
-    free(hfp_marshal_inst);
-    hfp_marshal_inst = NULL;
+    if (hfp_marshal_inst)
+    {
+        UnmarshalDestroy(hfp_marshal_inst->unmarshaller, TRUE);
+        hfp_marshal_inst->unmarshaller = NULL;
+        free(hfp_marshal_inst);
+        hfp_marshal_inst = NULL;
+    }
 }
 
 /****************************************************************************
@@ -182,124 +129,55 @@ static bool hfpMarshal(const tp_bdaddr *tp_bd_addr,
                        uint16 length,
                        uint16 *written)
 {
-    bool marshalled = TRUE;   
+    bool validLink = TRUE;
+    uint8 channel = RFC_INVALID_SERV_CHANNEL;
 
-    if (!hfp_marshal_inst)
-    { 
-        bool validLink = TRUE;
-        uint8 channel = RFC_INVALID_SERV_CHANNEL;
+    /* Check we have a valid link */
+    hfp_link_data *link = hfpGetLinkFromBdaddr(&tp_bd_addr->taddr.addr);
 
-        /* Check we have a valid link */
-        hfp_link_data *link = hfpGetLinkFromBdaddr(&tp_bd_addr->taddr.addr);
-
-        if(link)
-        {
-            /* check for a valid RFC channel */
-            channel = getRemoteServerChannel(link);
-            if (channel == RFC_INVALID_SERV_CHANNEL)
-            {
-                validLink = FALSE;
-            }
-        }
-        else
+    if(link)
+    {
+        /* check for a valid RFC channel */
+        channel = getRemoteServerChannel(link);
+        if (channel == RFC_INVALID_SERV_CHANNEL)
         {
             validLink = FALSE;
-        }
-            
-        if(validLink)
-        {
-            /* Initiating marshalling, initialize the instance */
-            hfp_marshal_inst = PanicUnlessNew(hfp_marshal_instance_t);
-            hfp_marshal_inst->marshal.marshaller = MarshalInit(mtd_hfp,
-                                                               HFP_MARSHAL_OBJ_TYPE_COUNT);
-
-            hfp_marshal_inst->state = HFP_MARSHAL_STATE_BITFIELDS;
-            hfp_marshal_inst->link = link;
-            hfp_marshal_inst->channel = channel;
-        }
-        else
-        {
-            /* Link not valid, nothing to marshal */
-            *written = 0;
-            return TRUE;
         }
     }
     else
     {
-        /* Resume the marshalling */
+        validLink = FALSE;
     }
 
-    MarshalSetBuffer(hfp_marshal_inst->marshal.marshaller,
-                     (void *) buf,
-                     length);
-
-    do
+    if(validLink)
     {
-        switch (hfp_marshal_inst->state)
-        {
-            case HFP_MARSHAL_STATE_BITFIELDS:
-                if (Marshal(hfp_marshal_inst->marshal.marshaller,
-                            &theHfp->bitfields,
-                            MARSHAL_TYPE(hfp_task_data_bitfields)))
-                {
-                    hfp_marshal_inst->state = HFP_MARSHAL_STATE_SERVER_CHANNEL;
-                }
-                else
-                { /* Insufficient buffer */
-                    marshalled = FALSE;
-                }
+        bool marshalled;
+        marshaller_t marshaller = MarshalInit(mtd_hfp, HFP_MARSHAL_OBJ_TYPE_COUNT);
+        hfp_marshalled_obj obj;
+        obj.link = link;
+        obj.channel = channel;
+        obj.bitfields = theHfp->bitfields;
 
-                break;
+        MarshalSetBuffer(marshaller, (void *) buf, length);
 
-            case HFP_MARSHAL_STATE_SERVER_CHANNEL:
-            {
-                if (Marshal(hfp_marshal_inst->marshal.marshaller,
-                            &hfp_marshal_inst->channel,
-                            MARSHAL_TYPE(uint8)))
-                {
-                    hfp_marshal_inst->state = HFP_MARSHAL_STATE_LINK;
-                }
-                else
-                { /* Insufficient buffer */
-                    marshalled = FALSE;
-                }
+        marshalled = Marshal(marshaller, &obj, MARSHAL_TYPE(hfp_marshalled_obj));
 
-                break;
-            }
+        *written = marshalled ? MarshalProduced(marshaller) : 0;
 
-            case HFP_MARSHAL_STATE_LINK:
-            {
-                if (Marshal(hfp_marshal_inst->marshal.marshaller,
-                            hfp_marshal_inst->link,
-                            MARSHAL_TYPE(hfp_link_data)))
-                {
-                    /* Done marshalling this link */
-                    *written = MarshalProduced(hfp_marshal_inst->marshal.marshaller);
-                    hfpMarshalAbort();
-
-                    return TRUE;
-                }
-                else
-                { /* Insufficient buffer */
-                    marshalled = FALSE;
-                }
-            }
-                break;
-
-            default: /* Unexpected state */
-                Panic();
-                break;
-        }
-
-        *written = MarshalProduced(hfp_marshal_inst->marshal.marshaller);
-    } while (marshalled && *written <= length);
-
-    return marshalled;
+        MarshalDestroy(marshaller, FALSE);
+        return marshalled;
+    }
+    else
+    {
+        /* Link not valid, nothing to marshal */
+        *written = 0;
+        return TRUE;
+    }
 }
 
 /****************************************************************************
-NAME    
-    connectionUnmarshal
+NAME
+    hfpUnmarshal
 
 DESCRIPTION
     Unmarshal the data associated with the HFP connections
@@ -316,114 +194,21 @@ static bool hfpUnmarshal(const tp_bdaddr *tp_bd_addr,
     bool unmarshalled = TRUE;
 
     if (!hfp_marshal_inst)
-    { /* Initiating unmarshalling, initialize the instance */
+    {
         hfp_marshal_inst = PanicUnlessNew(hfp_marshal_instance_t);
-        hfp_marshal_inst->marshal.unmarshaller = UnmarshalInit(mtd_hfp,
-                                                               HFP_MARSHAL_OBJ_TYPE_COUNT);
-
-        hfp_marshal_inst->state = HFP_MARSHAL_STATE_BITFIELDS;
-        hfp_marshal_inst->server_channel = NULL;
-        hfp_marshal_inst->link =  NULL;
-        hfp_marshal_inst->channel = 0;
-    }
-    else
-    {
-        /* Resuming unmarshalling */
+        hfp_marshal_inst->unmarshaller = UnmarshalInit(mtd_hfp, HFP_MARSHAL_OBJ_TYPE_COUNT);
+        hfp_marshal_inst->bd_addr = *tp_bd_addr;
     }
 
-    UnmarshalSetBuffer(hfp_marshal_inst->marshal.unmarshaller,
-                       (void *) buf,
-                       length);
+    UnmarshalSetBuffer(hfp_marshal_inst->unmarshaller, (void *) buf, length);
 
-    do
+    unmarshalled = Unmarshal(hfp_marshal_inst->unmarshaller,
+                             (void **) &hfp_marshal_inst->data, &type);
+    if (unmarshalled)
     {
-        switch (hfp_marshal_inst->state)
-        {
-            case HFP_MARSHAL_STATE_BITFIELDS:
-            {
-                hfp_task_data_bitfields *bitfields = NULL;
-
-                if (Unmarshal(hfp_marshal_inst->marshal.unmarshaller,
-                              (void **) &bitfields,
-                              &type))
-                {
-                    PanicFalse(type == MARSHAL_TYPE(hfp_task_data_bitfields));
-
-                    theHfp->bitfields = *bitfields;
-                    free(bitfields);
-
-                    hfp_marshal_inst->state = HFP_MARSHAL_STATE_SERVER_CHANNEL;
-                }
-                else
-                { /* Insufficient buffer */
-                    unmarshalled = FALSE;
-                }
-
-                break;
-            }
-
-            case HFP_MARSHAL_STATE_SERVER_CHANNEL:
-                if (Unmarshal(hfp_marshal_inst->marshal.unmarshaller,
-                              (void **) &hfp_marshal_inst->server_channel,
-                              &type))
-                {
-                    PanicFalse(type == MARSHAL_TYPE(uint8));
-
-                    if (*hfp_marshal_inst->server_channel == RFC_INVALID_SERV_CHANNEL)
-                    { /* Should not have marshalled an invalid server channel */
-                        Panic();
-                    }
-                    else
-                    {
-                        hfp_marshal_inst->state = HFP_MARSHAL_STATE_LINK;
-                    }
-                }
-                else
-                { /* Insufficient buffer */
-                    unmarshalled = FALSE;
-                }
-
-                break;
-
-            case HFP_MARSHAL_STATE_LINK:
-            {
-                hfp_link_data *link = NULL;
-
-                if (Unmarshal(hfp_marshal_inst->marshal.unmarshaller,
-                              (void **) &link,
-                              &type))
-                {
-                    PanicFalse(type == MARSHAL_TYPE(hfp_link_data));
-
-                    stitchLink(link, tp_bd_addr);
-
-                    /* Unmarshalling link complete */
-                    *consumed = UnmarshalConsumed(hfp_marshal_inst->marshal.unmarshaller);
-
-                    UnmarshalDestroy(hfp_marshal_inst->marshal.unmarshaller,
-                                     FALSE);
-
-                    free(hfp_marshal_inst);
-                    hfp_marshal_inst = NULL;
-
-                    return TRUE;
-                }
-                else
-                { /* Insufficient buffer */
-                    unmarshalled = FALSE;
-                }
-
-                break;
-            }
-
-            default: /* Unexpected state */
-                Panic();
-                break;
-        }
-
-        *consumed = UnmarshalConsumed(hfp_marshal_inst->marshal.unmarshaller);
-    } while (unmarshalled && *consumed <= length);
-
+        PanicFalse(type == MARSHAL_TYPE(hfp_marshalled_obj));
+    }
+    *consumed = UnmarshalConsumed(hfp_marshal_inst->unmarshaller);
     return unmarshalled;
 }
 
@@ -476,18 +261,71 @@ bool hfpVeto( void )
 
 /****************************************************************************
 NAME    
-    hfpMarshalCommit
+    hfpHandoverCommit
 
 DESCRIPTION
-    The HFP library commits to the specified new role (primary or
-    secondary)
+    The HFP library performs time-critical actions to commit to the specified
+    new role (primary or secondary)
 
 RETURNS
     void
 */
-static void hfpMarshalCommit( const bool newRole )
+static void hfpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
 {
-    UNUSED(newRole);
+    if (newRole)
+    {
+        UNUSED(tp_bd_addr);
+        uint16 conn_id;
+        hfp_link_data *link = hfpGetIdleLink();
+        hfp_marshalled_obj *objp = hfp_marshal_inst->data;
+
+        /* Commit must be called after unmarshalling */
+        PanicNull(hfp_marshal_inst);
+        PanicNull(hfp_marshal_inst->data);
+        PanicNull(link);
+
+        theHfp->bitfields = objp->bitfields;
+
+        objp->link->identifier.bd_addr = hfp_marshal_inst->bd_addr.taddr.addr;
+        objp->link->identifier.sink = StreamRfcommSinkFromServerChannel(&hfp_marshal_inst->bd_addr,
+                                                                        objp->channel);
+        *link = *objp->link;
+        /* The sink should always be valid, do the state copy first, so its easier
+        to debug by looking at appHfp state */
+        PanicNull(link->identifier.sink);
+
+        conn_id = SinkGetRfcommConnId(link->identifier.sink);
+        PanicFalse(VmOverrideRfcommConnContext(conn_id, (conn_context_t)&theHfp->task));
+        /* Stitch the RFCOMM sink and the task */
+        MessageStreamTaskFromSink(link->identifier.sink, &theHfp->task);
+        /* Configure RFCOMM sink messages */
+        SinkConfigure(link->identifier.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
+    }
 }
 
+/****************************************************************************
+NAME    
+    hfpHandoverComplete
+
+DESCRIPTION
+    The HFP library performs pending actions and completes transition to 
+    specified new role (primary or secondary)
+
+RETURNS
+    void
+*/
+static void hfpHandoverComplete( const bool newRole )
+{
+    if (newRole)
+    {
+        /* Commit must be called after unmarshalling */
+        PanicNull(hfp_marshal_inst);
+        PanicNull(hfp_marshal_inst->data);
+
+        UnmarshalDestroy(hfp_marshal_inst->unmarshaller, TRUE);
+        hfp_marshal_inst->unmarshaller = NULL;
+        free(hfp_marshal_inst);
+        hfp_marshal_inst = NULL;
+    }
+}
 

@@ -13,6 +13,8 @@
 #include "audio_sources_list.h"
 #include "volume_types.h"
 
+#define MAX_OBSERVER_INTERFACES (2)
+
 /*! \brief The audio source observer interface
 */
 typedef struct

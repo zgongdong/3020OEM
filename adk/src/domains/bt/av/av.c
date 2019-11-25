@@ -359,15 +359,16 @@ static void appAvVolumeHandleA2dpConnect(avInstanceTaskData *theInst)
 /*! \brief Volume handling on AVRCP Connect
     \param theInst The connecting instance.
 
-    If a handset is connected, set the system volume based on the connected
-    handset's address (but only if A2DP didn't connect first).
-
-    If the handset is the new connector, set handset and peer volume.
+    If the handset is the new connector, set handset and peer volume based on the connecting handset address.
     If the peer is the new connector, just set the peer volume.
 */
 static void appAvVolumeHandleAvrcpConnect(avInstanceTaskData *theInst)
 {
-    if (appDeviceIsPeer(&theInst->bd_addr))
+    if (appDeviceIsHandset(&theInst->bd_addr))
+    {
+        appAvVolumeLoadDeviceVolumeAndSet(theInst);
+    }
+    else if (appDeviceIsPeer(&theInst->bd_addr))
     {
         /* Check if we have A2DP connection to non TWS+ handset, if so send volume to peer */
         if (appDeviceIsHandsetA2dpConnected())
@@ -1565,7 +1566,7 @@ static void appAvHandleConManagerConnectionInd(CON_MANAGER_CONNECTION_IND_T *ind
     avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(&ind->bd_addr);
     if (theInst)
     {
-        if (!ind->connected)
+        if (!ind->connected && !ind->ble)
         {
             if (ind->reason != hci_error_conn_timeout)
             {

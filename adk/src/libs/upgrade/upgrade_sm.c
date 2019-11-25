@@ -1104,6 +1104,72 @@ bool HandleRebootToResume(MessageId id, Message message)
 }
 
 
+static void upgradeSmDefaultHandlerHandleUpgradeHostSyncReq(const UPGRADE_HOST_SYNC_REQ_T *sync_req)
+{
+    UpgradeCtx *ctx = UpgradeCtxGet();
+    UPGRADE_LIB_PSKEY *upg_pskeys = UpgradeCtxGetPSKeys();
+
+    PRINT(("UPGRADE_HOST_SYNC_REQ handled. Id is 0x%lx %ld\n", sync_req->inProgressId, sync_req->inProgressId));
+
+    /* reset on ever sync */
+    ctx->force_erase = FALSE;
+
+    /* refuse to sync if upgrade is not permitted */
+    if (ctx->perms == upgrade_perm_no)
+    {
+        ctx->funcs->SendErrorInd(UPGRADE_HOST_ERROR_APP_NOT_READY);
+    }
+    /* Check upgrade ID */
+    else if(sync_req->inProgressId == 0)
+    {
+        ctx->funcs->SendErrorInd(UPGRADE_HOST_ERROR_INVALID_SYNC_ID);
+    }
+    else if(   upg_pskeys->id_in_progress == 0
+            || upg_pskeys->id_in_progress == sync_req->inProgressId)
+    {
+        PRINT(("UPGRADE_HOST_SYNC_REQ. Current ID allowed - 0x%lx\n", upg_pskeys->id_in_progress));
+
+        /* Peer Upgrade (secondary device) does not handle resumption of upgrade.
+           Correct flags that cause problems, and also make sure the flash is erased
+           before starting transfer */
+        if (UpgradePeerIsSecondary() && (   upg_pskeys->id_in_progress
+                                         || upg_pskeys->last_closed_partition))
+        {
+            PRINT(("UPGRADE_HOST_SYNC_REQ. Resetting as secondary\n"));
+
+            upg_pskeys->last_closed_partition = 0;
+            upg_pskeys->upgrade_in_progress_key = UPGRADE_RESUME_POINT_START;
+            ctx->force_erase = TRUE;
+        }
+
+        ctx->funcs->SendSyncCfm(upg_pskeys->upgrade_in_progress_key, sync_req->inProgressId);
+
+        upg_pskeys->id_in_progress = sync_req->inProgressId;
+        /*!
+            @todo Need to minimise the number of times that we write to the PS
+                  so this may not be the optimal place. It will do for now.
+        */
+        UpgradeSavePSKeys();
+
+        UpgradeSMSetState(UPGRADE_STATE_READY);
+
+        if(UPGRADE_PEER_IS_SUPPORTED)
+        {
+            /* Store MD5 for Peer Upgrade */
+            UpgradePeerStoreMd5(upg_pskeys->id_in_progress);
+        }
+    }
+    else
+    {
+        PRINT(("UPGRADE_HOST_SYNC_REQ. Current ID was wrong 0x%lx\n", upg_pskeys->id_in_progress));
+
+        /* Send a warning to a host, which then can force upgrade with this
+           file by sending ABORT_REQ and SYNC_REQ again.
+         */
+        ctx->funcs->SendErrorInd(UPGRADE_HOST_WARN_SYNC_ID_IS_DIFFERENT);
+    }
+}
+
 /*
 NAME
     DefaultHandler - Deal with messages which we want to handle in all states
@@ -1121,48 +1187,7 @@ bool DefaultHandler(MessageId id, Message message, bool handled)
         switch(id)
         {
         case UPGRADE_HOST_SYNC_REQ:
-            {
-                UPGRADE_HOST_SYNC_REQ_T *req = (UPGRADE_HOST_SYNC_REQ_T *)message;
-                PRINT(("UPGRADE_HOST_SYNC_REQ handled 0x%lx %ld\n", req->inProgressId, req->inProgressId));
-
-                /* refuse to sync if upgrade is not permitted */
-                if (UpgradeCtxGet()->perms == upgrade_perm_no)
-                {
-                    UpgradeCtxGet()->funcs->SendErrorInd(UPGRADE_HOST_ERROR_APP_NOT_READY);
-                }
-                /* Check upgrade ID */
-                else if(req->inProgressId == 0)
-                {
-                    UpgradeCtxGet()->funcs->SendErrorInd(UPGRADE_HOST_ERROR_INVALID_SYNC_ID);
-                }
-                else if(UpgradeCtxGetPSKeys()->id_in_progress == 0
-                    || UpgradeCtxGetPSKeys()->id_in_progress == req->inProgressId)
-                {
-                    UpgradeCtxGet()->funcs->SendSyncCfm(UpgradeCtxGetPSKeys()->upgrade_in_progress_key, req->inProgressId);
-
-                    UpgradeCtxGetPSKeys()->id_in_progress = req->inProgressId;
-                    /*!
-                        @todo Need to minimise the number of times that we write to the PS
-                              so this may not be the optimal place. It will do for now.
-                    */
-                    UpgradeSavePSKeys();
-
-                    UpgradeSMSetState(UPGRADE_STATE_READY);
-
-                    if(UPGRADE_PEER_IS_SUPPORTED)
-                    {
-                        /* Store MD5 for Peer Upgrade */
-                        UpgradePeerStoreMd5(UpgradeCtxGetPSKeys()->id_in_progress);
-                    }
-                }
-                else
-                {
-                    /* Send a warning to a host, which then can force upgrade with this
-                       file by sending ABORT_REQ and SYNC_REQ again.
-                     */
-                    UpgradeCtxGet()->funcs->SendErrorInd(UPGRADE_HOST_WARN_SYNC_ID_IS_DIFFERENT);
-                }
-            }
+            upgradeSmDefaultHandlerHandleUpgradeHostSyncReq((const UPGRADE_HOST_SYNC_REQ_T*)message);
             break;
 
         case UPGRADE_HOST_ABORT_REQ:
@@ -1624,6 +1649,10 @@ void UpgradeSMHostRspSwap(bool is_primary)
     if(!is_primary)
     {
         UpgradeCtxGet()->funcs = &UpgradePeer_fptr;
+    }
+    else
+    {
+        UpgradeCtxGet()->funcs = &Upgrade_fptr;
     }
 }
 

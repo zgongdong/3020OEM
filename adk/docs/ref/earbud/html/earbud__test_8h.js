@@ -94,6 +94,7 @@ var earbud__test_8h =
     [ "appTestPowerOff", "earbud__test_8h.html#a93d1a6612f5cc046b9a7ea594c773e52", null ],
     [ "appTestPrimaryAddressIsFromThisBoard", "earbud__test_8h.html#a66197b673ca67688e6ee1cdb9d62e0e0", null ],
     [ "appTestPtsSetAsPeer", "earbud__test_8h.html#a201f47ee47b3fca854cdd45ce91aab65", null ],
+    [ "appTestResetHappened", "earbud__test_8h.html#a2304c1ea358e7491b2d04db7be7f5c7c", null ],
     [ "appTestScoFwdConnect", "earbud__test_8h.html#a823aea967743c2c4e0c307321155aec4", null ],
     [ "appTestScoFwdDisconnect", "earbud__test_8h.html#a180d8633d9ec811f47f436460402cad1", null ],
     [ "appTestScoFwdLinkStatus", "earbud__test_8h.html#a4fbf9633f6e92b9f7abb7a34afb0c651", null ],

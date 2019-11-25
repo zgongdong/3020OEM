@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"unionadxl362__power__control__register.html#ab712f0c1595dadeed080875fc3b5a064":[2,0,7,2],
+"unionadxl362__power__control__register.html#ac644bb65c4b0f03ee17771a24540cf1b":[2,0,7,1],
 "unionadxl362__status__register.html":[2,0,8],
 "unionadxl362__status__register.html#a0067bd9f029e70ad24161819bf80e19f":[2,0,8,7],
 "unionadxl362__status__register.html#a19bd35c6a3255f3b7c3c96f8e43c5a81":[2,0,8,2],

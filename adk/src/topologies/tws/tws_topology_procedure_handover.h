@@ -14,16 +14,6 @@
 #include "tws_topology_procedure_script_engine.h"
 #include <message.h>
 
-typedef struct
-{
-    bool delay;
-} HANDOVER_PARAMS_T;
-
-extern const HANDOVER_PARAMS_T handover_delay;
-extern const HANDOVER_PARAMS_T handover_no_delay;
-#define PROC_HANDOVER_DELAY    ((Message)&handover_delay)
-#define PROC_HANDOVER_NO_DELAY ((Message)&handover_no_delay)
-
 extern tws_topology_procedure_fns_t proc_handover_fns;
 
 #endif /* TWS_TOPOLOGY_PROCEDURE_HANDOVER_H */

@@ -41,8 +41,11 @@ handset_service_data_t handset_service;
 /*! Get if the handset service is connectable */
 #define HandsetService_IsBleConnectable() (HandsetService_Get()->ble_connectable)
 
-/*! Get if the handset service is awaiting data set release confirmation */
-#define HandsetService_IsAwaitingDataSetReleaseCfm() (HandsetService_Get()->is_awaiting_release_cfm)
+/*! Get handset service LE advertising data set select/release state */
+#define HandsetService_GetLeAdvDataSetState() (HandsetService_Get()->ble_adv_state)
+
+/*! Get handset service selected LE advertising data set */
+#define HandsetService_GetLeAdvSelectedDataSet() (HandsetService_Get()->le_advert_data_set)
 
 /*! Stores if the Handset can be paired.
 
@@ -62,7 +65,7 @@ static void HandsetService_SetBleConnected(bool ble_connected)
     HandsetService_Get()->ble_connected = ble_connected;
 }
 
-/*! Disable advertising */
+/*! \brief Disable advertising by releasing the LE advertising data set */
 static void handsetService_DisableAdvertising(void)
 {
     handset_service_data_t *hs = HandsetService_Get();
@@ -72,39 +75,51 @@ static void handsetService_DisableAdvertising(void)
     PanicFalse(LeAdvertisingManager_ReleaseAdvertisingDataSet(hs->le_advert_handle));
     
     hs->le_advert_handle = NULL;
-    hs->is_awaiting_release_cfm = TRUE;
+    hs->ble_adv_state = handset_service_le_adv_data_set_state_releasing;
     
     HS_LOG("handsetService_DisableAdvertising,  handle=%p", hs->le_advert_handle);
 }
 
-/*! Enable advertising */
+/*! \brief Get advertising data set which needs to be selected */
+static le_adv_data_set_t handsetService_GetLeAdvDataSetToBeSelected(void)
+{    
+    bool is_pairing = HandsetService_IsPairing();
+    bool is_local_addr_public = LocalAddr_IsPublic();
+        
+    HS_LOG("handsetService_GetLeAdvDataSetToBeSelected, Is in pairing:%d, Is local address public:%d", is_pairing, is_local_addr_public);
+
+    le_adv_data_set_t set;
+    
+    if(is_pairing || is_local_addr_public)
+    {
+        set = le_adv_data_set_handset_identifiable;
+    }
+    else
+    {
+        set = le_adv_data_set_handset_unidentifiable;
+    }
+    
+    return set;
+}
+
+/*! \brief Enable advertising by selecting the LE advertising data set */
 static void handsetService_EnableAdvertising(void)
 {
     handset_service_data_t *hs = HandsetService_Get();
 
     le_adv_select_params_t adv_select_params;
     le_adv_data_set_handle adv_handle = NULL;
-    bool is_pairing = HandsetService_IsPairing();
 
-    HS_LOG("handsetService_EnableAdvertising, pairing:%d, public:%d", is_pairing, LocalAddr_IsPublic());
+    HS_LOG("handsetService_EnableAdvertising, Le Adv State is %x, Le Adv Selected Data Set is %x", hs->ble_adv_state, hs->le_advert_data_set);
 
-    if(is_pairing || LocalAddr_IsPublic())
-    {
-        adv_select_params.set = le_adv_data_set_handset_identifiable;
-    }
-    else
-    {
-        adv_select_params.set = le_adv_data_set_handset_unidentifiable;
-    }
+    adv_select_params.set = handsetService_GetLeAdvDataSetToBeSelected();
 
-#ifdef DISABLE_UNIDENTIFIABLE_ADVERTISING
-        if (adv_select_params.set == le_adv_data_set_handset_identifiable)
-        {
-        adv_handle = LeAdvertisingManager_SelectAdvertisingDataSet(HandsetService_GetTask(), &adv_select_params);
-        }
-#else
-        adv_handle = LeAdvertisingManager_SelectAdvertisingDataSet(HandsetService_GetTask(), &adv_select_params);
-#endif
+    adv_handle = LeAdvertisingManager_SelectAdvertisingDataSet(HandsetService_GetTask(), &adv_select_params);
+    
+    hs->ble_adv_state = handset_service_le_adv_data_set_state_selecting;
+    
+    hs->le_advert_data_set = adv_select_params.set;
+
     if (adv_handle != NULL)
     {
         hs->le_advert_handle = adv_handle;
@@ -113,27 +128,44 @@ static void handsetService_EnableAdvertising(void)
     }
 }
 
-/*! Updates the BLE advertising data.
-*/
+/*! \brief Updates the BLE advertising data */
 void handsetService_UpdateAdvertisingData(void)
 {
-    if(HandsetService_IsAwaitingDataSetReleaseCfm())
+    handset_service_le_adv_data_set_state_t le_adv_state = HandsetService_GetLeAdvDataSetState();
+    
+    HS_LOG("handsetService_UpdateAdvertisingData. Le advertising data set select/release state is %x", le_adv_state);
+    
+    if( (handset_service_le_adv_data_set_state_releasing == le_adv_state) || (handset_service_le_adv_data_set_state_selecting == le_adv_state) )
+    {
         return;    
+    }
     
     handset_service_data_t *hs = HandsetService_Get();
     bool is_le_connected = HandsetService_IsBleConnected();
     bool is_le_connectable = HandsetService_IsBleConnectable();
+    bool is_le_adv_data_set_update_needed = HandsetService_GetLeAdvSelectedDataSet() != handsetService_GetLeAdvDataSetToBeSelected();
 
-    HS_LOG("handsetService_UpdateAdvertisingData. Le Connection Status is %x Le Connectable Status is %x", is_le_connected, is_le_connectable);
+    HS_LOG("handsetService_UpdateAdvertisingData. Le Connection Status is %x Le Connectable Status is %x Is Data Set Update Needed %x", is_le_connected, is_le_connectable,is_le_adv_data_set_update_needed);
+    
     if(hs->le_advert_handle)
     {
         HS_LOG("handsetService_UpdateAdvertisingData. There is an active data set with handle=%p", hs->le_advert_handle);
 
-        handsetService_DisableAdvertising();
+        le_adv_data_set_t data_set;
+        
+        data_set = handsetService_GetLeAdvDataSetToBeSelected();
+    
+        HS_LOG("handsetService_UpdateAdvertisingData. Active data set is %x, requested data set is %x", hs->le_advert_data_set, data_set);
+        
+        if (is_le_connected || !is_le_connectable || is_le_adv_data_set_update_needed)
+        {
+            handsetService_DisableAdvertising();
+        }
     }
     else
     {
         HS_LOG("handsetService_UpdateAdvertisingData. There is no active data set");
+
         if (!is_le_connected && is_le_connectable)
         {
             handsetService_EnableAdvertising();
@@ -401,23 +433,52 @@ static void handsetService_HandlePairingActivity(const PAIRING_ACTIVITY_T* pair_
     }
 }
 
+/*! \brief Update the state of LE advertising data set select/release operation */
+static void handsetService_UpdateLeAdvertisingDataSetState(handset_service_le_adv_data_set_state_t state)
+{
+    handset_service_data_t *hs = HandsetService_Get();
+    
+    hs->ble_adv_state = state;
+    handsetService_UpdateAdvertisingData();
+}
+
+/*! \brief Make message for LE connectable indication and send it to task list */
+static void handsetService_SendLeConnectableIndication(bool connectable)
+{    
+    MESSAGE_MAKE(le_connectable_ind, HANDSET_SERVICE_LE_CONNECTABLE_IND_T);
+    le_connectable_ind->status = handset_service_status_success;
+    le_connectable_ind->le_connectable = connectable;
+    TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(HandsetService_GetClientList()), HANDSET_SERVICE_LE_CONNECTABLE_IND, le_connectable_ind);
+}
 
 static void handsetService_HandleLeAdvMgrSelectDatasetCfm(const LE_ADV_MGR_SELECT_DATASET_CFM_T *cfm)
 {
-    if (cfm->status != le_adv_mgr_status_success)
+    HS_LOG("handsetService_HandleLeAdvMgrSelectDatasetCfm, cfm status is %x", cfm->status );
+    
+    if (cfm->status == le_adv_mgr_status_success)
+    {
+        handset_service_data_t *hs = HandsetService_Get();
+
+        handsetService_UpdateLeAdvertisingDataSetState(handset_service_le_adv_data_set_state_selected);
+        handsetService_SendLeConnectableIndication(hs->ble_connectable);
+    }
+    else
     {
         Panic();
     }
+
 }
 
 static void handsetService_HandleLeAdvMgrReleaseDatasetCfm(const LE_ADV_MGR_RELEASE_DATASET_CFM_T *cfm)
 {
     HS_LOG("handsetService_HandleLeAdvMgrReleaseDatasetCfm, cfm status is %x", cfm->status );
+    
     if (cfm->status == le_adv_mgr_status_success)
     {
         handset_service_data_t *hs = HandsetService_Get();
-        hs->is_awaiting_release_cfm = FALSE;
-        handsetService_UpdateAdvertisingData();
+                
+        handsetService_UpdateLeAdvertisingDataSetState(handset_service_le_adv_data_set_state_not_selected);
+        handsetService_SendLeConnectableIndication(hs->ble_connectable);
     }
     else
     {
@@ -800,6 +861,12 @@ bool HandsetService_GetConnectedLeHandsetAddress(bdaddr *addr)
 
 void HandsetService_SetBleConnectable(bool connectable)
 {
+    if (   (HandsetService_Get()->ble_connectable != connectable)
+        && (!HandsetService_Get()->le_advert_handle))
+    {
+        handsetService_SendLeConnectableIndication(connectable);
+    }
+
     HandsetService_Get()->ble_connectable = connectable;
     handsetService_UpdateAdvertisingData();
 }

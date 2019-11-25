@@ -32,20 +32,24 @@ extern const bredr_scan_manager_parameters_t page_scan_params;
 #define TwsTopologyConfig_PrimaryPeerConnectTimeoutMs()     (10240)
 
 /*! Time for Handover to be retried following a previous handover attempt. */
-#define TwsTopologyConfig_HandoverRetryTimeoutMs()     (500)
+#define TwsTopologyConfig_HandoverRetryTimeoutMs()     (250)
 
 /*! maximum number of retry attempts for Handover upon a handover imeout */
-#define TwsTopologyConfig_HandoverMaxRetryAttempts()     (10)
+#define TwsTopologyConfig_HandoverMaxRetryAttempts()     (8)
 
-/*! Configure accessor for dynamic handover support. */
+/*! Configure accessor for dynamic handover support */
 #ifdef ENABLE_DYNAMIC_HANDOVER
 #define TwsTopologyConfig_DynamicHandoverSupported()    (TRUE)
 #else
 #define TwsTopologyConfig_DynamicHandoverSupported()    (FALSE)
 #endif
 
-#define TwsTopologyConfig_PeerProfiles() (DEVICE_PROFILE_A2DP | DEVICE_PROFILE_SCOFWD | DEVICE_PROFILE_PEERSIG)
-
-/*! State proxy events to register, feature specific */
+/*! State proxy events to register */
+#if defined(ENABLE_DYNAMIC_HANDOVER) && defined(INCLUDE_HDMA_MIC_QUALITY_EVENT)
+#define TwsTopologyConfig_StateProxyRegisterEvents() state_proxy_event_type_mic_quality
+#else
 #define TwsTopologyConfig_StateProxyRegisterEvents() 0
+#endif
+
+#define TwsTopologyConfig_PeerProfiles() (DEVICE_PROFILE_A2DP | DEVICE_PROFILE_SCOFWD | DEVICE_PROFILE_PEERSIG)
 

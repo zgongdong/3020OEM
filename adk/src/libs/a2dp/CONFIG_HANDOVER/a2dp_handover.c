@@ -35,15 +35,13 @@ NOTES
 
 typedef struct
 {
-    union
-    {
-        marshaller_t marshaller;
-        unmarshaller_t unmarshaller;
-    } marshal;
+    unmarshaller_t unmarshaller;
 
-    a2dp_marshal_data data;
+    a2dp_marshal_data *data;
 
     uint8 device_id;
+
+    bdaddr bd_addr;
 
 } a2dp_marshal_instance_t;
 
@@ -69,16 +67,19 @@ static bool a2dpUnmarshal(const tp_bdaddr *tp_bd_addr,
                          uint16 length,
                          uint16 *consumed);
 
-static void a2dpMarshalCommit( const bool newRole );
+static void a2dpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole);
 
-static void a2dpMarshalAbort( void );
+static void a2dpHandoverAbort( void );
+
+static void a2dpHandoverComplete( const bool newRole );
 
 extern const handover_interface a2dp_handover_if =  {
         &a2dpVeto,
         &a2dpMarshal,
         &a2dpUnmarshal,
-        &a2dpMarshalCommit,
-        &a2dpMarshalAbort};
+        &a2dpHandoverCommit,
+        &a2dpHandoverComplete,        
+        &a2dpHandoverAbort};
 
 /****************************************************************************
 NAME    
@@ -163,22 +164,6 @@ bool a2dpVeto( void )
 
 /****************************************************************************
 NAME    
-    a2dpMarshalCommit
-
-DESCRIPTION
-    The A2DP library commits to the specified new role (primary or
-    secondary)
-
-RETURNS
-    void
-*/
-static void a2dpMarshalCommit( const bool newRole )
-{
-    UNUSED(newRole);
-}
-
-/****************************************************************************
-NAME    
     stitchRemoteDevice
 
 DESCRIPTION
@@ -199,10 +184,10 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn, const bd
 
     a2dp_marshal_inst->device_id = remote_conn->bitfields.device_id;
     unmarshalled_remote_conn->bitfields.device_id = a2dp_marshal_inst->device_id;
-    unmarshalled_remote_conn->bd_addr = *bd_addr;
-    *remote_conn = *unmarshalled_remote_conn;
+    unmarshalled_remote_conn->bd_addr = *bd_addr;    
     
     /* Initialize the connection context for the relevant connection id on signalling channel */
+    convertL2capCidToSink(&unmarshalled_remote_conn->signal_conn.connection.active.sink);
     cid = SinkGetL2capCid(unmarshalled_remote_conn->signal_conn.connection.active.sink);
     PanicZero(cid); /* Invalid Connection ID */    
     VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
@@ -221,6 +206,7 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn, const bd
               (media->status.conn_info.connection_state == avdtp_connection_disconnect_pending)) && 
               (media->connection.active.sink) )
         {
+            convertL2capCidToSink(&media->connection.active.sink);
             cid = SinkGetL2capCid(media->connection.active.sink);
             PanicZero(cid); /* Invalid Connection ID */            
             VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
@@ -230,7 +216,8 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn, const bd
             SinkConfigure(media->connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);            
         }
     }
-    free(unmarshalled_remote_conn);
+
+    *remote_conn = *unmarshalled_remote_conn;
 }
 
 /****************************************************************************
@@ -255,26 +242,6 @@ static void stitchDataBlockHeader(data_block_header *data_blocks)
 
 /****************************************************************************
 NAME    
-    a2dpMarshalAbort
-
-DESCRIPTION
-    Abort the A2DP Handover process, free any memory
-    associated with the marshalling process.
-
-RETURNS
-    void
-*/
-static void a2dpMarshalAbort(void)
-{
-    MarshalDestroy(a2dp_marshal_inst->marshal.marshaller,
-                   FALSE);
-
-    free(a2dp_marshal_inst);
-    a2dp_marshal_inst = NULL;
-}
-
-/****************************************************************************
-NAME    
     a2dpMarshal
 
 DESCRIPTION
@@ -288,45 +255,30 @@ static bool a2dpMarshal(const tp_bdaddr *tp_bd_addr,
                         uint16 length,
                         uint16 *written)
 {
-    if (!a2dp_marshal_inst)
+    uint8 device_id;
+    if (A2dpDeviceFromBdaddr(&tp_bd_addr->taddr.addr, &device_id))
     {
-        uint8 device_id;
-        if (A2dpDeviceFromBdaddr(&tp_bd_addr->taddr.addr, &device_id))
-        {
-            /* Initiating marshalling, initialize the instance */
-            a2dp_marshal_inst = PanicUnlessNew(a2dp_marshal_instance_t);
-            a2dp_marshal_inst->marshal.marshaller = MarshalInit(mtd_a2dp,
-                                                            A2DP_MARSHAL_OBJ_TYPE_COUNT);
-            a2dp_marshal_inst->data.data_blocks = a2dp->data_blocks[device_id];
-            a2dp_marshal_inst->data.remote_conn = &a2dp->remote_conn[device_id];
-        }
-        else
-        {
-            /* Device not found, nothing to marshal */
-            *written = 0;
-            return TRUE;
-        }
+        bool marshalled;
+        marshaller_t marshaller = MarshalInit(mtd_a2dp, A2DP_MARSHAL_OBJ_TYPE_COUNT);
+        a2dp_marshal_data data = {
+            .data_blocks = a2dp->data_blocks[device_id],
+            .remote_conn = &a2dp->remote_conn[device_id],
+        };
+
+        MarshalSetBuffer(marshaller, (void *) buf, length);
+
+        marshalled = Marshal(marshaller, &data, MARSHAL_TYPE(a2dp_marshal_data));
+
+        *written = marshalled ? MarshalProduced(marshaller) : 0;
+
+        MarshalDestroy(marshaller, FALSE);
+        return marshalled;
     }
     else
     {
-        /* Resuming the marshalling */
-    }
-
-    MarshalSetBuffer(a2dp_marshal_inst->marshal.marshaller, (void *) buf, length);
-
-    if (Marshal(a2dp_marshal_inst->marshal.marshaller,
-                &a2dp_marshal_inst->data,
-                MARSHAL_TYPE(a2dp_marshal_data)))
-    {
-        *written = MarshalProduced(a2dp_marshal_inst->marshal.marshaller);
-        a2dpMarshalAbort();
+        /* Device not found, nothing to marshal */
+        *written = 0;
         return TRUE;
-    }
-    else
-    {
-        /* Insufficient buffer */
-        *written = MarshalProduced(a2dp_marshal_inst->marshal.marshaller);
-        return FALSE;
     }
 }
 
@@ -346,44 +298,109 @@ bool a2dpUnmarshal(const tp_bdaddr *tp_bd_addr,
                           uint16 *consumed)
 {
     marshal_type_t type;
-    a2dp_marshal_data *data;
 
     if (!a2dp_marshal_inst)
     {
         /* Initiating unmarshalling, initialize the instance */
         a2dp_marshal_inst = PanicUnlessNew(a2dp_marshal_instance_t);
-        a2dp_marshal_inst->marshal.unmarshaller = UnmarshalInit(mtd_a2dp,
-                                                                A2DP_MARSHAL_OBJ_TYPE_COUNT);
+        a2dp_marshal_inst->unmarshaller = UnmarshalInit(mtd_a2dp,
+                                                        A2DP_MARSHAL_OBJ_TYPE_COUNT);
+        a2dp_marshal_inst->bd_addr = tp_bd_addr->taddr.addr;
     }
     else
     {
         /* Resuming the unmarshalling */
     }
 
-    UnmarshalSetBuffer(a2dp_marshal_inst->marshal.unmarshaller, (void *) buf, length);
+    UnmarshalSetBuffer(a2dp_marshal_inst->unmarshaller, (void *) buf, length);
 
-    if (Unmarshal(a2dp_marshal_inst->marshal.unmarshaller, (void**)&data, &type))
+    if (Unmarshal(a2dp_marshal_inst->unmarshaller, (void**)&a2dp_marshal_inst->data, &type))
     {
         PanicFalse(type == MARSHAL_TYPE(a2dp_marshal_data));
-        /* Stitch connection information to A2DP instance */
-        stitchRemoteDevice(data->remote_conn, &tp_bd_addr->taddr.addr);
-        /* Stitch data_blocks */
-        stitchDataBlockHeader(data->data_blocks);
-
-        free(data);
-
-        *consumed = UnmarshalConsumed(a2dp_marshal_inst->marshal.unmarshaller);
-
-        UnmarshalDestroy(a2dp_marshal_inst->marshal.unmarshaller, FALSE);
-        a2dp_marshal_inst->marshal.unmarshaller = NULL;
-        free(a2dp_marshal_inst);
-        a2dp_marshal_inst = NULL;
-
+        *consumed = UnmarshalConsumed(a2dp_marshal_inst->unmarshaller);
         return TRUE;
     }
     else
     {
-        *consumed = UnmarshalConsumed(a2dp_marshal_inst->marshal.unmarshaller);
+        *consumed = UnmarshalConsumed(a2dp_marshal_inst->unmarshaller);
         return FALSE;
     }
 }
+
+/****************************************************************************
+NAME    
+    a2dpHandoverCommit
+
+DESCRIPTION
+    The A2DP library performs time-critical actions to commit to the specified 
+    new role (primary or  secondary)
+
+RETURNS
+    void
+*/
+static void a2dpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
+{
+    UNUSED(tp_bd_addr);
+
+    /* Stitch the unmarshalled state on committing to primary role */
+    if (newRole)
+    {
+        /* Commit must be called after unmarshalling */
+        PanicNull(a2dp_marshal_inst);
+        PanicNull(a2dp_marshal_inst->data);
+
+        /* Stitch connection information to A2DP instance */
+        stitchRemoteDevice(a2dp_marshal_inst->data->remote_conn, &a2dp_marshal_inst->bd_addr);
+        /* Stitch data_blocks */
+        stitchDataBlockHeader(a2dp_marshal_inst->data->data_blocks);
+    }
+}
+
+/****************************************************************************
+NAME    
+    a2dpHandoverComplete
+
+DESCRIPTION
+    The A2DP library completes the transition to the new role. In this case,
+    freeing memory allocated during the unmarshalling process.
+
+RETURNS
+    void
+*/
+static void a2dpHandoverComplete( const bool newRole )
+{
+    if (newRole)
+    {
+        /* Commit must be called after unmarshalling */
+        PanicNull(a2dp_marshal_inst);
+        PanicNull(a2dp_marshal_inst->data);
+        UnmarshalDestroy(a2dp_marshal_inst->unmarshaller, FALSE);
+        a2dp_marshal_inst->unmarshaller = NULL;
+        free(a2dp_marshal_inst->data->remote_conn);
+        free(a2dp_marshal_inst);
+        a2dp_marshal_inst = NULL;
+    }
+}
+
+/****************************************************************************
+NAME    
+    a2dpHandoverAbort
+
+DESCRIPTION
+    Abort the A2DP Handover process, free any memory
+    associated with the unmarshalling process.
+
+RETURNS
+    void
+*/
+static void a2dpHandoverAbort(void)
+{
+    if (a2dp_marshal_inst)
+    {
+        UnmarshalDestroy(a2dp_marshal_inst->unmarshaller, TRUE);
+        free(a2dp_marshal_inst);
+        a2dp_marshal_inst = NULL;
+    }
+}
+
+

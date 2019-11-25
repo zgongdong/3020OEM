@@ -105,13 +105,6 @@ typedef enum
         until profiles are started (which won't now happen) */
     tws_topology_goal_release_peer,
 
-    /*! Goal to handle the handover recommendation from HDMA upon entering
-        the case. */
-    tws_topology_goal_handover_entering_case,
-
-    /*! Goal to handle the handover timeout upon entering the case. */
-    tws_topology_goal_handover_incase_timeout,
-
     /*! Goal for Secondary to participate in a static handover to
         Primary role. */
     tws_topology_goal_secondary_static_handover,
@@ -121,6 +114,15 @@ typedef enum
 
     /*! Goal for Primary to participate in a static handover staying out of the case */
     tws_topology_goal_primary_static_handover,
+
+    /*! Goal to handle the handover recommendation from HDMA  */
+    tws_topology_goal_dynamic_handover,
+    
+    /*! Goal to handle dynamic handover failure */
+    tws_topology_goal_dynamic_handover_failure,
+
+    /*! Goal is to enable advertising to enable LE connectivity with handset. */
+    tws_topology_goal_le_connectable_handset,
 
     /* ADD ENTRIES ABOVE HERE */
     /*! Final entry to get the number of IDs */

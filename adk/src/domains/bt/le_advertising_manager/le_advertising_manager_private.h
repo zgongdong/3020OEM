@@ -20,7 +20,6 @@
 #define MAKE_MESSAGE_VAR(VAR, TYPE) TYPE##_T *VAR = PanicUnlessNew(TYPE##_T);
 
 /*! Logging Macros */
-#define DEBUG_LOG_EXTRA
 #if defined DEBUG_LOG_EXTRA
 
 #define DEBUG_LOG_LEVEL_1 DEBUG_LOG /* Additional Failure Logs */
@@ -32,6 +31,9 @@
 #define DEBUG_LOG_LEVEL_2(...) ((void)(0))
 
 #endif
+
+#define DEFAULT_ADVERTISING_INTERVAL_MIN_IN_SLOTS 160 /* This value is in units of 0.625 ms */
+#define DEFAULT_ADVERTISING_INTERVAL_MAX_IN_SLOTS 192 /* This value is in units of 0.625 ms */
 
 /* Number of clients supported that can register callbacks for advertising data */
 #define MAX_NUMBER_OF_CLIENTS 10

@@ -32,6 +32,16 @@
 
 #define HANDSET_SERVICE_MAX_SM      2
 
+/*! \brief Data type to specify the state of LE advertising data set select/release operation */
+typedef enum
+{
+    handset_service_le_adv_data_set_state_not_selected = 0,
+    handset_service_le_adv_data_set_state_selected,
+    handset_service_le_adv_data_set_state_selecting,
+    handset_service_le_adv_data_set_state_releasing,
+
+} handset_service_le_adv_data_set_state_t;
+
 /*! \brief The global data for the handset_service */
 typedef struct
 {
@@ -53,11 +63,14 @@ typedef struct
     /* Flag to indicate whether the device is BLE connectable */
     bool ble_connectable;
     
-    /* Flag to indicate whether Handset Service is awaiting data set release confirmation */
-    bool is_awaiting_release_cfm;
+    /* State of LE advertising data set select/release */
+    handset_service_le_adv_data_set_state_t ble_adv_state;
 
-    /* Handle for LE advertising */
+    /* Handle for LE advertising data set */
     le_adv_data_set_handle le_advert_handle;
+    
+    /* Selected LE advertising data set */
+    le_adv_data_set_t le_advert_data_set;
 
 } handset_service_data_t;
 

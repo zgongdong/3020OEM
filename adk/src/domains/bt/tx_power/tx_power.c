@@ -8,6 +8,7 @@
 
 #include "tx_power.h"
 #include "tx_power_msg_handler.h"
+#include "earbud_config.h"
 
 #include <connection.h>
 #include <panic.h>
@@ -97,14 +98,16 @@ void TxPower_Mandatory(bool enable_mandatory, tx_power_client_t client_id)
 
 int8 TxPower_LEGetData(void)
 {
+    int8 tx_power_level;
     DEBUG_LOG("TxPower_LEGetData");
     if(data_state.tx_power_state_le != tx_power_ready)
     {
         DEBUG_LOG("Tx Power for LE adverts is not available yet");
     }
-
+    /* Add board path loss of -20dBm (for CF376+ QCC5126) */
+    tx_power_level = appTxPower.ble_value + QCC5126_BOARD_TX_POWER_PATH_LOSS;
     /* Tx Power level (in dBm) */
-    return appTxPower.ble_value;
+    return tx_power_level;
 }
 
 
@@ -112,20 +115,6 @@ bool TxPower_GetMandatoryStatus(void)
 {
     return appTxPower.mandatory;
 }
-
-
-#if 0
-/* TODO: https://jira-stnd.qualcomm.com/jira/browse/FASTPAIR-22 */
-tx_power_data_t TxPower_GetData(void)
-{
-    if(data_state.tx_power_state_br_edr != tx_power_ready)
-    {
-        DEBUG_LOG("Tx Power for BR/EDR is not available yet");
-    }
-
-    return appTxPower;
-}
-#endif
 
 
 void txPowerTaskHandler(Task task, MessageId id, Message message)
@@ -151,24 +140,6 @@ void txPowerTaskHandler(Task task, MessageId id, Message message)
         }
         break;
 
-#if 0  /* TODO: https://jira-stnd.qualcomm.com/jira/browse/FASTPAIR-22 */
-        case CL_DM_READ_TX_POWER_CFM:
-        {
-            /* TODO: https://jira-stnd.qualcomm.com/jira/browse/FASTPAIR-22 */
-            CL_DM_READ_TX_POWER_CFM_T* cfm = (CL_DM_READ_TX_POWER_CFM_T*) message;
-            if(hci_success == cfm->status)
-            {
-                appTxPower.bredr_value = cfm->tx_power;
-                data_state.tx_power_state_br_edr = tx_power_ready;
-            }
-            else
-            {
-                DEBUG_LOG("txPowerTaskHandler: Error while reading BR/EDR Tx Power: hci_error = %d", cfm->status);
-            }
-        }
-        break;
-#endif
-
         default:
             DEBUG_LOG("txPowerTaskHandler: Unhandled");
         break;
@@ -183,8 +154,9 @@ static unsigned int txpower_AdvGetNumberOfItems(const le_adv_data_params_t * par
        2. TxPower is Optional and completeness_skip 
      */
     DEBUG_LOG("txpower_AdvGetNumberOfItems: Completeness=%d", params->completeness);
-    if((params->completeness == le_adv_data_completeness_full && tx_power_mandatory) ||
-       (params->completeness == le_adv_data_completeness_can_be_skipped && !tx_power_mandatory))
+    if(((params->completeness == le_adv_data_completeness_full && tx_power_mandatory) ||
+       (params->completeness == le_adv_data_completeness_can_be_skipped && !tx_power_mandatory)) &&
+        (params->data_set != le_adv_data_set_peer))
     {
         return TX_POWER_NUM_ITEMS;
     }
@@ -201,8 +173,9 @@ static le_adv_data_item_t txpower_AdvertData(const le_adv_data_params_t * params
 
     DEBUG_LOG("txpower_AdvertData: Completeness=%d, number=%d", params->completeness, number);
 
-    if((params->completeness == le_adv_data_completeness_full && tx_power_mandatory) ||
-       (params->completeness == le_adv_data_completeness_can_be_skipped && !tx_power_mandatory))
+    if(((params->completeness == le_adv_data_completeness_full && tx_power_mandatory) ||
+       (params->completeness == le_adv_data_completeness_can_be_skipped && !tx_power_mandatory)) &&
+        (params->data_set != le_adv_data_set_peer))
     {
         adv_data_item.size = TX_POWER_ADV_SIZE;
 

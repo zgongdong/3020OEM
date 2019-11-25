@@ -94,6 +94,7 @@
 #include <key_sync.h>
 #include <ui_prompts.h>
 #include <fast_pair.h>
+#include <tx_power.h>
 
 #include <panic.h>
 #include <pio.h>
@@ -229,7 +230,6 @@ static void appHandleClMessage(Task task, MessageId id, Message message)
         handled |= LeAdvertisingManager_HandleConnectionLibraryMessages(id, message, handled);
         handled |= appTestHandleConnectionLibraryMessages(id, message, handled);
         handled |= PeerFindRole_HandleConnectionLibraryMessages(id, message, handled);
-        handled |= HandoverProfile_HandleConnectionLibraryMessages(id, message, handled);
         handled |= LocalAddr_HandleConnectionLibraryMessages(id, message, handled);
         handled |= ShadowProfile_HandleConnectionLibraryMessages(id, message, handled);
 
@@ -437,8 +437,9 @@ static const init_table_entry_t appInitTable[] =
     {PeerUi_Init,        0, NULL},
 #ifdef INCLUDE_SHADOWING
     {EarbudHandover_Init, 0, NULL},
-#endif
+#endif    
 #ifdef INCLUDE_FAST_PAIR
+    {TxPower_Init, 0 , NULL},
     {FastPair_Init,         0, NULL},
 #endif
 

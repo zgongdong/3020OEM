@@ -11,6 +11,7 @@
 #include "fast_pair_wait_account_key_state.h"
 #include "fast_pair_bloom_filter.h"
 #include "fast_pair_session_data.h"
+#include "fast_pair_account_key_sync.h"
 #include "fast_pair_events.h"
 
 static bool fastPair_ValidateAccountKey(fast_pair_state_event_crypto_decrypt_args_t* args)
@@ -23,6 +24,8 @@ static bool fastPair_ValidateAccountKey(fast_pair_state_event_crypto_decrypt_arg
     if (args->crypto_decrypt_cfm->status == success)
     {
         fastPair_StoreAccountKey((uint8 *)args->crypto_decrypt_cfm->decrypted_data);
+        /*! Account Key Sharing */
+        fastPair_AccountKeySync_Sync();
 
         /* Regenerate New Account Key Filter */
         fastPair_AccountKeyAdded();

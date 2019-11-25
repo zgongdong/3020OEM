@@ -198,8 +198,10 @@ static bool appLedHandleInternalUpdate(ledTaskData *theLed)
                 /* Attempt to get wallclock from sink */
                 wallclock_state_t wc_state;
                 rtime_t wallclock;
-                if (RtimeWallClockGetStateForSink(&wc_state, theLed->wallclock_sink) &&
-                    RtimeLocalToWallClock(&wc_state, VmGetTimerTime(), &wallclock))
+
+                if (SinkIsValid(theLed->wallclock_sink) &&
+                    (RtimeWallClockGetStateForSink(&wc_state, theLed->wallclock_sink) &&
+                     RtimeLocalToWallClock(&wc_state, VmGetTimerTime(), &wallclock)) )
                 {
                     uint32_t offset = wallclock % (pattern->data * 1000);
                     rtime_t local;
@@ -224,6 +226,8 @@ static bool appLedHandleInternalUpdate(ledTaskData *theLed)
                 }
                 else
                 {
+                    /* We weren't able to use the wallclock to adjust the delay
+                       so use the un-modified local delay. */
                     uint32 sync_delay = pattern->data - (VmGetClock() % pattern->data);
                     MessageSendLater(&theLed->task, LED_INTERNAL_UPDATE, 0, sync_delay);
                 }

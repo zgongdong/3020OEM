@@ -32,6 +32,15 @@
 #define PeerFindRoleConfigGattDisconnectTimeout()           100
 
 
+/*! Time after which the server will stop waiting for the client role selection indication
+
+    A timeout is needed here to workaround the case when the server is waiting
+    for the client to inform it of the result of the role selection, but for
+    whatever reason the client indication never arrives.
+ */
+#define PeerFindRoleConfigServerRoleSelectedTimeoutMs()     5000
+
+
 /*! Time delay to allow scanning after an activity finishes.
 
     Scanning is blocked by activities that use Bluetooth bandwidth, although
