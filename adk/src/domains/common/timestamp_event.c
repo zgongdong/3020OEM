@@ -14,6 +14,12 @@
 
 #ifndef DISABLE_TIMESTAMP_EVENT
 
+#ifdef GC_SECTIONS
+/* Move all functions in KEEP_PM section to ensure they are not removed during
+ * garbage collection */
+#pragma unitcodesection KEEP_PM
+#endif
+
 #define ASSERT_ID_IS_VALID(id) PanicFalse((id) < NUMBER_OF_TIMESTAMP_EVENTS)
 
 /* Store the timestamp when the event occurred */

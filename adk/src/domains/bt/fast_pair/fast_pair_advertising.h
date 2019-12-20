@@ -51,5 +51,12 @@ bool fastPair_AdvNotifyChangeInConnectableState(uint16 ind);
 */
 bool fastPair_AdvIsBrEdrDiscoverable(void);
 
+/*! @brief Private API to set the identifiable parameter according to the data set returned by Adv Mgr
+
+     Called from Fast Pair state manager on getting CL_SM_AUTHENTICATE_CFM to make handset unidentifiable
+
+ */
+void fastPair_SetIdentifiable(const le_adv_data_set_t data_set);
+
 
 #endif /* FAST_PAIR_ADVERTISING_H_ */

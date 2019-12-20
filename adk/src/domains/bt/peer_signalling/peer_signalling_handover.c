@@ -8,5 +8,5 @@
 
 */
 
-/* Only compile if Shadowing is defined */
+/* Only compile if Mirroring is defined */
 

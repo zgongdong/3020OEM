@@ -15,6 +15,6 @@
 
 #include <message.h>
 
-extern tws_topology_procedure_fns_t proc_release_peer_fns;
+extern const tws_topology_procedure_fns_t proc_release_peer_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_RELEASE_PEER_H */

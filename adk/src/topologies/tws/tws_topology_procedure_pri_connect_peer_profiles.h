@@ -12,7 +12,7 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_pri_connect_peer_profiles_fns;
+extern const tws_topology_procedure_fns_t proc_pri_connect_peer_profiles_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_PRI_CONNECT_PEER_PROFILES_H */
 

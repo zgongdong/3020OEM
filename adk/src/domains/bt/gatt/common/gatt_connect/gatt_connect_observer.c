@@ -11,17 +11,17 @@
 
 #include <panic.h>
 
-#define MAX_NUMBER_GATT_CONNECT_OBSERVERS   7
+#define MAX_NUMBER_GATT_CONNECT_OBSERVERS   8
 
 typedef struct
 {
-    gatt_connect_observer_callback_t callbacks[MAX_NUMBER_GATT_CONNECT_OBSERVERS];
+    const gatt_connect_observer_callback_t *callbacks[MAX_NUMBER_GATT_CONNECT_OBSERVERS];
     unsigned number_registered;
 } gatt_connect_observer_registry_t;
 
 static gatt_connect_observer_registry_t gatt_connect_observer_registry = {0};
 
-void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t *callback)
+void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t * const callback)
 {
     if(gatt_connect_observer_registry.number_registered < MAX_NUMBER_GATT_CONNECT_OBSERVERS)
     {
@@ -30,9 +30,7 @@ void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t *callba
         PanicNull((void*)callback->OnConnection);
         PanicNull((void*)callback->OnDisconnection);
         
-        gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered].OnConnection = callback->OnConnection;
-        gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered].OnDisconnection = callback->OnDisconnection;
-        gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered].OnDisconnectRequested = callback->OnDisconnectRequested;
+        gatt_connect_observer_registry.callbacks[gatt_connect_observer_registry.number_registered] = callback;
         gatt_connect_observer_registry.number_registered++;
     }
     else
@@ -46,11 +44,11 @@ void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t *callba
 
 void GattConnect_ObserverNotifyOnConnection(uint16 cid)
 {
-    uint8 index = 0;
+    unsigned index = 0;
 
     while (index < gatt_connect_observer_registry.number_registered)
     {
-        gatt_connect_observer_callback_t * callback = &gatt_connect_observer_registry.callbacks[index];
+        const gatt_connect_observer_callback_t * callback = gatt_connect_observer_registry.callbacks[index];
 
         callback->OnConnection(cid);
         
@@ -60,11 +58,11 @@ void GattConnect_ObserverNotifyOnConnection(uint16 cid)
 
 void GattConnect_ObserverNotifyOnDisconnection(uint16 cid)
 {
-    uint8 index = 0;
+    unsigned index = 0;
 
     while (index < gatt_connect_observer_registry.number_registered)
     {
-        gatt_connect_observer_callback_t * callback = &gatt_connect_observer_registry.callbacks[index];
+        const gatt_connect_observer_callback_t * callback = gatt_connect_observer_registry.callbacks[index];
 
         callback->OnDisconnection(cid);
 
@@ -74,11 +72,11 @@ void GattConnect_ObserverNotifyOnDisconnection(uint16 cid)
 
 void GattConnect_ObserverNotifyOnDisconnectRequested(uint16 cid, gatt_connect_disconnect_req_response response)
 {
-    uint8 index = 0;
+    unsigned index = 0;
 
     while (index < gatt_connect_observer_registry.number_registered)
     {
-        gatt_connect_observer_callback_t * callback = &gatt_connect_observer_registry.callbacks[index];
+        const gatt_connect_observer_callback_t * callback = gatt_connect_observer_registry.callbacks[index];
 
         if (callback->OnDisconnectRequested)
         {
@@ -90,12 +88,12 @@ void GattConnect_ObserverNotifyOnDisconnectRequested(uint16 cid, gatt_connect_di
 
 unsigned GattConnect_ObserverGetNumberDisconnectReqCallbacksRegistered(void)
 {
-    uint8 index = 0;
+    unsigned index = 0;
     unsigned number_callbacks = 0;
 
     while (index < gatt_connect_observer_registry.number_registered)
     {
-        gatt_connect_observer_callback_t * callback = &gatt_connect_observer_registry.callbacks[index];
+        const gatt_connect_observer_callback_t * callback = gatt_connect_observer_registry.callbacks[index];
 
         if (callback->OnDisconnectRequested)
         {

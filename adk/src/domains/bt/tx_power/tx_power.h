@@ -15,6 +15,9 @@ Support for BR/EDR Tx power is yet to be implemented.
 #define TX_POWER_H_
 
 #include "le_advertising_manager.h"
+
+#define TX_POWER_ADV_SIZE    (3)
+
 /*@{*/
 /*! \brief Data type for API function return values to indicate success/error status */
 typedef enum{
@@ -44,7 +47,19 @@ typedef struct
     tx_power_status_t status;
     /*! Tx power handle for advertisement manager */
     le_adv_mgr_register_handle adv_mgr_handle;
+    /*! Tx power mandatory flag*/
+    uint8 tx_power_mandatory;
+    /*! Tx power advert data */
+    uint8 tx_power_adv_data[TX_POWER_ADV_SIZE];
+    /*! Tx power board path loss */
+    uint8 tx_power_path_loss;
 } tx_power_data_t;
+
+/*! \brief Set board tx power path loss */
+void TxPower_SetTxPowerPathLoss(uint8 path_loss);
+
+/*! \brief Get board tx power path loss */
+uint8 TxPower_GetTxPowerPathLoss(void);
 
 /*! \brief Initialise the Tx Power module.*/
 bool TxPower_Init(Task init_task);

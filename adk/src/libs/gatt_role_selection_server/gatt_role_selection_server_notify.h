@@ -8,7 +8,7 @@
 
 void gattRoleSelectionServerSendStateNotification(GATT_ROLE_SELECTION_SERVER *instance,
                                                   uint16 cid,
-                                                  GattRoleSelectionServiceShadowingState state);
+                                                  GattRoleSelectionServiceMirroringState state);
 
 
 void gattRoleSelectionServerSendFigureNotification(GATT_ROLE_SELECTION_SERVER *instance,
@@ -28,7 +28,7 @@ void handleRoleSelectionNotificationCfm(GATT_ROLE_SELECTION_SERVER *instance,
                                         const GATT_MANAGER_REMOTE_CLIENT_NOTIFICATION_CFM_T *payload);
 
 
-void sendInternalShadowStateChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16 cid);
+void sendInternalMirrorStateChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16 cid);
 
 
 void sendInternalFigureOfMeritChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16 cid);

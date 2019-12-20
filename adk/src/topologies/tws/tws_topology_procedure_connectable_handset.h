@@ -12,7 +12,7 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_connectable_handset_fns;
+extern const tws_topology_procedure_fns_t proc_connectable_handset_fns;
 
 typedef struct
 {

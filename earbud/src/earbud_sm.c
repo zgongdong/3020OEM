@@ -23,7 +23,6 @@
 /* framework includes */
 #include <battery_monitor.h>
 #include <state_proxy.h>
-#include <handset_signalling.h>
 #include <pairing.h>
 #include <power_manager.h>
 #include <gaia_handler.h>
@@ -37,7 +36,7 @@
 #include <hfp_profile.h>
 #include <logical_input_switch.h>
 #include <scofwd_profile.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 #include <ui.h>
 #include <peer_signalling.h>
 #include <key_sync.h>
@@ -55,10 +54,24 @@
 #include <boot.h>
 #include <message.h>
 
+#if defined(HAVE_9_BUTTONS)
+#include "9_buttons.h"
+#elif defined(HAVE_7_BUTTONS)
+#include "7_buttons.h"
+#elif defined(HAVE_6_BUTTONS)
+#include "6_buttons.h"
+#elif defined(HAVE_4_BUTTONS)
+#include "4_buttons.h"
+#elif defined(HAVE_2_BUTTONS)
+#include "2_button.h"
+#elif defined(HAVE_1_BUTTON)
+#include "1_button.h"
+#endif
+
 #define ATTRIBUTE_BASE_PSKEY_INDEX  100
 #define TDL_BASE_PSKEY_INDEX        142
 #define TDL_INDEX_PSKEY             141
-#define TDL_SIZE                    8
+#define TDL_SIZE                    6
 
 #pragma unitsuppress Unused
 /*!< Application state machine. */
@@ -75,6 +88,26 @@ const message_group_t sm_ui_inputs[] =
 static void appSmHandleInternalDeleteHandsets(void);
 
 #ifdef INCLUDE_DFU
+/*
+Ideal flow of states for DFU is as follows:
+APP_GAIA_CONNECTED
+    ->APP_GAIA_UPGRADE_CONNECTED
+        ->APP_GAIA_UPGRADE_ACTIVITY
+            ->APP_GAIA_UPGRADE_DISCONNECTED
+                ->APP_GAIA_DISCONNECTED
+
+where,
+    APP_GAIA_CONNECTED: A GAIA connection has been made
+    APP_GAIA_DISCONNECTED: A GAIA connection has been lost
+    APP_GAIA_UPGRADE_CONNECTED: An upgrade protocol has connected through GAIA
+    APP_GAIA_UPGRADE_DISCONNECTED:An upgrade protocol has disconnected through GAIA
+    APP_GAIA_UPGRADE_ACTIVITY: The GAIA module has seen some upgrade activity
+
+Maintain DFU link state based on GAIA upgrade connection and disconnection.to
+avoid abrupt GAIA disconnection observed mainly during abort scenarios handling
+for DFU over BLE.
+*/
+uint16 dfu_link_state;
 static void appSmEnterDfuOnStartup(bool upgrade_reboot);
 static void appSmNotifyUpgradeStarted(void);
 static void appSmSetPeerDfuFlag(bool flag);
@@ -469,12 +502,16 @@ static void appEnterHandsetPairing(void)
 {
     DEBUG_LOG("appEnterHandsetPairing");
 
-    smTaskData *sm = SmGetTaskData();
-
-    PeerFindRole_RegisterPrepareClient(&sm->task);
-    appSmInitiateLinkDisconnection(SM_DISCONNECT_HANDSET,
+    if(appSmIsUserPairing())
+    {
+        TwsTopology_ProhibitHandsetConnection(TRUE);
+    }
+    else
+    {
+        appSmInitiateLinkDisconnection(SM_DISCONNECT_HANDSET,
                                    appConfigLinkDisconnectionTimeoutTerminatingMs(),
                                    POST_DISCONNECT_ACTION_HANDSET_PAIRING);
+    }
 }
 
 /*! \brief Exit actions when handset pairing completed.
@@ -488,6 +525,8 @@ static void appExitHandsetPairing(void)
     PeerFindRole_UnregisterPrepareClient(&sm->task);
     appSmRulesSetRuleComplete(CONN_RULES_HANDSET_PAIR);
     Pairing_PairStop(NULL);
+    appSmClearUserPairing();
+    TwsTopology_ProhibitHandsetConnection(FALSE);
 }
 
 /*! \brief Enter
@@ -524,11 +563,15 @@ static void appEnterInCaseDfu(void)
     }
     
 
+    /* If it is secondary device, store DFU role and device role in PSKEY so 
+     * if it is reset before DFU starts on secondary, it goes back to DFU mode.
+     *
+     * Note: This API is also called just after DFU reset, by then upgrade peer
+     * context is not created. In that case, upgrade peer APIs will return without
+     * setting the PSKEYs and earlier stored values of PSKEYs will be used.
+     */
     UpgradePeerSetDeviceRolePrimary(!secondary);
 
-    /* If it is secondary device, store DFU role and device role in PSKEY so 
-       if it is reset before DFU starts on secondary, it goes back to DFU mode.
-     */
     if(secondary)
     {
         UpgradePeerSetDFUMode(TRUE);
@@ -707,9 +750,6 @@ static void appEnterInCase(void)
 {
     DEBUG_LOG("appEnterInCase");
 
-    /* request handset signalling module send current state to handset. */
-    appHandsetSigSendEarbudStateReq(PHY_STATE_IN_CASE);
-
     /* Run rules for in case event */
     appSmRulesResetEvent(RULE_EVENT_OUT_CASE);
     appSmRulesSetEvent(RULE_EVENT_IN_CASE);
@@ -719,18 +759,12 @@ static void appEnterInCase(void)
 static void appEnterOutOfCase(void)
 {
     DEBUG_LOG("appEnterOutOfCase");
-
-    /* request handset signalling module send current state to handset. */
-    appHandsetSigSendEarbudStateReq(PHY_STATE_OUT_OF_EAR);
 }
 
 /*! \brief Enter APP_STATE_IN_EAR parent function actions. */
 static void appEnterInEar(void)
 {
     DEBUG_LOG("appEnterInEar");
-
-    /* request handset signalling module send current state to handset. */
-    appHandsetSigSendEarbudStateReq(PHY_STATE_IN_EAR);
 
     /* Run rules for in ear event */
     appSmRulesResetEvent(RULE_EVENT_OUT_EAR);
@@ -1361,22 +1395,6 @@ static void appSmHandleConnRulesExitDfu(void)
     appSmRulesSetRuleComplete( CONN_RULES_EXIT_DFU);
 }
 
-static void appSmHandleConnRulesAllowHandsetConnect(void)
-{
-    DEBUG_LOG("appSmHandleConnRulesAllowHandsetConnect");
-
-    ConManagerAllowHandsetConnect(TRUE);
-    appSmRulesSetRuleComplete(CONN_RULES_ALLOW_HANDSET_CONNECT);
-}
-
-static void appSmHandleConnRulesRejectHandsetConnect(void)
-{
-    DEBUG_LOG("appSmHandleConnRulesRejectHandsetConnect");
-
-    ConManagerAllowHandsetConnect(FALSE);
-    appSmRulesSetRuleComplete(CONN_RULES_REJECT_HANDSET_CONNECT);
-}
-
 static void EarbudSm_HandleDfuNotifyPrimary(void)
 {
     DEBUG_LOG("EarbudSm_HandleDfuNotifyPrimary");
@@ -1578,6 +1596,24 @@ static void appSmHandleConnRulesScoForwardingControl(CONN_RULES_SCO_FORWARDING_C
     appSmRulesSetRuleComplete(CONN_RULES_SCO_FORWARDING_CONTROL);
 }
 
+static void appSmHandleConnRulesScoMirroringControl(CONN_RULES_SCO_MIRRORING_CONTROL_T* crssc)
+{
+    DEBUG_LOGF("appSmHandleConnRulesScoMirroringControl forwarding %u", crssc->enable);
+
+    if (crssc->enable)
+    {
+        /* enabled mirroring */
+        MirrorProfile_EnableMirrorEsco();
+    }
+    else
+    {
+        /* disable mirroring */
+        MirrorProfile_DisableMirrorEsco();
+    }
+
+    appSmRulesSetRuleComplete(CONN_RULES_SCO_MIRRORING_CONTROL);
+}
+
 /*! \brief Handle confirmation of SM marhsalled msg TX, free the message memory. */
 static void appSm_HandleMarshalledMsgChannelTxCfm(const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T* cfm)
 {
@@ -1678,47 +1714,6 @@ static void appSmHandleInternalTimeoutIdle(void)
     DEBUG_LOG("appSmHandleInternalTimeoutIdle");
     PanicFalse(APP_STATE_OUT_OF_CASE_IDLE == appGetState());
     appSetState(APP_STATE_OUT_OF_CASE_SOPORIFIC);
-}
-
-/*! \brief Handle command to pair with a handset. */
-/*! \todo This trigger to do standard handset pairing from peer message could go direct
- *        to pairing component.
- *        Or if we want to keep TWS knowledge out of pairing then TWS topology could
- *        register to get it from peer signalling (or use alternate marshalling msg)
- *        and the topology calls a generic pairing API to kick pairing to known address */
-static void appSmHandlePeerSigPairHandsetIndication(PEER_SIG_PAIR_HANDSET_IND_T *ind)
-{
-    smTaskData *sm = SmGetTaskData();
-
-    DEBUG_LOGF("appSmHandlePeerSigPairHandsetIndication, bdaddr %04x,%02x,%06lx",
-               ind->handset_addr.nap, ind->handset_addr.uap, ind->handset_addr.lap);
-
-    /* Check if we already know about this handset */
-    if (BtDevice_isKnownBdAddr(&ind->handset_addr))
-    {
-        /* Attempt to delete it, this will fail if we're connected */
-        if (appDeviceDelete(&ind->handset_addr))
-        {
-            DEBUG_LOG("appSmHandlePeerSigPairHandsetIndication, known handset deleting and re-pairing");
-            Pairing_PairAddress(&sm->task, &ind->handset_addr);
-        }
-        else
-            DEBUG_LOG("appSmHandlePeerSigPairHandsetIndication, known handset, current connected so ignore pairing request");
-    }
-    else
-    {
-        DEBUG_LOG("appSmHandlePeerSigPairHandsetIndication, pairing with handset");
-        Pairing_PairAddress(&sm->task, &ind->handset_addr);
-    }
-}
-
-/*! \brief Handle command to connect to handset. */
-static void appSmHandlePeerSigConnectHandsetIndication(PEER_SIG_CONNECT_HANDSET_IND_T *ind)
-{
-    /* Generate event that will run rules to connect to handset */
-    rule_events_t event = ind->play_media ? RULE_EVENT_HANDOVER_RECONNECT_AND_PLAY
-                                            : RULE_EVENT_HANDOVER_RECONNECT;
-    appSmRulesSetEvent(event);
 }
 
 static void appSmHandlePeerSigConnectionInd(const PEER_SIG_CONNECTION_IND_T *ind)
@@ -2117,6 +2112,13 @@ static void appSmHandleInternalReboot(void)
     BootSetMode(BootGetMode());
 }
 
+static void appSm_ContinuePairingHandsetAfterDisconnect(void)
+{
+    smTaskData *sm = SmGetTaskData();
+    PeerFindRole_RegisterPrepareClient(&sm->task);
+    Pairing_Pair(SmGetTask(), appSmIsUserPairing());
+}
+
 /*! \brief Handle indication all requested links are now disconnected. */
 static void appSmHandleInternalAllRequestedLinksDisconnected(SM_INTERNAL_LINK_DISCONNECTION_COMPLETE_T *msg)
 {
@@ -2129,8 +2131,8 @@ static void appSmHandleInternalAllRequestedLinksDisconnected(SM_INTERNAL_LINK_DI
         case POST_DISCONNECT_ACTION_HANDOVER:
         break;
         case POST_DISCONNECT_ACTION_HANDSET_PAIRING:
-            Pairing_Pair(SmGetTask(), appSmIsUserPairing());
-        break;
+            appSm_ContinuePairingHandsetAfterDisconnect();
+            break;
         case POST_DISCONNECT_ACTION_DELETE_HANDSET_PAIRING:
             BtDevice_DeleteAllHandsetDevices();
             break;
@@ -2470,28 +2472,6 @@ static void appSmHandleStateProxyEvent(const STATE_PROXY_EVENT_T* sp_event)
     }
 }
 
-/*! \brief Enable ANC hardware module */
-static void appSmHandleConnRulesAncEnable(void)
-{
-    DEBUG_LOG("appSmHandleConnRulesAncEnable ANC Enable");
-
-    /* Inject UI input ANC Enable */
-    Ui_InjectUiInput(ui_input_anc_on);
-
-    appSmRulesSetRuleComplete(CONN_RULES_ANC_ENABLE);
-}
-
-/*! \brief Disable ANC hardware module */
-static void appSmHandleConnRulesAncDisable(void)
-{
-    DEBUG_LOG("appSmHandleConnRulesAncDisable ANC Disable");
-
-    /* Inject UI input ANC Disable */
-    Ui_InjectUiInput(ui_input_anc_off);
-
-    appSmRulesSetRuleComplete(CONN_RULES_ANC_DISABLE);
-}
-
 /*! \brief Enter ANC tuning mode */
 static void appSmHandleConnRulesAncEnterTuning(void)
 {
@@ -2725,23 +2705,14 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
         case CONN_RULES_EXIT_DFU:
             appSmHandleConnRulesExitDfu();
             break;
-        case CONN_RULES_ALLOW_HANDSET_CONNECT:
-            appSmHandleConnRulesAllowHandsetConnect();
-            break;
-        case CONN_RULES_REJECT_HANDSET_CONNECT:
-            appSmHandleConnRulesRejectHandsetConnect();
-            break;
         case CONN_RULES_SELECT_MIC:
             appSmHandleConnRulesSelectMic((CONN_RULES_SELECT_MIC_T*)message);
             break;
         case CONN_RULES_SCO_FORWARDING_CONTROL:
             appSmHandleConnRulesScoForwardingControl((CONN_RULES_SCO_FORWARDING_CONTROL_T*)message);
             break;
-        case CONN_RULES_ANC_ENABLE:
-            appSmHandleConnRulesAncEnable();
-            break;
-        case CONN_RULES_ANC_DISABLE:
-            appSmHandleConnRulesAncDisable();
+        case CONN_RULES_SCO_MIRRORING_CONTROL:
+            appSmHandleConnRulesScoMirroringControl((CONN_RULES_SCO_MIRRORING_CONTROL_T*)message);
             break;
         case CONN_RULES_ANC_TUNING_START:
             appSmHandleConnRulesAncEnterTuning();
@@ -2774,14 +2745,6 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             break;
 
         /* Peer signalling messages */
-        case PEER_SIG_PAIR_HANDSET_IND:
-            appSmHandlePeerSigPairHandsetIndication((PEER_SIG_PAIR_HANDSET_IND_T*)message);
-            break;
-        case PEER_SIG_CONNECT_HANDSET_IND:
-            appSmHandlePeerSigConnectHandsetIndication((PEER_SIG_CONNECT_HANDSET_IND_T*)message);
-            break;
-        case PEER_SIG_CONNECT_HANDSET_CFM:
-            break;
         case PEER_SIG_CONNECTION_IND:
             appSmHandlePeerSigConnectionInd((const PEER_SIG_CONNECTION_IND_T *)message);
             break;
@@ -2795,6 +2758,14 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             appSm_HandleTwsTopologyRoleChangedInd((TWS_TOPOLOGY_ROLE_CHANGED_IND_T*)message);
             break;
 
+        case TWS_TOPOLOGY_HANDSET_DISCONNECTED_IND:
+            DEBUG_LOG("appSmHandleMessage TWS_TOPOLOGY_HANDSET_DISCONNECTED_IND");
+            if(appSmIsUserPairing())
+            {
+                appSm_ContinuePairingHandsetAfterDisconnect();
+            }
+            break;
+
 #ifdef INCLUDE_DFU
         /* Messages from GAIA */
         case APP_GAIA_UPGRADE_ACTIVITY:
@@ -2803,14 +2774,24 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             break;
 
         case APP_GAIA_DISCONNECTED:
-            appSmHandleDfuEnded(FALSE);
+            if (dfu_link_state == APP_GAIA_UPGRADE_DISCONNECTED)
+            {
+                appSmHandleDfuEnded(FALSE);
+            }
+            else if (dfu_link_state == APP_GAIA_UPGRADE_CONNECTED)
+            {
+                DEBUG_LOG("Abrupt disconnect.");
+            }
+            
             break;
 
         case APP_GAIA_UPGRADE_CONNECTED:
+            dfu_link_state = APP_GAIA_UPGRADE_CONNECTED;
             appSmHandleUpgradeConnected();
             break;
 
         case APP_GAIA_UPGRADE_DISCONNECTED:
+            dfu_link_state = APP_GAIA_UPGRADE_DISCONNECTED;
             appSmHandleUpgradeDisconnected();
             break;
 
@@ -2834,8 +2815,6 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
 
         case APP_UPGRADE_COMPLETED:
             appSmHandleDfuEnded(FALSE);
-            /* Clear the Peer DFU flag once the DFU is completed */
-            appSmSetPeerDfuFlag(FALSE);
             GattServerGatt_SetGattDbChanged();
             break;
 
@@ -2859,6 +2838,10 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
             /* Inject an event to the rules engine to make sure DFU is enabled */
             appSmRulesSetEvent(RULE_EVENT_CHECK_DFU);
         }
+            break;
+        case DEVICE_UPGRADE_PEER_DISCONNECT:
+            /* Clear the Peer DFU flag once the peer device is disconnected */
+            appSmSetPeerDfuFlag(FALSE);
             break;
 #endif /* INCLUDE_DFU */
 
@@ -3033,6 +3016,19 @@ static void appSmStartDfuTimer(void)
     appSmHandleEnterDfuWithTimeout(appConfigDfuTimeoutAfterGaiaConnectionMs());
 }
 
+bool appSmEnterDfuWhenEnteringCase(void)
+{
+    bool enter_dfu_logical_input_sent = FALSE;
+
+    if (appPeerSigIsConnected() && appSmIsOutOfCase())
+    {
+        MessageSend(LogicalInputSwitch_GetTask(), APP_BUTTON_DFU, NULL);
+        enter_dfu_logical_input_sent = TRUE;
+    }
+
+    return enter_dfu_logical_input_sent;
+}
+
 void appSmEnterDfuModeInCase(bool enable)
 {
     MessageCancelAll(SmGetTask(), SM_INTERNAL_TIMEOUT_DFU_MODE_START);
@@ -3125,9 +3121,6 @@ bool appSmInit(Task init_task)
     /* register with AV to receive notifications of A2DP and AVRCP activity */
     appAvStatusClientRegister(&sm->task);
 
-    /* register with peer signalling to receive handset commands */
-    appPeerSigHandsetCommandsTaskRegister(&sm->task);
-
     /* register with peer signalling to connect/disconnect messages */
     appPeerSigClientRegister(&sm->task);
 
@@ -3155,7 +3148,7 @@ bool appSmInit(Task init_task)
     Pairing_ActivityClientRegister(&sm->task);
 
     /* Register for role changed indications from TWS Topology */
-    TwsTopology_RoleChangedRegisterClient(SmGetTask());
+    TwsTopology_RegisterMessageClient(SmGetTask());
 
     appSetState(APP_STATE_INITIALISING);
 

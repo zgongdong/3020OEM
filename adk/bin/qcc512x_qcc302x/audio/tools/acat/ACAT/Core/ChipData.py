@@ -27,6 +27,7 @@ from ACAT.Core import CoreTypes as ct
 from ACAT.Core.exceptions import (
     DebugInfoNoVariableError, InvalidDmAddressError
 )
+from ACAT.Core.logger import method_logger
 
 # This is an abstract base class, but am avoiding use of Python's ABC syntax.
 
@@ -40,9 +41,11 @@ class ChipData(object):
     coredump.
     """
 
+    @method_logger(logger)
     def __init__(self):
         self.debuginfo = None
 
+    @method_logger(logger)
     def get_patch_id(self):
         """Reads the relevant variable and return the patch ID.
 
@@ -88,14 +91,14 @@ class ChipData(object):
         Addresses can be from any valid DM region (DM1, PM RAM, mapped NVMEM,
         memory-mapped registers, etc.).
 
-        Note:
+        .. note::
             The length supplied is measured in addressable units.
 
-            get_data(addr) will return a single value;
-            get_data(addr, 1) will return a list with a single member.
-            get_data(addr, 10) will return a list with ten members or a
-                list with three members (when the memory is octet
-                addressed, 32bit words).
+            * ``get_data(addr)`` will return a single value;
+            * ``get_data(addr, 1)`` will return a list with a single member.
+            * ``get_data(addr, 10)`` will return a list with ten members or a
+              list with three members (when the memory is octet
+              addressed, 32bit words).
 
         If the address is out of range, a KeyError exception will be raised.
         If the address is valid but the length is not (i.e. address+length
@@ -126,11 +129,11 @@ class ChipData(object):
         raise NotImplementedError()
 
     def get_proc_reg(self, name):
-        """Returns the value of the processor register specified in 'name'.
+        """Returns the value of the processor register specified in ``name``.
 
         Name is a string containing the name of the register in upper or
-        lower case, with or without the prefix 'REGFILE_' e.g.
-        "REGFILE_PC", "rMAC", "R10".
+        lower case, with or without the prefix ``REGFILE_`` e.g.
+        ``REGFILE_PC``, ``rMAC``, ``R10``.
 
         Args:
             name
@@ -188,10 +191,10 @@ class ChipData(object):
 
         e.g. set_data(0x3e5d, [1 2 3])
 
-        Note:
-            set_data(address, [val]) writes address with a single value.
-            set_data(address, [val1 ... valn]) writes the list of values
-                to memory starting from address.
+        .. note::
+            * ``set_data(address, [val])`` writes address with a single value.
+            * ``set_data(address, [val1 ... valn])`` writes the list of values
+              to memory starting from address.
 
         This function should only be implemented for live chips. And
         should not be called if the chip is not live.
@@ -212,6 +215,7 @@ class ChipData(object):
     ##################################################
 
     # identifier, inspecting_all_vars = False):
+    @method_logger(logger)
     def get_var_strict(self, identifier, elf_id=None):
         """Gets the value of a variable.
 
@@ -251,6 +255,7 @@ class ChipData(object):
         var.members = []
         return self.debuginfo.inspect_var(var, elf_id)
 
+    @method_logger(logger)
     def identifier_exists(self, identifier):
         """Checks if an identifier exists.
 
@@ -270,17 +275,18 @@ class ChipData(object):
         except DebugInfoNoVariableError:
             return False
 
+    @method_logger(logger)
     def get_reg_strict(self, identifier):
         """Get the value of a register.
 
         Provided for the convenience of all Analysis modules, this method
         looks up the value of memory-mapped and processor registers.
 
-        'identifier' can be a register name (which must be EXACT), or
+        ``identifier`` can be a register name (which must be EXACT), or
         address.
 
         In order to make sure they are unique, the names processor registers
-        must be preceded by 'REGFILE_', e.g. 'REGFILE_PC'.
+        must be preceded by ``REGFILE_``, e.g. ``REGFILE_PC``.
 
         Args:
             identifier
@@ -299,17 +305,18 @@ class ChipData(object):
                 # could have a value that looks like a register address.
                 # Since we only do this to set the name, it should be ok
                 # even in strict mode.
+                constant_variables = self.debuginfo.get_constants_variables()
                 possible_regs = [
-                    item[0] for item in list(self.debuginfo.constants.items())
+                    item[0] for item in list(constant_variables.items())
                     if item[1] == identifier
                 ]
                 if possible_regs:
                     reg_name = " or ".join(possible_regs)
                     reg = ct.ConstSym(reg_name, identifier)
         elif re.search('regfile_', identifier.lower()) is not None:
-            # Must be a processor register? On Amber these are listed in
+            # Must be a processor register? Usually these are listed in
             # constants, so we could look up the address in the same way
-            # as for memory-mapped registers below. But on other chips
+            # as for memory-mapped registers below. But on some chips
             # (e.g. Gordon) they're not (in fact, they may not even be
             # mapped into DM at all), so we need to get them from chipdata
             # by name.
@@ -343,6 +350,35 @@ class ChipData(object):
         regcontents = self.get_data(reg.value)
         return ct.DataSym(reg.name, reg.value, regcontents)
 
+    @method_logger(logger)
+    def get_reg(self, identifier):
+        """Searches for the name or address of a register.
+
+        If the identifier is given in string format, the method also guess
+        the correct name to match the desired identifier name.
+
+        Args:
+            identifier: Can be the name of a register or its address.
+
+        Returns:
+            DataSym instance.
+
+        Raises:
+            DebugInfoNoVariableError: If the given identifier not found.
+        """
+        if isinstance(identifier, numbers.Integral):
+            return self.get_reg_strict(identifier)
+
+        try:
+            return self.get_reg_strict(identifier)
+        except DebugInfoNoVariableError:
+            if identifier.startswith('$') is False:
+                return self.get_reg('$' + identifier)
+
+            else:
+                raise
+
+    @method_logger(logger)
     def get_banked_reg_strict(self, address, bank=None):
         """Looks up the values of a banked register.
 
@@ -367,6 +403,7 @@ class ChipData(object):
                     hex(address)
                 ))
 
+    @method_logger(logger)
     def cast(self, addr, type_def, deref_type=False, section="DM",
              elf_id=None):
         """Casts an address to a variable.
@@ -499,6 +536,7 @@ class ChipData(object):
         # variables; it might become invalid if talking to a live chip.
         return self.debuginfo.inspect_var(var, type_elf_id)
 
+    @method_logger(logger)
     def run_poll(self, time, identifier):
         """Measures the value of variable(s) over a given period of time.
 
@@ -528,6 +566,7 @@ class ChipData(object):
 
         return poll_data
 
+    @method_logger(logger)
     def is_booted(self):
         """Checks if the processor is booted.
 
@@ -555,6 +594,7 @@ class VariablePoller(threading.Thread):
         queue
     """
 
+    @method_logger(logger)
     def __init__(self, stop_event, identifiers, chipdata, queue):
         threading.Thread.__init__(self)
 

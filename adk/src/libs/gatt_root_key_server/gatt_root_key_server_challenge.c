@@ -81,7 +81,7 @@ void handleInternalChallengeWrite(const ROOT_KEY_SERVER_INTERNAL_CHALLENGE_WRITE
                 instance->remote_random = write->value;
 
                 sendRootKeyAccessRsp(&instance->lib_task, write->cid,
-                                     HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT, 
+                                     HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT, 
                                      gatt_status_success, 0, NULL);
                 gattRootKeyServerSendChallengeIndication(instance, write->cid,
                                                          GattRootKeyScOpcodeOutgoingRequest, 
@@ -100,7 +100,7 @@ void handleInternalChallengeWrite(const ROOT_KEY_SERVER_INTERNAL_CHALLENGE_WRITE
 
                 /*! \todo What do we do with a mismatched hash */
                 sendRootKeyAccessRsp(&instance->lib_task, write->cid,
-                                     HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT, 
+                                     HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT, 
                                      gatt_status_success, 0, NULL);
                 gattRootKeyServerSendChallengeIndication(instance, write->cid,
                                                          GattRootKeyScOpcodeOutgoingResponse,
@@ -122,7 +122,7 @@ void handleInternalChallengeWrite(const ROOT_KEY_SERVER_INTERNAL_CHALLENGE_WRITE
             break;
     }
     sendRootKeyAccessRsp(&instance->lib_task, write->cid,
-                         HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT, 
+                         HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT, 
                          gatt_status_invalid_pdu, 0, NULL);
 }
 

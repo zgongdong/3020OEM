@@ -62,8 +62,8 @@ typedef enum
 #define PSKEY_SHUTDOWN_TEMPERATURE (PSKSYSB4+113)
 #define PSKEY_THERMAL_SHUTDOWN_LONG_PERIOD (PSKSYSB4+114)
 
-/* start of pskey range for providing access to apps mib. 
- * Picked high number to prevent clash with Bluetooth pskeys. 
+/* Start of pskey range for keys mapped onto App's MIBKEYs. 
+ * 
  */
 #define PSKAPPSMIB_START (32000)
 #define PSKEY_RAMPDOWN_TEMPERATURE (PSKAPPSMIB_START+0)
@@ -79,10 +79,7 @@ typedef enum
 #define IS_APPKEY_READONLY(appkey) (appkey >= 290 && appkey <= 299)
 
 /* The following keys are those that have traditionally been read
-   by VMapplications.
-
-   Comment in the published ps_if.h says that these are normally
-   "a selection of values from psbc_keys.h published to the VM" */
+   by VM applications. */
 
 #define PSKEY_HOST_INTERFACE (((500))+5)
 #define PSKEY_MKT_TASK_ACTIVE (((500))+6)
@@ -91,6 +88,7 @@ typedef enum
 #define PSKEY_MDNS_NAME (((850))+8)
 #define PSKEY_FIXED_PIN (((850))+9)
 #define PSKEY_PIO_WAKEUP_STATE (((900))+27)
+
 
 /* USB MIB Keys */
 #define MIB_USB_BCD_DEVICE (125)

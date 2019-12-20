@@ -25,7 +25,11 @@ import argparse
 import importlib
 import os
 import subprocess
+import sys
 from xml.etree import ElementTree
+
+# ADK libraries.
+from maker.aliases import Aliases
 
 
 class ACATPackages(object):
@@ -88,6 +92,8 @@ def get_audio_elf_path_from_workspace(workspace_file, isSimTarget):
     Given a workspace file (x2w) will return the
     Path to the kymera_audio project contained within
     """
+    aliases = Aliases(workspace_file)
+
     workspace_tree = ElementTree.parse(workspace_file)
     workspace_root = workspace_tree.getroot()
     workspace_path = os.path.dirname(workspace_file)
@@ -102,10 +108,13 @@ def get_audio_elf_path_from_workspace(workspace_file, isSimTarget):
 
     for project in workspace_root.iter('project'):
         project_path = project.get('path')
-        # Ignore absolute paths or paths that use aliases
-        # kymera projects (audio project and downloadables) use relative paths
-        if project_path.startswith("sdk://"):
+
+        # Skip project items without a path attribute.
+        if project_path is None:
             continue
+
+        project_path = aliases.expand(project_path)
+
         if project_path not in projects_visited:
             projects_visited.append(project_path)
             project_path = os.path.abspath(os.path.join(workspace_path, project_path))
@@ -132,17 +141,6 @@ def get_audio_elf_path_from_workspace(workspace_file, isSimTarget):
                     bundle_image_list.append(bundle_image_path)
     return kymera_image_path, bundle_image_list
 
-
-def get_files_from_proj(project_file, ext):
-    """
-    Given a customer_ro_filesystem will return the
-    list of files with extension "ext"
-    """
-    project_tree = ElementTree.parse(project_file)
-    project_root = project_tree.getroot()
-    for file in project_root.iter('file'):
-        if file.get("path").endswith(ext):
-            yield file.get("path")
 
 def get_output_value_from_audio_proj(project_file, isSimTarget, isBundle):
     """
@@ -181,6 +179,18 @@ def get_dkcs_path_value_from_audio_proj(project_file):
                 return property.text
     return None
 
+
+def get_acat_version(acat_executable):
+    acat_path = os.path.dirname(acat_executable)
+    sys.path.append(acat_path)
+    try:
+        from ACAT import __version__
+        return __version__
+
+    except ImportError:
+        return "Unable to determine ACAT's version!"
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -213,6 +223,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    env = os.environ.copy()
+
+    acat_version = get_acat_version(args.acat_path)
+    print('ACAT {}'.format(acat_version))
 
     # Check ACAT dependencies. If anything missing, a suitable message
     # will appear on the screen.
@@ -232,8 +246,6 @@ if __name__ == "__main__":
         if audio_path is not None:
             # Setup the calling string for ACAT
             command_string = "python -i " + args.acat_path
-
-            env = os.environ.copy()
 
             command_string += " -i "
 

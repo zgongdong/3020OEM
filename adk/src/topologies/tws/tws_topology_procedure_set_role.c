@@ -30,7 +30,7 @@ void TwsTopology_ProcedureSetRoleStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureSetRoleCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_set_role_fns = {
+const tws_topology_procedure_fns_t proc_set_role_fns = {
     TwsTopology_ProcedureSetRoleStart,
     TwsTopology_ProcedureSetRoleCancel,
     NULL,
@@ -45,7 +45,7 @@ void TwsTopology_ProcedureSetRoleStart(Task result_task,
 
     UNUSED(result_task);
 
-    DEBUG_LOG("TwsTopology_ProcedureSetRoleStart %u", role_type);
+    DEBUG_LOG("TwsTopology_ProcedureSetRoleStart %u role %d acting %d", role_type, role_type->role, role_type->acting_in_role);
 
     /* procedure started synchronously so indicate success */
     proc_start_cfm_fn(tws_topology_procedure_set_role, proc_result_success);
@@ -53,8 +53,8 @@ void TwsTopology_ProcedureSetRoleStart(Task result_task,
     /* start the procedure 
      *  - update the role single point of truth here in topology
      */
-    twsTopology_SetRole(role_type->role);
     twsTopology_SetActingInRole(role_type->acting_in_role);
+    twsTopology_SetRole(role_type->role);
 
     /* procedure completed synchronously so indicate completed already */
     TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn, tws_topology_procedure_set_role, proc_result_success);

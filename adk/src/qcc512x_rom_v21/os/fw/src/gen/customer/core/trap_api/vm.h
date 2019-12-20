@@ -630,19 +630,19 @@ uint8 VmGetAclRole(const tp_bdaddr * acl_address);
  */
 void VmSendRfcommPrim(void * prim);
 #endif /* TRAPSET_RFCOMM */
-#if TRAPSET_SHADOWING
+#if TRAPSET_MIRRORING
 
 /**
- *  \brief Sends a BlueStack Shadow Manager(SDM) primitive.
+ *  \brief Sends a BlueStack Mirroring Manager(MDM) primitive.
  *  \param prim A pointer to the primitive to send. The memory must have been dynamically
  *  allocated.
  * 
  * \note This trap may be called from a high-priority task handler
  * 
- * \ingroup trapset_shadowing
+ * \ingroup trapset_mirroring
  */
-void VmSendSdmPrim(void * prim);
-#endif /* TRAPSET_SHADOWING */
+void VmSendMdmPrim(void * prim);
+#endif /* TRAPSET_MIRRORING */
 #if TRAPSET_AMUXCLOCK
 
 /**

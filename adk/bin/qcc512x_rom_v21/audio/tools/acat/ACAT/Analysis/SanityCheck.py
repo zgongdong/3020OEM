@@ -282,12 +282,6 @@ class SanityCheck(Analysis.Analysis):
         Args:
             id_mismatch_allowed (int)
         """
-        if Arch.chip_arch == "KAS":
-            self.formatter.section_start('Firmware')
-            self.formatter.alert("KAS.. ID not currently supported")
-            self.formatter.section_end()
-            return
-
         if id_mismatch_allowed is not None:
             permit_mismatch = id_mismatch_allowed
         else:

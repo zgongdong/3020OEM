@@ -114,6 +114,7 @@ void Hdma_CoreDestroy(void)
     if(hdma_core_data && hdma_core_data->initialised == HDMA_CORE_INIT_COMPLETED_MAGIC)
     {
         free(hdma_core_data);
+        hdma_core_data = NULL;
     }
 }
 

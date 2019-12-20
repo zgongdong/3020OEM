@@ -159,6 +159,8 @@ typedef struct bitserial_config
     /** Serial clock frequency in kHz.
      * Not all frequencies are supported and it depends on 
      * Master clock to internal bitserial hardware.
+     * If an unsupported frequency is requested, the hardware will be configured
+     * to use the maximum supported frequency that does not exceed the requested one.
      * The user must consult the relevant device datasheet
      * for supported frequencies.
      */

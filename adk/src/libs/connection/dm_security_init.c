@@ -59,6 +59,11 @@ void connectionSmInit(cl_dm_bt_version version, connectionSmState *smState, uint
             message->config         |=  DM_SM_SEC_MODE_CONFIG_DISABLE_CTKD;
             message->options        |=  DM_SM_INIT_CONFIG;
         }
+        if (flags & CONNECTION_FLAG_SELECTIVE_CTKD)
+        {
+            message->config         |=  DM_SM_SEC_MODE_CONFIG_SELECTIVE_CTKD;
+            message->options        |=  DM_SM_INIT_CONFIG;
+        }
     }
 
     message->write_auth_enable  =  cl_sm_wae_acl_owner_none;

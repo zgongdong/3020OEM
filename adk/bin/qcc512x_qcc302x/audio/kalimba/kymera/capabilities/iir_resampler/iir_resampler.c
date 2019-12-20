@@ -1359,10 +1359,10 @@ bool init_iir_resampler_internal(IIR_RESAMPLER_OP_DATA* op_extra_data)
     iir_resamplerv2->working = (unsigned*) (iir_resamplerv2->channel + num_channels);
 
     /* shift input to Q9.xx for processing head-room */
-    iir_resamplerv2->common.input_scale  = -8;
+    iir_resamplerv2->common.input_scale  = -IIR_RESAMPLEV2_IO_SCALE_FACTOR;
 
     /* shift output back to Q1.xx */
-    iir_resamplerv2->common.output_scale =  8;
+    iir_resamplerv2->common.output_scale =  IIR_RESAMPLEV2_IO_SCALE_FACTOR;
 
     /* set internal pointer to shared memory iir_resamplerv2 data structure */
     iir_resamplerv2_set_config(&iir_resamplerv2->common,lpconfig);

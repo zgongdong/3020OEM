@@ -20,7 +20,6 @@
 #include <chain.h>
 
 #include "kymera.h"
-#include "kymera_voice_capture.h"
 #include "earbud_log.h"
 #include "earbud_chain_roles.h"
 #include "earbud_latency.h"
@@ -69,7 +68,7 @@
 
 /*! Maximum codec rate expected by this application */
 #define MAX_CODEC_RATE_KBPS (384) /* Stereo aptX */
-#define APTX_MONO_CODEC_RATE_KBPS (192) /* Stereo aptX */
+#define APTX_MONO_CODEC_RATE_KBPS (192) /* Mono aptX */
 
 /*!:{ \name Macros to calculate buffer sizes required to hold a specific (timed) amount of audio */
 #define CODEC_BITS_PER_MEMORY_WORD (16)
@@ -100,6 +99,9 @@
 /*! Kymera ringtone generator has a fixed sample rate of 8 kHz */
 #define KYMERA_TONE_GEN_RATE (8000)
 
+/*! Default DAC disconnection delay in milliseconds */
+#define appKymeraDacDisconnectionDelayMs() (30000)
+
 /*! \brief The audio data format */
 typedef enum
 {
@@ -119,12 +121,13 @@ typedef enum
 /*! \brief Kymera operator UCIDs */
 typedef enum kymera_operator_ucids
 {
-    UCID_AEC_WB = 0,
-    UCID_AEC_NB = 1,
-    UCID_AEC_SWB = 2,
-    UCID_AEC_UWB = 3,
-    UCID_AEC_WB_VA = 4,
-    UCID_CVC_SEND = 0,
+    UCID_AEC_NB    = 0,
+    UCID_AEC_WB    = 1,
+    UCID_AEC_WB_VA = 2,
+    UCID_AEC_UWB   = 3,
+    UCID_AEC_SWB   = 4,
+    UCID_CVC_SEND    = 0,
+    UCID_CVC_SEND_VA = 1,
     UCID_CVC_RECEIVE = 0,
     UCID_VOLUME_CONTROL = 0,
     UCID_SOURCE_SYNC = 0,
@@ -170,6 +173,12 @@ enum app_kymera_internal_message_ids
     KYMERA_INTERNAL_ANC_TUNING_START,
     /*! Internal ANC tuning stop message */
     KYMERA_INTERNAL_ANC_TUNING_STOP,
+    /*! Disable the audio SS (used for the DAC disable) */
+    KYMERA_INTERNAL_AUDIO_SS_DISABLE,
+    /*! Internal A2DP data sync indication timeout message */
+    KYMERA_INTERNAL_A2DP_DATA_SYNC_IND_TIMEOUT,
+    /*! Internal A2DP audio synchronisation message */
+    KYMERA_INTERNAL_A2DP_AUDIO_SYNCHRONISED,
 };
 
 /*! \brief The KYMERA_INTERNAL_A2DP_START and KYMERA_INTERNAL_A2DP_STARTING message content. */
@@ -211,7 +220,7 @@ typedef struct
 typedef struct
 {
     /*! The SCO audio sink. */
-    Sink audio_sink;    
+    Sink audio_sink;
     /*! Pointer to SCO chain information. */
     const appKymeraScoChainInfo *sco_info;
     /*! The link Wesco. */
@@ -284,23 +293,12 @@ typedef struct
     uint16 client_lock_mask;
 } KYMERA_INTERNAL_TONE_PROMPT_PLAY_T;
 
-/*! \brief KYMERA_INTERNAL_VOICE_CAPTURE_START message content */
-typedef struct
-{
-    Task client;
-    voice_capture_params_t params;
-} KYMERA_INTERNAL_VOICE_CAPTURE_START_T;
-
-/*! \brief KYMERA_INTERNAL_VOICE_CAPTURE_STOP message content */
-typedef struct
-{
-    Task client;
-} KYMERA_INTERNAL_VOICE_CAPTURE_STOP_T;
-
 typedef struct
 {
     uint32 usb_rate;
 } KYMERA_INTERNAL_ANC_TUNING_START_T;
+
+unsigned appKymeraGetSbcEncodedDataBufferSize(const sbc_encoder_params_t *sbc_params, uint32 latency_in_ms);
 
 void appKymeraSetState(appKymeraState state);
 
@@ -467,11 +465,6 @@ void appKymeraSwitchSelectMic(micSelection mic);
     \param is_consumer Consumer mode if is_consumer is TRUE otherwise passthrough mode. */
 void appKymeraConfigureSpcMode(Operator op, bool is_consumer);
 
-/*! \brief Set the SPC data format.
-    \param op The SPC operator.
-    \param format The data format to set. */
-void appKymeraConfigureSpcDataFormat(Operator op, audio_data_format format);
-
 /*! \brief Set the SPC data format for SCO data.
     \param op The SPC operator.
     \param format The data format to set. */
@@ -522,5 +515,6 @@ void AudioConfigSetRawDacGain(audio_output_t channel, uint32 raw_gain);
 Source Kymera_GetMicrophoneSource(microphone_number_t microphone_number, Source source_to_synchronise_with, uint32 sample_rate,
                                         microphone_user_type_t microphone_user_type);
 void Kymera_CloseMicrophone(microphone_number_t microphone_number, microphone_user_type_t microphone_user_type);
+
 
 #endif /* KYMERA_PRIVATE_H */

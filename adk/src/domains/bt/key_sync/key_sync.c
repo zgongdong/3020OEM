@@ -223,7 +223,8 @@ static void keySync_FindHandsetsAndCheckForSync(device_t device, void *data)
     {
         bdaddr handset = DeviceProperties_GetBdAddr(device);
 
-        DEBUG_LOG("KeySync_Sync found key to sync 0x%04x", handset.lap);
+        DEBUG_LOG("KeySync_Sync found key to sync, handset bd_addr [0x%04x,0x%02x,0x%06lx]",
+                   handset.nap, handset.uap, handset.lap);
         ConnectionSmGetAuthDevice(keySync_GetTask(), &handset);
     }
 }

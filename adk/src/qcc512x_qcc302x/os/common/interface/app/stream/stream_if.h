@@ -432,9 +432,8 @@ typedef enum
     STREAM_RM_ENABLE_HW_ADJUST = 0x1201,                   /*!< Enable hardware rate adjustment on an endpoint. */
     STREAM_RM_ENABLE_DEFERRED_KICK = 0x1205,               /*!< Use high priority background interrupt if kick processing. */
     STREAM_RM_USE_RATE_ADJUST_OPERATOR = 0x1208,           /*!< Use a standalone RATE ADJUST operator. */
-    STREAM_SOURCE_HANDOVER_POLICY = 0x1300,                /*!< Handover policy for L2CAP source stream.
-                                                                0 = Allow handover only if source buffer doesn't have data,
-                                                                1 = Allow handover even if source buffer has data */
+    STREAM_SOURCE_HANDOVER_POLICY = 0x1300,                /*!< Handover policy for L2CAP/RFCOMM source stream. See
+                                                                #source_handover_policy documentation for details */
     STREAM_AUDIO_SYNC_SOURCE_INTERVAL = 0x1400,            /*!< Time interval (in microseconds) at which audio synchronisation
                                                                 source stream generates packets. */
     STREAM_AUDIO_SYNC_SOURCE_MTU = 0x1401,                 /*!< Maximum payload size in bytes for audio synchronisation
@@ -552,5 +551,16 @@ typedef enum
     SINK_MODE_DEFAULT = 0,  /*!< Default mode, sink data to be ignored */
     SINK_MODE_STARTUP = 1   /*!< Sink data to be used for start of audio synchronisation */
 }audio_sync_sink_mode;
+
+/*!
+  @brief Source stream handover policy for STREAM_SOURCE_HANDOVER_POLICY config key
+*/
+typedef enum
+{
+    SOURCE_HANDOVER_DISALLOW = 0,        /*!< Disallow handover (default policy) */
+    SOURCE_HANDOVER_ALLOW_WITHOUT_DATA,  /*!< Allow handover if source has no pending data */
+    SOURCE_HANDOVER_ALLOW                /*!< Allow handover with/without data. Note: Source data 
+                                              may be lost during handover with this policy */
+}source_handover_policy;
 
 #endif  /* __APP_STREAM_IF_H__ */

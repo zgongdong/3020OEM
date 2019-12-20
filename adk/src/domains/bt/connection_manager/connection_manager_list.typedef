@@ -6,6 +6,7 @@
     <include_header name="task_list.h"/>
     <include_header name="connection_manager.h"/>
     <include_header name="link_policy.h"/>
+    <include_header name="connection_no_ble.h"/>
 
     <source>
 #include "domain_marshal_types.h"
@@ -15,7 +16,13 @@
 /*! Flag used on ACL states to indicate if the state represents an activity
     that will finish. */
 #define ACL_STATE_LOCK (0x08)
+#define MARSHAL_TYPE_lp_power_mode MARSHAL_TYPE_uint8
     </typedef_header_source>
+	<source>
+#ifndef HOSTED_TEST_ENVIRONMENT 	
+COMPILE_TIME_ASSERT(sizeof(lp_power_mode) == sizeof(uint8), lp_power_mode_is_not_the_same_size_as_uint8);
+#endif
+    </source>
 
     <typedef_enum name="cm_connection_state_t" basic="true" doc="Internal state for an individual ACL link">
         /*! The ACL is connecting. Lock variables will clear once connected, or failed */
@@ -48,5 +55,7 @@
         <member marshal="true" doc="Connection Manager Device bitfields">cm_con_bitfields_t bitfields</member>
         <member marshal="true" doc="The current link policy for this connection">lpPerConnectionState lp_state</member>
         <member marshal="true" doc="The most recently requested QoS for this connection">uint8 qos_list[cm_qos_max]</member>
+        <member marshal="true" doc="The present power mode for this connection">lp_power_mode mode</member>
+        <member marshal="true" doc="The present sniff interval(in slots) for this connection">uint16 interval</member>
     </typedef_struct>
 </types>

@@ -201,6 +201,8 @@ typedef struct RTP_DECODE_OP_DATA
     /** Previous source ID */
     uint32 prev_src_id;
 
+    TIME_INTERVAL rtp_ttp_adjust;
+
 } RTP_DECODE_OP_DATA;
 
 

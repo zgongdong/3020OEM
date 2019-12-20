@@ -27,6 +27,7 @@ NOTES
 #include "hfp_slc_handler.h"
 #include "hfp_sdp.h"
 #include "hfp_audio_handler.h"
+#include "hfp_handover_policy.h"
 
 #include <panic.h>
 #include <stream.h>
@@ -146,12 +147,18 @@ static void hfpHandleRfcommConnectCfm(hfp_link_data* link, Sink sink, rfcomm_con
         {
             case rfcomm_connect_success:
             {
+                Source src;
+
                 /* Schedule check for data in the buffer */
                 MESSAGE_MAKE(message, MessageMoreData);
-                message->source = StreamSourceFromSink(sink);
+                src = StreamSourceFromSink(sink);
+                message->source = src;
                 MessageSend(&theHfp->task, MESSAGE_MORE_DATA, message);
                 
                 hfpSetLinkSlcState(link, hfp_slc_connected);
+                
+                /* Set the handover policy */
+                PanicFalse(hfpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW_WITHOUT_DATA));
                 
                 /* RFCOMM connection is up! Check which profile is supported by this task */
                 if (hfpLinkIsHsp(link))
@@ -164,7 +171,7 @@ static void hfpHandleRfcommConnectCfm(hfp_link_data* link, Sink sink, rfcomm_con
                     /* Initiate SLC establishment - Don't send anything to the app yet */
                     hfpHandleBrsfRequest(link);
                     return;
-                }
+                }                                
             }
             break;
             

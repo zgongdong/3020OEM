@@ -173,4 +173,10 @@ extern uint16 globalDebugLineCount;
  */
 #define DEBUG_PRINTF    DEBUG_PRINT
 
+/*! Macro to print an unsigned long long in a DEBUG_LOG statement. 
+
+    Usage: DEBUG_LOG("Print unsigned long long 0x%08lx%08lx", PRINT_ULL(unsigned long long))
+*/
+#define PRINT_ULL(x)   ((uint32)(((x) >> 32) & 0xFFFFFFFFUL)),((uint32)((x) & 0xFFFFFFFFUL))
+
 #endif /* LOGGING_H */

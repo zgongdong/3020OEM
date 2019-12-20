@@ -8,6 +8,7 @@
 */
 
 #include "hdma.h"
+#include "hdma_client_msgs.h"
 #include <message.h>
 #include <logging.h>
 #ifndef INCLUDE_HDMA
@@ -92,6 +93,22 @@ bool Hdma_Destroy(void)
         hdma_DestroyIntervalTimerMessage();
         Hdma_CoreDestroy();
         free(hdma);
+        hdma = NULL;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+bool Hdma_ExternalHandoverRequest(void)
+{
+    DEBUG_LOG("Hdma_ExternalHandoverRequest");
+
+    if(hdma && hdma->initialised == HDMA_INIT_COMPLETED_MAGIC)
+    {
+        hdma_NotifyHandoverClients(HDMA_HANDOVER_NOTIFICATION,
+                                   VmGetTimerTime(),
+                                   HDMA_HANDOVER_REASON_EXTERNAL,
+                                   HDMA_HANDOVER_URGENCY_CRITICAL);
         return TRUE;
     }
     return FALSE;

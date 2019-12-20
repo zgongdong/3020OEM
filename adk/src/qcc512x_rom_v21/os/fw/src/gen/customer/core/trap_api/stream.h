@@ -648,55 +648,6 @@ void StreamUartConfigure(vm_uart_rate rate, vm_uart_stop stop, vm_uart_parity pa
  */
 Sink StreamFastPipeSink(uint16 id);
 #endif /* TRAPSET_FASTPIPE */
-#if TRAPSET_SHADOWING
-
-/**
- *  \brief  Return the source containing marshal data for ACL link with given remote
- *  device 
- *         
- *          
- *  \param tpaddr Bluetooth address of remote device. 
- *  \return 0 if no ACL connection exists with remote device 
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_shadowing
- */
-Source StreamAclMarshalSource(const tp_bdaddr * tpaddr);
-
-/**
- *  \brief  Return the sink to unmarshal data for ACL link with given remote device 
- *         
- *          
- *  \param tpaddr Bluetooth address of remote device. 
- *  \return 0 if no ACL connection exists with remote device 
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_shadowing
- */
-Sink StreamAclMarshalSink(const tp_bdaddr * tpaddr);
-
-/**
- *  \brief  Return the source to get audio synchronisation packets. 
- *         
- * The audio synchronisation packet contain timing information received 
- * from RTP decode operator in below format: 
- * RTP packet sequence no - 2 bytes
- * TTP Timestamp Most significant word - 2 bytes
- * TTP Timestamp Least significant word - 2 bytes
- * The Interval and MTU must be configured before expecting data in source buffer. 
- * The MTU must be multiple of audio packet size (i.e. 6 bytes). See
- *  \#stream_config_key 
- * documentation for more details.
- *  \param opid RTP decode operator ID 
- * 
- * \note This trap may NOT be called from a high-priority task handler
- * 
- * \ingroup trapset_shadowing
- */
-Source StreamAudioSyncSource(Operator opid);
-#endif /* TRAPSET_SHADOWING */
 #if TRAPSET_SD_MMC
 
 /**
@@ -980,6 +931,65 @@ Source StreamScoSource(uint16 handle);
  * \ingroup trapset___special_inline
  */
 bool StreamConnectAndDispose(Source source, Sink sink);
+#if TRAPSET_MIRRORING
+
+/**
+ *  \brief  Return the source containing marshal data for ACL link with given remote
+ *  device 
+ *         
+ *          
+ *  \param tpaddr Bluetooth address of remote device. 
+ *  \return 0 if no ACL connection exists with remote device 
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_mirroring
+ */
+Source StreamAclMarshalSource(const tp_bdaddr * tpaddr);
+
+/**
+ *  \brief  Return the sink to unmarshal data for ACL link with given remote device 
+ *         
+ *          
+ *  \param tpaddr Bluetooth address of remote device. 
+ *  \return 0 if no ACL connection exists with remote device 
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_mirroring
+ */
+Sink StreamAclMarshalSink(const tp_bdaddr * tpaddr);
+
+/**
+ *  \brief  Return the source to get audio synchronisation packets. 
+ *         
+ * The source contains audio synchronisation data with 6 byte header followed
+ * by 6 byte packets which contain timing information received from RTP decode 
+ * operator.
+ * Header format: 
+ * Version - 2 bytes
+ * SPADJ - 4 bytes 
+ * Packet format: 
+ * RTP packet sequence no - 2 bytes
+ * TTP Timestamp Most significant word - 2 bytes
+ * TTP Timestamp Least significant word - 2 bytes
+ * NOTE: 
+ * The Interval and MTU must be configured before expecting data in source. 
+ * The MTU must be multiple of audio packet size (i.e. 6 bytes). See
+ *  \#stream_config_key 
+ * documentation for more details.
+ * Audio synchronisation data can be written into sink stream to adjust 
+ * TTP and SPADJ of RTP decode operator. The sink mode must be set prior to 
+ * writing data into sink buffer. See \#stream_config_key documentation for 
+ * more details.
+ *  \param opid RTP decode operator ID 
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_mirroring
+ */
+Source StreamAudioSyncSource(Operator opid);
+#endif /* TRAPSET_MIRRORING */
 #if TRAPSET_KALIMBA
 
 /**

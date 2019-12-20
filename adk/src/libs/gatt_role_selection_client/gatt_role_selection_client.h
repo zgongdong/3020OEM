@@ -55,8 +55,8 @@ typedef struct
     uint16 handle_role_control;         /*!< Handle for commanding a role */
 
     uint16 state;                       /*!< State of the client implementation. \ref gatt_role_selection_client_state.h */
-                                        /*! Last received shadowing state of the peer */
-    GattRoleSelectionServiceShadowingState peer_state;
+                                        /*! Last received mirroring state of the peer */
+    GattRoleSelectionServiceMirroringState peer_state;
     grss_figure_of_merit_t figure_of_merit;/*!< Last received figure of merit from the peer */
 
     bool init_response_needed;          /*!< Need to send a response for init */
@@ -98,7 +98,7 @@ typedef struct
 typedef struct
 {
     const GATT_ROLE_SELECTION_CLIENT       *instance;
-    GattRoleSelectionServiceShadowingState  state;
+    GattRoleSelectionServiceMirroringState  state;
 
 } GATT_ROLE_SELECTION_CLIENT_STATE_IND_T;
 
@@ -182,7 +182,7 @@ bool GattRoleSelectionClientInit(GATT_ROLE_SELECTION_CLIENT *instance,
 bool GattRoleSelectionClientDestroy(GATT_ROLE_SELECTION_CLIENT *instance);
 
 
-/*! Request a read of the peers shadowing state
+/*! Request a read of the peers mirroring state
 
     This function sends a message requesting the state from the peer. 
     The application will be sent a GATT_ROLE_SELECTION_CLIENT_STATE_IND
@@ -196,7 +196,7 @@ bool GattRoleSelectionClientDestroy(GATT_ROLE_SELECTION_CLIENT *instance);
 bool GattRoleSelectionClientReadPeerState(GATT_ROLE_SELECTION_CLIENT *instance);
 
 
-/*! Enable notification of changes in the peers shadowing state
+/*! Enable notification of changes in the peers mirroring state
 
     This function enables the sending of autonomous state updates from 
     the remote device.

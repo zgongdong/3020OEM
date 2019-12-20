@@ -47,7 +47,7 @@ void TwsTopology_ProcedureHandoverStart(Task result_task,
 
 void TwsTopology_ProcedureHandoverCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_handover_fns = {
+const tws_topology_procedure_fns_t proc_handover_fns = {
     TwsTopology_ProcedureHandoverStart,
     TwsTopology_ProcedureHandoverCancel,
     NULL,

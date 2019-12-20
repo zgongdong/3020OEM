@@ -10,6 +10,7 @@
 
 #include "tws_topology_procedure_clean_connections.h"
 
+#include <bt_device.h>
 #include <connection_manager.h>
 #include <timestamp_event.h>
 
@@ -18,11 +19,9 @@
 #include <message.h>
 #include <panic.h>
 
-#define TWSTOP_PROC_CLOSE_ALL_CFM_TIMEOUT_MS    (150)
-
 typedef enum
 {
-    TWSTOP_PROC_INTERNAL_TIMEOUT,
+    TWSTOP_PROC_INTERNAL_CLOSE_HANDSET_TIMEOUT,
 };
 
 typedef struct
@@ -48,7 +47,7 @@ void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
 void TwsTopology_ProcedureCleanConnectionsCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
 
-tws_topology_procedure_fns_t proc_clean_connections_fns = {
+const tws_topology_procedure_fns_t proc_clean_connections_fns = {
     TwsTopology_ProcedureCleanConnectionsStart,
     TwsTopology_ProcedureCleanConnectionsCancel,
     NULL,
@@ -56,12 +55,16 @@ tws_topology_procedure_fns_t proc_clean_connections_fns = {
 
 static void TwsTopology_ProcedureCleanConnectionsResetProc(void)
 {
+    twsTopProcCleanConnectionsTaskData* td = TwsTopProcCleanConnectionsGetTaskData();
+
     DEBUG_LOG("TwsTopology_ProcedureCleanConnectionsResetProc");
 
     TimestampEvent(TIMESTAMP_EVENT_CLEAN_CONNECTIONS_COMPLETED);
 
-    MessageCancelFirst(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT);
-    TwsTopProcCleanConnectionsGetTaskData()->active = FALSE;
+    MessageCancelAll(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_CLOSE_HANDSET_TIMEOUT);
+    td->active = FALSE;
+
+    ConManagerUnregisterConnectionsClient(TwsTopProcCleanConnectionsGetTask());
 }
 
 void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
@@ -70,6 +73,7 @@ void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
                                                 Message goal_data)
 {
     twsTopProcCleanConnectionsTaskData* td = TwsTopProcCleanConnectionsGetTaskData();
+    bdaddr addr;
 
     UNUSED(result_task);
     UNUSED(goal_data);
@@ -81,8 +85,22 @@ void TwsTopology_ProcedureCleanConnectionsStart(Task result_task,
 
     TimestampEvent(TIMESTAMP_EVENT_CLEAN_CONNECTIONS_STARTED);
 
-    ConManagerTerminateAllAcls(TwsTopProcCleanConnectionsGetTask());
-    MessageSendLater(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_TIMEOUT, NULL, TWSTOP_PROC_CLOSE_ALL_CFM_TIMEOUT_MS);
+    ConManagerRegisterConnectionsClient(TwsTopProcCleanConnectionsGetTask());
+
+    /* Disconnect the handset first, if it is connected */
+    if (appDeviceGetHandsetBdAddr(&addr) && ConManagerIsConnected(&addr))
+    {
+        DEBUG_LOG("TwsTopology_ProcedureCleanConnectionsStart DISCONNECTING HANDSET");
+        ConManagerSendCloseAclRequest(&addr, TRUE);
+        MessageSendLater(TwsTopProcCleanConnectionsGetTask(), TWSTOP_PROC_INTERNAL_CLOSE_HANDSET_TIMEOUT, NULL,
+                         TWSTOP_PROC_CLOSE_HANDSET_IND_TIMEOUT_MS);
+    }
+    else
+    {
+        /* Otherwise force disconnect any remaining ACLs, which may include the peer */
+        DEBUG_LOG("TwsTopology_ProcedureCleanConnectionsStart DISCONNECT ALL");
+        ConManagerTerminateAllAcls(TwsTopProcCleanConnectionsGetTask());
+    }
 
     proc_start_cfm_fn(tws_topology_procedure_clean_connections, proc_result_success);
 }
@@ -94,6 +112,27 @@ void TwsTopology_ProcedureCleanConnectionsCancel(twstop_proc_cancel_cfm_func_t p
 
     TwsTopology_ProcedureCleanConnectionsResetProc();
     proc_cancel_cfm_fn(tws_topology_procedure_clean_connections, proc_result_success);
+}
+
+
+static void twsTopology_ProcCleanConnectionsHandleConManagerConnectionInd(const CON_MANAGER_CONNECTION_IND_T* ind)
+{
+    DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleConManagerConnectionInd Conn:%u BLE:%u %04x,%02x,%06lx", ind->connected,
+                                                                                          ind->ble,
+                                                                                          ind->bd_addr.nap,
+                                                                                          ind->bd_addr.uap,
+                                                                                          ind->bd_addr.lap);
+
+    if (   (!ind->connected)
+        && (appDeviceIsHandset(&ind->bd_addr)
+        && (!ind->ble)))
+    {
+        DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleConManagerConnectionInd handset disconnected");
+
+        /* Force disconnect any remaining ACLs, which may include the peer */
+        DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleConManagerConnectionInd DISCONNECT ALL");
+        ConManagerTerminateAllAcls(TwsTopProcCleanConnectionsGetTask());
+    }
 }
 
 
@@ -124,15 +163,33 @@ static void twsTopology_ProcCleanConnectionsHandleMessage(Task task, MessageId i
 
     switch (id)
     {
-    case TWSTOP_PROC_INTERNAL_TIMEOUT:
-        DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleMessage ******************************** TIMEOUT waiting on CON_MANAGER_CLOSE_ALL_CFM");
-        // fall-thru
+    case TWSTOP_PROC_INTERNAL_CLOSE_HANDSET_TIMEOUT:
+        {
+            DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleMessage ******************************** TIMEOUT waiting on CON_MANAGER_CONNECTION_IND");
+
+            /* Force disconnect any remaining ACLs, which may include the peer */
+            ConManagerTerminateAllAcls(TwsTopProcCleanConnectionsGetTask());
+
+            bdaddr addr;
+            if (appDeviceGetHandsetBdAddr(&addr) && ConManagerIsConnected(&addr))
+            {
+                /* Log the case where the timeout triggered because it is
+                   too short, i.e. the handset is still connected. */
+                DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleMessage Handset still connected");
+            }
+        }
+        break;
+
     case CON_MANAGER_CLOSE_ALL_CFM:
         twsTopology_ProcCleanConnectionsHandleCloseAllCfm();
+        break;
+
+    case CON_MANAGER_CONNECTION_IND:
+        DEBUG_LOG("twsTopology_ProcCleanConnectionsHandleConManagerConnectionInd CON_MANAGER_CONNECTION_IND");
+        twsTopology_ProcCleanConnectionsHandleConManagerConnectionInd((const CON_MANAGER_CONNECTION_IND_T*)message);
         break;
 
     default:
         break;
     }
 }
-

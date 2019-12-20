@@ -41,7 +41,7 @@ class HeapPmMem(Heap):
         **kwarg: Arbitrary keyword arguments.
     """
     # heap names
-    heap_names = ["PM heap P0", "PM heap P1", "PM heap P1+"]
+    heap_names = ["PM heap P0", "PM heap P1", "PM addnl heap"]
     max_num_heaps = len(heap_names)
     internal_heap_names = [
         "heap_pm",
@@ -143,15 +143,16 @@ class HeapPmMem(Heap):
         if addnl_p1_size != 0:
             output_str += (
                 "==============================<-{:8x}\n"
-                "|   Additional P1 PM Heap    |\n"
+                "|   Additional {} PM Heap    |\n"
                 "|        {:6d} Bytes        |\n"
                 "==============================<-{:8x}\n"
                 "|         P1 Cache           |\n"
                 "==============================<-{:8x}\n".format(
                     addnl_p1_end,
+                    "P1" if p1_size != 0 else "P0",
                     addnl_p1_size,
                     addnl_p1_start,
-                    p1_end
+                    p1_end if p1_size != 0 else p0_end
                 )
             )
 

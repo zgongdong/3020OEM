@@ -65,7 +65,7 @@ acl_rx_processed_status AclReceivedDataProcessed(const tp_bdaddr * addr, uint32 
  */
 bool AclTransmitDataPending(const tp_bdaddr * addr);
 #endif /* TRAPSET_ACL_CONTROL */
-#if TRAPSET_SHADOWING
+#if TRAPSET_MIRRORING
 
 /**
  *  \brief  Prepare the device for ACL handover. 
@@ -77,7 +77,7 @@ bool AclTransmitDataPending(const tp_bdaddr * addr);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_shadowing
+ * \ingroup trapset_mirroring
  */
 uint16 AclHandoverPrepare(const tp_bdaddr * acl_addr, const tp_bdaddr * recipient);
 
@@ -91,13 +91,13 @@ uint16 AclHandoverPrepare(const tp_bdaddr * acl_addr, const tp_bdaddr * recipien
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_shadowing
+ * \ingroup trapset_mirroring
  */
 acl_handover_prepare_status AclHandoverPrepared(uint16 handle);
 
 /**
  *  \brief  This trap should be called by both primary and secondary devices to commit to
- *  resuming operation with the shadowed device in the new secondary or primary
+ *  resuming operation with the mirrored device in the new secondary or primary
  *  role.
  *         
  * On the primary device, this trap should be called after successful device role
@@ -109,12 +109,12 @@ acl_handover_prepare_status AclHandoverPrepared(uint16 handle);
  *         
  *  \param handle On the primary device, this will be the handle value returned by
  *  "AclHandoverPrepare()". On the secondary device, this will be
- *  connection_handle parameter in shadow acl link create indication 
+ *  connection_handle parameter in mirror acl link create indication 
  *  \return TRUE if operation is success, FALSE otherwise. 
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_shadowing
+ * \ingroup trapset_mirroring
  */
 bool AclHandoverCommit(uint16 handle);
 
@@ -128,13 +128,13 @@ bool AclHandoverCommit(uint16 handle);
  *         
  *  \param handle On the primary device, this will be the handle value returned by
  *  "AclHandoverPrepare()". On the secondary device, this will be
- *  connection_handle parameter in shadow acl link create indication
+ *  connection_handle parameter in mirror acl link create indication
  *  \return TRUE if operation is success, FALSE otherwise. 
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset_shadowing
+ * \ingroup trapset_mirroring
  */
 bool AclHandoverCancel(uint16 handle);
-#endif /* TRAPSET_SHADOWING */
+#endif /* TRAPSET_MIRRORING */
 #endif

@@ -41,9 +41,9 @@ typedef struct
                                     /*! Features supported by the server */
     GattRootKeyServiceFeatures  features; 
     GattRootKeyServiceStatus    status;
-                                    /*! The client configuration for the shadow challenge
+                                    /*! The client configuration for the mirror challenge
                                         control point. */
-    uint16                      shadow_client_config;
+    uint16                      mirror_client_config;
     GRKS_KEY_T secret;              /*!< The secret being used in the initial challenge*/
     bdaddr local_address;           /*!< Address of this device to be used in the challenge.
                                          Stored as can potentially be using random/public/resolvable */

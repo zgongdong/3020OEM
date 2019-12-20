@@ -35,6 +35,9 @@
  */
 #define AUDIO_SYNC_PACKET_MTU (48)
 
+/*! \brief Timeout for A2DP Data Sync event (in milliseconds) */
+#define A2DP_MIRROR_DATA_SYNC_IND_MS_TIMEOUT  (200)
+
 /*! \brief Start A2DP master.
 
     \param codec_settings The A2DP codec settings to use.
@@ -44,7 +47,7 @@
 
     In TWS legacy, the 'master' is the device that is connected to the handset
     and forwards media to the 'slave' device.
-    In TWS shadowing, both devices are 'master' and no media is forwarded.
+    In TWM, both devices are 'master' and no media is forwarded.
 
     The same API is used here to simplify the code in higher layers.
  */
@@ -55,14 +58,14 @@ bool appKymeraA2dpStartMaster(const a2dp_codec_settings *codec_settings, int16 v
     \param codec_settings The A2DP codec settings to use.
 
     In TWS legacy, this function starts the master forwarding media to the slave.
-    In TWS shadowing, this function is not be used.
+    In TWM, this function is not be used.
  */
 void appKymeraA2dpStartForwarding(const a2dp_codec_settings *codec_settings);
 
 /*! \brief Stop A2DP forwarding.
 
     In TWS legacy, this function stops the master forwarding media to the slave.
-    In TWS shadowing, this function is not be used.
+    In TWM, this function is not be used.
  */
 void appKymeraA2dpStopForwarding(void);
 
@@ -78,7 +81,7 @@ void appKymeraA2dpCommonStop(Source source);
 
     In TWS legacy, the 'master' is the device that is connected to the handset
     and forwards media to the 'slave' device.
-    In TWS shadowing, both devices are 'master' and no media is forwarded,
+    In TWM, both devices are 'master' and no media is forwarded,
     therefore this function is not used.
  */
 void appKymeraA2dpStartSlave(a2dp_codec_settings *codec_settings, int16 volume_in_db);

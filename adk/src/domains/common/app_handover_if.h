@@ -11,7 +11,7 @@ DESCRIPTION
 */
 
 /*!
-\defgroup twss twss
+\defgroup twm twm
 \ingroup Application
 
 \brief  Exposes interface to Application for relevant components to implement
@@ -145,7 +145,7 @@ typedef void (*app_handover_commit_t)( bool is_primary );
 */
 typedef struct {
     /*! List of marshal types */
-    uint8 *types;
+    const uint8 *types;
     /*! Size of list */
     uint8 list_size;
 } marshal_type_list_t;
@@ -159,7 +159,7 @@ typedef struct {
 */
 typedef struct {
     /*! List of Marshal types marshaled/unmarshaled by this interface */
-    marshal_type_list_t *type_list;
+    const marshal_type_list_t *type_list;
     /*! Veto Interface */
     app_handover_veto_t Veto;
     /*! Marshaling Interface */

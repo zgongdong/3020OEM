@@ -30,7 +30,7 @@
 #include <bt_device.h>
 #include <bredr_scan_manager.h>
 #include <key_sync.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 #include <hfp_profile.h>
 #include <hdma.h>
 #include <handset_service.h>
@@ -47,12 +47,6 @@ twsTopologyTaskData tws_topology = {0};
 
 void twsTopology_RulesSetEvent(rule_events_t event)
 {
-    if (TwsTopologyGetTaskData()->suppress_events)
-    {
-        DEBUG_LOG("twsTopology_RulesSetEvent event suppression active %u", event);
-        return;
-    }
-
     switch (TwsTopologyGetTaskData()->role)
     {
         case tws_topology_role_none:
@@ -128,7 +122,6 @@ tws_topology_role twsTopology_GetRole(void)
 /*! \brief Re evaluate deferred Events after a Set-Role and re-inject them to rules 
     engine if evaluation succeeded
  */
-
 static void twsTopology_ReEvaluateDeferredEvents(rule_events_t event_mask)
 {
     phyState current_phy_state = appPhyStateGetState();
@@ -142,10 +135,31 @@ static void twsTopology_ReEvaluateDeferredEvents(rule_events_t event_mask)
         }
 
 }
+
+static void twsTopology_EvaluatePhyState(rule_events_t event_mask)
+{
+    if (   (event_mask & TWSTOP_RULE_EVENT_IN_CASE)
+        && (appPhyStateGetState() == PHY_STATE_IN_CASE))
+    {
+        DEBUG_LOG("twsTopology_EvaluatePhyState setting unhandled IN_CASE event in new rule set");
+        twsTopology_RulesResetEvent(TWSTOP_RULE_EVENT_OUT_CASE);
+        twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_IN_CASE);
+    }
+    else if (   (event_mask & TWSTOP_RULE_EVENT_OUT_CASE)
+             && (appPhyStateGetState() != PHY_STATE_IN_CASE))
+    {
+        DEBUG_LOG("twsTopology_EvaluatePhyState setting unhandled OUT_CASE event in new rule set");
+        twsTopology_RulesResetEvent(TWSTOP_RULE_EVENT_IN_CASE);
+        twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_OUT_CASE);
+    }
+}
+
 void twsTopology_SetRole(tws_topology_role role)
 {
     tws_topology_role current_role = TwsTopologyGetTaskData()->role;
-    rule_events_t event_mask = TwsTopologyPrimaryRules_GetEvents();
+    rule_events_t pri_event_mask = TwsTopologyPrimaryRules_GetEvents();
+    rule_events_t sec_event_mask = TwsTopologySecondaryRules_GetEvents();
+
     DEBUG_LOG("twsTopology_SetRole Current role %u -> New role %u", current_role, role);
 
     /* inform clients of role change */
@@ -154,38 +168,38 @@ void twsTopology_SetRole(tws_topology_role role)
     /* only need to change role if actually changes */
     if (current_role != role)
     {
+        TwsTopologyGetTaskData()->role = role;
+
         /* when going to no role always reset rule engines */
         if (role == tws_topology_role_none)
         {
             TwsTopologyPrimaryRules_ResetEvent(RULE_EVENT_ALL_EVENTS_MASK);
             TwsTopologySecondaryRules_ResetEvent(RULE_EVENT_ALL_EVENTS_MASK);
+            twsTopology_EvaluatePhyState(current_role == tws_topology_role_primary ? pri_event_mask:sec_event_mask);
         }
-
-        TwsTopologyGetTaskData()->role = role;
 
         if(role == tws_topology_role_secondary)
         {
             Av_SetupForSecondaryRole();
             HfpProfile_SetRole(FALSE);
-            ShadowProfile_SetRole(FALSE);
+            MirrorProfile_SetRole(FALSE);
             TwsTopologyPrimaryRules_ResetEvent(RULE_EVENT_ALL_EVENTS_MASK);
             twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_ROLE_SWITCH);
-            twsTopology_ReEvaluateDeferredEvents(event_mask);
+            twsTopology_ReEvaluateDeferredEvents(pri_event_mask);
         }
         else if(role == tws_topology_role_primary)
         {
             Av_SetupForPrimaryRole();
             HfpProfile_SetRole(TRUE);
-            ShadowProfile_SetRole(TRUE);
+            MirrorProfile_SetRole(TRUE);
             TwsTopologySecondaryRules_ResetEvent(RULE_EVENT_ALL_EVENTS_MASK);
             twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_ROLE_SWITCH);
         }
 
         if(role == tws_topology_role_dfu)
         {
-            ShadowProfile_SetRole(FALSE);
+            MirrorProfile_SetRole(FALSE);
         }
-
     }
 }
 
@@ -210,7 +224,7 @@ void twsTopology_DestroyHdma(void)
 
 static void twsTopology_StartHdma(void)
 {
-    /*  Shadow ACL connection established, Invoke Hdma_Init  */
+    /*  Mirror ACL connection established, Invoke Hdma_Init  */
     if(TwsTopology_IsPrimary())
     {
         twsTopology_CreateHdma();
@@ -219,7 +233,7 @@ static void twsTopology_StartHdma(void)
 
 static void twsTopology_StopHdma(void)
 {
-    /*  Shadow ACL connection disconnected, Invoke HDMA_Destroy  */
+    /*  Mirror ACL connection disconnected, Invoke HDMA_Destroy  */
     twsTopology_DestroyHdma();
 }
 
@@ -282,6 +296,15 @@ static void twsTopology_HandleInternalStart(void)
     DEBUG_LOG("twsTopology_HandleInternalStart");
     twsTopology_Start();
 }
+
+
+static void twsTopology_HandleClearHandoverPlay(void)
+{
+    DEBUG_LOG("twsTopology_HandleClearHandoverPlay");
+
+    appAvPlayOnHandsetConnection(FALSE);
+}
+
 
 static void twsTopology_HandleProcPeerPairResult(PROC_PAIR_PEER_RESULT_T* pppr)
 {
@@ -358,98 +381,12 @@ static void twsTopology_HandleHDMARequest(hdma_handover_decision_t* message)
 static void twsTopology_HandleHDMACancelHandover(void)
 {
     DEBUG_LOG("twsTopology_HandleHDMACancelHandover");
-}
 
-void TwsTopology_GetPeerBdAddr(bdaddr* addr)
-{
-    twsTopologyTaskData* td = TwsTopologyGetTaskData();
-
-    if (td->role == tws_topology_role_none)
+    if(TwsTopologyGetTaskData()->app_prohibit_handover)
     {
-        DEBUG_LOG("TwsTopology_GetPeerBdAddr called in topology role none");
+        /* Initialize the handover information to none */
+        memset(&TwsTopologyGetTaskData()->handover_info,0,sizeof(handover_data_t));
     }
-
-    if (td->role == tws_topology_role_primary)
-    {
-        appDeviceGetSecondaryBdAddr(addr);
-    }
-    else if (td ->role != tws_topology_role_dfu)
-    {
-        appDeviceGetPrimaryBdAddr(addr);
-    }
-    else
-    {
-        appDeviceGetPeerBdAddr(addr);
-    }
-
-#if 0
-    /*! \todo test code. These functions should no longer be needed */
-    {
-        bdaddr device_addr;
-
-        appDeviceGetPeerBdAddr(&device_addr);
-        if (tws_topology_role_dfu != td ->role
-            && !BdaddrIsSame(&device_addr,addr))
-        {
-            DEBUG_LOG("TwsTopology_GetPeerBdAddr. Not DFU mode, but device peer bdaddr disagres");
-            Panic();
-        }
-    }
-#endif
-
-}
-
-bool TwsTopology_IsPeerBdAddr(bdaddr* addr)
-{
-    twsTopologyTaskData* td = TwsTopologyGetTaskData();
-    bdaddr candidate_peer;
-
-    if (td->role == tws_topology_role_none)
-    {
-        DEBUG_LOG("TwsTopology_IsPeerBdAddr called in topology role none");
-    }
-
-    if (!appDeviceIsPeer(addr))
-    {
-        return FALSE;
-    }
-
-    switch (td->role)
-    {
-        case tws_topology_role_primary:
-            appDeviceGetSecondaryBdAddr(&candidate_peer);
-            break;
-
-        case tws_topology_role_secondary:
-        case tws_topology_role_none:
-            appDeviceGetPrimaryBdAddr(&candidate_peer);
-            break;
-
-        case tws_topology_role_dfu:
-            appDeviceGetPeerBdAddr(&candidate_peer);
-            break;
-
-        default:
-            Panic();
-            break;
-    }
-
-    bool tws_result = BdaddrIsSame(addr, &candidate_peer);
-
-#if 0
-    /*! \todo test code. These functions should no longer be needed */
-
-    appDeviceGetPeerBdAddr(&candidate_peer);
-    bool device_result = BdaddrIsSame(addr, &candidate_peer);
-    if (   (tws_topology_role_dfu != td->role)
-        && device_result != tws_result)
-    {
-        DEBUG_LOG("TwsTopology_IsPeerBdAddr. Not DFU mode and address comparisons differ");
-        Panic();
-    }
-#endif
-
-    return tws_result;
 }
 
 /*! \brief Generate handset related Connection events into rule engine. */
@@ -465,10 +402,19 @@ static void twsTopology_HandleHandsetServiceConnectedInd(const HANDSET_SERVICE_C
 /*! \brief Generate handset related disconnection events into rule engine. */
 static void twsTopology_HandleHandsetServiceDisconnectedInd(const HANDSET_SERVICE_DISCONNECTED_IND_T* ind)
 {
-    DEBUG_LOG("twsTopology_HandleHandsetDisconnectedInd %04x,%02x,%06lx", ind->addr.nap,
-                                                                          ind->addr.uap,
-                                                                          ind->addr.lap);
-    twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_HANDSET_DISCONNECTED_BREDR);
+    DEBUG_LOG("twsTopology_HandleHandsetDisconnectedInd %04x,%02x,%06lx status %u", ind->addr.nap,
+                                                                                    ind->addr.uap,
+                                                                                    ind->addr.lap,
+                                                                                    ind->status);
+
+    if (ind->status == handset_service_status_link_loss)
+    {
+        twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_HANDSET_LINKLOSS);
+    }
+    else
+    {
+        twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_HANDSET_DISCONNECTED_BREDR);
+    }
 }
 
 /*! \brief Start or stop HDMA depending on Earbud state.
@@ -481,10 +427,10 @@ static void twsTopology_CheckHdmaRequired(void)
     bool handset_connected = appDeviceIsHandsetConnected();
     bool peer_connected = appDeviceIsPeerConnected();
     bool state_proxy_rx = StateProxy_InitialStateReceived();
-    bool shadow_profile_connected = ShadowProfile_IsConnected();
+    bool mirror_profile_connected = MirrorProfile_IsConnected();
 
-    DEBUG_LOG("twsTopology_CheckHdmaRequired handset %u peer %u stateproxy %u shadowprofile %u",
-                                handset_connected, peer_connected, state_proxy_rx,shadow_profile_connected);
+    DEBUG_LOG("twsTopology_CheckHdmaRequired handset %u peer %u stateproxy %u mirrorprofile %u",
+                                handset_connected, peer_connected, state_proxy_rx,mirror_profile_connected);
 
     if (handset_connected && peer_connected && state_proxy_rx
        )
@@ -519,18 +465,7 @@ static void twsTopology_HandleConManagerConnectionInd(const CON_MANAGER_CONNECTI
         /* start or stop HDMA as BREDR links have changed. */
         twsTopology_CheckHdmaRequired();
 
-        if (appDeviceIsHandset(&ind->bd_addr))
-        {
-            if (!ind->connected)
-            {
-                if (ind->reason == hci_error_conn_timeout)
-                {
-                    DEBUG_LOG("twsTopology_HandleConManagerConnectionInd HANDSET BREDR LINKLOSS");
-                    twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_HANDSET_LINKLOSS);
-                }
-            }
-        }
-        else if (appDeviceIsPeer(&ind->bd_addr))
+        if (appDeviceIsPeer(&ind->bd_addr))
         {   /* generate peer BREDR connection events into rules engines */
             if (ind->connected)
             {
@@ -558,12 +493,12 @@ static void twsTopology_HandleConManagerConnectionInd(const CON_MANAGER_CONNECTI
     }
 }
 
-static void twsTopology_HandleShadowProfileConnectedInd(void)
+static void twsTopology_HandleMirrorProfileConnectedInd(void)
 {
     twsTopology_CheckHdmaRequired();
 }
 
-static void twsTopology_HandleShadowProfileDisconnectedInd(void)
+static void twsTopology_HandleMirrorProfileDisconnectedInd(void)
 {
     twsTopology_CheckHdmaRequired();
 }
@@ -582,7 +517,7 @@ static void twsTopology_HandlePowerShutdownPrepareInd(void)
 {
     DEBUG_LOG("twsTopology_HandlePowerShutdownPrepareInd");
 
-    TwsTopology_SecondaryRoleSwitchCommand();
+    TwsTopology_SecondaryStaticHandoverCommand();
 
     /* todo shutdown role is transitional - it is used to prevent subsequent rule execution
        till we Power Off (as this causes issues with PFR and other normal system operation). */
@@ -654,13 +589,13 @@ static void twsTopology_HandleMessage(Task task, MessageId id, Message message)
             twsTopology_HandleStateProxyInitialStateReceived();
             break;
 
-        /* Shadow Profile messages */
-        case SHADOW_PROFILE_CONNECT_IND:
-            twsTopology_HandleShadowProfileConnectedInd();
+        /* Mirror Profile messages */
+        case MIRROR_PROFILE_CONNECT_IND:
+            twsTopology_HandleMirrorProfileConnectedInd();
             break;
 
-        case SHADOW_PROFILE_DISCONNECT_IND:
-            twsTopology_HandleShadowProfileDisconnectedInd();
+        case MIRROR_PROFILE_DISCONNECT_IND:
+            twsTopology_HandleMirrorProfileDisconnectedInd();
             break;
 
         /* PHY STATE MESSAGES */
@@ -701,6 +636,10 @@ static void twsTopology_HandleMessage(Task task, MessageId id, Message message)
             /* INTERNAL MESSAGES */
         case TWSTOP_INTERNAL_START:
             twsTopology_HandleInternalStart();
+            break;
+
+        case TWSTOP_INTERNAL_CLEAR_HANDOVER_PLAY:
+            twsTopology_HandleClearHandoverPlay();
             break;
 
         case CL_SDP_REGISTER_CFM:
@@ -813,6 +752,8 @@ bool TwsTopology_Init(Task init_task)
     TwsTopology_ProhibitHandover() function with TRUE parameter */
     tws_taskdata->app_prohibit_handover = FALSE;
 
+    tws_taskdata->prohibit_connect_to_handset = FALSE;
+
     /* setup task used to queue goals waiting on contention with currently
        active goals to clear. */
     tws_taskdata->pending_goal_queue_task.handler = TwsTopology_HandleGoalDecision;
@@ -827,8 +768,8 @@ bool TwsTopology_Init(Task init_task)
     /* Register to enable interested state proxy events */
     twsTopology_RegisterForStateProxyEvents();
 
-    /* Register for connect / disconnect events from shadow profile */
-    ShadowProfile_ClientRegister(TwsTopologyGetTask());
+    /* Register for connect / disconnect events from mirror profile */
+    MirrorProfile_ClientRegister(TwsTopologyGetTask());
 
     /* Register with power to receive sleep/shutdown messages. */
     appPowerClientRegister(TwsTopologyGetTask());
@@ -852,7 +793,7 @@ bool TwsTopology_Init(Task init_task)
 
     TwsTopology_SetState(TWS_TOPOLOGY_STATE_SETTING_SDP);
 
-    TaskList_InitialiseWithCapacity(TwsTopologyGetRoleChangedTasks(), ROLE_CHANGED_TASK_LIST_INIT_CAPACITY);
+    TaskList_InitialiseWithCapacity(TwsTopologyGetMessageClientTasks(), MESSAGE_CLIENT_TASK_LIST_INIT_CAPACITY);
 
     return TRUE;
 }
@@ -889,14 +830,14 @@ void TwsTopology_Start(Task requesting_task)
     }
 }
 
-void TwsTopology_RoleChangedRegisterClient(Task client_task)
+void TwsTopology_RegisterMessageClient(Task client_task)
 {
-    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(TwsTopologyGetRoleChangedTasks()), client_task);
+    TaskList_AddTask(TaskList_GetFlexibleBaseTaskList(TwsTopologyGetMessageClientTasks()), client_task);
 }
 
-void TwsTopology_RoleChangedUnRegisterClient(Task client_task)
+void TwsTopology_UnRegisterMessageClient(Task client_task)
 {
-    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(TwsTopologyGetRoleChangedTasks()), client_task);
+    TaskList_RemoveTask(TaskList_GetFlexibleBaseTaskList(TwsTopologyGetMessageClientTasks()), client_task);
 }
 
 tws_topology_role TwsTopology_GetRole(void)
@@ -968,6 +909,16 @@ void TwsTopology_ProhibitHandover(bool prohibit)
     if(!prohibit)
     {
         twsTopology_TriggerHandoverEvent();
+    }
+}
+
+void TwsTopology_ProhibitHandsetConnection(bool prohibit)
+{
+    TwsTopologyGetTaskData()->prohibit_connect_to_handset = prohibit;
+
+    if(prohibit)
+    {
+        twsTopology_RulesSetEvent(TWSTOP_RULE_EVENT_PROHIBIT_CONNECT_TO_HANDSET);
     }
 }
 

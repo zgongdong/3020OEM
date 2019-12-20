@@ -30,7 +30,7 @@ void gattRoleSelectionClientWritePeerControl(GATT_ROLE_SELECTION_CLIENT *instanc
     Sends a GATT_ROLE_SELECTION_CLIENT_STATE_IND message to the application task.
 */
 void makeRoleSelectionClientStateIndMsg(GATT_ROLE_SELECTION_CLIENT *instance, 
-                                        GattRoleSelectionServiceShadowingState state);
+                                        GattRoleSelectionServiceMirroringState state);
 
 
 /*!

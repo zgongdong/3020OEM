@@ -123,19 +123,19 @@ typedef enum
 
     /*! Goal is to enable advertising to enable LE connectivity with handset. */
     tws_topology_goal_le_connectable_handset,
+	
+    /*! Goal to allow or disallow handset connections */
+    tws_topology_goal_allow_handset_connect,
 
     /* ADD ENTRIES ABOVE HERE */
     /*! Final entry to get the number of IDs */
     TWS_TOPOLOGY_GOAL_NUMBER_IDS,
 } tws_topology_goal_id;
 
+/*! A set of goals, stored as bits in a mask. */
+typedef unsigned long long tws_topology_goal_msk;
 
-#if TWS_TOPOLOGY_GOAL_NUMBER_IDS < 32
-    typedef uint32 tws_topology_goal_msk;
-#else
-    typedef unsigned long long tws_topology_goal_msk;
-#endif
-
+/*! Macro to create a goal mask from a #tws_topology_goal_id. */
 #define GOAL_MASK(id) (((tws_topology_goal_msk)1)<<(id))
 
 
@@ -196,13 +196,13 @@ typedef struct
     rule_events_t                   failed_event;
 
     /*! Structure of function pointers implementing procedure interface. */
-    tws_topology_procedure_fns_t*   proc_fns;
+    const tws_topology_procedure_fns_t* proc_fns;
 
     /*! Scripted procedure handle. */
     const tws_topology_proc_script_t* proc_script;
 
     /*! Bitmask of goals which this goal can run concurrently with. */
-    tws_topology_goal_id           *concurrent_goals;
+    const tws_topology_goal_id*     concurrent_goals;
 } tws_topology_goal_entry_t;
 
 /*! Macro to add goal to the goals table. */
@@ -316,6 +316,22 @@ typedef struct
                      .proc_script = script, \
                      .exclusive_goal = exclusive_goal_name, \
                      .contention = goal_contention_cancel, \
+                     .failed_event = _failed_event }
+
+/*! Macro to add scripted cancel goal to the goals table.
+    If there are any goals active when this goal is added, they will be cancelled and the
+    new goal executed when the cancel has completed..
+    If the failed parameter is provided and the goal results in a failure, a failed event
+    will be sent to the rules engine. 
+    If the timeout parameter is provided and the goal results in a timeout, the timeout
+    event will be sent to the rules engine. */
+#define SCRIPT_GOAL_CANCEL_TIMEOUT_FAILED(goal_name, proc_name, script, exclusive_goal_name, \
+                                            _timeout_event, _failed_event) \
+    [goal_name] =  { .proc = proc_name, \
+                     .proc_script = script, \
+                     .exclusive_goal = exclusive_goal_name, \
+                     .contention = goal_contention_cancel, \
+                     .timeout_event = _timeout_event, \
                      .failed_event = _failed_event }
 
 /*! Macro to add scripted goal to the goals table and define an event to

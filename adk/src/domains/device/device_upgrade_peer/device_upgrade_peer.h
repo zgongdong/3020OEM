@@ -30,6 +30,7 @@ enum DeviceUpgradePeer_messages
     /*! Module initialisation complete */
     DEVICE_UPGRADE_PEER_INIT_CFM = DEVICE_UPGRADE_PEER_MESSAGE_BASE,
     DEVICE_UPGRADE_PEER_STARTED,
+    DEVICE_UPGRADE_PEER_DISCONNECT,
 };
 
 /*! Internal messages used by peer . */
@@ -71,7 +72,6 @@ typedef struct
     /* State related to L2CAP device upgrade peer channel */
     uint16          local_psm;        /*!< L2CAP PSM registered */
     uint16          remote_psm;       /*!< L2CAP PSM registered by peer device */
-    uint16          pending_connects;
 
     /* State related to maintaining upgrade signalling with peer */
     bdaddr peer_addr;   /*!< Bluetooth address of the peer we are signalling */

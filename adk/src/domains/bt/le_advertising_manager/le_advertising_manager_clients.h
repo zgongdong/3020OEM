@@ -14,9 +14,8 @@
 
 struct _le_adv_mgr_register
 {
-    bool in_use;
     Task task;
-    le_adv_data_callback_t callback;
+    const le_adv_data_callback_t *callback;
 };
 
 typedef struct
@@ -38,7 +37,7 @@ bool leAdvertisingManager_ClientHandleIsValid(const struct _le_adv_mgr_register 
     \param callback Client callback function pointers
     \return Client handle or NULL if a new client could not be created
 */
-le_adv_mgr_register_handle LeAdvertisingManager_NewClient(Task task, const le_adv_data_callback_t * callback);
+le_adv_mgr_register_handle LeAdvertisingManager_NewClient(Task task, const le_adv_data_callback_t * const callback);
 
 /*! \brief Get the head client from the list
     \param iterator Optional iterator to use with leAdvertisingManager_NextClient

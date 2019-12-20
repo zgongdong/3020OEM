@@ -11,6 +11,21 @@
 #include "fast_pair_advertising.h"
 
 
+/*! \brief Handle messages from Connection Library */
+bool fastPair_AuthenticateCfm(CL_SM_AUTHENTICATE_CFM_T *cfm)
+{
+    fast_pair_state_event_auth_args_t args;
+    fast_pair_state_event_t event;
+
+    /* Assign args to SM Auth event */
+    args.auth_cfm = cfm;
+
+    event.id = fast_pair_state_event_auth;
+    event.args = &args;
+
+    return fastPair_StateMachineHandleEvent(event);
+}
+
 /*! \brief Handle messages from Connection Manager */
 bool fastPair_ConManagerConnectInd(CON_MANAGER_TP_CONNECT_IND_T *cfm)
 {

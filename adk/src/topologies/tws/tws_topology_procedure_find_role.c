@@ -29,7 +29,7 @@ void TwsTopology_ProcedureFindRoleStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureFindRoleCancel(twstop_proc_cancel_cfm_func_t proc_cancel_fn);
 
-tws_topology_procedure_fns_t proc_find_role_fns = {
+const tws_topology_procedure_fns_t proc_find_role_fns = {
     TwsTopology_ProcedureFindRoleStart,
     TwsTopology_ProcedureFindRoleCancel,
     NULL,
@@ -66,7 +66,7 @@ void TwsTopology_ProcedureFindRoleStart(Task result_task,
 
     UNUSED(result_task);
 
-    DEBUG_LOG("TwsTopology_ProcedureFindRoleStart");
+    DEBUG_LOG("TwsTopology_ProcedureFindRoleStart timeout %d", params->timeout);
 
     td->complete_fn = proc_complete_fn;
     PeerFindRole_RegisterTask(TwsTopProcFindRoleGetTask());

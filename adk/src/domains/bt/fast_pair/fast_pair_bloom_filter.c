@@ -148,6 +148,7 @@ void fastPair_InitBloomFilter(void)
  */
 void fastPair_GenerateBloomFilter(void)
 {
+    DEBUG_LOG("FP Bloom Filter: fastPair_GenerateBloomFilter: sha_hash_lock(%d)", fastpair_bloom_filter.sha_hash_lock);
     if(!fastpair_bloom_filter.sha_hash_lock)
     {
         DEBUG_LOG("fastPair_GenerateBloomFilter:");

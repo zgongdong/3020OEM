@@ -185,14 +185,14 @@ static void appKymeraScoConfigureChain(uint16 wesco)
             /* Setup the MIC receive SPC for encoded data */
             Operator spc_op;
             PanicFalse(GET_OP_FROM_CHAIN(spc_op, sco_chain, OPR_MICFWD_RECV_SPC));
-            appKymeraConfigureSpcDataFormat(spc_op, ADF_16_BIT_WITH_METADATA);
+            OperatorsSetSwitchedPassthruEncoding(spc_op, spc_op_format_16bit_with_metadata);
     
             Operator mic_recv = ChainGetOperatorByRole(sco_chain,OPR_MICFWD_RECV);
             OperatorsAwbsSetBitpoolValue(mic_recv, SFWD_MSBC_BITPOOL, TRUE);
             OperatorsStandardSetBufferSizeWithFormat(mic_recv, SFWD_MICFWD_RECV_CHAIN_BUFFER_SIZE, operator_data_format_pcm);
     
             Operator mic_switch = ChainGetOperatorByRole(sco_chain, OPR_MICFWD_SPC_SWITCH);
-            appKymeraConfigureSpcDataFormat(mic_switch, ADF_PCM);
+            OperatorsSetSwitchedPassthruEncoding(mic_switch, spc_op_format_pcm);
     
             /* Resample the incoming mic data to the SCO sample rate if necessary */
             if (theKymera->sco_info->mode == SCO_NB)

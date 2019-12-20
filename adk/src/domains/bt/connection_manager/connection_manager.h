@@ -249,6 +249,22 @@ void ConManagerSetLpState(const bdaddr *addr, const lpPerConnectionState *lp_sta
 */
 void ConManagerGetLpState(const bdaddr *addr, lpPerConnectionState *lp_state);
 
+/*! \brief Get the power mode of the connection
+
+    \param[in]  tpaddr    Pointer to a BT address.
+    \param[in]  mode      Pointer variable to receive power mode 
+    \return bool returns TRUE if connection is valid, else FALSE
+*/
+bool ConManagerGetPowerMode(const tp_bdaddr *tpaddr,lp_power_mode* mode);
+
+/*! \brief Get the sniff interval of the connection(in number of slots)
+
+    \param[in]  tpaddr          Pointer to a BT address.
+    \param[in]  sniff_interval  Pointer variable to receive sniff interval
+    \return bool returns TRUE if connection is valid, else FALSE
+*/
+bool ConManagerGetSniffInterval(const tp_bdaddr *tpaddr, uint16* sniff_interval);
+
 /*! \brief Manually close the ACL to a device.
 
     \param[in] addr  Pointer to a BT address.

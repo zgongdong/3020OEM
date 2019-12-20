@@ -443,8 +443,6 @@ static void ConManagerHandleClDmAclClosedIndication(const CL_DM_ACL_CLOSED_IND_T
             conManagerRemoveConnection(connection);
         }
 
-        conManagerCheckForForcedDisconnect(&tpaddr);
-
         /* check if we were trying to disconnect all LE links and they're all now
          * gone, so the confirmation message should be sent */
         conManagerCheckForAllLeDisconnected();
@@ -452,6 +450,45 @@ static void ConManagerHandleClDmAclClosedIndication(const CL_DM_ACL_CLOSED_IND_T
 
     /* Indicate to client the connection to this connection has gone */
     conManagerNotifyObservers(&tpaddr, cm_notify_message_disconnected, ind->status);
+}
+
+/*! \brief Handle confirmation that a DM_ACL_CLOSE_REQ has completed.
+ 
+    Currently only used to complete the ConManagerTerminateAllAcls() API
+    by sending a CON_MANAGER_CLOSE_ALL_CFM if the requester is still waiting.
+*/
+static void ConManagerHandleClDmAclCloseCfm(const CL_DM_ACL_CLOSE_CFM_T *cfm)
+{
+    tp_bdaddr tpaddr;
+    
+    BdaddrTpFromTypedAndFlags(&tpaddr, &cfm->taddr, cfm->flags);
+
+    DEBUG_LOG("ConManagerHandleClDmAclCloseCfm, status %d, flags 0x%x", cfm->status, cfm->flags);
+    ConManagerDebugAddress(&tpaddr);
+
+    switch (cfm->status)
+    {
+        case DM_ACL_CLOSE_NO_CONNECTION:
+            DEBUG_LOG("ConManagerHandleClDmAclCloseCfm NO ACLs to close");
+            /* fall-through */
+        case DM_ACL_CLOSE_LINK_TRANSFERRED:
+            /* link no longer on this device, treat as success
+               fall-through */
+        case DM_ACL_CLOSE_SUCCESS:
+            /* if this CLOSE_CFM was for a forced disconnect of all ACLs, check
+               if requester still needs a confirmation message sent */
+            if ((cfm->flags & (DM_ACL_FLAG_FORCE|DM_ACL_FLAG_ALL)) == (DM_ACL_FLAG_FORCE|DM_ACL_FLAG_ALL))
+            {
+                conManagerCheckForForcedDisconnect(&tpaddr);
+            }
+            break;
+        case DM_ACL_CLOSE_BUSY:
+            /* indicates Bluestack already has a close req in progress, 
+               ignore and wait for another close cfm to arrive */
+            break;
+        default:
+            break;
+    }
 }
 
 /*! \brief Decide whether we allow a BR/EDR device to connect
@@ -527,6 +564,28 @@ static void ConManagerHandleClSmAuthoriseIndication(const CL_SM_AUTHORISE_IND_T 
     ConnectionSmAuthoriseResponse(&ind->bd_addr, ind->protocol_id, ind->channel, ind->incoming, authorise);
 }
 
+/*! 
+    \brief Handle mode change event for a remote device
+*/
+static void conManagerHandleDmModeChangeEvent(CL_DM_MODE_CHANGE_EVENT_T* message)
+{
+  tp_bdaddr vm_addr;
+
+  DEBUG_LOG("conManagerHandleDmModeChangeEvent addr=%x,%x,%x interval=%u mode=%d",
+             message->bd_addr.nap, message->bd_addr.uap, message->bd_addr.lap,message->interval,message->mode);
+  BdaddrTpFromBredrBdaddr(&vm_addr, &message->bd_addr);
+  
+  cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(&vm_addr);
+
+  if(connection)
+  {
+      /* Preserve the mode change parameters */
+      connection->mode = message->mode;
+      connection->interval = message->interval;
+  }
+}
+
+
 /******************************************************************************/
 bool ConManagerHandleConnectionLibraryMessages(MessageId id,Message message, bool already_handled)
 {
@@ -547,6 +606,10 @@ bool ConManagerHandleConnectionLibraryMessages(MessageId id,Message message, boo
             ConManagerHandleClDmAclClosedIndication((CL_DM_ACL_CLOSED_IND_T *)message);
             return TRUE;
 
+        case CL_DM_ACL_CLOSE_CFM:
+            ConManagerHandleClDmAclCloseCfm((CL_DM_ACL_CLOSE_CFM_T *)message);
+            return TRUE;
+
         case CL_DM_BLE_ACCEPT_CONNECTION_PAR_UPDATE_IND:
         {
             CL_DM_BLE_ACCEPT_CONNECTION_PAR_UPDATE_IND_T *ind = (CL_DM_BLE_ACCEPT_CONNECTION_PAR_UPDATE_IND_T *)message;
@@ -558,6 +621,10 @@ bool ConManagerHandleConnectionLibraryMessages(MessageId id,Message message, boo
                                                              ind->supervision_timeout);
             return TRUE;
         }
+
+        case CL_DM_MODE_CHANGE_EVENT:
+            conManagerHandleDmModeChangeEvent((CL_DM_MODE_CHANGE_EVENT_T *)message);
+            return TRUE;
 
         default:
             return already_handled;
@@ -720,6 +787,36 @@ void ConManagerGetLpState(const bdaddr *addr, lpPerConnectionState *lp_state)
 }
 
 /******************************************************************************/
+bool ConManagerGetPowerMode(const tp_bdaddr *tpaddr,lp_power_mode* mode)
+{
+    cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(tpaddr);
+    if(connection && mode)
+    {
+        *mode = connection->mode;
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+/******************************************************************************/
+bool ConManagerGetSniffInterval(const tp_bdaddr *tpaddr, uint16* sniff_interval)
+{
+    cm_connection_t *connection = ConManagerFindConnectionFromBdAddr(tpaddr);
+    if(connection && sniff_interval)
+    {
+        *sniff_interval = connection->interval;
+        return TRUE;
+    }
+    else
+    {
+       return FALSE;
+    }
+}
+
+/******************************************************************************/
 void ConManagerAllowHandsetConnect(bool allowed)
 {
     con_manager.handset_connect_allowed = allowed;
@@ -741,12 +838,18 @@ void ConManagerAllowHandsetConnect(bool allowed)
 void ConManagerAllowConnection(cm_transport_t transport_mask, bool enable)
 {
     if(enable)
+    {
         con_manager.connectable_transports |= transport_mask;
+    }
     else
+    {
         con_manager.connectable_transports &= ~transport_mask;
-    
-    if(transport_mask == cm_transport_ble)
+    }
+
+    if((transport_mask & cm_transport_ble) == cm_transport_ble)
+    {
         LeAdvertisingManager_EnableConnectableAdvertising(&con_manager.task, enable);
+    }
 }
 
 /******************************************************************************/

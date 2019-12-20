@@ -242,19 +242,23 @@ class IPC(Analysis.Analysis):
         if self.chipdata.is_volatile():
             self._do_debuginfo_lookup = True
 
-    def _display_signal_block(self, signal_p, analyse_fifo):
+    def _display_signal_block(self, signal_p, block_index, analyse_fifo):
         """Analyses and displays signals used in IPC.
 
         Args:
             signal_p: IPC signal block pointer.
+            block_index: Index of signal_p within signal_block_p_array.
             analyse_fifo (bool): If true, fifo will be analysed.
         """
         free_channel_bit = 0x7F
-        signal_block = self.chipdata.cast(signal_p, 'IPC_SIGNAL_BLOCK')
-        block_index = self.signal_block_p_array.index(signal_p)
         self.formatter.output(
             'Signal block {0} information:'.format(block_index)
         )
+        if signal_p == 0:
+            self.formatter.output('    Not initialised')
+            return
+
+        signal_block = self.chipdata.cast(signal_p, 'IPC_SIGNAL_BLOCK')
         enum_member = signal_block.get_member('sigsem_idx').value
         sem_id = self.debuginfo.get_enum('HWSEMIDX', enum_member)
         sem_id = sem_id[0].replace('HWSEMIDX_', '')
@@ -343,8 +347,8 @@ class IPC(Analysis.Analysis):
                 len(self.signal_block_p_array)
             )
         )
-        for signal_p in self.signal_block_p_array:
-            self._display_signal_block(signal_p, analyse_fifo)
+        for block_index, signal_p in enumerate(self.signal_block_p_array):
+            self._display_signal_block(signal_p, block_index, analyse_fifo)
 
         self.formatter.section_end()
 

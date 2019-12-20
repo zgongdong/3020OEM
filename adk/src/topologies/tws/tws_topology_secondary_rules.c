@@ -196,7 +196,13 @@ static rule_action_t ruleTwsTopSecStaticHandoverCommand(void)
         TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecStaticHandoverCommand, ignore as in the case");
         return rule_action_ignore;
     }
-    
+
+    if(PeerFindRole_HasFixedRole())
+    {
+        TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecStaticHandoverCommand, ignore as have a fixed role");
+        return rule_action_ignore;
+    }
+
     TWSTOP_SECONDARY_RULE_LOG("ruleTwsTopSecStaticHandoverCommand, run as out of case");
     return rule_action_run;
 }

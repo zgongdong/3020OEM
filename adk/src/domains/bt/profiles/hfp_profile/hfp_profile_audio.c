@@ -10,7 +10,7 @@
 #include "kymera_adaptation.h"
 #include "kymera_adaptation_voice_protected.h"
 #include "scofwd_profile.h"
-#include "shadow_profile.h"
+#include "mirror_profile.h"
 #include "source_param_types.h"
 #include "state_proxy.h" // this shouldn't be here
 #include "voice_sources.h"
@@ -66,7 +66,7 @@ static hfp_codec_mode_t hfpProfile_GetCodecMode(void)
 #ifdef INCLUDE_SWB
     if(handset_connect_params.qce_codec_mode_id != CODEC_MODE_ID_UNSUPPORTED)
     {
-        switch (codec_mode_id)
+        switch (handset_connect_params.qce_codec_mode_id)
         {
             case aptx_adaptive_64_2_EV3:
             case aptx_adaptive_64_2_EV3_QHS3:

@@ -46,7 +46,7 @@ class Builder(object):
                 dir_name = os.path.basename(dirName)
                 for fname in fileList:
                     file, ext = os.path.splitext(fname)
-                    if file == dir_name and ext == pattern:
+                    if ext == pattern:
                         matches.append(os.path.join(dirName, fname))
         return matches
 

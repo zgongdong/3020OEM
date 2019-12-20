@@ -35,7 +35,7 @@ typedef struct
 {
     GATT_ROOT_KEY_SERVER *instance;
     uint16 cid;
-    GattRootKeyServiceShadowChallengeControlOpCode opcode;
+    GattRootKeyServiceMirrorChallengeControlOpCode opcode;
     GRKS_KEY_T value;
 } ROOT_KEY_SERVER_INTERNAL_CHALLENGE_WRITE_T;
 

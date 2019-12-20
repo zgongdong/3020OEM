@@ -12,7 +12,9 @@
 
 #include <bdaddr.h>
 #include <earbud_sm.h>
+#include <peer_find_role.h>
 
+#include <anc.h>
 
 #define MESSAGE_BATTERY_PROCESS_READING     0x40
 
@@ -329,9 +331,10 @@ bool appTestIsPeerAvrcpConnected(void);
 */
 void appTestAvTogglePlayPause(void);
 
-/*! \brief Start Handset information handover procedure with the Peer. 
+/*! \brief Start dynamic handover procedure.
+    \return TRUE if handover was initiated, otherwise FALSE.
 */
-bool earbudTest_HandsetHandover(void);
+bool earbudTest_DynamicHandover(void);
 
 /*! \brief Send the Avrcp pause command to the Handset
 */
@@ -791,5 +794,34 @@ void appTestVaPressAndHold(void);
 /*! \brief Send the VA Release command
 */
 void appTestVaRelease(void);
+
+/*! \brief  Set the ANC Enable state in the Earbud. */
+void EarbudTest_SetAncEnable(void);
+
+/*! \brief  Set the ANC Disable state in the Earbud. */
+void EarbudTest_SetAncDisable(void);
+
+/*! \brief  Set the ANC Enable/Disable state in both Earbuds. */
+void EarbudTest_SetAncToggleOnOff(void);
+
+/*! \brief  Set the ANC mode in both Earbuds.
+    \param  mode Mode need to be given by user to set the dedicated mode.
+*/
+void EarbudTest_SetAncMode(anc_mode_t mode);
+
+/*! \brief  To get the current ANC State in both Earbuds.
+    \return bool TRUE if ANC enabled
+                 else FALSE
+*/
+bool EarbudTest_GetAncstate(void);
+
+/*! \brief  To get the current ANC mode in both Earbuds.
+    \return Return the current ANC mode.
+*/
+anc_mode_t EarbudTest_GetAncMode(void);
+
+/*! \brief Set the device to have a fixed role
+*/
+void appTestSetFixedRole(peer_find_role_fixed_role_t role);
 
 #endif /* EARBUD_TEST_H */

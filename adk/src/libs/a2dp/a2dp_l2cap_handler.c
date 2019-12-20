@@ -23,11 +23,11 @@ NOTES
 #include "a2dp_packet_handler.h"
 #include "a2dp_command_handler.h"
 #include "a2dp_api.h"
+#include "a2dp_handover_policy.h"
 
 #include <print.h>
 #include <stdlib.h>
 #include <bdaddr.h>
-#include <source.h>
 #include <string.h>
 #include <util.h>
 
@@ -295,6 +295,10 @@ static bool completeSignalling (signalling_channel *signalling, uint16 connectio
     
     if (signalling != NULL)
     {
+        /* Set the handover policy on the signalling channel */
+        Source src =  StreamL2capSource(connection_id);
+        PanicFalse(a2dpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW_WITHOUT_DATA));
+
         if ( (signalling->status.connection_state == avdtp_connection_paging) || 
              (signalling->status.connection_state == avdtp_connection_paged) ||
              (signalling->status.connection_state == avdtp_connection_crossover) )
@@ -480,6 +484,10 @@ static bool completeMedia (media_channel *media, uint16 connection_id, Sink sink
     
     if (media != NULL)
     {
+        /* Set the handover policy on the media channel */
+        Source src =  StreamL2capSource(connection_id);
+        PanicFalse(a2dpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW));
+        
         if ( (media->status.conn_info.connection_state == avdtp_connection_paging) || (media->status.conn_info.connection_state == avdtp_connection_paged) )
         {   /* Finalise channel information */
             if (connection_id == media->connection.setup.outbound_cid)
@@ -1052,7 +1060,8 @@ void a2dpHandleL2capConnectInd(const CL_L2CAP_CONNECT_IND_T *ind)
             case avdtp_connection_connected:
                 /* Must be a media channel.  Always accept these immediately unless the maximum supported media channels has been reached */
                 if ( (signalling->status.stream_state==avdtp_stream_remote_opening) && (initiateMedia(device, ind->connection_id, ind->identifier)!=NULL))
-                {   /* Able to accept a media connection */                       
+                {
+                    /* Able to accept a media connection */
                     ConnectionL2capConnectResponse(&a2dp->task, TRUE, ind->psm, ind->connection_id, ind->identifier, CONFTAB_LEN(a2dp_conftab), a2dp_conftab);
                 }
                 else

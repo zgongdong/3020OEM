@@ -19,6 +19,8 @@
 #include <phy_state.h>
 #include <rules_engine.h>
 #include <connection_manager.h>
+#include "handset_service_protected.h"
+#include "peer_signalling.h"
 
 #include <logging.h>
 
@@ -53,12 +55,14 @@ TwsTopologyDfuRulesTaskData tws_topology_dfu_rules_task_data;
     Rule function prototypes, so we can build the rule tables below. */
 DEFINE_RULE(ruleTwsTopDfuInCase);
 DEFINE_RULE(ruleTwsTopDfuAlways);
+DEFINE_RULE(ruleTwsTopDfuLEPriAbortCleanup);
 DEFINE_RULE(ruleTwsTopOutOfCase);
 DEFINE_RULE(ruleTwsTopInCase);
 DEFINE_RULE(ruleTwsTopDfuPrimary);
 DEFINE_RULE(ruleTwsTopDfuSecondary);
 DEFINE_RULE(ruleTwsTopDfuSecondaryLinkLoss);
 DEFINE_RULE(ruleTwsTopDfuEnableConnectableHandset);
+DEFINE_RULE(ruleTwsTopDfuAllowHandsetConnect);
 /*! \} */
 
 /*! \brief TWS Topology rules deciding behaviour in a Dfu role. */
@@ -66,6 +70,9 @@ const rule_entry_t twstop_dfu_rules_set[] =
 {
     /* When Earbud is put dfu in case mode, disconnect HFP */
     RULE(TWSTOP_RULE_EVENT_IN_CASE,          ruleTwsTopDfuInCase,             TWSTOP_DFU_GOAL_IN_CASE),
+
+    /* When Earbud put out of the case, disconnect handset (BR/EDR) profiles and links (BR/EDR and/or LE) when DFU transport is BLE. */
+    RULE(TWSTOP_RULE_EVENT_OUT_CASE,         ruleTwsTopDfuLEPriAbortCleanup,  TWSTOP_DFU_GOAL_LE_PRI_ABORT_CLEANUP),
 
     /* When Earbud put out of the case, terminate DFU */
     RULE(TWSTOP_RULE_EVENT_OUT_CASE,         ruleTwsTopDfuAlways,            TWSTOP_DFU_GOAL_NO_ROLE_FIND_ROLE),
@@ -87,6 +94,12 @@ const rule_entry_t twstop_dfu_rules_set[] =
 
     /*! When handset BREDR link is disconnected, enable page scan on Primary Earbud. */
     RULE(TWSTOP_RULE_EVENT_HANDSET_DISCONNECTED_BREDR, ruleTwsTopDfuEnableConnectableHandset, TWSTOP_DFU_GOAL_CONNECTABLE_HANDSET),
+
+    /*! When handset linkloss occurs, enable page scan on Primary Earbud. */
+    RULE(TWSTOP_RULE_EVENT_HANDSET_LINKLOSS, ruleTwsTopDfuEnableConnectableHandset, TWSTOP_DFU_GOAL_CONNECTABLE_HANDSET),
+
+    /*! When the role is changed into dfu, allow handset connections in connection manager. */
+    RULE(TWSTOP_RULE_EVENT_ROLE_SWITCH, ruleTwsTopDfuAllowHandsetConnect, TWSTOP_DFU_GOAL_ALLOW_HANDSET_CONNECT),
 };
 
 /*****************************************************************************
@@ -101,7 +114,7 @@ static rule_action_t ruleTwsTopDfuEnableConnectableHandset(void)
     bdaddr handset_addr;
     const bool enable_connectable = TRUE;
 
-    TWSTOP_DFU_RULE_LOG("ruleTwsTopPriEnableConnectableHandset, run as primary dfu in case and not connected to handset");
+    TWSTOP_DFU_RULE_LOG("ruleTwsTopDfuEnableConnectableHandset, run as primary dfu in case and not connected to handset");
     return RULE_ACTION_RUN_PARAM(enable_connectable);
 }
 
@@ -124,6 +137,62 @@ static rule_action_t ruleTwsTopDfuAlways(void)
     TWSTOP_DFU_RULE_LOG("ruleTwsTopDfuAlways, run Always");
 
     return rule_action_run;
+}
+
+/*! \brief Rule that runs to disconnect handset (BR/EDR) profiles and links
+           (BR/EDR and/or LE) when DFU transport is BLE.
+
+    Note: As there are no profiles on LE, this is required to synchronize rules
+    for handling abort scenarios when DFU transport is BLE.
+
+    Running this rule set ensures that the existing handset profiles
+    over BR/EDR are gracefully cleaned up before the links (i.e. BR/EDR and/or
+    LE are disconnected. With this approach the earbuds are confirmed to be
+    connected in subsequent attempts when both earbuds are moved out of case
+    after the abort. */
+static rule_action_t ruleTwsTopDfuLEPriAbortCleanup(void)
+{
+    bool is_ble_connection = ConManagerAnyTpLinkConnected(cm_transport_ble);
+    bool is_hs_con_over_ble = HandsetService_Get()->ble_connected;
+    bool is_peer_connected;
+    bdaddr bd_addr;
+    bool is_secondary = FALSE;
+    is_peer_connected = appPeerSigIsConnected();
+    if (appDeviceGetMyBdAddr(&bd_addr))
+        is_secondary = appDeviceIsSecondary((const bdaddr*)&bd_addr);
+
+    TWSTOP_DFU_RULE_LOGF("ruleTwsTopDfuLEPriAbortCleanup, is_ble_connection: %d\n", is_ble_connection);
+    TWSTOP_DFU_RULE_LOGF("ruleTwsTopDfuLEPriAbortCleanup, is_hs_con_over_ble: %d\n", is_hs_con_over_ble);
+    TWSTOP_DFU_RULE_LOGF("ruleTwsTopDfuLEPriAbortCleanup, is_peer_connected: %d\n", is_peer_connected);
+    TWSTOP_DFU_RULE_LOGF("ruleTwsTopDfuLEPriAbortCleanup, self addr: %04x,%02x,%06lx\n", bd_addr.nap, bd_addr.uap, bd_addr.lap);
+    TWSTOP_DFU_RULE_LOGF("ruleTwsTopDfuLEPriAbortCleanup, is_secondary: %d\n", is_secondary);
+
+    /** Localize the rule to be run only for the following:
+     * - When DFU transport is LE
+     *   a) This is an indirect way: is_ble_connection && is_hs_con_over_ble
+     *      GAIA_UPGRADE_CONNECT_IND_T is transport agnostic with just the
+     *      transport handle AND
+     *      Profiles over LE are not integrated into Settings application AND
+     *      since in DFU, then
+     *      its appropriate to consider that the LE link is setup for DFU.
+     *
+     * - To handle abort when Primary is put out of case and ignore in case of
+     *   handling abort when Secondary is put out of case
+     *   a) is_peer_connected && !is_secondary
+     *      This cleanup is not required while handling abort when Secondary is
+     *      put out of case. Ignoring for Seconday ensures that the earbuds are
+     *      connected (including signalling channel) when both earbuds are moved
+     *      out of case after the abort.
+     */
+    if (is_ble_connection && is_hs_con_over_ble &&
+        is_peer_connected && !is_secondary)
+    {
+        TWSTOP_DFU_RULE_LOG("ruleTwsTopDfuLEPriAbortCleanup, run disconnection of handset (BR/EDR) profiles and links (BR/EDR and/or LE) when DFU transport is BLE.\n");
+        return rule_action_run;
+    }
+
+    TWSTOP_DFU_RULE_LOG("ruleTwsTopDfuLEPriAbortCleanup, ignored when DFU transport is BR/EDR or handling abort for Secondary out of case when DFU transport is BLE.\n");
+    return rule_action_ignore;
 }
 
 
@@ -208,6 +277,21 @@ static rule_action_t ruleTwsTopDfuSecondaryLinkLoss(void)
     return rule_action_run;
 }
 
+static rule_action_t ruleTwsTopDfuAllowHandsetConnect(void)
+{
+    const bool allow_connect = TRUE;
+
+    /* If we're already connected to handset then don't connect */
+    if (appDeviceIsHandsetConnected())
+    {
+        TWSTOP_DFU_RULE_LOG("ruleTwsTopDfuAllowHandsetConnect, ignore as already connected to handset");
+        return rule_action_ignore;
+    }
+
+    TWSTOP_DFU_RULE_LOG("ruleTwsTopDfuAllowHandsetConnect, run as not yet connected to handset");
+    return RULE_ACTION_RUN_PARAM(allow_connect);
+}
+
 
 /*****************************************************************************
  * END RULES FUNCTIONS
@@ -272,4 +356,3 @@ static rule_action_t twsTopologyDfuRules_CopyRunParams(const void* param, size_t
     RulesEngine_CopyRunParams(dfu_rules->rule_set, param, size_param);
     return rule_action_run_with_param;
 }
-

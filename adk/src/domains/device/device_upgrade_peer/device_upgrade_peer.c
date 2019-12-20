@@ -31,16 +31,33 @@ NOTES
 #include <message.h>
 #include "device_upgrade.h"
 
+
 /* L2CAP Connection specific macros */
 #define MAX_ATTRIBUTES 0x32
 #define EXACT_MTU 672
 #define MINIMUM_MTU 48
 
 /* Re-try ACL link establishment on link loss 20 times until the link is established*/
-#define RECONNECT_ACL 20
+#define ACL_CONNECT_RETRY_LIMIT 20
 
-/* Counter incremented during re-try of ACL link establishment on link loss */
-uint16 reconnect = 0;
+/* Re-try SDP Search 10 times until the link is established */
+#define SDP_SEARCH_RETRY_LIMIT 10
+
+/* Counter incremented during re-try of ACL link establishment on link loss or during SDP search */
+uint16 acl_connect_attempts, sdp_connect_attempts = 0;
+
+/* Macro to Check for the SDP status for which retry is needed */
+#define SDP_STATUS(x) (x == sdp_no_response_data) || \
+                      (x == sdp_con_disconnected) || \
+                      (x == sdp_connection_error) || \
+                      (x == sdp_search_data_error) || \
+                      (x == sdp_search_busy) || \
+                      (x == sdp_response_timeout_error) || \
+                      (x == sdp_response_out_of_memory) || \
+                      (x == sdp_connection_error_page_timeout) || \
+                      (x == sdp_connection_error_rej_resources) || \
+                      (x == sdp_connection_error_signal_timeout) || \
+                      (x == sdp_search_unknown)
 
 /* Macros to get Device Upgrade Peer Task information */
 deviceUpgradePeerTaskData device_upgrade_peer;
@@ -73,6 +90,19 @@ static void appDeviceUpgradePeerNotifyStart(void)
 {
     TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GetDeviceUpgradeClientTask()),
                            DEVICE_UPGRADE_PEER_STARTED);
+}
+
+/****************************************************************************
+NAME
+    appDeviceUpgradePeerNotifyDisconnect
+
+BRIEF
+    Notify Peer Device disconnection request to Application
+*/
+static void appDeviceUpgradePeerNotifyDisconnect(void)
+{
+    TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(GetDeviceUpgradeClientTask()),
+                           DEVICE_UPGRADE_PEER_DISCONNECT);
 }
 
 /****************************************************************************
@@ -355,6 +385,9 @@ static void DeviceUpgradePeerHandleInternalShutdownReq(void)
     DEBUG_LOG("DeviceUpgradePeerHandleInternalShutdownReq, state %u",
                deviceUpgradePeerGetState());
 
+    /* Notify application of Peer device disconnect */
+    appDeviceUpgradePeerNotifyDisconnect();
+
     switch (deviceUpgradePeerGetState())
     {
         case DEVICE_UPGRADE_PEER_STATE_CONNECTED:
@@ -426,6 +459,7 @@ static void DeviceUpgradePeerHandleInternalStartupRequest(DEVICE_UPGRADE_PEER_IN
     switch (deviceUpgradePeerGetState())
     {
         case DEVICE_UPGRADE_PEER_STATE_CONNECTING_ACL:
+        case DEVICE_UPGRADE_PEER_STATE_CONNECTING_SDP_SEARCH:
         {
             /* Check if ACL is now up */
             if (ConManagerIsConnected(&req->peer_addr))
@@ -437,13 +471,32 @@ static void DeviceUpgradePeerHandleInternalStartupRequest(DEVICE_UPGRADE_PEER_IN
                     BdaddrIsSame(&theDeviceUpgradePeer->peer_addr,
                                  &req->peer_addr))
                 {
-                    DEBUG_LOG("DeviceUpgradePeerHandleInternalStartupRequest, ACL locally initiated");
+                    if(deviceUpgradePeerGetState() == DEVICE_UPGRADE_PEER_STATE_CONNECTING_ACL)
+                    {
+                        DEBUG_LOG("DeviceUpgradePeerHandleInternalStartupRequest, ACL locally initiated");
 
-                    /* Store address of peer */
-                    theDeviceUpgradePeer->peer_addr = req->peer_addr;
+                        /* Store address of peer */
+                        theDeviceUpgradePeer->peer_addr = req->peer_addr;
 
-                    /* Begin the search for the peer signalling SDP record */
-                    deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_CONNECTING_SDP_SEARCH);
+                        /* Begin the search for the peer signalling SDP record */
+                        deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_CONNECTING_SDP_SEARCH);
+                    }
+                    else
+                    {
+                        sdp_connect_attempts += 1;
+                        if(sdp_connect_attempts <= SDP_SEARCH_RETRY_LIMIT)
+                        {
+                            /* Try SDP Search again */
+                            DEBUG_LOG("SDP Search retrying again, %d", sdp_connect_attempts);
+                            deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_CONNECTING_SDP_SEARCH);
+                        }
+                        else
+                        {
+                            /* Peer Earbud doesn't support Device Upgrade service */
+                            DEBUG_LOG("Device Upgrade SDP Service unsupported, go to disconnected state");
+                            deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_DISCONNECTED);
+                        }
+                    }
                 }
                 else
                 {
@@ -455,7 +508,7 @@ static void DeviceUpgradePeerHandleInternalStartupRequest(DEVICE_UPGRADE_PEER_IN
             }
             else
             {
-                if(reconnect >= RECONNECT_ACL)
+                if(acl_connect_attempts >= ACL_CONNECT_RETRY_LIMIT)
                 {
                     DEBUG_LOG("DeviceUpgradePeerHandleInternalStartupRequest, ACL failed to open, giving up");
                     /* ACL failed to open, move to 'Disconnected' state */
@@ -463,8 +516,8 @@ static void DeviceUpgradePeerHandleInternalStartupRequest(DEVICE_UPGRADE_PEER_IN
                 }
                 else
                 {
-                    reconnect++;
-                    DEBUG_LOG("Retrying again, %d", reconnect);
+                    acl_connect_attempts++;
+                    DEBUG_LOG("ACL Connection retrying again, %d", acl_connect_attempts);
                      /* Post message back to ourselves, blocked on creating ACL */
                     MAKE_MESSAGE(DEVICE_UPGRADE_PEER_INTERNAL_STARTUP_REQ);
                     message->peer_addr = req->peer_addr;
@@ -637,8 +690,6 @@ static void DeviceUpgradePeerConnectL2cap(const bdaddr *bd_addr)
                                   theDeviceUpgradePeer->remote_psm,
                                   CONFTAB_LEN(l2cap_conftab),
                                   l2cap_conftab);
-
-    theDeviceUpgradePeer->pending_connects++;
 }
 
 /****************************************************************************
@@ -713,17 +764,20 @@ static void DeviceUpgradePeerHandleClSdpServiceSearchAttributeCfm(const CL_SDP_S
                     deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_DISCONNECTED);
                 }
             }
-            else if (cfm->status == sdp_no_response_data)
+            /* Check if retry needed for valid status */
+            else if (SDP_STATUS(cfm->status))
             {
-                /* Peer Earbud doesn't support Device Upgrade service */
-                DEBUG_LOG("deviceUpgradePeerHandleClSdpServiceSearchAttributeCfm, unsupported");
-                deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_DISCONNECTED);
+                MAKE_MESSAGE(DEVICE_UPGRADE_PEER_INTERNAL_STARTUP_REQ);
+                message->peer_addr = cfm->bd_addr;
+                /* Try the SDP Search again after 1 sec */
+                MessageSendLater(&theDeviceUpgradePeer->task,
+                    DEVICE_UPGRADE_PEER_INTERNAL_STARTUP_REQ, message, D_SEC(1));
             }
             else
             {
-                /* SDP seach failed, retry? */
-                DEBUG_LOG("deviceUpgradePeerHandleClSdpServiceSearchAttributeCfm, retry");
-                deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_CONNECTING_SDP_SEARCH);
+                /* SDP search failed */
+                DEBUG_LOG("deviceUpgradePeerHandleClSdpServiceSearchAttributeCfm, SDP search failed");
+                deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_DISCONNECTED);
             }
         }
         break;
@@ -801,9 +855,6 @@ static void DeviceUpgradePeerHandleL2capConnectInd(const CL_L2CAP_CONNECT_IND_T 
         break;
     }
 
-    /* Keep track of this connection */
-    theDeviceUpgradePeer->pending_connects++;
-
     /* Send a response accepting or rejcting the connection. */
     ConnectionL2capConnectResponse(&theDeviceUpgradePeer->task,     /* The client task. */
                                    accept,                 /* Accept/reject the connection. */
@@ -827,24 +878,7 @@ static void DeviceUpgradePeerHandleL2capConnectCfm(const CL_L2CAP_CONNECT_CFM_T 
 {
     deviceUpgradePeerTaskData *theDeviceUpgradePeer = GetDeviceUpgradePeer();
 
-    DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, status %u, pending %u",
-                          cfm->status, theDeviceUpgradePeer->pending_connects);
-
-    /* Pending connection, return, will get another message in a bit */
-    if (l2cap_connect_pending == cfm->status)
-    {
-        DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, connect pending, wait");
-        return;
-    }
-
-    /* Decrement number of pending connect confirms, disconnect the l2cap if 0 */
-    if(theDeviceUpgradePeer->pending_connects == 0)
-    {
-        theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
-        DeviceUpgradePeerSendL2capConnectFailure();
-        return;
-    }
-    theDeviceUpgradePeer->pending_connects--;
+    DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, status %u", cfm->status);
 
     switch (deviceUpgradePeerGetState())
     {
@@ -884,15 +918,17 @@ static void DeviceUpgradePeerHandleL2capConnectCfm(const CL_L2CAP_CONNECT_CFM_T 
             }
             else
             {
-                /* Connection failed, if no more pending connections, return to idle state */
-                if (theDeviceUpgradePeer->pending_connects == 0)
+                /* Connection failed, if no more pending connections, return to disconnected state */
+                if (cfm->status >= l2cap_connect_failed)
                 {
-                    DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, failed, go to idle state");
+                    DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, failed, go to disconnected state");
                     deviceUpgradePeerSetState(DEVICE_UPGRADE_PEER_STATE_DISCONNECTED);
                 }
+                /* Pending connection, return, will get another message in a bit */
                 else
                 {
-                    DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, failed, wait");
+                    DEBUG_LOG("DeviceUpgradePeerHandleL2capConnectCfm, L2CAP connection is Pending");
+                    return;
                 }
             }
             break;
@@ -904,8 +940,7 @@ static void DeviceUpgradePeerHandleL2capConnectCfm(const CL_L2CAP_CONNECT_CFM_T 
                 theDeviceUpgradePeer->state = DEVICE_UPGRADE_PEER_STATE_DISCONNECTED;
                 DeviceUpgradePeerSendL2capConnectFailure();
             }
-            DEBUG_LOGF("DeviceUpgradePeerHandleL2capConnectCfm, failed, pending %u",
-                       theDeviceUpgradePeer->pending_connects);
+            DEBUG_LOGF("DeviceUpgradePeerHandleL2capConnectCfm, failed");
             break;
     }
 }
@@ -1216,6 +1251,9 @@ BRIEF
 void DeviceUpgradePeerForceLinkToPeer(void)
 {
      deviceUpgradePeerTaskData *theDeviceUpgradePeer = GetDeviceUpgradePeer();
+
+     /* Set the connect attempts variable to zero */
+     acl_connect_attempts = sdp_connect_attempts = 0;
 
      theDeviceUpgradePeer->is_primary = TRUE;
 

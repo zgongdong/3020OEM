@@ -11,7 +11,7 @@
 
 #include "tws_topology_procedure_set_role.h"
 
-const tws_topology_procedure_fns_t* acting_primary_role_procs[] = {
+const tws_topology_procedure_fns_t* const acting_primary_role_procs[] = {
     &proc_set_role_fns,
 };
 

@@ -17,7 +17,6 @@
  * WARNING: This trap is UNIMPLEMENTED
  */
 bool TestPerform_(uint16 len, const uint16 * args);
-#endif /* TRAPSET_TEST */
 
 /**
  *  \brief Radio test pause.
@@ -25,7 +24,7 @@ bool TestPerform_(uint16 len, const uint16 * args);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestPause(void );
 
@@ -38,7 +37,7 @@ bool TestPause(void );
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestTxStart(uint16 lo_freq, uint16 level, uint16 mod_freq);
 
@@ -50,7 +49,7 @@ bool TestTxStart(uint16 lo_freq, uint16 level, uint16 mod_freq);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestTxData1(uint16 lo_freq, uint16 level);
 
@@ -62,7 +61,7 @@ bool TestTxData1(uint16 lo_freq, uint16 level);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestTxData2(uint16 cc, uint16 level);
 
@@ -75,7 +74,7 @@ bool TestTxData2(uint16 cc, uint16 level);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestRxStart(uint16 lo_freq, uint16 highside, uint16 attn);
 
@@ -87,7 +86,7 @@ bool TestRxStart(uint16 lo_freq, uint16 highside, uint16 attn);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestCfgPkt(uint16 packet_type, uint16 packet_size);
 
@@ -99,7 +98,7 @@ bool TestCfgPkt(uint16 packet_type, uint16 packet_size);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestTxPower(uint16 power_dbm);
 
@@ -108,7 +107,7 @@ bool TestTxPower(uint16 power_dbm);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -120,7 +119,7 @@ bool TestDeepSleep(void );
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -134,7 +133,7 @@ bool TestPcmLb(uint16 pcm_mode);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  */
 bool TestLoopback(uint16 lo_freq, uint16 level);
 
@@ -145,7 +144,7 @@ bool TestLoopback(uint16 lo_freq, uint16 level);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -157,7 +156,7 @@ bool TestPcmExtLb(uint16 pcm_mode);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -172,7 +171,7 @@ bool TestCfgXtalFtrim(uint16 xtal_ftrim);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -185,7 +184,7 @@ bool TestPcmTone(uint16 freq, uint16 ampl, uint16 dc);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -202,7 +201,7 @@ bool TestCodecStereoLb(uint16 samp_rate, uint16 reroute_optn);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -216,7 +215,7 @@ bool TestPcmToneIf(uint16 freq, uint16 ampl, uint16 dc, uint16 interface);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
@@ -231,9 +230,10 @@ bool TestPcmLbIf(uint16 pcm_mode, uint16 interface);
  * 
  * \note This trap may NOT be called from a high-priority task handler
  * 
- * \ingroup trapset___special_inline
+ * \ingroup trapset_test
  * 
  * WARNING: This trap is UNIMPLEMENTED
  */
 bool TestPcmExtLbIf(uint16 pcm_mode, uint16 interface);
+#endif /* TRAPSET_TEST */
 #endif

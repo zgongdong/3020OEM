@@ -10,8 +10,11 @@
 #include <panic.h>
 #include <cryptovm.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "peer_link_keys.h"
+#include "peer_link_keys_typedef.h"
+#include "peer_link_keys_marshal_typedef.h"
 #include "peer_signalling.h"
 #include "logging.h"
 #include "message.h"
@@ -21,7 +24,10 @@
 static void peerLinkKeys_HandleMessage(Task task, MessageId id, Message message);
 
 static const TaskData peer_link_keys_task = {peerLinkKeys_HandleMessage};
-static uint16 outstanding_peer_sig_req;
+
+/*! \brief Accessor for key sync task. */
+#define peerLinkKeys_GetTask()       ((Task)&peer_link_keys_task)
+
 
 /*! Number of bytes in the 128-bit salt. */
 #define SALT_SIZE       16
@@ -55,11 +61,12 @@ bool PeerLinkKeys_Init(Task init_task)
     UNUSED(init_task);
     DEBUG_LOG("PeerLinkKeys_Init");
 
-    outstanding_peer_sig_req = 0;
+    /* Register the marshalled channel with peer signalling */
+    appPeerSigMarshalledMsgChannelTaskRegister(peerLinkKeys_GetTask(),
+                                               PEER_SIG_MSG_CHANNEL_PEER_LINK_KEY,
+                                               peer_link_keys_marshal_type_descriptors,
+                                               NUMBER_OF_PEER_LINK_KEYS_MARSHAL_TYPES);
 
-    /* register with peer signalling for notification of handset
-     * link key arrival, should the other earbud pair with a new handset */
-    appPeerSigLinkKeyTaskRegister((Task)&peer_link_keys_task);
     return TRUE;
 }
 
@@ -126,58 +133,58 @@ void PeerLinkKeys_GenerateKey(const bdaddr *bd_addr, const uint16 *lk_packed, ui
     DEBUG_PRINT("\n");
 }
 
-
-/*! \brief Handle receipt of link key from peer device and store in PDL.
- */
-static void peerLinkKeys_HandlePeerSigLinkKeyRxInd(PEER_SIG_LINK_KEY_RX_IND_T *ind)
+/*! \brief Handle incoming peer_link_key messages from the peer earbud. */
+static void peerLinkKeys_HandlePeerSignallingMessageRxInd(const PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T *ind)
 {
-    DEBUG_LOGF("peerLinkKeys_HandlePeerSigLinkKeyRxInd %d", ind->status);
+    DEBUG_LOG("peerLinkKeys_HandlePeerSignallingMessageRxInd type %d", ind->type);
 
-    if (ind->status == peerSigStatusSuccess)
+    switch (ind->type)
     {
-        Pairing_AddAuthDevice(&ind->handset_addr, 
-                              ind->key_len,
-                              ind->key);
+    case MARSHAL_TYPE(peer_link_keys_add_key_req_t):
+        {
+            const peer_link_keys_add_key_req_t *req = (const peer_link_keys_add_key_req_t *)ind->msg;
+
+            DEBUG_LOG("peerLinkKeys_HandlePeerSignallingMessageRxInd add_key_req key_type %d", req->key_type);
+
+            PanicFalse(PEER_LINK_KEYS_KEY_TYPE_0 == req->key_type);
+
+            Pairing_AddAuthDevice(&req->addr, (
+                                  req->key_size_bytes / sizeof(uint16)),
+                                  (uint16 *)req->key);
+        }
+        break;
+
+    case MARSHAL_TYPE(peer_link_keys_add_key_cfm_t):
+        {
+            const peer_link_keys_add_key_cfm_t *cfm = (const peer_link_keys_add_key_cfm_t *)ind->msg;
+
+            DEBUG_LOG("peerLinkKeys_HandlePeerSignallingMessageRxInd add_key_cfm synced %d", cfm->synced);
+
+            if (cfm->synced)
+            {
+                /* update device manager that we have successfully sent
+                 * handset link key to peer headset, clear the flag */
+                BtDevice_SetHandsetLinkKeyTxReqd(&cfm->addr, FALSE);
+            }
+            else
+            {
+                DEBUG_LOG("peerLinkKeys_HandlePeerSignallingMessageRxInd Failed to send handset link key to peer earbud!");
+            }
+        }
+        break;
+
+    default:
+        DEBUG_LOG("peerLinkKeys_HandlePeerSignallingMessageRxInd unhandled");
+        break;
     }
-    else
-    {
-        /* We shouldn't get non-success message so panic we got a code bug */
-        Panic();
-    }
+
+    /* free unmarshalled msg */
+    free(ind->msg);
 }
 
-
-/*! \brief Handle result of attempt to send handset link key to peer headset. */
-static void peerLinkKeys_HandlePeerSigLinkKeyTxConfirm(PEER_SIG_LINK_KEY_TX_CFM_T *cfm)
+static void peerLinkKeys_HandlePeerSignallingMessageTxCfm(const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T *cfm)
 {
-    DEBUG_LOGF("peerLinkKeys_HandlePeerSigLinkKeyTxConfirm %d", cfm->status);
-
-    if (cfm->status == peerSigStatusSuccess)
-    {
-        /* update device manager that we have successfully sent
-         * handset link key to peer headset, clear the flag */
-        BtDevice_SetHandsetLinkKeyTxReqd(&cfm->handset_addr, FALSE);
-    }
-    else
-    {
-        DEBUG_LOG("Failed to send handset link key to peer earbud!");
-    }
-    outstanding_peer_sig_req--;
-}
-
-static void peerLinkKeys_HandlePeerSigPairHandsetConfirm(PEER_SIG_PAIR_HANDSET_CFM_T *cfm)
-{
-    DEBUG_LOGF("peerLinkKeys_HandlePeerSigPairHandsetConfirm %d", cfm->status);
-
-    if (cfm->status == peerSigStatusSuccess)
-    {
-        appDeviceSetHandsetAddressForwardReq(&cfm->handset_addr, FALSE);
-    }
-    else
-    {
-        DEBUG_LOG("Failed to send standard handset address to peer earbud");
-    }
-    outstanding_peer_sig_req--;
+    UNUSED(cfm);
 }
 
 static void peerLinkKeys_HandleMessage(Task task, MessageId id, Message message)
@@ -186,17 +193,12 @@ static void peerLinkKeys_HandleMessage(Task task, MessageId id, Message message)
 
     switch(id)
     {
-
-        case PEER_SIG_LINK_KEY_RX_IND:
-            peerLinkKeys_HandlePeerSigLinkKeyRxInd((PEER_SIG_LINK_KEY_RX_IND_T*)message);
+        case PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND:
+            peerLinkKeys_HandlePeerSignallingMessageRxInd((const PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T *)message);
             break;
 
-        case PEER_SIG_LINK_KEY_TX_CFM:
-            peerLinkKeys_HandlePeerSigLinkKeyTxConfirm((PEER_SIG_LINK_KEY_TX_CFM_T*)message);
-            break;
-
-        case PEER_SIG_PAIR_HANDSET_CFM:
-            peerLinkKeys_HandlePeerSigPairHandsetConfirm((PEER_SIG_PAIR_HANDSET_CFM_T*)message);
+        case PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM:
+            peerLinkKeys_HandlePeerSignallingMessageTxCfm((const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T *)message);
             break;
 
         default:
@@ -211,14 +213,30 @@ void PeerLinkKeys_SendKeyToPeer(const bdaddr* device_address, uint16 link_key_le
 
     if (appDeviceGetPeerBdAddr(&peer_addr))
     {
-        uint16 lk_out[8];
+        uint16 lk_out[8] ={0};
 
         PeerLinkKeys_GenerateKey(&peer_addr, link_key, appConfigTwsKeyId(), lk_out);
 
-        /* ask peer signalling to send the new link key to the peer */
-        DEBUG_LOG("PeerLinkKeys_SendKeyToPeer derived link key - sending to peer");
-        outstanding_peer_sig_req++;
-        appPeerSigLinkKeyToPeerRequest((Task)&peer_link_keys_task, device_address,
-                                 lk_out, link_key_length);
+        peer_link_keys_add_key_req_t *req = PanicUnlessMalloc(sizeof(*req));
+        req->addr = *device_address;
+        req->key_type = PEER_LINK_KEYS_KEY_TYPE_0;
+        req->key_size_bytes = (link_key_length * sizeof(uint16));
+        memmove(&req->key, lk_out, req->key_size_bytes);
+
+        appPeerSigMarshalledMsgChannelTx(peerLinkKeys_GetTask(),
+                                         PEER_SIG_MSG_CHANNEL_PEER_LINK_KEY,
+                                         req, MARSHAL_TYPE_peer_link_keys_add_key_req_t);
     }
+}
+
+void PeerLinkKeys_SendKeyResponseToPeer(const bdaddr *device_address, bool synced)
+{
+    peer_link_keys_add_key_cfm_t *cfm = PanicUnlessMalloc(sizeof(*cfm));
+    cfm->addr = *device_address;
+    cfm->synced = synced;
+
+    /* send confirmation key received and stored back to peer. */
+    appPeerSigMarshalledMsgChannelTx(peerLinkKeys_GetTask(),
+                                     PEER_SIG_MSG_CHANNEL_PEER_LINK_KEY,
+                                     cfm, MARSHAL_TYPE_peer_link_keys_add_key_cfm_t);
 }

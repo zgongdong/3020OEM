@@ -43,6 +43,7 @@
 #include "trap_api/infrared.h" 
 #include "trap_api/ra_partition_api.h" 
 #include "trap_api/sink.h" 
+#include "trap_api/test2.h" 
 #include "trap_api/native.h" 
 #include "trap_api/vm.h" 
 #include "trap_api/panic.h" 
@@ -92,6 +93,7 @@
 #include "trap_api/partition.h" 
 #include "trap_api/sdmmc.h" 
 #include "trap_api/audio_clock.h" 
+#include "trap_api/test2.h" 
 #include "trap_api/feature.h" 
 #include "trap_api/imageupgrade.h" 
 #include "trap_api/i2c.h" 
@@ -1779,58 +1781,6 @@ Sink StreamFastPipeSink(uint16 id)
 #endif /* TRAPSET_FASTPIPE */
 
 
-#if TRAPSET_SHADOWING
-acl_handover_prepare_status AclHandoverPrepared(uint16 handle)
-{
-    IPC_ACL_HANDOVER_PREPARED ipc_send_prim;
-    IPC_ACL_HANDOVER_PREPARE_STATUS_RSP ipc_recv_prim;
-    ipc_send_prim.handle = handle;
-    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_PREPARED, &ipc_send_prim, sizeof(ipc_send_prim));
-    assert(!ipc_disallow_high_priority_handler_calls());
-    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_PREPARED_RSP, &ipc_recv_prim);
-    return ipc_recv_prim.ret;
-}
-
-
-bool AclHandoverCommit(uint16 handle)
-{
-    IPC_ACL_HANDOVER_COMMIT ipc_send_prim;
-    IPC_BOOL_RSP ipc_recv_prim;
-    ipc_send_prim.handle = handle;
-    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_COMMIT, &ipc_send_prim, sizeof(ipc_send_prim));
-    assert(!ipc_disallow_high_priority_handler_calls());
-    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_COMMIT_RSP, &ipc_recv_prim);
-    return ipc_recv_prim.ret;
-}
-
-
-bool AclHandoverCancel(uint16 handle)
-{
-    IPC_ACL_HANDOVER_CANCEL ipc_send_prim;
-    IPC_BOOL_RSP ipc_recv_prim;
-    ipc_send_prim.handle = handle;
-    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_CANCEL, &ipc_send_prim, sizeof(ipc_send_prim));
-    assert(!ipc_disallow_high_priority_handler_calls());
-    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_CANCEL_RSP, &ipc_recv_prim);
-    return ipc_recv_prim.ret;
-}
-
-
-Source StreamAudioSyncSource(Operator opid)
-{
-    IPC_STREAM_AUDIO_SYNC_SOURCE ipc_send_prim;
-    IPC_SOURCE_RSP ipc_recv_prim;
-    ipc_send_prim.opid = opid;
-    ipc_send(IPC_SIGNAL_ID_STREAM_AUDIO_SYNC_SOURCE, &ipc_send_prim, sizeof(ipc_send_prim));
-    assert(!ipc_disallow_high_priority_handler_calls());
-    (void)ipc_recv(IPC_SIGNAL_ID_STREAM_AUDIO_SYNC_SOURCE_RSP, &ipc_recv_prim);
-    return SOURCE_FROM_ID(ipc_recv_prim.ret);
-}
-
-
-#endif /* TRAPSET_SHADOWING */
-
-
 #if TRAPSET_LCD
 bool LcdConfigure(uint16 key, uint16 value)
 {
@@ -2431,6 +2381,34 @@ void PsDefragBlocking(void )
 
 
 #endif /* TRAPSET_CORE */
+
+
+#if TRAPSET_TEST2
+bool Test2CwTransmit(uint16 channel, uint16 power)
+{
+    IPC_TEST2_CW_TRANSMIT ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.channel = channel;
+    ipc_send_prim.power = power;
+    ipc_send(IPC_SIGNAL_ID_TEST2_CW_TRANSMIT, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_TEST2_CW_TRANSMIT_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool Test2RfStop(void )
+{
+    IPC_TEST2_RF_STOP ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send(IPC_SIGNAL_ID_TEST2_RF_STOP, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_TEST2_RF_STOP_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+#endif /* TRAPSET_TEST2 */
 
 
 #if TRAPSET_NFC
@@ -3268,6 +3246,19 @@ audio_power_save_mode AudioPowerSaveModeGet(void )
 }
 
 
+bool AudioMapCpuSpeed(audio_dsp_clock_type clock_mode, uint32 freq)
+{
+    IPC_AUDIO_MAP_CPU_SPEED ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.clock_mode = clock_mode;
+    ipc_send_prim.freq = freq;
+    ipc_send(IPC_SIGNAL_ID_AUDIO_MAP_CPU_SPEED, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_AUDIO_MAP_CPU_SPEED_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
 #endif /* TRAPSET_WAKE_ON_AUDIO */
 
 
@@ -3529,6 +3520,58 @@ bool CryptoAes128Cbc(bool encrypt, const uint8 * key, uint8 * nonce, uint16 flag
 
 
 #endif /* TRAPSET_CRYPTO */
+
+
+#if TRAPSET_MIRRORING
+acl_handover_prepare_status AclHandoverPrepared(uint16 handle)
+{
+    IPC_ACL_HANDOVER_PREPARED ipc_send_prim;
+    IPC_ACL_HANDOVER_PREPARE_STATUS_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_PREPARED, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_PREPARED_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool AclHandoverCommit(uint16 handle)
+{
+    IPC_ACL_HANDOVER_COMMIT ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_COMMIT, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_COMMIT_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+bool AclHandoverCancel(uint16 handle)
+{
+    IPC_ACL_HANDOVER_CANCEL ipc_send_prim;
+    IPC_BOOL_RSP ipc_recv_prim;
+    ipc_send_prim.handle = handle;
+    ipc_send(IPC_SIGNAL_ID_ACL_HANDOVER_CANCEL, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_ACL_HANDOVER_CANCEL_RSP, &ipc_recv_prim);
+    return ipc_recv_prim.ret;
+}
+
+
+Source StreamAudioSyncSource(Operator opid)
+{
+    IPC_STREAM_AUDIO_SYNC_SOURCE ipc_send_prim;
+    IPC_SOURCE_RSP ipc_recv_prim;
+    ipc_send_prim.opid = opid;
+    ipc_send(IPC_SIGNAL_ID_STREAM_AUDIO_SYNC_SOURCE, &ipc_send_prim, sizeof(ipc_send_prim));
+    assert(!ipc_disallow_high_priority_handler_calls());
+    (void)ipc_recv(IPC_SIGNAL_ID_STREAM_AUDIO_SYNC_SOURCE_RSP, &ipc_recv_prim);
+    return SOURCE_FROM_ID(ipc_recv_prim.ret);
+}
+
+
+#endif /* TRAPSET_MIRRORING */
 
 
 #if TRAPSET_BDADDR

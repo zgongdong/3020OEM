@@ -16,6 +16,7 @@
 #include <audio_sbc_encoder_params.h>
 #include <voice_assistant_container.h>
 #include <voice_assistant_audio_if.h>
+#include <source.h>
 /* Private #defines for configuring sbc codec*/
 #define AUDIO_TUNING_SBC_NUM_SUBBANDS                  8
 #define AUDIO_TUNING_SBC_BLOCK_SIZE                    16
@@ -51,7 +52,11 @@ static voice_assistant_provider_t audioTuningMode_GetProviderName(void)
 */
 static void audioTuningMode_AudioInputDataReceived(Source source)
 {
-    UNUSED(source);
+    uint16 size = SourceSize(source);
+    if(size)
+    {
+        SourceDrop(source, size);
+    }
 }
 /*! \brief  Event handler for audio tuning mode
     \param event_id.

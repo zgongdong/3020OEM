@@ -45,7 +45,7 @@
     X(BATTERY_APP)          /* See #battery_messages */ \
     X(ADV_MANAGER)          /* See #adv_mgr_messages_t */ \
     X(SFWD)                 /* See #scofwd_messages */ \
-    X(SHADOW_PROFILE)       /* See #shadow_profile_msg_t */ \
+    X(MIRROR_PROFILE)       /* See #mirror_profile_msg_t */ \
     X(PROXIMITY)            /* See #proximity_messages */ \
     X(ACCELEROMETER)        /* See #accelerometer_messages */ \
     X(CHARGER)              /* See #chargerMessages */ \

@@ -8,17 +8,21 @@
 """
 This module enables ACAT to recognise downloadable capabilities.
 """
+import json
+import logging
 import os
 import sys
-import json
 
 from ACAT.Core import Arch
 from ACAT.Core.exceptions import DebugInfoNoVariableError
+from ACAT.Core.logger import method_logger
 
 try:
     from future_builtins import hex
 except ImportError:
     pass
+
+logger = logging.getLogger(__name__)
 
 
 class MappedTable(object):
@@ -139,6 +143,7 @@ class MappedTable(object):
 
             self.checksum = checksum
 
+    @method_logger(logger)
     def convert_addr_to_build(self, addr_in_file, cap_elf_id):
         """
         Converts local downloaded capability's address to chipdata's.
@@ -160,6 +165,7 @@ class MappedTable(object):
             device_address = entry.device_address + offset
             return device_address
 
+    @method_logger(logger)
     def convert_addr_to_download(self, addr_in_build, cap_elf_id):
         """Converts chipdata's address to downloaded capability's.
 
@@ -182,6 +188,7 @@ class MappedTable(object):
             file_address = entry.file_address + offset
             return file_address
 
+    @method_logger(logger)
     def get_table_entry(self, addr, cap_elf_id, addr_in_file_given=True):
         """Returns the table entry for conversion.
 
@@ -217,6 +224,7 @@ class MappedTable(object):
                     return entry
         return None
 
+    @method_logger(logger)
     def get_elf_id_from_address(self, addr):
         """Gets the elf_id from an address.
 
@@ -235,6 +243,7 @@ class MappedTable(object):
                     return identifier
         return None
 
+    @method_logger(logger)
     def is_addr_in_table(self, addr):
         """Checks whether a global address mapped to the table or not.
 
@@ -244,6 +253,7 @@ class MappedTable(object):
         self._update_table()
         return self.get_elf_id_from_address(addr) is not None
 
+    @method_logger(logger)
     def load_bundle_from_internal_builds(self, cap_elf_id):
         """Loads a bundle from internal builds.
 

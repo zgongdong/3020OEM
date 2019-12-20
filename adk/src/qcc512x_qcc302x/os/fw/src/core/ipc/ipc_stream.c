@@ -28,6 +28,12 @@ void ipc_stream_handler(IPC_SIGNAL_ID id, const void *msg)
             L3_DBG_MSG1("ipc_stream_handler: Operator 0x%x destroyed",
                          destroy_msg->op_list[op_num]);
             (void)MessageOperatorTask(destroy_msg->op_list[op_num], NULL);
+            (void)MessageStreamTaskFromSource(
+              StreamSourceFromOperatorTerminal(destroy_msg->op_list[op_num], 0),
+              NULL);
+            (void)MessageStreamTaskFromSink(
+              StreamSinkFromOperatorTerminal(destroy_msg->op_list[op_num], 0),
+              NULL);
         }
 
         if (destroy_msg->op_list)

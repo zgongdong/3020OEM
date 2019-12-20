@@ -8,6 +8,8 @@
 """
 Module used to analyse Kymera scheduler.
 """
+import numbers
+
 from ACAT.Analysis import Analysis
 from ACAT.Core import Arch
 from ACAT.Core import CoreUtils as cu
@@ -28,7 +30,7 @@ VARIABLE_DEPENDENCIES = {
 ENUM_DEPENDENCIES = {'not_strict': ('panicid',)}
 TYPE_DEPENDENCIES = {
     'tEventsQueue': ('first_event',),
-    'TASK': ('next', 'handler', 'id', 'mqueue'),
+    'TASK': ('next', 'handler', 'id', 'mqueue', 'priv'),
     'BG_INTQ': ('first',),
     'BGINT': ('handler', 'raised', 'id'),
     'MSG': ('next',),
@@ -171,6 +173,26 @@ class Sched(Analysis.Analysis):
     #######################################################################
     # Analysis methods - public since we may want to call them individually
     #######################################################################
+
+    def analyse_task(self, task_id_name):
+        """Analyse a task by ID or module name.
+
+        Args:
+            task_id_name: A parameter than can be a number or a string.
+                Number: It is a task ID
+                String: Name of the module name.
+        """
+        if isinstance(task_id_name, numbers.Integral):
+            self._analyse_task_by_id(task_id_name)
+
+        elif isinstance(task_id_name, str):
+            self._analyse_task_by_module_name(task_id_name)
+
+        else:
+            print(
+                "The parameter `task_id_name` should be task's ID or its "
+                "module name."
+            )
 
     def analyse_tasks(self):
         """Displays the tasks.
@@ -479,6 +501,82 @@ class Sched(Analysis.Analysis):
     #######################################################################
     # Private methods - don't call these externally.
     #######################################################################
+
+    def _get_all_queued_tasks(self):
+        # Get the list of task queues. Since this is stored as a simple array,
+        # .members contains a list of the individual queues.
+        task_queues = self.chipdata.get_var_strict(
+            '$_tasks_in_priority'
+        ).members
+
+        for priority, queue in enumerate(task_queues):
+            if queue.get_member('first').value == 0:
+                continue
+            first_task = self.chipdata.cast(
+                queue.get_member('first').value, 'TASK'
+            )
+
+            for task in self.parse_linked_list(first_task, 'next'):
+                yield (priority, task)
+
+    def _analyse_task_by_id(self, task_id):
+        """Analyse a task by ID."""
+        for _, task in self._get_all_queued_tasks():
+            if task.get_member('id').value != task_id:
+                continue
+
+            # Found the task!
+            self.__analyse_task(task)
+            break
+
+    def _analyse_task_by_module_name(self, module_name):
+        """Analyse a task by ID."""
+        for _, task in self._get_all_queued_tasks():
+            handler = task.get_member('handler').value
+            if handler == 0:
+                continue
+
+            source_info = self.debuginfo.get_source_info(handler)
+            if module_name != source_info.module_name:
+                continue
+
+            # Found the task!
+            self.__analyse_task(task)
+            break
+
+    def __analyse_task(self, task):
+        handler = task.get_member('handler').value
+        if handler == 0:
+            return
+
+        print(task)
+
+        if not task.get_member('priv').value:
+            # When the pointer is null then it shouldn't be dereferenced.
+            return
+
+        module_name = self.debuginfo.get_source_info(handler).module_name
+        module_type = self.debuginfo.get_sched_task_module_data_type(
+            module_name
+        )
+
+        if module_type is None:
+            # Perhaps this is an old firmware and there is no
+            # type not found for this module name.
+            return
+
+        print(
+            "module_name: {} (type: {})\n".format(
+                module_name,
+                module_type
+            )
+        )
+        print(
+            self.chipdata.cast(
+                task.get_member('priv').value,
+                module_type
+            )
+        )
 
     def _read_timer(self, t, timer_type='unknown'):
         """Read timer.

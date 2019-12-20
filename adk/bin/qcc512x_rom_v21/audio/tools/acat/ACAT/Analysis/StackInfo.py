@@ -16,10 +16,11 @@ from . import Analysis
 from ..Core import Arch
 from ACAT.Core import CoreUtils as cu
 from ACAT.Core.exceptions import (
-    BundleMissingError, InvalidPmAddressError, UnknownPmEncodingError
+    BundleMissingError, InvalidPmAddressError, UnknownPmEncodingError,
+    OutdatedFwAnalysisError, DebugInfoNoVariableError
 )
 
-VARIABLE_DEPENDENCIES = {'strict': ("$stack.buffer", "$stack.p1_buffer")}
+VARIABLE_DEPENDENCIES = {'strict': ("$stack.start", "$stack.size")}
 
 # Clearly needs to be modified if we ever change the contents of an interrupt
 # stack frame. Lowest address first.
@@ -90,6 +91,9 @@ class StackInfo(Analysis.Analysis):
     # look at http://wiki/AudioCPU/Stack.
     def __init__(self, **kwarg):
         Analysis.Analysis.__init__(self, **kwarg)
+
+        self._check_kymera_version()
+
         self.interrupt_frames = []
         if Arch.chip_arch == "Hydra":
             self.int_frame_descriptors = INT_FRAME_DESCRIPTORS_HYDRA
@@ -121,6 +125,18 @@ class StackInfo(Analysis.Analysis):
         except BaseException:
             self.formatter.output(traceback.format_exc())
 
+    def _check_kymera_version(self):
+        """Checks if the Kymera version is compatible with this analysis.
+
+        Raises:
+            OutdatedFwAnalysisError: For an outdated Kymera.
+        """
+        try:
+            self.debuginfo.get_var_strict("$stack.start")
+        except DebugInfoNoVariableError:
+            # fallback to the old implementation
+            raise OutdatedFwAnalysisError()
+
     def _get_regular_stack_info(self):
         """Recovers the regular stack properties.
 
@@ -130,13 +146,11 @@ class StackInfo(Analysis.Analysis):
         Returns:
             The regular stack start address and stack end address.
         """
-        if self.chipdata.processor == 0:
-            stack_var = self.debuginfo.get_var_strict("$stack.buffer")
-        else:
-            stack_var = self.debuginfo.get_var_strict("$stack.p1_buffer")
+        stack_start = self.chipdata.get_var_strict("$stack.start")
+        stack_size = self.chipdata.get_var_strict("$stack.size")
 
-        start_address = stack_var.address
-        end_address = stack_var.address + stack_var.size - Arch.addr_per_word
+        start_address = stack_start.value
+        end_address = start_address + stack_size.value - Arch.addr_per_word
         return start_address, end_address
 
     def run_all(self):

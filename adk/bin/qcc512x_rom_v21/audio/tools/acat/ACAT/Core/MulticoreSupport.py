@@ -28,10 +28,12 @@ from ACAT.Core.exceptions import (
     InvalidDmConstAddressError, InvalidDmConstLengthError,
     InvalidDmAddressError, InvalidDmLengthError
 )
+from ACAT.Core.logger import function_logger
 
 logger = logging.getLogger(__name__)
 
 
+@function_logger(logger)
 def load_bundle(bundle_path):
     """Loads a bundle (also known as KDCs) and puts it to a dictionary.
 
@@ -49,6 +51,7 @@ def load_bundle(bundle_path):
     return bundle_dictionary
 
 
+@function_logger(logger)
 def get_build_output_path(chipdata):
     """Returns the path to the release build.
 
@@ -395,11 +398,11 @@ class Functions(object):
             # here; in this case we want to catch it, and weed out any
             # matches that aren't register names.
             try:
-                if 'regfile' in identifier:
-                    return self.chipdata.get_reg_strict(identifier)
+                if 'regfile' in identifier.lower():
+                    return self.chipdata.get_reg_strict(identifier.upper())
 
                 return self.chipdata.get_reg_strict(
-                    'regfile_' + identifier
+                    ('regfile_' + identifier).upper()
                 )
             except KeyError:
                 pass
@@ -803,6 +806,8 @@ class Processor(Functions):
 
         self.formatter = formatter
 
+        self._kal_getitem_fix()
+
     @property
     def kalaccess(self):
         """Return the kalaccess instance.
@@ -832,6 +837,49 @@ class Processor(Functions):
             bool: True if the processor was booted, False otherwise.
         """
         return self.chipdata.is_booted()
+
+    def _kal_getitem_fix(self):
+        """Fix the kalaccess getitem when the transport is pciespi.
+        
+        `pciespi` transport doesn't read good values until the clock is up
+        to the speed in the DUT.  The reading from the dm memory will be
+        decorated to read the first element from the capability data table
+        until is null. ( The first element from the capability tables  is
+        the first capability address. This table is null terminated and we
+        know that at least one capability is installed) Because the read
+        method is static we need to decorate the class.
+        """
+        if "pciespi" not in cu.global_options.spi_trans:
+            return
+
+        var = self.debuginfo.get_var_strict("$_capability_data_table")
+        address = var.address
+
+        def _dm_decorator(getitem, address):
+            # function decorator
+            def _new_getitem(self, index):
+                prev_value = getitem(self, address)
+                value = getitem(self, address)
+                while (prev_value != value) or (value == 0):
+                    prev_value = value
+                    value = getitem(self, address)
+                return getitem(self, index)
+
+            return _new_getitem
+
+        def _dm_accessor_decorator(kls):
+            # class decorator
+            kls.__getitem__ = _dm_decorator(kls.__getitem__, address)
+            return kls
+
+        dm_accessor_mod = _dm_accessor_decorator(
+            cu.global_options.kmem.DmAccessor
+        )
+        if self.processor == 0:
+            cu.global_options.kal.dm = dm_accessor_mod(cu.global_options.kal)
+        else:
+            cu.global_options.kal2.dm = dm_accessor_mod(cu.global_options.kal2)
+        logger.info("kalmemaccessors.DmAccessor was decorated for pciespi")
 
     def __getattribute__(self, name):
         available_analyses = object.__getattribute__(

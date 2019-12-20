@@ -79,7 +79,6 @@ void connectionHandleInternalBleDmSecurityReq(
         const CL_INTERNAL_SM_DM_SECURITY_REQ_T *req
         )
 {
-    bool  security_requirement = TRUE;
     MAKE_PRIM_T(DM_SM_SECURITY_REQ);
  
     switch(req->conn_type)
@@ -119,32 +118,31 @@ void connectionHandleInternalBleDmSecurityReq(
 
     prim->context = CTX_FROM_TASK(req->theAppTask);
 
-    security_requirement =  connectionCheckSecurityRequirement(&req->taddr);
-
-    switch(req->security)
+    /* Secure Connections is set as an option in DM_SM_INIT and doesn't need to be
+     * accounted for when performing the Security Req. Additionally, When exchanging
+     * IO Capabilities, Secure Connections will be enabled by default for the BLE
+     * transport.
+     */
+    switch (req->security)
     {
         case ble_security_encrypted:
-            prim->security_requirements = security_requirement ?
-                DM_SM_SECURITY_UNAUTHENTICATED_NO_BONDING_SC :
-                DM_SM_SECURITY_UNAUTHENTICATED_NO_BONDING;
+            prim->security_requirements =
+                    DM_SM_SECURITY_UNAUTHENTICATED_NO_BONDING;
             break;
         case ble_security_encrypted_bonded:
-            prim->security_requirements = security_requirement ?
-                DM_SM_SECURITY_UNAUTHENTICATED_NO_BONDING_SC :
-                DM_SM_SECURITY_UNAUTHENTICATED_NO_BONDING;
+            prim->security_requirements =
+                DM_SM_SECURITY_UNAUTHENTICATED_BONDING;
             break;
         case ble_security_authenticated:
-            prim->security_requirements = security_requirement ?
-                DM_SM_SECURITY_AUTHENTICATED_NO_BONDING_SC :
+            prim->security_requirements =
                 DM_SM_SECURITY_AUTHENTICATED_NO_BONDING;
             break;
         case ble_security_authenticated_bonded:
-            prim->security_requirements = security_requirement ?
-                DM_SM_SECURITY_AUTHENTICATED_NO_BONDING_SC :
-                DM_SM_SECURITY_AUTHENTICATED_NO_BONDING;
+            prim->security_requirements =
+                DM_SM_SECURITY_AUTHENTICATED_BONDING;
             break;
         case ble_security_refresh_encryption:
-            prim->security_requirements = 
+            prim->security_requirements =
                 DM_SM_SECURITY_REFRESH_ENCRYPTION;
             break;
         default:
@@ -197,6 +195,90 @@ void connectionHandleDmSmSecurityCfm(const DM_SM_SECURITY_CFM_T *cfm)
 
     MessageSend((Task)cfm->context, CL_DM_BLE_SECURITY_CFM, message);
 }
+
+/*****************************************************************************
+NAME
+    connectionHandleDmSmGenerateCrossTransKeyRequestInd
+
+DESCRIPTION
+    Handle the DM_SM_GENREATE_CROSS_TRANS_KEY_REQUEST_IND message from
+    Bluesack.
+
+RETUNS
+    void
+*/
+void connectionHandleDmSmGenerateCrossTransKeyRequestInd(
+        const DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND_T *ind
+        )
+{
+    MAKE_CL_MESSAGE(CL_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND);
+
+    message->identifier = ind->identifier;
+    message->flags = ind->flags;
+    BdaddrConvertTpBluestackToVm(
+                &message->tpaddr,
+                &ind->tp_addrt
+                );
+
+    MessageSend(
+                connectionGetAppTask(),
+                CL_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND,
+                message);
+}
+
+/*****************************************************************************
+NAME
+    ConnectionSmGenerateCrossTransKeyRequestResponse
+
+DESCRIPTION
+    Send the DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_RSP in response
+    to DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND to Bluestack.
+
+RETUNS
+    void
+*/
+void ConnectionSmGenerateCrossTransKeyRequestResponse(
+        const tp_bdaddr *tpaddr,
+        uint8           identifier,
+        ctk_flags_type  flags
+        )
+{
+    if (tpaddr == NULL)
+    {
+        CL_DEBUG(("tpaddr pointer is NULL\n"));
+        return;
+    }
+    else if (flags >= cross_trans_key_last)
+    {
+        CL_DEBUG(("ctk_flags_type %d out of enum range", (int)flags));
+        return;
+    }
+    else
+    {
+        MAKE_PRIM_T(DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_RSP);
+
+        BdaddrConvertTpVmToBluestack(
+                    &prim->tp_addrt,
+                    tpaddr
+                    );
+        prim->identifier = identifier;
+
+        switch (flags)
+        {
+        case cross_trans_key_disable:
+            prim->flags = DM_SM_FLAG_GENERATE_CROSS_TRANS_KEY_DISABLE;
+            break;
+        case cross_trans_key_enable:
+            prim->flags = DM_SM_FLAG_GENERATE_CROSS_TRANS_KEY_ENABLE;
+            break;
+        default:
+            CL_DEBUG(("This should never happen!"));
+            return;
+        }
+        VmSendDmPrim(prim);
+    }
+}
+
 
 #endif /* DISABLE_BLE */
 

@@ -12,6 +12,7 @@
 #include "earbud_primary_rules.h"
 #include "earbud_secondary_rules.h"
 #include "earbud_sm_config.h"
+#include "earbud_handover_typedef.h"
 
 #include <phy_state.h>
 #include <tws_topology.h>
@@ -216,7 +217,8 @@ typedef struct
     tws_topology_role role;             /*!< Current primary/secondary/none role of the earbud */
     rule_set_t primary_rules;
     rule_set_t secondary_rules;
-//    rule_set_t active_rules;
+
+    earbud_sm_timers timers;            /*!< Remaining times on outstanding timers during handover. */
 } smTaskData;
 
 /*! \brief Used to specify which link needs to be disconnected */
@@ -407,6 +409,12 @@ void appSmEnterDfuMode(void);
     \param enable Enable or disable this mode
  */
 extern void appSmEnterDfuModeInCase(bool enable);
+
+/*! \brief Enable entry to upgrade mode on entering the case
+
+    \return Whether enabled or not
+ */
+bool appSmEnterDfuWhenEnteringCase(void);
 
 //bool appSmIsPrimary(void);
 #endif /* EARBUD_SM_H_ */

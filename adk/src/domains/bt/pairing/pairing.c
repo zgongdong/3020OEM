@@ -849,6 +849,9 @@ static void pairing_HandleClSmAddAuthDeviceConfirm(CL_SM_ADD_AUTH_DEVICE_CFM_T *
     /* Set event indicating we've received a handset link-key.
        Can be used by client to decide to connect to the handset. */
     pairing_MsgActivity(pairingLinkKeyReceived, NULL, DEVICE_TWS_UNKNOWN);
+
+    /* Tell the peer that the link key has been set ok */
+    PeerLinkKeys_SendKeyResponseToPeer(&cfm->bd_addr, (cfm->status == success));
 }
 
 

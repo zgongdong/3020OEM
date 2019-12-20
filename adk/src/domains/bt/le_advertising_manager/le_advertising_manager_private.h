@@ -98,8 +98,6 @@ typedef struct
     bool                        is_advertising_allowed;
     /*! Flag to indicate if data update is required */
     bool                        is_data_update_required;
-    /*! Flag to indicate if local address is already configured or not */
-    bool                        is_local_address_configured;
     /*! Selected handset advertising data set for the undirected advertising */
     le_adv_data_set_handle      dataset_handset_handle;
     /*! Selected peer advertising data set for the undirected advertising */
@@ -149,7 +147,6 @@ typedef enum {
     ADV_SETUP_BLOCK_ADV_PARAMS_CFM = 2, /*!< Blocked pending appAdvManagerHandleSetAdvertisingDataCfm completing */
     ADV_SETUP_BLOCK_ADV_SCAN_RESPONSE_DATA_CFM = 3,
     ADV_SETUP_BLOCK_ADV_ENABLE_CFM = 4,
-    ADV_SETUP_BLOCK_ADV_LOCAL_ADDRESS_CFM = 5,
     ADV_SETUP_BLOCK_INVALID = 0xFF
 } adv_mgr_blocking_state_t;
 

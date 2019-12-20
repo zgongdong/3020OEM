@@ -65,7 +65,7 @@ bool GattRoleSelectionClientInit(GATT_ROLE_SELECTION_CLIENT *instance,
     instance->lib_task.handler = roleSelectionClientMsgHandler;
     instance->app_task = app_task;
 
-    instance->peer_state = GrssShadowStateUnknown;
+    instance->peer_state = GrssMirrorStateUnknown;
 
     /* Set the role control characteristic end at the end of the service 
        The memset above ensured the handle is unknown (0) */

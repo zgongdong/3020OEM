@@ -32,15 +32,13 @@ void leAdvertisingManager_ClientsInit(void)
 {
     for(int i=0; i<MAX_NUMBER_OF_CLIENTS; i++)
     {
-        database[i].callback.GetNumberOfItems = NULL;
-        database[i].callback.GetItem = NULL;
-        database[i].callback.ReleaseItems = NULL;
-        database[i].in_use = FALSE;
+        database[i].task = NULL;
+        database[i].callback = NULL;
     }
 }
 
 /******************************************************************************/
-le_adv_mgr_register_handle LeAdvertisingManager_NewClient(Task task, const le_adv_data_callback_t * callback)
+le_adv_mgr_register_handle LeAdvertisingManager_NewClient(Task task, const le_adv_data_callback_t * const callback)
 {
     int i;
     
@@ -49,18 +47,15 @@ le_adv_mgr_register_handle LeAdvertisingManager_NewClient(Task task, const le_ad
     
     for(i = 0; i < MAX_NUMBER_OF_CLIENTS; i++)
     {
-        if(database[i].in_use)
+        if(database[i].callback)
         {
-            if((callback->GetNumberOfItems == database[i].callback.GetNumberOfItems) || (callback->GetItem ==  database[i].callback.GetItem))
+            if((callback->GetNumberOfItems == database[i].callback->GetNumberOfItems) ||
+               (callback->GetItem == database[i].callback->GetItem))
                 return NULL;
             else
                 continue;
         }
-        database[i].callback.GetNumberOfItems = callback->GetNumberOfItems;
-        database[i].callback.GetItem = callback->GetItem;
-        database[i].callback.ReleaseItems = callback->ReleaseItems;
-        database[i].in_use = TRUE;
-        
+        database[i].callback = callback;
         database[i].task = task;
         break;
     }
@@ -105,7 +100,7 @@ le_adv_mgr_register_handle leAdvertisingManager_NextClient(le_adv_mgr_client_ite
 /******************************************************************************/
 bool leAdvertisingManager_ClientListIsEmpty(void)
 {
-    if( (NULL == database[0].callback.GetItem) || (NULL == database[0].callback.GetNumberOfItems) )
+    if(NULL == database[0].callback)
     {
         return TRUE;
     }
@@ -115,10 +110,10 @@ bool leAdvertisingManager_ClientListIsEmpty(void)
 /******************************************************************************/
 size_t leAdvertisingManager_ClientNumItems(le_adv_mgr_register_handle client_handle, const le_adv_data_params_t* params)
 {
-    if(!client_handle->in_use)
+    if(!client_handle->callback)
     {
         return 0;
     }
     
-    return client_handle->callback.GetNumberOfItems(params);
+    return client_handle->callback->GetNumberOfItems(params);
 }

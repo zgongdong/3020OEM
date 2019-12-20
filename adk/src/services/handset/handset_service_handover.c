@@ -37,12 +37,28 @@ REGISTER_HANDOVER_INTERFACE_NO_MARSHALLING(HANDSET_SERVICE, handsetService_Veto,
 */
 static bool handsetService_Veto(void)
 {
-    bool veto = FALSE;
+    bool veto = TRUE;
     handset_service_state_machine_t *sm = HandsetService_GetSm();
-    if(sm && (sm->state != HANDSET_SERVICE_STATE_CONNECTED_BREDR))
+    uint16 index;
+    uint8 connected_handset_count = 0;
+
+    for(index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
     {
-        veto = TRUE;
-        DEBUG_LOG("handsetService_Veto, Not in connected state(%d)", sm->state);
+        if(sm && (sm->state == HANDSET_SERVICE_STATE_CONNECTED_BREDR))
+        {
+            connected_handset_count++;
+        }
+
+        sm++;
+    }
+
+    if(connected_handset_count == 1)
+    {
+        veto = FALSE;
+    }
+    else
+    {
+        DEBUG_LOG("handsetService_Veto, Number of handsets in connected state: %d", connected_handset_count);
     }
 
     return veto;
@@ -60,10 +76,14 @@ static bool handsetService_Veto(void)
 static void handsetService_Commit(bool is_primary)
 {
     handset_service_state_machine_t *sm = HandsetService_GetSm();
+    uint16 index;
+
     PanicNull(sm);
 
     if(is_primary)
     {
+        /*Handover of only one device is supported. Get the MRU device and populate the first slot for 
+          Handset statemachine.*/
         bool mru = TRUE;
         HandsetServiceSm_Init(sm);
         device_t mru_device = DeviceList_GetFirstDeviceWithPropertyValue(device_property_mru, &mru, sizeof(uint8));
@@ -74,7 +94,11 @@ static void handsetService_Commit(bool is_primary)
     }
     else
     {
-        HandsetServiceSm_DeInit(sm);
+        for (index = 0; index < HANDSET_SERVICE_MAX_SM; index++)
+        {
+            HandsetServiceSm_DeInit(sm);
+            sm++;
+        }
     }
 }
 

@@ -10,6 +10,7 @@
 #include "task_list.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <hydra_macros.h>
 
@@ -285,6 +286,41 @@ static bool iterateIndex(task_list_t* list, Task* next_task, uint16* index)
     }
 
     return iteration_successful;
+}
+
+/*! \brief Helper function that creates a null terminated array of Tasks.
+
+    \param[in]      list        Pointer to a Tasklist.
+
+    \return Task * the created array of tasks
+
+    If the Task List is empty this function will not allocate any memory, the caller should check
+    the value returned is not null before attempting to use it.
+
+    The Task array is in the form required for the Multicast MessageSend traps.
+ */
+static Task * taskList_CreateNullTerminatedTaskArray(task_list_t *list)
+{
+    Task *task_list = NULL;
+    uint16 number_of_tasks = taskList_Size(list);
+
+    if (number_of_tasks != 0)
+    {
+        Task next_task = NULL;
+        uint16 index;
+
+        /* Account for null terminator */
+        number_of_tasks++;
+        task_list = (Task *) PanicUnlessMalloc(number_of_tasks*sizeof(Task));
+
+        while (iterateIndex(list, &next_task, &index))
+        {
+            task_list[index] = next_task;
+        }
+        task_list[++index] = NULL;
+    }
+
+    return task_list;
 }
 
 /******************************************************************************
@@ -600,24 +636,19 @@ void TaskList_MessageSendLaterWithSize(task_list_t *list, MessageId id, void *da
 {
     PanicNull(list);
 
-    if (taskList_Size(list))
+    Task *task_list = taskList_CreateNullTerminatedTaskArray(list);
+    if (task_list)
     {
-        Task next_task = NULL;
-        uint16 index;
-
-        while (iterateIndex(list, &next_task, &index))
+        if (size_data == 0)
         {
-            void *copy = NULL;
-            if (size_data && (data != NULL))
-            {
-                copy = PanicUnlessMalloc(size_data);
-                memcpy(copy, data, size_data);
-            }
-            MessageSendLater(next_task, id, copy, delay);
+            PanicNotNull(data);
         }
-    }
 
-    if(size_data && (data != NULL))
+        MessageSendMulticastLater(task_list, id, data, delay);
+
+        free(task_list);
+    }
+    else
     {
         free(data);
     }

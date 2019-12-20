@@ -101,19 +101,11 @@ static void appUpgradeNotifyCompleted(void)
 
     For earbuds this is initially hard coded, but may come from other
     storage in time.
-
-    This function allocates a memory buffer to hold the partition table
-    but does not free it. The upgrade library takes ownership of it when
-    it is passed in to UpgradeInit.
 */
 static void appUpgradeGetLogicalPartitions(const UPGRADE_UPGRADABLE_PARTITION_T **partitions, uint16 *count)
 {
     uint16 num_partitions = sizeof(logicalPartitions)/sizeof(logicalPartitions[0]);
-
-    UPGRADE_UPGRADABLE_PARTITION_T *alloced_partitions = (UPGRADE_UPGRADABLE_PARTITION_T *)PanicFalse(calloc(1,sizeof(logicalPartitions)));
-    memcpy(alloced_partitions, logicalPartitions, sizeof(logicalPartitions));
-
-    *partitions = alloced_partitions;
+    *partitions = logicalPartitions;
     *count = num_partitions;
 }
 
@@ -438,7 +430,7 @@ void appUpgradeClientRegister(Task tsk)
 void appUpgradeSetContext(app_upgrade_context_t context)
 {
     uint16 actualLength = PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, NULL, 0);
-    if ((actualLength > 0) && (actualLength < PSKEY_MAX_STORAGE_LENGTH))
+    if ((actualLength > 0) && (actualLength <= PSKEY_MAX_STORAGE_LENGTH))
     {
         uint16 keyCache[PSKEY_MAX_STORAGE_LENGTH];
         PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, keyCache, actualLength);
@@ -451,7 +443,7 @@ app_upgrade_context_t appUpgradeGetContext(void)
 {
     app_upgrade_context_t context = APP_UPGRADE_CONTEXT_UNUSED;
     uint16 actualLength = PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, NULL, 0);
-    if ((actualLength > 0) && (actualLength < PSKEY_MAX_STORAGE_LENGTH))
+    if ((actualLength > 0) && (actualLength <= PSKEY_MAX_STORAGE_LENGTH))
     {
         uint16 keyCache[PSKEY_MAX_STORAGE_LENGTH];
         PsRetrieve(EARBUD_UPGRADE_CONTEXT_KEY, keyCache, actualLength);

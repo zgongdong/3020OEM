@@ -56,6 +56,7 @@ CONNECTED --> DISCONNECTING : HandsetDisconnect REQ
 CONNECTED --> CONNECTED : HandsetConnect REQ\nHandsetConnect CFM (success)
 
 DISCONNECTING --> CONNECTING : HandsetConnect REQ\nHandsetDisconnect CFM (cancelled)
+DISCONNECTING --> CONNECTED : Profile connected\nHandsetDisconnect CFM (fail)
 DISCONNECTING --> DISCONNECTING : HandsetDisconnect REQ
 DISCONNECTING --> DISCONNECTED : Profiles disconnected\nHandsetDisconnect CFM (success)
 
@@ -107,6 +108,8 @@ typedef struct
     /*! Address of LE connected device. */
     tp_bdaddr le_addr;
 
+    /*! Reason for handset disconnection. */
+    hci_status disconnect_reason;
 } handset_service_state_machine_t;
 
 #define HandsetServiceSm_GetLeBdaddr(sm) sm->le_addr.taddr.addr

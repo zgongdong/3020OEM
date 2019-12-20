@@ -159,7 +159,7 @@ static void rootKeyStatusAccess(GATT_ROOT_KEY_SERVER *instance,
 
 static void sendInternalChallengeWriteMessage(GATT_ROOT_KEY_SERVER *instance, 
                                      uint16 cid,
-                                     GattRootKeyServiceShadowChallengeControlOpCode opcode,
+                                     GattRootKeyServiceMirrorChallengeControlOpCode opcode,
                                      const uint8 *key)
 {
     MAKE_ROOT_KEY_MESSAGE(ROOT_KEY_SERVER_INTERNAL_CHALLENGE_WRITE);
@@ -200,7 +200,7 @@ static void sendInternalKeysCommitMessage(GATT_ROOT_KEY_SERVER *instance, uint16
 }
 
 
-static void rootKeyShadowControlPointAccess(GATT_ROOT_KEY_SERVER *instance, 
+static void rootKeyMirrorControlPointAccess(GATT_ROOT_KEY_SERVER *instance, 
                                             const GATT_MANAGER_SERVER_ACCESS_IND_T *access_ind)
 {
     if (rootKeyServicePermittedWriteRequested(instance, access_ind))
@@ -235,7 +235,7 @@ static void rootKeyShadowControlPointAccess(GATT_ROOT_KEY_SERVER *instance,
         /*! \todo Probably need to only send this here for some limited error cases
             and have the app/profile send the remainder */
         sendRootKeyAccessRsp(&instance->lib_task, access_ind->cid,
-                             HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT, response, 
+                             HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT, response, 
                              0, NULL);
     }
 }
@@ -301,7 +301,7 @@ static void rootKeyClientConfigAccess(GATT_ROOT_KEY_SERVER *instance,
 {
     if (access_ind->flags & ATT_ACCESS_READ)
     {
-        sendRootKeyConfigAccessRsp(instance, access_ind->cid, instance->shadow_client_config);
+        sendRootKeyConfigAccessRsp(instance, access_ind->cid, instance->mirror_client_config);
     }
     else if (access_ind->flags & ATT_ACCESS_WRITE)
     {
@@ -310,10 +310,10 @@ static void rootKeyClientConfigAccess(GATT_ROOT_KEY_SERVER *instance,
             uint16 config_value =    (access_ind->value[0] & 0xFF) 
                                   + ((access_ind->value[1] << 8) & 0xFF00);
 
-            instance->shadow_client_config = config_value;
+            instance->mirror_client_config = config_value;
 
             sendRootKeyAccessRsp(&instance->lib_task, 
-                                 access_ind->cid, HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT_CLIENT_CONFIG, 
+                                 access_ind->cid, HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT_CLIENT_CONFIG, 
                                  gatt_status_success, 0, NULL);
         }
         else
@@ -348,15 +348,15 @@ void handleRootKeyAccess(GATT_ROOT_KEY_SERVER *instance,
             rootKeyStatusAccess(instance, access_ind);
             break;
 
-        case HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT:
-            rootKeyShadowControlPointAccess(instance, access_ind);
+        case HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT:
+            rootKeyMirrorControlPointAccess(instance, access_ind);
             break;
 
         case HANDLE_ROOT_TRANSFER_SERVICE_KEYS_CONTROL:
             rootKeyKeysControlPointAccess(instance, access_ind);
             break;
 
-        case HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT_CLIENT_CONFIG:
+        case HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT_CLIENT_CONFIG:
             rootKeyClientConfigAccess(instance, access_ind);
             break;
         
@@ -377,7 +377,7 @@ void sendRootKeyConfigAccessRsp(const GATT_ROOT_KEY_SERVER *instance,
     config_resp[1] = (client_config >> 8) & 0xFF;
 
     sendRootKeyAccessRsp((Task)&instance->lib_task, cid, 
-                         HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT_CLIENT_CONFIG, 
+                         HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT_CLIENT_CONFIG, 
                          gatt_status_success, 
                          GATT_CLIENT_CONFIG_OCTET_SIZE, config_resp);
 }

@@ -10,10 +10,14 @@ Display tables in the console, whether it's a help message or otherwise
 """
 from __future__ import print_function
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class HelpSection(list):
-    """
-    Create and manage help sections
+    """Create and manage help sections.
 
     Assumes each section in a help document consists of title, description
     and items to explain. Items are usually a pair of (command, description).
@@ -23,42 +27,60 @@ class HelpSection(list):
     Help section is basically a list and all the default operations in the
     list object typle is available for HelpSection.
 
-    @param  width   The width of help section. This the number of characters
-                    and the type is integer.
-    @param  left_padding  The padding from the left side of the screen.
-    @param  command_width The width of the command text in items.
+    Args:
+        kwargs: Arbitrary keyword arguments. Accepted keywords are:
+
+            * *width*: The width of help section. This the number of
+              characters and the type is integer. The default is 80.
+            * *left_padding*: The padding from the left side of the screen.
+              The default is 8.
+            * *command_width* : The width of the command text in items. The
+              default is 20.
+            * *formatter*: A formatter instance. By default the class uses
+              python's print function.
     """
 
-    def __init__(self, width=80, left_padding=8, command_width=20):
+    def __init__(self, **kwargs):
         super(HelpSection, self).__init__()
+
+        formatter = kwargs.pop('formatter', None)
+        if formatter:
+            self._print = formatter.output
+        else:
+            self._print = print
 
         self._title = list()
         self._description = list()
 
-        self._width = width
-        self._left_padding = left_padding
-        self._first_item_width = command_width
+        self._width = kwargs.pop('width', 80)
+        self._left_padding = kwargs.pop('left_padding', 8)
+        self._first_item_width = kwargs.pop('command_width', 20)
 
         self._items = list()
 
+        if len(kwargs):
+            logger.warning(
+                "Unknown keyword arguments: {}".format(str(kwargs.keys()))
+            )
+
     @property
     def title(self):
-        """
-        Title of the section
+        """Title of the section.
 
-        @return A string
+        Returns:
+            str
         """
         return ' '.join(self._title)
 
     @title.setter
     def title(self, value):
-        """
-        Set the title of the section
+        """Set the title of the section.
 
         It wraps the given title with the total width of the help section
         and then adds a blank line at the end of the title.
 
-        @param value The title in string
+        Args:
+            value (str): The title in string.
         """
         if len(value):
             self._title = self._wrap_line(value, self._width)
@@ -68,18 +90,19 @@ class HelpSection(list):
 
     @property
     def description(self):
-        """
-        The description of the help section
-        @return A string
+        """The description of the help section.
+
+        Returns:
+            str
         """
         return ' '.join(self._description)
 
     @description.setter
     def description(self, value):
-        """
-        Sets the description of the help section
+        """Sets the description of the help section.
 
-        @param value The description in string
+        Args:
+            value (str): The description in string.
         """
         if len(value):
             self._description = value
@@ -89,26 +112,26 @@ class HelpSection(list):
             self._description.append('')
 
     def add_item(self, command, description):
-        """
-        Add an help item to the section
+        """Add an help item to the section.
 
-        Help Item is the "command" "description" pair. This should be displayed
-        something similar to:
+        Help Item is the "command" "description" pair. This should be
+        displayed something similar to:
 
-        search:              Searches all the registers and variables
-
-        @param  command         The command in integer
-        @param  description     The description of the given command
+        Args:
+            command (str): The command in integer.
+            description (str): The description of the given command.
         """
         self.append((command, description))
 
     def get_help(self, verbose=False):
-        """
-        Get the help as a list of strings or prints it
+        """Get the help as a list of strings or prints it.
 
-        @param  verbose When True, instead of returning a list of lines, the
-                        method will print the results line by line.
-        @return A list of strings
+        Args:
+            verbose (bool): When True, instead of returning a list of
+                lines, the method will print the results line by line.
+
+        Returns:
+            list: A list of strings.
         """
         output = list()
         output.extend(self._title)
@@ -119,7 +142,7 @@ class HelpSection(list):
 
         if verbose:
             for item in output:
-                print(item)
+                self._print(item)
         else:
             return output
 

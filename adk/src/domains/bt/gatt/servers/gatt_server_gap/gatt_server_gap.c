@@ -21,7 +21,7 @@
 #define GAP_ADVERT_FLAGS        (BLE_FLAGS_GENERAL_DISCOVERABLE_MODE | BLE_FLAGS_DUAL_CONTROLLER | BLE_FLAGS_DUAL_HOST)
 #define GAP_ADVERT_FLAGS_LENGTH 3
 
-static const uint8 gap_adv_flags_data[GAP_ADVERT_FLAGS_LENGTH] = 
+static const uint8 gap_adv_flags_data[GAP_ADVERT_FLAGS_LENGTH] =
 {
     GAP_ADVERT_FLAGS_LENGTH - 1,
     ble_ad_type_flags,
@@ -57,16 +57,17 @@ static gattServerGapData gatt_server_gap = {0};
 
 static bool gattServerGap_IsNameReturned(const le_adv_data_params_t * params)
 {
-    if(params->data_set != le_adv_data_set_handset_identifiable)
+    if((params->data_set != le_adv_data_set_handset_identifiable) &&
+       (params->data_set != le_adv_data_set_handset_unidentifiable))
     {
         return FALSE;
     }
-    
+
     if(params->placement != le_adv_data_placement_dont_care)
     {
         return FALSE;
     }
-    
+
     if(GetGattServerGapCompleteName())
     {
         if(params->completeness != le_adv_data_completeness_full)
@@ -81,7 +82,7 @@ static bool gattServerGap_IsNameReturned(const le_adv_data_params_t * params)
             return FALSE;
         }
     }
-    
+
     return TRUE;
 }
 
@@ -91,52 +92,54 @@ static bool gattServerGap_IsFlagsReturned(const le_adv_data_params_t * params)
     {
         return FALSE;
     }
-    
+
     if(params->placement != le_adv_data_placement_advert)
     {
         return FALSE;
     }
-    
+
     if(params->completeness != le_adv_data_completeness_full)
     {
         return FALSE;
     }
-    
+
     return TRUE;
 }
 
 static unsigned gattServerGap_NumberOfAdvItems(const le_adv_data_params_t * params)
 {
     unsigned count = 0;
-    
+
     if(gattServerGap_IsNameReturned(params))
     {
         count++;
     }
-    
+
     if(gattServerGap_IsFlagsReturned(params))
     {
         count++;
     }
-    
+
     return count;
 }
 
 static le_adv_data_item_t gattServerGap_GetAdvNameItem(void)
 {
+    DEBUG_LOGF("gattServerGap_GetAdvNameItem gap_name_item.data:%d", gap_name_item.data);
+
     if(gap_name_item.data == NULL)
     {
         uint16 name_len;
         const char* name = (const char*)LocalName_GetPrefixedName(&name_len);
         PanicNull((void*)name);
-        
+
         uint16 data_len = name_len + AD_DATA_HEADER_SIZE;
         uint8* data = PanicUnlessMalloc(data_len);
-        
+
         data[AD_DATA_LENGTH_OFFSET] = name_len + 1;
         data[AD_DATA_TYPE_OFFSET] = ble_ad_type_complete_local_name;
         memcpy(&data[AD_DATA_HEADER_SIZE], name, name_len);
-        
+
         gap_name_item.size = data_len;
         gap_name_item.data = data;
     }
@@ -152,33 +155,38 @@ static le_adv_data_item_t gattServerGap_GetAdvFlagsItem(void)
 static le_adv_data_item_t gattServerGap_GetAdvDataItems(const le_adv_data_params_t * params, unsigned index)
 {
     PanicFalse(index == 0);
-    
+
+    DEBUG_LOGF("gattServerGap_GetAdvDataItems data_set: %d, completeness: %d,  placement:%d",
+               params->data_set, params->completeness, params->placement);
+
     if(gattServerGap_IsNameReturned(params))
     {
         return gattServerGap_GetAdvNameItem();
     }
-    
+
     if(gattServerGap_IsFlagsReturned(params))
     {
         return gattServerGap_GetAdvFlagsItem();
     }
-    
+
     Panic();
     return gap_empty_item;
 }
 
 static void gattServerGap_ReleaseAdvDataItems(const le_adv_data_params_t * params)
 {
-    if(gattServerGap_IsNameReturned(params))
+    DEBUG_LOGF("gattServerGap_ReleaseAdvDataItems data_set: %d, completeness: %d,  placement:%d",
+               params->data_set, params->completeness, params->placement);
+
+    if(gattServerGap_IsNameReturned(params) && gap_name_item.data)
     {
-        PanicNull((void*)gap_name_item.data);
         free((void*)gap_name_item.data);
         gap_name_item.data = NULL;
         gap_name_item.size = 0;
     }
 }
 
-static le_adv_data_callback_t gatt_gap_le_advert_callback =
+static const le_adv_data_callback_t gatt_gap_le_advert_callback =
 {
     .GetNumberOfItems = gattServerGap_NumberOfAdvItems,
     .GetItem = gattServerGap_GetAdvDataItems,
@@ -196,7 +204,7 @@ static void gattServerGap_HandleReadDeviceNameInd(const GATT_GAP_SERVER_READ_DEV
     if (ind->name_offset)
     {
         /* Check that we haven't been asked for an entry off the end of the name */
-        
+
         if (ind->name_offset >= name_len)
         {
             name_len = 0;
@@ -243,9 +251,9 @@ static void gattServerGap_SetupAdvertising(void)
 static void gattServerGap_init(void)
 {
     memset(&gatt_server_gap, 0, sizeof(gatt_server_gap));
-    
+
     gatt_server_gap.gap_task.handler = gattServerGap_MessageHandler;
-    
+
     if (GattGapServerInit(GetGattServerGapGgaps(), GetGattServerGapTask(),
                                     HANDLE_GAP_SERVICE, HANDLE_GAP_SERVICE_END)
                         != gatt_gap_server_status_success)
@@ -253,7 +261,7 @@ static void gattServerGap_init(void)
         DEBUG_LOG("gattServerGap_init Server failed");
         Panic();
     }
-    
+
     gattServerGap_SetupAdvertising();
 }
 
@@ -264,7 +272,7 @@ bool GattServerGap_Init(Task init_task)
     UNUSED(init_task);
 
     gattServerGap_init();
-    
+
     DEBUG_LOG("GattServerGap_Init. Server initialised");
 
     return TRUE;

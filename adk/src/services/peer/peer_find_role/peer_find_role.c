@@ -12,6 +12,8 @@
 
 #include <logging.h>
 
+#include <ps.h>
+
 #include <bt_device.h>
 
 #include "earbud_init.h"
@@ -31,7 +33,7 @@ bool peer_find_role_is_central(void)
 
     if (appDeviceGetFlags(&pfr->my_addr, &flags))
     {
-        if (flags & DEVICE_FLAGS_SHADOWING_C_ROLE)
+        if (flags & DEVICE_FLAGS_MIRRORING_C_ROLE)
         {
             return TRUE;
         }
@@ -59,14 +61,28 @@ void PeerFindRole_FindRole(int32 high_speed_time_ms)
         pfr->role_timeout_ms = high_speed_time_ms;
         pfr->advertising_backoff_ms = PeerFindRoleConfigInitialAdvertisingBackoffMs();
 
-        if (high_speed_time_ms != 0)
+        if(PeerFindRole_GetFixedRole() == peer_find_role_fixed_role_secondary)
         {
-            /* Start the timeout before setting the state as the state change can cancel it */
-            MessageSendLater(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_TIMEOUT_CONNECTION,
-                             NULL, pfr->role_timeout_ms);
+            DEBUG_LOG("PeerFindRole_FindRole. Don't time out as we're always secondary");
         }
-
+        else
+        {
+            if (high_speed_time_ms != 0)
+            {
+                /* Start the timeout before setting the state as the state change can cancel it */
+                MessageSendLater(PeerFindRoleGetTask(), PEER_FIND_ROLE_INTERNAL_TIMEOUT_CONNECTION,
+                                 NULL, pfr->role_timeout_ms);
+            }
+        }
         peer_find_role_set_state(PEER_FIND_ROLE_STATE_CHECKING_PEER);
+    }
+    else
+    {
+        /* It is not ok to start a new find role while a previous one is still
+           active. If a client wants to re-start a find role it must cancel the
+           previous one first with PeerFindRole_FindRoleCancel. */;
+        /*To re-check the rules for no_rule_no_idle, which is causing this Function to Hit
+         * twice. Removing Panic for now. */
     }
 }
 
@@ -200,4 +216,54 @@ bool PeerFindRole_HandleConnectionLibraryMessages(MessageId id, Message message,
     }
 
     return FALSE;
+}
+
+#define FIXED_ROLE_PSKEY_LEN 1
+
+/*! \brief Query if a fixed role has been assigned to the device. 
+
+    \return The current role assigend to this device or peer_find_role_fixed_role_not_set if
+            role switching is allowed
+            The device should be reset after changing this setting
+*/
+peer_find_role_fixed_role_t PeerFindRole_GetFixedRole(void)
+{
+    if(peer_find_role.fixed_role == peer_find_role_fixed_role_invalid)
+    {
+        uint16 role;
+
+        if(PsRetrieve(FIXED_ROLE_PSKEY, &role, FIXED_ROLE_PSKEY_LEN))
+        {
+            peer_find_role.fixed_role = (peer_find_role_fixed_role_t)role;
+        }
+
+        if(peer_find_role.fixed_role >= peer_find_role_fixed_role_invalid)
+        {
+            peer_find_role.fixed_role = peer_find_role_fixed_role_not_set;
+        }
+    }
+
+    DEBUG_LOG("PeerFindRole_GetFixedRole. role = %d", peer_find_role.fixed_role);
+
+    return peer_find_role.fixed_role;
+}
+
+/*! \brief Assign a fixed role to the device or enable role switching
+
+    \param role emum representing role behaviour the device is to adopt
+*/
+void PeerFindRole_SetFixedRole(peer_find_role_fixed_role_t role)
+{
+    if(role < peer_find_role_fixed_role_invalid)
+    {
+        uint16 buffer = (uint16)role;
+
+        PanicFalse(PsStore(FIXED_ROLE_PSKEY, &buffer, FIXED_ROLE_PSKEY_LEN));
+
+        peer_find_role.fixed_role = role;
+    }
+    else
+    {
+        Panic();
+    }
 }

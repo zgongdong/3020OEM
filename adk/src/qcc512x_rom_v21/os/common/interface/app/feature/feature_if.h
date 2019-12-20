@@ -66,7 +66,7 @@ typedef enum
     /* Misc feature bits. */
     QHS = 110,
     
-    MAX_FEATURES_NUMBER = 112
+    MAX_FEATURES_NUMBER = 111
 } feature_id;
 
 #endif /* __FEATURE_IF_H__  */

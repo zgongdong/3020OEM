@@ -12,7 +12,7 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_disconnect_peer_profiles_fns;
+extern const tws_topology_procedure_fns_t proc_disconnect_peer_profiles_fns;
 
 typedef struct
 {

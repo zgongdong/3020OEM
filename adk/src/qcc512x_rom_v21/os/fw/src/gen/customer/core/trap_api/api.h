@@ -10,7 +10,7 @@
  * \defgroup api Customer Trap API
  */
 /*
- * Version 10.2
+ * Version 10.3
  */
 
 
@@ -282,7 +282,11 @@
  * \ingroup api
  */
 /**
- * \defgroup trapset_shadowing SHADOWING
+ * \defgroup trapset_mirroring MIRRORING
+ * \ingroup api
+ */
+/**
+ * \defgroup trapset_test2 TEST2
  * \ingroup api
  */
 #endif

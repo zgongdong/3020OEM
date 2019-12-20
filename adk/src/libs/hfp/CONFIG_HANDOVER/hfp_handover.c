@@ -20,13 +20,15 @@ NOTES
 #include "hfp_private.h"
 #include "hfp_init.h"
 #include "hfp_link_manager.h"
+#include "hfp_handover_policy.h"
 
 #include "marshal.h"
 #include "bdaddr.h"
 #include <panic.h>
 #include <stdlib.h>
-/*#include <app/bluestack/rfcomm_prim.h>*/
 #include <sink.h>
+#include <stream.h>
+#include <source.h>
 
 
 #define RFC_INVALID_SERV_CHANNEL   0x00
@@ -272,15 +274,15 @@ RETURNS
 */
 static void hfpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
 {
-    if (newRole)
+    if (newRole && hfp_marshal_inst)
     {
         UNUSED(tp_bd_addr);
+        Source src;
         uint16 conn_id;
         hfp_link_data *link = hfpGetIdleLink();
         hfp_marshalled_obj *objp = hfp_marshal_inst->data;
 
         /* Commit must be called after unmarshalling */
-        PanicNull(hfp_marshal_inst);
         PanicNull(hfp_marshal_inst->data);
         PanicNull(link);
 
@@ -296,6 +298,11 @@ static void hfpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
 
         conn_id = SinkGetRfcommConnId(link->identifier.sink);
         PanicFalse(VmOverrideRfcommConnContext(conn_id, (conn_context_t)&theHfp->task));
+        
+        /* Set the handover policy on the stream */
+        src = StreamSourceFromSink(link->identifier.sink);
+        PanicFalse(hfpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW_WITHOUT_DATA));
+        
         /* Stitch the RFCOMM sink and the task */
         MessageStreamTaskFromSink(link->identifier.sink, &theHfp->task);
         /* Configure RFCOMM sink messages */
@@ -316,12 +323,9 @@ RETURNS
 */
 static void hfpHandoverComplete( const bool newRole )
 {
-    if (newRole)
+    if (newRole && hfp_marshal_inst)
     {
-        /* Commit must be called after unmarshalling */
-        PanicNull(hfp_marshal_inst);
         PanicNull(hfp_marshal_inst->data);
-
         UnmarshalDestroy(hfp_marshal_inst->unmarshaller, TRUE);
         hfp_marshal_inst->unmarshaller = NULL;
         free(hfp_marshal_inst);

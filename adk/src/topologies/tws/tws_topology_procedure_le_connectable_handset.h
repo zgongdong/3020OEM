@@ -22,7 +22,7 @@ extern const TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET_T le_enable_connectable;
 extern const TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET_T le_disable_connectable;
 #define PROC_DISABLE_LE_CONNECTABLE_PARAMS  ((Message)&le_disable_connectable)
 
-extern tws_topology_procedure_fns_t proc_le_connectable_fns;
+extern const tws_topology_procedure_fns_t proc_le_connectable_fns;
 
 #endif /* TWS_TOPOLOGY_PROCEDURE_LE_CONNECTABLE_HANDSET_H */
 

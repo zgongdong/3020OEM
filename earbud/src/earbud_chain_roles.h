@@ -27,8 +27,12 @@ typedef enum chain_operator_roles
     OPR_APTX_CLASSIC_MONO_DECODER_NO_AUTOSYNC,
     /*! Role identifier used for SBC decoder operator */
     OPR_SBC_DECODER,
+    /*! Role identifier used for SBC decoder operator that re-decodes the locally rendered channel */
+    OPR_LOCAL_CHANNEL_SBC_DECODER,
     /*! Role identifier used for SBC encoder operator */
     OPR_SBC_ENCODER,
+    /*! Role identifier used for SBC encoder operator that re-encodes the locally rendered channel */
+    OPR_LOCAL_CHANNEL_SBC_ENCODER,
     /*! Role identifier used for the AAC decoder operator */
     OPR_AAC_DECODER,
     /*! Role identifier used for the aptX classic decoder operator */

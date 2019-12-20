@@ -13,7 +13,7 @@
 
 #include "tws_topology_procedure_script_engine.h"
 
-extern tws_topology_procedure_fns_t proc_dfu_in_case_fns;
+extern const tws_topology_procedure_fns_t proc_dfu_in_case_fns;
 
 
 #endif /* TWS_TOPOLOGY_PROC_DFU_IN_CASE_H */

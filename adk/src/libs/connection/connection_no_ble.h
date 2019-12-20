@@ -526,6 +526,20 @@ DESCRIPTION
 */
 #define CONNLIB_OPTIONS_CTKD_DISABLE 0x0004
 
+/*!
+    @brief Enable Selective CTKD per Device.
+
+    When this option is enabled, during pairing the Connection library
+    will send a #CL_SM_GENERATE_CROSS_TRANS_KEY_IND message. The
+    application must respond with ConnectionSmGenerateCrossTransResponse()
+    to enable or disable Cross Transport Key Generation for that
+    peer device.
+
+    This option will be IGNORED if the option if used with
+    #CONNLIB_OPTION_CTKD_DISABLED.
+*/
+#define CONNLIB_OPTIONS_SELECTIVE_CTKD 0x0008
+
 /*! \} */
 
 
@@ -2128,6 +2142,7 @@ typedef enum
     CL_DM_APT_IND,
     CL_DM_READ_APT_CFM,
     CL_DM_WRITE_APT_CFM,
+    CL_DM_ACL_CLOSE_CFM,
 
     CL_SM_INIT_CFM,
     CL_SM_REGISTER_OUTGOING_SERVICE_CFM,
@@ -2146,6 +2161,7 @@ typedef enum
     CL_SM_ENCRYPT_CFM,
     CL_SM_ENCRYPTION_KEY_REFRESH_IND,
     CL_SM_ENCRYPTION_CHANGE_IND,
+    CL_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND,
 
     CL_SDP_REGISTER_CFM,
     CL_SDP_UNREGISTER_CFM,
@@ -2780,6 +2796,21 @@ typedef struct
         bitfield flags in app/bluestack/dm_prim.h. */
     uint16 flags;
 } CL_DM_ACL_CLOSED_IND_T;
+
+/*!
+    @brief Confirmation received in reponse to DM_ACL_CLOSE_REQ.
+*/
+typedef struct
+{
+    /*! The Bluetooth address of the remote device. */
+    typed_bdaddr taddr;
+    /*! See DM_ACL_CLOSE_CFM_T.
+        DM_ACL_CLOSE_SUCCESS, DM_ACL_CLOSE_BUSY or DM_ACL_CLOSE_NO_CONNECTION */
+    uint8  status;
+    /*! Flags indicating connection type and direction. See DM_ACL_FLAG_*
+        bitfield flags in app/bluestack/dm_prim.h. */
+    uint16 flags;
+} CL_DM_ACL_CLOSE_CFM_T;
 
 /*!
     @brief Unsolicited informational message alerting the client that no

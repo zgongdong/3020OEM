@@ -124,6 +124,7 @@ static void fastPair_AccountKeySync_HandleMarshalledMsgChannelRxInd(PEER_SIG_MAR
             /*! Store the Account keys and send the confirmation to the peer */
             synced = fastPair_StoreAllAccountKeys(req);
             fastPair_AccountKeySync_SendConfirmation(synced);
+            free(req);
         }
         break;
 
@@ -138,6 +139,7 @@ static void fastPair_AccountKeySync_HandleMarshalledMsgChannelRxInd(PEER_SIG_MAR
             {
                 DEBUG_LOG("fastPair_AccountKeySync_HandleMarshalledMsgChannelRxInd. Synchronized successfully.");
             }
+            free(cfm);
         }
         break;
 

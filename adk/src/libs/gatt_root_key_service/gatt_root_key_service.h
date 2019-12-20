@@ -29,7 +29,7 @@ typedef uint16 GattRootKeyServiceFeatures;
 /*! Names for features supported by the Root Key Server. */
 typedef enum
 {
-    GrksFeatureShadowChallenge = 0,
+    GrksFeatureMirrorChallenge = 0,
     GrksFeaturePrepareIr,
     GrksFeaturePrepareEr,
     GrksFeatureExecuteRootUpdate,
@@ -38,7 +38,7 @@ typedef enum
 #define GRKS_FEATURE_BIT_MASK(bit) (1<<(bit))
 
 #define GATT_ROOT_KEY_SERVICE_FEATURES_DEFAULT ( \
-              GRKS_FEATURE_BIT_MASK(GrksFeatureShadowChallenge) \
+              GRKS_FEATURE_BIT_MASK(GrksFeatureMirrorChallenge) \
             + GRKS_FEATURE_BIT_MASK(GrksFeaturePrepareIr) \
             + GRKS_FEATURE_BIT_MASK(GrksFeaturePrepareEr) \
             + GRKS_FEATURE_BIT_MASK(GrksFeatureExecuteRootUpdate))
@@ -68,14 +68,14 @@ typedef enum
 
 
 
-/*! Opcodes used relating to the Shadow Challenge Control Point. */
+/*! Opcodes used relating to the Mirror Challenge Control Point. */
 typedef enum
 {
     GattRootKeyScOpcodeIncomingRequest = 1,
     GattRootKeyScOpcodeOutgoingRequest,
     GattRootKeyScOpcodeIncomingResponse,
     GattRootKeyScOpcodeOutgoingResponse,
-} GattRootKeyServiceShadowChallengeControlOpCode;
+} GattRootKeyServiceMirrorChallengeControlOpCode;
 
 
 /*! Opcodes used relating to the Keys Control Point */

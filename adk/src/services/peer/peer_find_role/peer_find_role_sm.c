@@ -216,7 +216,8 @@ void peer_find_role_start_scanning_if_inactive(void)
     
     peer_find_role_get_primary_as_tp_bdaddr(&tp_addr);
 
-    if (!pfr->scan && !peer_find_role_media_active())
+    if (!LeScanManager_IsTaskScanning(PeerFindRoleGetTask()) &&
+        !peer_find_role_media_active())
     {
         filter.ad_type = ble_ad_type_complete_uuid16;
         filter.interval = filter.size_pattern = sizeof(uuid);
@@ -229,6 +230,10 @@ void peer_find_role_start_scanning_if_inactive(void)
 
         /*! \todo Try filtering */
         LeScanManager_Start(PeerFindRoleGetTask(),le_scan_interval_fast, &filter);
+
+        /* Record that scanning should be enabled, in case this fails and a re-try
+           is required */
+        pfr->scan_enable = TRUE;
     }
 }
 
@@ -320,12 +325,19 @@ void peer_find_role_stop_scan_if_active(void)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    if (pfr->scan)
+    if (LeScanManager_IsTaskScanning(PeerFindRoleGetTask()))
     {
-        LeScanManager_Stop(PeerFindRoleGetTask(),pfr->scan);
-        pfr->scan = NULL;
+        DEBUG_LOG("peer_find_role_stop_scan_if_active stopping");
+        LeScanManager_Stop(PeerFindRoleGetTask());
         peer_find_role_scan_activity_clear(PEER_FIND_ROLE_ACTIVE_SCANNING);
     }
+    else
+    {
+        DEBUG_LOG("peer_find_role_stop_scan_if_active not stopping");
+    }
+    /* Record that scanning should be disabled, in case this fails and a re-try
+       is required */
+    pfr->scan_enable = FALSE;
 }
 
 

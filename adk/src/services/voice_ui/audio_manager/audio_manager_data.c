@@ -86,7 +86,6 @@ void AudioManager_TriggerVoiceDataReceivedCallback(void)
 /********************************************************************/
 bool AudioManager_IsStartCaptureAllowed(void)
 {
-
     return (audio_manager->state == audio_manager_state_idle) ? TRUE : FALSE;
 }
 

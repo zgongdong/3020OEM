@@ -294,10 +294,12 @@ bool LeAdvertisingManager_EnableConnectableAdvertising(Task task, bool enable);
 
 /*! \brief Public API to register callback functions for advertising data
     \param[in] task The task to receive messages from LE advertising manager when advertising states change
-    \param[in] callback Pointer to the data structure of type le_adv_data_callback_t to specify function pointers for LE Advertising Manager to use to collect the data items to be advertised
+    \param[in] callback A const pointer to the data structure of type le_adv_data_callback_t to specify function pointers for LE Advertising Manager to use to collect the data items to be advertised
+    \note The advertising manager only stores a pointer, so the callback object needs to have a lifetime
+          as long as the system (or until the unimplemented DeRegister function is provided).
     \return Valid pointer to the handle of type le_adv_mgr_register_handle, NULL otherwise.
 */
-le_adv_mgr_register_handle LeAdvertisingManager_Register(Task task, const le_adv_data_callback_t * callback);
+le_adv_mgr_register_handle LeAdvertisingManager_Register(Task task, const le_adv_data_callback_t * const callback);
 
 /*! \brief Handler for connection library messages not sent directly
 
@@ -366,11 +368,5 @@ bool LeAdvertisingManager_GetAdvertisingInterval(le_adv_common_parameters_t * in
 \return TRUE to indicate successful own address config get operation, FALSE otherwise.
 */
 bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_address_config);
-
-/*! \brief TODO: This is a test function to advertise Gaa Service untill VOICEUI-223  is fixed
-    \param
-    \return
-*/
-void LeAdvertisingManager_SetupPretendScanResponse(void);
 
 #endif /* LE_ADVERTSING_MANAGER_H_ */

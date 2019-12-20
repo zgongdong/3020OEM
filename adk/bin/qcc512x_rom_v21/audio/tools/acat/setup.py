@@ -31,6 +31,8 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version=VERSION,
 
+    include_package_data=True,
+
     description='Audio Coredump Analysis Tool',
 
     author='Qualcomm',
@@ -71,6 +73,13 @@ setup(
     install_requires=[
     ],
 
+    extras_require={
+        'full': [
+            'matplotlib<=2.1.2,>=2.1.0',
+            'graphviz>0.8.0'
+        ]
+    },
+
     packages=find_packages(
         exclude=[
             'contrib',
@@ -79,6 +88,10 @@ setup(
             'unit_tests'
         ]
     ),
+
+    package_data={
+        '': ['config/*.json'],
+    },
 
     entry_points={
         'console_scripts': [

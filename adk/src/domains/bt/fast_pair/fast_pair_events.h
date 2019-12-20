@@ -90,7 +90,8 @@ typedef struct
     CL_CRYPTO_DECRYPT_CFM_T* crypto_decrypt_cfm;
 } fast_pair_state_event_crypto_decrypt_args_t;
 
-
+/*! \brief Handle messages from connection library */
+bool fastPair_AuthenticateCfm(CL_SM_AUTHENTICATE_CFM_T *cfm);
 
 /*! \brief Handle messages from Conenction Manager */
 bool fastPair_ConManagerConnectInd(CON_MANAGER_TP_CONNECT_IND_T *cfm);

@@ -70,5 +70,9 @@
  */
 #define PeerFindRoleConfigMtu()     65
 
+/*! User PsKey to use for fixed role setting.
+ */
+#define FIXED_ROLE_PSKEY 2
+
 
 #endif /* PEER_FIND_ROLE_CONFIG_H_ */

@@ -90,6 +90,7 @@ typedef enum
     handset_service_status_no_mru,
     handset_service_status_connected,
     handset_service_status_disconnected,
+    handset_service_status_link_loss,
 } handset_service_status_t;
 
 

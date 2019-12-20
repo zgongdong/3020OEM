@@ -457,8 +457,7 @@ typedef enum
     L2CA_RES_TABLE_X(L2CA_RESULT_REMOTE_UNSUPPORTED_FEATURE,L2CA_RES_TABLE_DUMMY)   L2CA_RES_TABLE_SEP /*!< Unsupported remote feature */\
     L2CA_RES_TABLE_X(L2CA_RESULT_FLOW_VIOLATION,            L2CA_RES_TABLE_DUMMY)   L2CA_RES_TABLE_SEP /*!< LE Flow control protocol violation (either received credit count \
                                                                                                             exceeds 65535 or received LE-frame when credit count is zero) */ \
-    L2CA_RES_TABLE_X(L2CA_RESULT_LINK_TRANSFERRED,          L2CA_RES_TABLE_DUMMY)                      /*!< Shadowed Link Disconnect */
-
+    L2CA_RES_TABLE_X(L2CA_RESULT_LINK_TRANSFERRED,          L2CA_RES_TABLE_DUMMY)                      /*!< Mirrored Link Disconnect */
 
 #define L2CA_RES_TABLE_DUMMY
 #define L2CA_RES_TABLE_X(a, b) a b

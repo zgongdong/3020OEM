@@ -301,15 +301,29 @@ static unsigned decode_packet(OPERATOR_DATA *op_data, stream_sco_metadata* sco_m
     WBS_DEC_OP_DATA* wbs_data = (WBS_DEC_OP_DATA*)(op_data->extra_op_data);
     SCO_COMMON_RCV_OP_DATA* sco_data = &(wbs_data->sco_rcv_op_data);
     unsigned wbs_packet_length = 0;
-    unsigned amount_advanced = 0;
+    int amount_advanced = 0;
 
     /* validate the current packet. */
     int validate = sco_decoder_wbs_validate(op_data, sco_metadata->packet_length, &wbs_packet_length, &amount_advanced);
 
-    /* before calling this function we only know that we have one full packet
-     * It will be a serious bug if the validate function tries to go beyond one full packet
+    /* Normally we are in sync and amount_advanced is 0, however if we lose
+     * sync wbs_validate function will search for the location of WBS sync. In
+     * that case sync normally is found at the beginning of the SCO
+     * payload (so amount_advanced = 0), however it is absolutly legal for WBS
+     * frames to be unaligned with SCO packets. In that case wbs_validate will
+     * adavance the buffer to sync point (so amount_advanced>0).
+     *
+     * There is also possibility that WBS sync is found to be crossing the
+     * boundray of SCO packet. In that case wbs_validate will move the
+     * buffer read_ptr back by one word instead (amount_advanced = -1)
+     *
      */
-    PL_ASSERT(amount_advanced <= CONVERT_OCTETS_TO_SAMPLES(sco_metadata->packet_length));
+
+       /* before calling this function we only know that we have one full packet
+        * It will be a serious bug if the validate function tries to go beyond one full packet
+         */
+        PL_ASSERT( amount_advanced >= -1 &&
+                   amount_advanced <=  (int)CONVERT_OCTETS_TO_SAMPLES(sco_metadata->packet_length));
 
     SCO_DBG_MSG1("validate retval = %4d", validate);
 

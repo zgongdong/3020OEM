@@ -14,12 +14,13 @@
 #include "earbud.h"
 #include "earbud_init.h"
 #include "earbud_ui_config.h"
-
+#ifdef INCLUDE_FAST_PAIR
+#include "earbud_config.h"
+#endif
 #include "authentication.h"
 #include "earbud_log.h"
 #include "earbud_test.h"
 #include "temperature.h"
-#include "handset_signalling.h"
 #include "handset_service.h"
 #include "pairing.h"
 #include "power_manager.h"
@@ -42,6 +43,7 @@
 #endif
 #include "gaia.h"
 #include "connection_manager_config.h"
+#include "device_db_serialiser.h"
 #include "bt_device_class.h"
 #include "le_advertising_manager.h"
 #include "le_scan_manager.h"
@@ -79,10 +81,11 @@
 #include <init.h>
 #include <bredr_scan_manager.h>
 #include <connection_manager.h>
+#include <device_list.h>
 #include <hfp_profile.h>
 #include <scofwd_profile.h>
 #include <handover_profile.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 #include <charger_monitor.h>
 #include <message_broker.h>
 #include <profile_manager.h>
@@ -108,7 +111,15 @@
 #ifdef INCLUDE_GAA_COMM_SERVER
 #include <gatt_server_gaa_comm.h>
 #endif
-
+#ifdef INCLUDE_GATT_AMS_PROXY
+#include <gatt_server_ams_proxy.h>
+#endif
+#ifdef INCLUDE_GATT_ANCS_PROXY
+#include <gatt_server_ancs_proxy.h>
+#endif
+#ifdef INCLUDE_GAA_MEDIA_SERVER
+#include <gatt_server_gaa_media.h>
+#endif
 #ifdef INCLUDE_GATT_SERVICE_DISCOVERY
 #include <gatt_client.h>
 #include <gatt_client_identifiers.h>
@@ -204,7 +215,6 @@ static void appInitHandleClInitCfm(const CL_INIT_CFM_T *cfm)
 static void appHandleClMessage(Task task, MessageId id, Message message)
 {
     UNUSED(task);
-
     //DEBUG_LOG("appHandleClMessage called, message id = 0x%x", id);
     /* Handle Connection Library messages that are not sent directly to
        the requestor */
@@ -231,7 +241,10 @@ static void appHandleClMessage(Task task, MessageId id, Message message)
         handled |= appTestHandleConnectionLibraryMessages(id, message, handled);
         handled |= PeerFindRole_HandleConnectionLibraryMessages(id, message, handled);
         handled |= LocalAddr_HandleConnectionLibraryMessages(id, message, handled);
-        handled |= ShadowProfile_HandleConnectionLibraryMessages(id, message, handled);
+        handled |= MirrorProfile_HandleConnectionLibraryMessages(id, message, handled);
+#ifdef INCLUDE_FAST_PAIR
+        handled |= FastPair_HandleConnectionLibraryMessages(id, message, handled);
+#endif
 
         if (handled)
         {
@@ -252,9 +265,9 @@ static bool appConnectionInit(Task init_task)
 
     /* Initialise the Connection Manager */
 #if defined(APP_SECURE_CONNECTIONS)
-    ConnectionInitEx3(ConnectionMessageDispatcher_GetHandler(), &filter, appConfigMaxPairedDevices(), CONNLIB_OPTIONS_SC_ENABLE);
+    ConnectionInitEx3(ConnectionMessageDispatcher_GetHandler(), &filter, appConfigMaxTrustedDevices(), CONNLIB_OPTIONS_SC_ENABLE);
 #else
-    ConnectionInitEx3(ConnectionMessageDispatcher_GetHandler(), &filter, appConfigMaxPairedDevices(), CONNLIB_OPTIONS_NONE);
+    ConnectionInitEx3(ConnectionMessageDispatcher_GetHandler(), &filter, appConfigMaxTrustedDevices(), CONNLIB_OPTIONS_NONE);
 #endif
 
     appInitSetInitTask(init_task);
@@ -297,6 +310,26 @@ static bool appMessageDispatcherRegister(Task init_task)
     return TRUE;
 }
 
+static bool appInitDeviceDbSerialiser(Task init_task)
+{
+    UNUSED(init_task);
+
+    DeviceDbSerialiser_Init();
+
+    /* Register persistent device data users */
+    BtDevice_RegisterPddu();
+    
+#ifdef INCLUDE_FAST_PAIR
+    FastPair_RegisterPersistentDeviceDataUser();
+#endif
+
+    DeviceList_Init();
+    
+    DeviceDbSerialiser_Deserialise();
+
+    return TRUE;
+}
+
 
 #ifdef USE_BDADDR_FOR_LEFT_RIGHT
 static bool appConfigInit(Task init_task)
@@ -322,6 +355,41 @@ static bool appInitHandleClDmLocalBdAddrCfm(Message message)
     return TRUE;
 }
 #endif
+static const InputActionMessage_t* appInitGetInputActions(uint16* size_of_input_actions)
+{
+    const InputActionMessage_t* input_actions = NULL;
+#ifdef HAVE_1_BUTTON
+#ifdef INCLUDE_GAA
+    if (appConfigIsRight())
+    {
+        DEBUG_LOG("appInitGetInputActions voice_assistant_message_group");
+        *size_of_input_actions = sizeof(voice_assistant_message_group);
+        input_actions = voice_assistant_message_group;
+    }
+    else
+#endif /* INCLUDE_GAA */
+    {
+        DEBUG_LOG("appInitGetInputActions media_message_group");
+        *size_of_input_actions = sizeof(media_message_group);
+        input_actions = media_message_group;
+    }
+#else /* HAVE_1_BUTTON */
+    *size_of_input_actions = sizeof(default_message_group);
+    input_actions = default_message_group;
+#endif /* HAVE_1_BUTTON */
+    return input_actions;
+}
+static bool appInputEventMangerInit(Task init_task)
+{
+    const InputActionMessage_t* input_actions = NULL;
+    uint16 size_of_input_actions = 0;
+    UNUSED(init_task);
+    input_actions = appInitGetInputActions(&size_of_input_actions);
+    PanicNull((void*)input_actions);
+    InputEventManagerInit(LogicalInputSwitch_GetTask(), input_actions,
+                          size_of_input_actions, &input_event_config);
+    return TRUE;
+}
 
 #ifdef INIT_DEBUG
 /*! Debug function blocks execution until appInitDebugWait is cleared:
@@ -333,6 +401,15 @@ static bool appInitDebug(Task init_task)
 
     UNUSED(init_task);
     return TRUE;
+}
+#endif
+
+#ifdef INCLUDE_FAST_PAIR
+static bool appTxPowerInit(Task init_task)
+{
+    bool result = TxPower_Init(init_task);
+    TxPower_SetTxPowerPathLoss(BOARD_TX_POWER_PATH_LOSS);
+    return result;
 }
 #endif
 
@@ -354,17 +431,19 @@ static const init_table_entry_t appInitTable[] =
 #endif
     {appLedInit,            0, NULL},
     {appPowerInit,          APP_POWER_INIT_CFM, NULL},
-    {appPhyStateInit,       PHY_STATE_INIT_CFM, NULL},
     {appConnectionInit,     CL_INIT_CFM, NULL},
     {appMessageDispatcherRegister, 0, NULL},
 #ifdef USE_BDADDR_FOR_LEFT_RIGHT
     {appConfigInit,         CL_DM_LOCAL_BD_ADDR_CFM, appInitHandleClDmLocalBdAddrCfm},
 #endif
+    {appInputEventMangerInit, 0, NULL},
+    {appPhyStateInit,       PHY_STATE_INIT_CFM, NULL},
     {appLinkPolicyInit,     0, NULL},
     {LocalAddr_Init,        0, NULL},
     {ConManagerInit,        0, NULL},
     {PrimaryRules_Init,     0, NULL},
     {SecondaryRules_Init,   0, NULL},
+    {appInitDeviceDbSerialiser, 0, NULL},
     {appDeviceInit,         CL_DM_LOCAL_BD_ADDR_CFM, appDeviceHandleClDmLocalBdAddrCfm},
     {BredrScanManager_Init, BREDR_SCAN_MANAGER_INIT_CFM, NULL},
     {LocalName_Init, LOCAL_NAME_INIT_CFM, NULL},
@@ -380,14 +459,9 @@ static const init_table_entry_t appInitTable[] =
     {Pairing_Init,          PAIRING_INIT_CFM, NULL},
     {Telephony_InitMessages, 0, NULL},
     {appHfpInit,            APP_HFP_INIT_CFM, NULL},
-    {appHandsetSigInit,     0, NULL},
     {appKymeraInit,         0, NULL},
 #ifdef INCLUDE_SCOFWD
     {ScoFwdInit,            SFWD_INIT_CFM, NULL},
-#endif
-#ifdef INCLUDE_SHADOWING
-    {HandoverProfile_Init,  HANDOVER_PROFILE_INIT_CFM, NULL},
-	{ShadowProfile_Init,    SHADOW_PROFILE_INIT_CFM, NULL},
 #endif
     {StateProxy_Init,       0, NULL},
     {MediaPlayer_Init,       0, NULL},
@@ -413,8 +487,17 @@ static const init_table_entry_t appInitTable[] =
 #endif
     {GattServerGatt_Init,   0, NULL},
     {GattServerGap_Init,    0, NULL},
+#ifdef INCLUDE_GAA_MEDIA_SERVER
+    {GattServerGaaMedia_Init, 0, NULL},
+#endif
 #ifdef INCLUDE_GAA_COMM_SERVER
     {GattServerGaaComm_Init, 0, NULL},
+#endif
+#ifdef INCLUDE_GATT_AMS_PROXY
+    {GattServerAmsProxy_Init, 0, NULL},
+#endif
+#ifdef INCLUDE_GATT_ANCS_PROXY
+    {GattServerAncsProxy_Init, 0, NULL},
 #endif
     {appSmInit,             0, NULL},
 #ifdef INCLUDE_DFU
@@ -435,11 +518,8 @@ static const init_table_entry_t appInitTable[] =
     {AudioCuration_Init, 0, NULL},
     {UiPrompts_Init,     0, NULL},
     {PeerUi_Init,        0, NULL},
-#ifdef INCLUDE_SHADOWING
-    {EarbudHandover_Init, 0, NULL},
-#endif    
 #ifdef INCLUDE_FAST_PAIR
-    {TxPower_Init, 0 , NULL},
+    {appTxPowerInit, 0 , NULL},
     {FastPair_Init,         0, NULL},
 #endif
 
@@ -454,9 +534,14 @@ static const init_table_entry_t appInitTable[] =
 #endif
 };
 
+
+
+
+
 void appInit(void)
 {
     unsigned registrations_array_dim;
+
 
     app_init.task.handler = appHandleClMessage;
 
@@ -468,37 +553,16 @@ void appInit(void)
     MessageBroker_Init(message_broker_group_registrations_begin,
                        registrations_array_dim);
 
+    /* Initialise input event manager with auto-generated tables for
+     * the target platform. Connect to the logical Input Switch component */
+
+
     AppsCommon_StartInit(appGetAppTask(), appInitTable, ARRAY_DIM(appInitTable));
 }
 
-static const InputActionMessage_t* appInitGetInputActions(uint16* size_of_input_actions)
-{
-    const InputActionMessage_t* input_actions = NULL;
-
-#ifdef HAVE_1_BUTTON
-    if (appConfigIsRight())
-    {
-        *size_of_input_actions = sizeof(right_earbud_message_group);
-        input_actions = right_earbud_message_group;
-    }
-    else
-    {
-        *size_of_input_actions = sizeof(left_earbud_message_group);
-        input_actions = left_earbud_message_group;
-    }
-#else
-    *size_of_input_actions = sizeof(default_message_group);
-    input_actions = default_message_group;
-#endif
-
-    return input_actions;
-}
 
 void appInitSetInitialised(void)
 {
-    const InputActionMessage_t* input_actions = NULL;
-    uint16 size_of_input_actions = 0;
-
     const ui_config_table_content_t* config_table;
     unsigned config_table_size;
 
@@ -507,14 +571,8 @@ void appInitSetInitialised(void)
 
     LogicalInputSwitch_SetLogicalInputIdRange(MIN_INPUT_ACTION_MESSAGE_ID,
                                               MAX_INPUT_ACTION_MESSAGE_ID);
-
-    /* Initialise input event manager with auto-generated tables for
-     * the target platform. Connect to the logical Input Switch component */
-    input_actions = appInitGetInputActions(&size_of_input_actions);
-    PanicNull((void*)input_actions);
-
-    InputEventManagerInit(LogicalInputSwitch_GetTask(), input_actions,
-                          size_of_input_actions, &input_event_config);
+    /* UI and App is completely initialized, system is ready for inputs */
+    InputEventManagerEnable();
 
     InitGetTaskData()->initialised = APP_INIT_COMPLETED_MAGIC;
 }

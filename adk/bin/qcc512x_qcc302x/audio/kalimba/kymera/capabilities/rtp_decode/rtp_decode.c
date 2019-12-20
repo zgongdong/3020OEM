@@ -210,12 +210,22 @@ static void rtp_notify_latency_change(OPERATOR_DATA *op_data, uint32 source, TIM
                                      (unsigned*)latency_changed_msg);
 }
 
-static void rtp_source_changed(OPERATOR_DATA *op_data, uint32 source)
+/* rtp_source_changed has been updated to take a ttp_adjust factor, 
+   This is delta in uSecs from the TTP set by the SSRC
+   This enables the source to modify the TTP based on detected conditions
+   Only reset on an SSRC change, as this is the step change in TTP
+   The ttp_adjust change should just be applied so the TTP module can dynamically adjust
+   ttp_adjust is being validate by the AOSP source device.
+   */
+static void rtp_source_changed(OPERATOR_DATA *op_data, uint32 source, TIME_INTERVAL ttp_adjust)
 {
     RTP_DECODE_OP_DATA *opx_data = get_instance_data(op_data);
     TIME_INTERVAL new_latency;
     unsigned count;
+    bool reset = (opx_data->prev_src_id == source) ? FALSE : TRUE; // Reset only of SSRC change
     opx_data->prev_src_id = source;
+    opx_data->rtp_ttp_adjust = ttp_adjust;
+
     if (opx_data->src_latency_map != NULL)
     {
         for (count = 0; count < opx_data->src_latency_map->num_entries; count++)
@@ -223,6 +233,7 @@ static void rtp_source_changed(OPERATOR_DATA *op_data, uint32 source)
             if (opx_data->src_latency_map->entries[count].source_id == source)
             {
                 new_latency = opx_data->src_latency_map->entries[count].target_latency;
+                new_latency += opx_data->rtp_ttp_adjust * MILLISECOND;
                 L2_DBG_MSG2("RTP decode target latency changed to %d for source %u", new_latency, source);
                 /* Notify the latency change */
                 if( opx_data->latency_change_notify_enable == 1)
@@ -231,7 +242,8 @@ static void rtp_source_changed(OPERATOR_DATA *op_data, uint32 source)
                 }
 
                 ttp_configure_latency(opx_data->ttp_instance, new_latency);
-                ttp_reset(opx_data->ttp_instance);
+                if (reset)
+                    ttp_reset(opx_data->ttp_instance);
                 return;
             }
         }
@@ -1407,11 +1419,13 @@ void rtp_decode_process_data(OPERATOR_DATA *op_data, TOUCHED_TERMINALS *touched)
                 if (opx_data->mode == RTP_DECODE && opx_data->codec_type == APTXADAPTIVE)
                 {
                     rtp_header_decode(opx_data, header_size, &rtp_header);
-                    if (rtp_header.source != opx_data->prev_src_id)
-                    {
-                        rtp_source_changed(op_data, rtp_header.source);
-                    }
                     frame_data.rtp_timestamp = rtp_header.timestamp;
+                    TIME_INTERVAL ttp_adj = RTP_TIMESTAMP_APTX_AD_GET_TTP_ADJ(rtp_header.timestamp);
+                    
+                    if (rtp_header.source != opx_data->prev_src_id || opx_data->rtp_ttp_adjust != ttp_adj)
+                    {
+                        rtp_source_changed(op_data, rtp_header.source, ttp_adj );
+                    }
                 }
 #ifdef TTP_SOURCE_TIME_TEST
                 else if (opx_data->mode == RTP_DECODE)

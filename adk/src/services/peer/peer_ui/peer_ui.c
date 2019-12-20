@@ -16,6 +16,8 @@
 #include "peer_signalling.h"
 #include "system_clock.h"
 #include "ui.h"
+#include "peer_ui_anc.h"
+#include "anc_state_manager.h"
 
 /* system includes */
 #include <stdlib.h>
@@ -91,23 +93,32 @@ static void peerUi_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_CHANN
             PanicNull(rcvd);
             ui_input_t ui_input = rcvd->ui_input;
             marshal_rtime_t timestamp = rcvd->timestamp;
-           
-            /* difference between timestamp (sent by primary by when to handle the UI input) and 
-            actual system time when UI input is received by secondary */
-            int32 delta;
 
-            /* system time when message received by secondary earbud */
-            rtime_t now = SystemClockGetTimerTime();
-
-            /* time left for secondary to handle the UI input */
-            delta = rtime_sub(timestamp, now);
-
-            /* Inject UI input to secondary with the time left, so it can handle UI input,
-            we only inject UI input if secondary has any time left */    
-            if(rtime_gt(delta, 0))
+            /* To separate out handling of incoming ANC related marshalled messages*/
+            if (ID_TO_MSG_GRP(ui_input) == UI_INPUTS_AUDIO_CURATION_MESSAGE_GROUP)
             {
-                DEBUG_LOG("peerUi_HandleMarshalledMsgChannelRxInd send ui_input(0x%x) in %d ms", ui_input, US_TO_MS(delta));
-                Ui_InjectUiInputWithDelay(ui_input, US_TO_MS(delta));
+                DEBUG_LOG("UI_INPUTS_AUDIO_CURATION_MESSAGE_GROUP : ANC UI EVENTS");
+                peerAnc_HandleMarshalledMsgChannelRxInd((PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T*)ind);
+            }
+            else
+            {
+                /* difference between timestamp (sent by primary by when to handle the UI input) and
+                actual system time when UI input is received by secondary */
+                int32 delta;
+
+                /* system time when message received by secondary earbud */
+                rtime_t now = SystemClockGetTimerTime();
+
+                /* time left for secondary to handle the UI input */
+                delta = rtime_sub(timestamp, now);
+
+                /* Inject UI input to secondary with the time left, so it can handle UI input,
+                we only inject UI input if secondary has any time left */
+                if(rtime_gt(delta, 0))
+                {
+                    DEBUG_LOG("peerUi_HandleMarshalledMsgChannelRxInd send ui_input(0x%x) in %d ms", ui_input, US_TO_MS(delta));
+                    Ui_InjectUiInputWithDelay(ui_input, US_TO_MS(delta));
+                }
             }
         }
         break;
@@ -142,7 +153,48 @@ static void peerUi_Interceptor_FuncPtr(ui_input_t ui_input, uint32 delay)
                 peerUi_SendUiInputToSecondary(ui_input);
             }
             break;
-
+        case ui_input_anc_toggle_on_off:
+            if(appPeerSigIsConnected())
+            {
+                /* peer connection exists so need to delay in handling ANC UI input at
+                primary EB so need to add delay when to handle the ui_input */
+                delay = PEER_ANC_ON_OFF_DELAY_MS;
+                /* send ANC ui_input to secondary */
+                if(AncStateManager_IsEnabled())
+                {
+                    ui_input = ui_input_anc_off;
+                    DEBUG_LOG("peerUi_Interceptor_FuncPtr : ANC ENABLE");
+                    peerAnc_SendAncInputToSecondary(ui_input,peerUi_GetTask());
+                }
+                else
+                {
+                    ui_input = ui_input_anc_on;
+                    DEBUG_LOG("peerUi_Interceptor_FuncPtr : ANC DISABLE");
+                    peerAnc_SendAncInputToSecondary(ui_input,peerUi_GetTask());
+                }
+            }
+            break;
+        case ui_input_anc_on:
+        case ui_input_anc_off:
+        case ui_input_anc_set_mode_1:
+        case ui_input_anc_set_mode_2:
+        case ui_input_anc_set_mode_3:
+        case ui_input_anc_set_mode_4:
+        case ui_input_anc_set_mode_5:
+        case ui_input_anc_set_mode_6:
+        case ui_input_anc_set_mode_7:
+        case ui_input_anc_set_mode_8:
+        case ui_input_anc_set_mode_9:
+        case ui_input_anc_set_mode_10:
+            if(appPeerSigIsConnected())
+            {
+                /* peer connection exists so need to delay in handling ANC UI input at
+                primary EB so need to add delay when to handle the ui_input */
+                delay = PEER_ANC_ON_OFF_DELAY_MS;
+                /* send ANC ui_input to secondary */
+                peerAnc_SendAncInputToSecondary(ui_input,peerUi_GetTask());
+            }
+            break;
         default:
             break;
     }

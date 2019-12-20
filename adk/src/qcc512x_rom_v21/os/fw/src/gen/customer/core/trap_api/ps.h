@@ -176,8 +176,7 @@ void PsDefrag(void );
 uint16 PsFreeCount(uint16 words);
 
 /**
- *  \brief Read any persistent store key which could be accessed from off-chip using
- *  BCCMD. 
+ *  \brief Read any persistent store key from the full range of supported keys. 
  *   Note this function can be used to obtain values both for Bluecore PS keys and
  *   for Apps Subsystem PS keys. Unlike PsStore() and PsRetrieve() it does not use
  *   a PS key index in the range [0, 289]. It can be used for three different
@@ -186,7 +185,7 @@ uint16 PsFreeCount(uint16 words);
  *   1. To obtain legacy Bluecore PS keys now stored as MIB keys in the Apps
  *  Subsystem.
  *   2. To obtain Apps Subsystem keys.
- *   3. To obtain Bluetooth Subsystem keys.
+ *   3. To obtain Bluetooth Subsystem keys, on supported devices see below.
  *   
  *   For 1) the following keys may be used:
  *   
@@ -243,6 +242,8 @@ uint16 PsFreeCount(uint16 words);
  *   [PSKEY_UPGRADE0, PSKEY_UPGRADE9 ]     | [10792, 10801]   | [510, 519]
  *   
  *   For 3) any known Bluetooth Subsystem PS key may be used.    
+ *   
+ *   This class of keys can only be accessed on CSRA68100, QCC302x and QCC512x.
  *   
  *   Note that you can override any value with a zero-length value,
  *   so testing for a zero-length value does not have this problem.

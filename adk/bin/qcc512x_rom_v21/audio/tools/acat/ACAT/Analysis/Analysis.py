@@ -73,20 +73,20 @@ class Analysis(object):
 
     Example:
 
-        Individual analysis can be a subclass of the Analysis class. See
-        the example below:
+        Individual analysis can be a subclass of the ``Analysis`` class. See
+        the example below::
 
-        class MyAnalysis(Analysis.Analysis):
-            def __init__(self, **kwarg):
-                # Call the base class constructor. This call will set all
-                # the values from the dictionary as attributes. In this
-                # manner chipdata, debuginfo and formatter will be set.
+            class MyAnalysis(Analysis.Analysis):
+                def __init__(self, **kwarg):
+                    # Call the base class constructor. This call will set all
+                    # the values from the dictionary as attributes. In this
+                    # manner chipdata, debuginfo and formatter will be set.
 
-                super(MyAnalysis, self).__init__(self, **kwarg)
-                do_other_stuff()
+                    super(MyAnalysis, self).__init__(self, **kwarg)
+                    do_other_stuff()
 
-            def run_all(self):
-                run_useful_analysis()
+                def run_all(self):
+                    run_useful_analysis()
 
     Convention is for useful methods (which we might want to call from other
     analyses and in Interactive mode) to be public and they should return
@@ -206,18 +206,18 @@ class Analysis(object):
         This is a generator and yields each element of the list. The input
         parameters are:
 
-        * identifier - the variable at the head of the list. This can be the
-        name or address of a (named) variable in firmware, or a Variable
-        object (e.g. the result of a call to Analysis.cast). Note that this
-        could be the first element in the list, or a pointer to the head of
-        the list (e.g. '$_transform_list').
+         * identifier - the variable at the head of the list. This can be the
+           name or address of a (named) variable in firmware, or a Variable
+           object (e.g. the result of a call to Analysis.cast). Note that this
+           could be the first element in the list, or a pointer to the head of
+           the list (e.g. ``$_transform_list``).
 
-        * next_field_name - the name of the field in the structure that
-        points to the next element in the list.
+         * next_field_name - the name of the field in the structure that
+           points to the next element in the list.
 
-        * override_element_type - by default each list member is interpreted
-        as the type as which the next_field_name pointer is declared.
-        Optionally specify another type to cast to.
+         * override_element_type - by default each list member is interpreted
+           as the type as which the next_field_name pointer is declared.
+           Optionally specify another type to cast to.
 
         Args:
             identifier (str): The name of the identifier.
@@ -294,7 +294,7 @@ class Analysis(object):
             dm1_start = self.debuginfo.get_var_strict(
                 '$DM1_REGION.__Base'
             ).address  # Start of DM1
-            if Arch.chip_arch == "Hydra" or Arch.chip_arch == "KAS":
+            if Arch.chip_arch == "Hydra":
                 dm1_limit = self.debuginfo.get_var_strict(
                     '$DM1_ZI_REGION.__Limit'
                 ).address  # End of DM1

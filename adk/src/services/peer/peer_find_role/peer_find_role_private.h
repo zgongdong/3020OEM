@@ -92,9 +92,8 @@ typedef struct
     /*! Details of the current LE advertising data set */
     le_adv_data_set_handle      advert_handle;
 
-    /*! The scanner... */
-    le_scan_handle_t            scan;
-
+    /*! Store whether scanning should be enabled or disabled */
+    bool                        scan_enable;
     /*! What scan operations are busy? Bitfield using peerFindRoleScanActiveStatus_t 
 
         This can be used in MessageSendConditional() */
@@ -128,6 +127,10 @@ typedef struct
 
     /*! Prepare for role selection client. */
     task_list_t                 prepare_tasks;
+
+    /*! Cached value of fixed role setting. */
+    peer_find_role_fixed_role_t fixed_role;
+
 } peerFindRoleTaskData;
 
 

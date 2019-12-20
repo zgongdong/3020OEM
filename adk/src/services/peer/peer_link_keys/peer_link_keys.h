@@ -25,6 +25,15 @@ bool PeerLinkKeys_Init(Task init_task);
  */
 void PeerLinkKeys_SendKeyToPeer(const bdaddr* device_address, uint16 link_key_length, const uint16* link_key);
 
+/*! \brief Send acknowledgement that key has been set to peer.
+
+    Tell the peer device that the link key has been set.
+
+    \param[in] device_address Address of the paired device
+    \param[in] status TRUE if the link key was set successfully, FALSE otherwise
+*/
+void PeerLinkKeys_SendKeyResponseToPeer(const bdaddr *device_address, bool status);
+
 /*! \brief Use link key for attached device to derive key for peer earbud.
 
     \param[in] device_address  Address of the paired device

@@ -48,7 +48,7 @@ cpre = $(call CC_PRE) --preprocess-only
 gattdbgen = $(SDK_TOOLS)/bin/gattdbgen.exe
 cat = $(subst /,\,$(SDK_TOOLS)/bin/cat)
 sed = $(subst \,/,$(SDK_TOOLS)/bin/sed)
-python = $(subst \,/,$(SDK_TOOLS))/python27/python.exe
+python = set PYTHONPATH=$(WORKSPACE_TOOLS)/packages && $(subst \,/,$(SDK_TOOLS))/python27/python.exe 
 CHAINGEN_DIR ?= $(WORKSPACE_TOOLS)/packages/chaingen
 chaingen = $(CHAINGEN_DIR)/chaingen.py
 TYPEGEN_DIR ?= $(WORKSPACE_TOOLS)/packages/typegen
@@ -515,10 +515,11 @@ $(OBJS) : $(CONFIG_HEADERS)
 endif
 
 # Have a default for old projects that don't have the property set
-BUILD_ID ?= $(SDK_TOOLS)/ubuild/maker/buildid/examples/timestamp.py
+BUILD_ID ?= ../../../adk/tools/packages/buildid/examples/timestamp.py
 
 $(BUILD_ID_STR_SRC): $(BUILD_ID) $(OBJS) $(LIB_FILES) $(PRIVATE_LIBS_FILES) $(BUILDOUTPUT_PATH)/flags.link $(BUILDOUTPUT_PATH)/flags.libs
 	$(info Generating $(BUILD_ID_STR_SRC))
+	$(info $(python) $(BUILD_ID) $@)
 	$(python) $(BUILD_ID) $@
 
 # Build the elf file.

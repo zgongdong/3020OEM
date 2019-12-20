@@ -15,6 +15,6 @@
 #include <panic.h>
 #include <message.h>
 
-extern tws_topology_procedure_fns_t proc_disconnect_handset_fns;
+extern const tws_topology_procedure_fns_t proc_disconnect_handset_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_DISCONNECT_HANDSET_H */

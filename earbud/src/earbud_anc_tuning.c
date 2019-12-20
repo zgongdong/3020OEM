@@ -260,7 +260,7 @@ static const EndPointInfo usb_epinfo_streaming_speaker[] =
 };
 
 
-static usb_device_class_audio_config usb_config_stereo_mic_and_mono_speaker =
+static const usb_device_class_audio_config usb_config_stereo_mic_and_mono_speaker =
 {
     {usb_interface_descriptor_control_mic_and_speaker,
     sizeof(usb_interface_descriptor_control_mic_and_speaker),

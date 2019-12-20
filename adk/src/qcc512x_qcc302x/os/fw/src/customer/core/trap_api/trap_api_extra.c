@@ -104,7 +104,7 @@ bool StreamConnectAndDispose(Source source, Sink sink)
     return FALSE;
 }
 
-
+#if TRAPSET_TEST
 /*!
    @brief  Sends a message (BCCMD) for BT radio test.
    @param  len Command length.
@@ -438,6 +438,7 @@ bool TestPcmExtLbIf(uint16 pcm_mode, uint16 interface)
   args[2] = interface;
   return TestPerform_(sizeof(args)/sizeof(*args), args);
 }
+#endif /* TRAPSET_TEST */
 
 #if TRAPSET_PIOEX1
 /*!

@@ -22,9 +22,7 @@ IS_PYTHON2 = sys.version_info.major == 2
 
 
 class FunctionExecutionThread(threading.Thread):
-    """
-    @brief Class for running a function in a separate thread.
-    """
+    """Class for running a function in a separate thread."""
 
     def __init__(self, function):
         threading.Thread.__init__(self)
@@ -32,10 +30,7 @@ class FunctionExecutionThread(threading.Thread):
         self.exception = None
 
     def run(self):
-        """
-        @brief Starts the thread.
-        @param[in] self Pointer to the current object
-        """
+        """Starts the thread."""
         try:
             self.function()
         except BaseException:
@@ -43,23 +38,19 @@ class FunctionExecutionThread(threading.Thread):
             self.exception = AnalysisError(traceback.format_exc())
 
     def stop(self):
-        """
-        @brief Stops the thread.
-        @param[in] self Pointer to the current object
-        """
+        """Stops the thread."""
         threading.Thread._Thread__stop(self)
 
 
 #########################################
 class Automatic(Interpreter):
-    """
-    @brief Class which encapsulates an automatic analysis session.
+    """Encapsulates an automatic analysis session.
 
-    @param[in] p0 A Processor instance
-    @param[in] p1 A Processor instance
-    @param[in] analyses A list of requested analyses. If this
-               option is not provided all the default analyses
-               will be performed.
+    Args:
+        p0: A Processor instance.
+        p1: A Processor instance.
+        analyses (list): A list of requested analyses. If this option is not
+            provided all the default analyses will be performed.
     """
 
     def __init__(self, p0=None, p1=None, analyses=None):
@@ -72,10 +63,7 @@ class Automatic(Interpreter):
         )
 
     def run(self):
-        """
-        @brief Runs all the available analyses for each processor.
-        @param[in] self Pointer to the current object
-        """
+        """Runs all the available analyses for each processor."""
         # Sort the processor names
         processors = sorted(self.processors.keys())
         for proc in processors:
@@ -129,6 +117,9 @@ class Automatic(Interpreter):
             )
             self.formatter.flush()
             raise FatalAnalysisError(str(fae))
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
 
         except Exception:  # pylint: disable=broad-except
             # Need to catch all error so I have to disable pylint's

@@ -33,6 +33,8 @@
 #include "sdp.h"
 #include "domain_message.h"
 #include "scofwd_profile_config.h"
+#include "scofwd_profile_typedef.h"
+#include "scofwd_profile_marshal_typedef.h"
 #include "peer_signalling.h"
 #include "link_policy.h"
 #include "earbud_config.h"
@@ -195,6 +197,13 @@ typedef struct
 } SFWD_INTERNAL_ROLE_NOTIFY_T;
 
 typedef SFWD_INTERNAL_CHAIN_DETAILS_T SFWD_INTERNAL_MIC_CHAIN_DETAILS_T;
+#ifndef INCLUDE_SCOFWD_TTP_STATS_PRINT
+void ttp_stats_print(void)
+{
+    DEBUG_LOG("TTP STATS Not Enabled");
+}
+#define ttp_stats_add(x)
+#else
 #define TTP_STATS_RANGE         (appConfigScoFwdVoiceTtpMs())
 #define TTP_STATS_NUM_CELLS     20
 #define TTP_STATS_CELL_SIZE     (TTP_STATS_RANGE / TTP_STATS_NUM_CELLS)
@@ -266,6 +275,7 @@ void ttp_stats_print(void)
         ttp_stats_print_cell(TTP_STATS_MAX_VAL+1,1000,ttp_stats[cell].entries,(ttp_stats[cell].sum + ttp_stats[cell].entries/2)/ttp_stats[cell].entries);
     }
 }
+#endif
 
 #ifndef INCLUDE_SCOFWD_TEST_MODE
 #define ScoFwdDropPacketForTesting() FALSE
@@ -731,42 +741,13 @@ static void sfwd_tx_queue_next_packet(void)
     }
 }
 
-static void SendOTAControlMessageWithPayload(uint8 ota_msg_id, const uint8* payload, size_t payload_size)
-{
-    bdaddr peer;
-    int message_size = payload_size + 1;    /* +1 is for the ota_msg_id over the payload size */
-    uint8* message = NULL;
-
-    /* build message with payload if required */
-    if (payload)
-    {
-        message = PanicUnlessMalloc(message_size);
-        message[0] = ota_msg_id;
-        memcpy(&message[1], payload, payload_size);
-    }
-
-    if (appDeviceGetSecondaryBdAddr(&peer))
-    {
-        DEBUG_LOGF("SendOTAControlMessageWithPayload. OTA CMD 0x%02x requested",ota_msg_id);
-        appPeerSigMsgChannelTxRequest(GetScoFwdTask(),
-                                      PEER_SIG_MSG_CHANNEL_SCOFWD,
-                                      payload ? message : &ota_msg_id,
-                                      message_size);
-    }
-    else
-    {
-        DEBUG_LOGF("SendOTAControlMessageWithPayload. OTA CMD 0x%02x discarded. NO PEER?",ota_msg_id);
-    }
-
-    if (message)
-    {
-        free(message);
-    }
-}
-
 static void SendOTAControlMessage(uint8 ota_msg_id)
 {
-    SendOTAControlMessageWithPayload(ota_msg_id, NULL, 0);
+    scofwd_profile_ota_message_ind_t *ind = PanicUnlessMalloc(sizeof(*ind));
+    ind->ota_msg_id = ota_msg_id;
+    appPeerSigMarshalledMsgChannelTx(GetScoFwdTask(),
+                                     PEER_SIG_MSG_CHANNEL_SCOFWD,
+                                     ind, MARSHAL_TYPE(scofwd_profile_ota_message_ind_t));
 }
 
 static void ScoFwdProcessForwardedAudio(void)
@@ -778,15 +759,6 @@ static void ScoFwdProcessForwardedAudio(void)
     {
         ScoFwdProcessReceivedAirPacket(avail);
     }
-}
-
-/*! Handle incoming new SCO volume, apply locally */
-static void ScoFwdHandleOTASetVolume(const uint8* msg, int msg_size)
-{
-    UNUSED(msg_size);
-    PanicNull((void*)msg);
-    DEBUG_LOGF("New volume from master %u", msg[0]);
-    Volume_SendVoiceSourceVolumeUpdateRequest(voice_source_hfp_1, event_origin_peer, msg[0]);
 }
 
 static void ScoFwdPlayRingAtWcTime(rtime_t sync_time)
@@ -824,33 +796,7 @@ static void ScoFwdPlayRingAtWcTime(rtime_t sync_time)
 
 }
 
-/*! Handle OTA ring, use the BT wallclock to synchronize the starting of the ring tones. */
-static void ScoFwdHandleOTARing(const uint8* msg, int msg_size)
-{
-    if(msg_size == 3)
-    {
-        rtime_t sync_time;
-
-        sfwd_rx_help_read_ttp(msg, &sync_time);
-        ScoFwdPlayRingAtWcTime(sync_time);
-    }
-}
-
-/*! \brief Utility funtion to read a signed 16-bit value from OTA payload. */
-static int16 ScoFwdOTAPayloadReadInt16(const uint8* payload)
-{
-    PanicNull((void*)payload);
-    return (int16)(((uint16)(payload[1] << 8)) | ((uint16)(payload[0])));
-}
-
-/*! \brief Utility funtion to write a signed 16-bit value to OTA payload. */
-static void ScoFwdOTAPayloadWriteInt16(uint8* payload, int16 val)
-{
-    payload[0] = val & 0xFF;
-    payload[1] = (val >> 8) & 0xFF;
-}
-
-static void ProcessOTAControlMessage(uint8 ota_msg_id, const uint8* payload, int payload_size)
+static void ProcessOTAControlMessage(uint8 ota_msg_id)
 {
     scoFwdTaskData *theScoFwd = GetScoFwd();
 
@@ -882,10 +828,6 @@ static void ProcessOTAControlMessage(uint8 ota_msg_id, const uint8* payload, int
             ScoFwdRingCancel();
             break;
 
-        case SFWD_OTA_MSG_SET_VOLUME:
-            ScoFwdHandleOTASetVolume(payload, payload_size);
-            break;
-
         case SFWD_OTA_MSG_CALL_ANSWER:
             DEBUG_LOG("SCO Forwarding PEER ANSWERING call");
             appHfpCallAccept();
@@ -904,33 +846,6 @@ static void ProcessOTAControlMessage(uint8 ota_msg_id, const uint8* payload, int
         case SFWD_OTA_MSG_CALL_VOICE:
             DEBUG_LOG("SCO Forwarding PEER call voice");
             appHfpCallVoice();
-            break;
-
-        case SFWD_OTA_MSG_VOLUME_START:
-            {
-                int16 steps = ScoFwdOTAPayloadReadInt16(payload);
-                DEBUG_LOGF("SCO Forwarding PEER sent volume change start %u", steps);
-                if (appHfpIsScoActive() || appHfpIsConnected())
-                {
-                    appHfpVolumeStart(steps);
-                }
-            }
-            break;
-
-        case SFWD_OTA_MSG_VOLUME_STOP:
-            {
-                int16 steps = ScoFwdOTAPayloadReadInt16(payload);
-                DEBUG_LOGF("SCO Forwarding PEER sent volume change stop %u", steps);
-                if (appHfpIsScoActive() || appHfpIsConnected())
-                {
-                    appHfpVolumeStop(steps);
-                }
-            }
-            break;
-
-        case SFWD_OTA_MSG_RING:
-            DEBUG_LOG("SCO Forwarding PEER ring");
-            ScoFwdHandleOTARing(payload, payload_size);
             break;
 
         case SFWD_OTA_MSG_MICFWD_START:
@@ -1239,7 +1154,7 @@ static void ScoFwdEnterConnected(void)
        need to inform our peer - otherwise the UI won't work. */
     if (appHfpIsCallIncoming())
         SendOTAControlMessage(SFWD_OTA_MSG_INCOMING_CALL);;
-    
+
     /* check if we have a SCO active and start forwarding if we do */
     if (appHfpIsScoActive())
     {
@@ -1272,8 +1187,8 @@ static void ScoFwdWallclockDisable(void)
 static void ScoFwdEnterConnectedActiveSendPendingRoleInd(void)
 {
     scoFwdTaskData *theScoFwd = GetScoFwd();
-    DEBUG_LOG("ScoFwdEnterConnectedActiveSendPendingRoleInd");   
-    
+    DEBUG_LOG("ScoFwdEnterConnectedActiveSendPendingRoleInd");
+
     appLinkPolicyUpdateRoleFromSink(theScoFwd->link_sink);
 }
 
@@ -1284,7 +1199,7 @@ static void ScoFwdEnterConnectedActiveSendPendingRoleInd(void)
 static bool scoFwdProfile_IsPeerMicForwardSupported(void)
 {
     return TRUE;
-    /*! \todo Modified for VMCSA-808 Application modifications to TWSS-1 Bluetooth Address Management demo.
+    /*! \todo Modified for VMCSA-808 Application modifications to Bluetooth Address Management demo.
      *  return TRUE to queries about SCO and MICFWD support, as LE Peer Pairing doesn't do SDP search to set this up correctly.  */
 #if 0
     if (appConfigScoForwardingEnabled() && appConfigMicForwardingEnabled())
@@ -1496,7 +1411,7 @@ static void ScoFwdSetState(scoFwdState new_state)
 
         case SFWD_STATE_CONNECTED_ACTIVE_SEND_PENDING_ROLE_IND:
             ScoFwdEnterConnectedActiveSendPendingRoleInd();
-            break;        
+            break;
 
         case SFWD_STATE_CONNECTED_ACTIVE_RECEIVE:
             ScoFwdEnterConnectedActiveReceive();
@@ -1577,9 +1492,9 @@ void ScoFwdNotifyIncomingSink(Sink sco_sink)
     scoFwdTaskData *theScoFwd = GetScoFwd();
 
     if (SinkMapInit(sco_sink, STREAM_TIMESTAMPED, AUDIO_FRAME_METADATA_LENGTH))
-    {   
+    {
         theScoFwd->forwarded_sink = sco_sink;
-    
+
         PanicFalse(SinkConfigure(theScoFwd->forwarded_sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL));
         PanicFalse(SourceConfigure(theScoFwd->link_source, VM_SOURCE_MESSAGES, VM_MESSAGES_ALL));
 
@@ -1731,7 +1646,7 @@ static void ScoFwdHandleClSdpServiceSearchAttributeCfm(const CL_SDP_SERVICE_SEAR
                 if (ScoFwdGetL2capPSM(cfm->attributes, cfm->attributes + cfm->size_attributes,
                                          &theScoFwd->remote_psm, saProtocolDescriptorList))
                 {
-                    DEBUG_LOGF("appHandleClSdpServiceSearchAttributeCfm, peer psm %u", theScoFwd->remote_psm);
+                    DEBUG_LOGF("ScoFwdHandleClSdpServiceSearchAttributeCfm, peer psm %u", theScoFwd->remote_psm);
 
                     ScoFwdConnectL2cap();
                     ScoFwdSetState(SFWD_STATE_CONNECTING);
@@ -2095,7 +2010,11 @@ static void ScoFwdHandleHfpScoIncomingCallEndedInd(void)
 
 static void ScoFwdSendHfpVolumeToSlave(uint8 volume)
 {
-    SendOTAControlMessageWithPayload(SFWD_OTA_MSG_SET_VOLUME, &volume, sizeof(volume));
+    scofwd_profile_volume_ind_t *ind = PanicUnlessMalloc(sizeof(*ind));
+    ind->volume = volume;
+    appPeerSigMarshalledMsgChannelTx(GetScoFwdTask(),
+                                     PEER_SIG_MSG_CHANNEL_SCOFWD,
+                                     ind, MARSHAL_TYPE(scofwd_profile_volume_ind_t));
 }
 
 static void ScoFwdHandleHfpVolumeInd(const APP_HFP_VOLUME_IND_T *ind)
@@ -2121,32 +2040,68 @@ static void ScoFwdHandleHfpVolumeInd(const APP_HFP_VOLUME_IND_T *ind)
     }
 }
 
-/*! Handle OTA signalling from peer */
-static void ScoFwdHandlePeerSignallingMessage(const PEER_SIG_MSG_CHANNEL_RX_IND_T *ind)
+static void ScoFwdHandlePeerSignallingMarshalledMessage(const PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T *ind)
 {
-    DEBUG_LOGF("ScoFwdHandlePeerSignallingMessage. Channel 0x%x, len %d, content %x",
-                ind->channel,ind->msg_size,ind->msg[0]);
+    DEBUG_LOG("ScoFwdHandlePeerSignallingMarshalledMessage. Channel 0x%x, type %d", ind->channel, ind->type);
 
-    /* parse and handle message, only a single channel in use
-     * if just a single byte command message, then NULL the msg parameters */
-    ProcessOTAControlMessage(ind->msg[0],
-                             ind->msg_size > 1 ? &ind->msg[1] : NULL,
-                             ind->msg_size - 1);
+    switch (ind->type)
+    {
+    case MARSHAL_TYPE_scofwd_profile_ota_message_ind_t:
+        {
+            const scofwd_profile_ota_message_ind_t *ota_ind = (const scofwd_profile_ota_message_ind_t*)ind->msg;
+            ProcessOTAControlMessage(ota_ind->ota_msg_id);
+        }
+        break;
+
+    case MARSHAL_TYPE_scofwd_profile_volume_ind_t:
+        {
+            const scofwd_profile_volume_ind_t *vol_ind = (const scofwd_profile_volume_ind_t *)ind->msg;
+            Volume_SendVoiceSourceVolumeUpdateRequest(voice_source_hfp_1, event_origin_peer, vol_ind->volume);
+        }
+        break;
+
+    case MARSHAL_TYPE_scofwd_profile_volume_start_ind_t:
+        {
+            const scofwd_profile_volume_start_ind_t *start_ind = (const scofwd_profile_volume_start_ind_t *)ind->msg;
+            if (appHfpIsScoActive() || appHfpIsConnected())
+            {
+                appHfpVolumeStart(start_ind->steps);
+            }
+        }
+        break;
+
+    case MARSHAL_TYPE_scofwd_profile_volume_stop_ind_t:
+        {
+            const scofwd_profile_volume_stop_ind_t *stop_ind = (const scofwd_profile_volume_stop_ind_t *)ind->msg;
+            if (appHfpIsScoActive() || appHfpIsConnected())
+            {
+                appHfpVolumeStop(stop_ind->steps);
+            }
+        }
+        break;
+
+    case MARSHAL_TYPE_scofwd_profile_ring_ind_t:
+        {
+            const scofwd_profile_ring_ind_t *ring_ind = (const scofwd_profile_ring_ind_t *)ind->msg;
+            ScoFwdPlayRingAtWcTime(ring_ind->sync_time);
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    /* free unmarshalled msg */
+    free(ind->msg);
 }
 
-/* Handle a confirm message.
-
-    This is only used for debug purposes, but may need to deal with any error code
-    in future. */
-static void ScoFwdHandlePeerSignallingMessageTxConfirm(const PEER_SIG_MSG_CHANNEL_TX_CFM_T *cfm)
+static void ScoFwdHandlePeerSignallingMarshalledMessageTxCfm(const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T *cfm)
 {
     peerSigStatus status = cfm->status;
 
-    DEBUG_LOGF("ScoFwdHandlePeerSignallingMessageTxConfirm. Channel 0x%x", cfm->channel);
-
     if (peerSigStatusSuccess != status)
     {
-        DEBUG_LOGF("ScoFwdHandlePeerSignallingMessageTxConfirm reports failure code 0x%x(%d)",status,status);
+        DEBUG_LOG("ScoFwdHandlePeerSignallingMarshalledMessageTxCfm reports failure code 0x%x(%d)", status, status);
     }
 }
 
@@ -2185,7 +2140,7 @@ static void ScoFwdHandleScoDisconnected(void)
 static void ScoFwdHandleRoleNotify(SFWD_INTERNAL_ROLE_NOTIFY_T *role)
 {
     DEBUG_LOGF("ScoFwdHandleRoleNotify, status %u, role %u", ScoFwdGetState(), role->role);
- 
+
     if (ScoFwdGetState() == SFWD_STATE_CONNECTED_ACTIVE_SEND_PENDING_ROLE_IND)
     {
         if (role->role == hci_role_master)
@@ -2215,12 +2170,12 @@ static void ScoFwdHandleMessage(Task task, MessageId id, Message message)
 
     switch (id)
     {
-        case PEER_SIG_MSG_CHANNEL_RX_IND:
-            ScoFwdHandlePeerSignallingMessage((const PEER_SIG_MSG_CHANNEL_RX_IND_T *)message);
+        case PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND:
+            ScoFwdHandlePeerSignallingMarshalledMessage((const PEER_SIG_MARSHALLED_MSG_CHANNEL_RX_IND_T *)message);
             break;
 
-        case PEER_SIG_MSG_CHANNEL_TX_CFM:
-            ScoFwdHandlePeerSignallingMessageTxConfirm((const PEER_SIG_MSG_CHANNEL_TX_CFM_T *)message);
+        case PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM:
+            ScoFwdHandlePeerSignallingMarshalledMessageTxCfm((const PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T *)message);
             break;
 
         case PEER_SIG_CONNECTION_IND:
@@ -2329,7 +2284,7 @@ static void ScoFwdHandleMessage(Task task, MessageId id, Message message)
         case SFWD_INTERNAL_ROLE_NOTIFY:
             ScoFwdHandleRoleNotify((SFWD_INTERNAL_ROLE_NOTIFY_T *)message);
             break;
-            
+
         case SFWD_INTERNAL_PLAY_RING:
             TaskList_MessageSendId(TaskList_GetFlexibleBaseTaskList(ScoFwdGetClients()), SCOFWD_RINGING);
             break;
@@ -2425,7 +2380,10 @@ bool ScoFwdInit(Task init_task)
     ScoFwdForwardVolume(TRUE);
 
     /* Register a channel for peer signalling */
-    appPeerSigMsgChannelTaskRegister(GetScoFwdTask(), PEER_SIG_MSG_CHANNEL_SCOFWD);
+    appPeerSigMarshalledMsgChannelTaskRegister(GetScoFwdTask(),
+        PEER_SIG_MSG_CHANNEL_SCOFWD,
+        scofwd_profile_marshal_type_descriptors,
+        NUMBER_OF_SCOFWD_PROFILE_MARSHAL_TYPES);
 
     /* Register for peer signaling notifications */
     appPeerSigClientRegister(GetScoFwdTask());
@@ -2539,7 +2497,6 @@ void ScoFwdRing(void)
     scoFwdTaskData *theScoFwd = GetScoFwd();
     rtime_t wallclock, sync_time;
     wallclock_state_t wc_state;
-    uint8 buff[3];
 
     DEBUG_LOGF("ScoFwdRing, wc_sink %u", theScoFwd->wallclock_sink);
 
@@ -2550,10 +2507,14 @@ void ScoFwdRing(void)
 
         sync_time = rtime_add(wallclock, appConfigScoFwdRingMs() * 1000);
 
-        sfwd_tx_help_write_ttp(buff,sync_time);
-
         /* send the SCOFWD OTA message */
-        SendOTAControlMessageWithPayload(SFWD_OTA_MSG_RING, buff, sizeof(buff));
+        {
+            scofwd_profile_ring_ind_t *ind = PanicUnlessMalloc(sizeof(*ind));
+            ind->sync_time = sync_time;
+            appPeerSigMarshalledMsgChannelTx(GetScoFwdTask(),
+                                            PEER_SIG_MSG_CHANNEL_SCOFWD,
+                                            ind, MARSHAL_TYPE(scofwd_profile_ring_ind_t));
+        }
 
         /* also, play the ring locally: for this we will use the same function that will
             be called on the peer to handle the msg SFWD_OTA_MSG_RING
@@ -2577,16 +2538,20 @@ void ScoFwdRingCancel(void)
 
 void ScoFwdVolumeStart(int16 step)
 {
-    uint8 step_msg[2];
-    ScoFwdOTAPayloadWriteInt16(step_msg, step);
-    SendOTAControlMessageWithPayload(SFWD_OTA_MSG_VOLUME_START, step_msg, sizeof(step));
+    scofwd_profile_volume_start_ind_t *ind = PanicUnlessMalloc(sizeof(*ind));
+    ind->steps = step;
+    appPeerSigMarshalledMsgChannelTx(GetScoFwdTask(),
+                                    PEER_SIG_MSG_CHANNEL_SCOFWD,
+                                    ind, MARSHAL_TYPE(scofwd_profile_volume_start_ind_t));
 }
 
 void ScoFwdVolumeStop(int16 step)
 {
-    uint8 step_msg[2];
-    ScoFwdOTAPayloadWriteInt16(step_msg, step);
-    SendOTAControlMessageWithPayload(SFWD_OTA_MSG_VOLUME_STOP, step_msg, sizeof(step));
+    scofwd_profile_volume_stop_ind_t *ind = PanicUnlessMalloc(sizeof(*ind));
+    ind->steps = step;
+    appPeerSigMarshalledMsgChannelTx(GetScoFwdTask(),
+                                    PEER_SIG_MSG_CHANNEL_SCOFWD,
+                                    ind, MARSHAL_TYPE(scofwd_profile_volume_stop_ind_t));
 }
 
 void ScoFwdEnableForwarding(void)

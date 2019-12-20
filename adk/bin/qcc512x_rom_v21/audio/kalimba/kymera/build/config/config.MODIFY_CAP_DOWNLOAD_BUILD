@@ -17,3 +17,6 @@ CAPABILITY_DOWNLOAD_BUILD
 
 %list PRIVATE_LIBS
 ../lib_private
+
+%list CFG_LIBS
+support_lib/audio_pios/audio_pios

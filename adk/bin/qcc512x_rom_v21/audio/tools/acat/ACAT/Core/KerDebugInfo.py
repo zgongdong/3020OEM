@@ -30,6 +30,7 @@ from ACAT.Core.exceptions import (
     InvalidDebuginfoEnumError, InvalidDmConstAddressError,
     InvalidDmConstLengthError
 )
+from ACAT.Core.logger import method_logger
 
 try:
     from future_builtins import hex
@@ -172,6 +173,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         self.pm_rom = None
         self.pm_rom_by_name = None
         self.pm_section_hdrs = None
+        self.sched_task_module_data_type = None
         self.section_hdrs = None
         self.types = None
         self.var_by_addr = None
@@ -199,6 +201,7 @@ class KerDebugInfo(di.DebugInfoInterface):
 
         return result
 
+    @method_logger(logger)
     def has_changed(self):
         """Check whether the external elf file has changed.
 
@@ -434,7 +437,9 @@ class KerDebugInfo(di.DebugInfoInterface):
 
             self._acquire_debug_strings()
             self._read_cap_extra_op_data()
+            self._read_sched_task_extra_data()
 
+    @method_logger(logger)
     def read_debuginfo(self):
         """Reads and stores the debug-information.
 
@@ -455,6 +460,7 @@ class KerDebugInfo(di.DebugInfoInterface):
     # DebugInfoInterface
     ##################################################
 
+    @method_logger(logger)
     def get_elf_id(self):
         """Returns the elf_id.
 
@@ -464,6 +470,28 @@ class KerDebugInfo(di.DebugInfoInterface):
         """
         return self.elf_id
 
+    @method_logger(logger)
+    def get_sched_task_module_data_type(self, task_module_name, elf_id=None):
+        """Returns the schedular task module data type.
+
+        Args:
+            task_module_name (str): Schedular task module name.
+            elf_id (int, optional)
+
+        Returns:
+            The name of the extra data type for the given module name.
+            Returns None if no information found.
+        """
+        if elf_id is not None and self.elf_id != elf_id:
+            raise InvalidDebuginfoCallError()
+
+        try:
+            return self.sched_task_module_data_type[task_module_name]
+
+        except KeyError:
+            return None
+
+    @method_logger(logger)
     def get_cap_data_type(self, cap_name, elf_id=None):
         """Returns the data type name for a given capability.
 
@@ -487,6 +515,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         except KeyError:
             return None
 
+    @method_logger(logger)
     def get_constant_strict(self, name, elf_id=None):
         """Return value is a ConstSym object (which may be None).
 
@@ -506,6 +535,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         except KeyError:
             raise DebugInfoNoVariableError()
 
+    @method_logger(logger)
     def get_var_strict(self, identifier, elf_id=None):
         """Searchs the list of variables for the supplied identifier.
 
@@ -537,6 +567,7 @@ class KerDebugInfo(di.DebugInfoInterface):
             )
         return retval
 
+    @method_logger(logger)
     def get_dm_const(self, address, length=0, elf_id=None):
         """Get DM constant.
 
@@ -582,6 +613,7 @@ class KerDebugInfo(di.DebugInfoInterface):
 
         return ret_val
 
+    @method_logger(logger)
     def get_source_info(self, address):
         """Gets information about a code-address module-name.
 
@@ -628,6 +660,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         return_sym.nearest_label = None
         return return_sym
 
+    @method_logger(logger)
     def get_nearest_label(self, address):
         """Finds the nearest label to the supplied code address.
 
@@ -643,6 +676,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         # that corner-case.
         return self._find_nearest_label(address)
 
+    @method_logger(logger)
     def get_instruction(self, address):
         """Return the contents of Program Memory at the supplied address.
 
@@ -686,10 +720,6 @@ class KerDebugInfo(di.DebugInfoInterface):
         #                               814082fe:    1e 0b      L4 = r1 + Null;
         #   pm_instructions[0x4082fc]:  0x0b1e0a14
         #   Actual instructions:        0x0a14, 0x0b1e [two instructions]
-        #
-        # * That's true for Amber, anyway. Gordon .lst files actually are
-        #   little-endian.  But since Gordon is word-addressed, we don't
-        #   care. Maybe by this stage neither do you.
         try:
             if not self.is_maxim_pm_encoding(address):
                 # We're looking for a Minim instruction.
@@ -710,6 +740,7 @@ class KerDebugInfo(di.DebugInfoInterface):
 
         return instruction
 
+    @method_logger(logger)
     def get_enum(self, enum_name, member=None, elf_id=None):
         """Get Enum.
 
@@ -857,6 +888,11 @@ class KerDebugInfo(di.DebugInfoInterface):
                 if match.size_in_addressable_units != 0:
                     first_tid = match.type_id
                     break
+            else:
+                # There are multiple matches but none of them are valid matches.
+                raise InvalidDebuginfoTypeError(
+                    "Type " + str(type_name_or_id) + " not found!"
+                )
         else:
             first_tid = matched_types[0].type_id
 
@@ -1020,6 +1056,7 @@ class KerDebugInfo(di.DebugInfoInterface):
             size, self.elf_id, has_union
         )
 
+    @method_logger(logger)
     def read_const_string(self, address, elf_id=None):
         """Reads a constant string.
 
@@ -1345,6 +1382,14 @@ class KerDebugInfo(di.DebugInfoInterface):
             # the variable won't be inspected. This will result to a
             # variable which will only display its raw content (no field
             # or any other info).
+
+            if isinstance(var.value, (tuple, list)) and len(var.value) == 1:
+                # Based on the *assumption* that when the value is a list of
+                # one item, the real value is that item we guess the type. It
+                # happens regularly in released builds where not all the
+                # type information are exposed.
+                var.value = var.value[0]
+
             return var
 
         if ptr_typeid is not None:
@@ -1364,6 +1409,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         # We're done.
         return var
 
+    @method_logger(logger)
     def is_maxim_pm_encoding(self, address):
         """Checks whether the provided address is encoded as maxim.
 
@@ -1412,6 +1458,7 @@ class KerDebugInfo(di.DebugInfoInterface):
             )
         return pm_address_encoding == maxim_code
 
+    @method_logger(logger)
     def is_pm_private(self, address):
         """Checks if the pm address is private or not.
 
@@ -1436,6 +1483,7 @@ class KerDebugInfo(di.DebugInfoInterface):
 
         return False
 
+    @method_logger(logger)
     def get_mmap_lst(self, elf_id):
         """Returns the mapped listing file from the build.
 
@@ -1496,25 +1544,39 @@ class KerDebugInfo(di.DebugInfoInterface):
         # convert the label to CodeLabel
         return ct.CodeLabel(nearest_label[0], nearest_label[1])
 
+    def _read_sched_task_extra_data(self):
+        """Reads debug information to get the data types of tasks' modules."""
+        helper_str = "$_ACAT_SCHED_TYPE_"
+        len_helper_str = len(helper_str)
+        self.sched_task_module_data_type = self._find_name_type_with_helper_str(
+                helper_str
+        )
+
     def _read_cap_extra_op_data(self):
         """Reads debug information to get the extra operator data type."""
         helper_str = "$_ACAT_INSTANCE_TYPE_CAP_ID_"
         len_helper_str = len(helper_str)
-        self.cap_data_type = {}
+        self.cap_data_type = self._find_name_type_with_helper_str(
+            helper_str
+        )
+
+    def _find_name_type_with_helper_str(self, helper_str):
+        len_helper_str = len(helper_str)
+        name_type_dict = {}
         for variable in self.var_by_name:
             # Check if the variable name start with the helper string.
-            if variable[:len_helper_str] == helper_str:
-                # We found a helper variable which stores the extra operator
-                # data type name in a debug string.
+            if variable.startswith(helper_str):
+                # We found a helper variable.
                 var_address = self.var_by_name[variable].address
-                # The cap name is actually the variable name without the helper
-                # string at the beginning.
+                # The name is actually the variable name without the
+                # helper string at the beginning.
                 cap_name = variable[len_helper_str:]
-                # Now get the extra operator data type name from the debug
-                # strings.
-                extra_op_data_type = self.debug_strings[var_address]
-                # Finally store the value for later use.
-                self.cap_data_type[cap_name] = extra_op_data_type
+                # Now get the data type name from the debug strings.
+                data_type = self.debug_strings[var_address]
+
+                name_type_dict[cap_name] = data_type
+
+        return name_type_dict
 
     def _acquire_debug_strings(self):
         """Sets the `debug_strings` instance variable.
@@ -1589,6 +1651,7 @@ class KerDebugInfo(di.DebugInfoInterface):
             # size is measured in octets
             var.value &= int(math.pow(2, 8 * var.size) - 1)
 
+    @method_logger(logger)
     def search_matches(self, search_dict_name, name):
         """Search a name.
 
@@ -1617,6 +1680,7 @@ class KerDebugInfo(di.DebugInfoInterface):
             )
         return ret_matches
 
+    @method_logger(logger)
     def strict_search_matches(self, search_dict_name, name):
         """Searches for a name in a dictionary.
 
@@ -1655,6 +1719,7 @@ class KerDebugInfo(di.DebugInfoInterface):
         """
         self.debuginfo_is_bundle = is_bundle
 
+    @method_logger(logger)
     def is_bundle(self):
         """Returns True if the debug info is a bundle.
 

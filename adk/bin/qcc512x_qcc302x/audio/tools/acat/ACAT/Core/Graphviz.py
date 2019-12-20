@@ -5,15 +5,19 @@
 # subsidiaries. All rights reserved.
 #
 ############################################################################
+import logging
 from collections import OrderedDict
 
 from ACAT.Core import CoreUtils as cu
+from ACAT.Core.logger import function_logger
 
 try:
     from graphviz import Digraph
     graphviz_available = True
 except ImportError:
     graphviz_available = False
+
+logger = logging.getLogger(__name__)
 
 OPERATOR_MASK = 0x5fc0
 DIRECTION = 'direction'
@@ -101,6 +105,7 @@ def add_ep_img(ep_id, details, sub_graph,
     sub_graph.node(**kwargs)
 
 
+@function_logger(logger)
 def create_graph_dict(endpoints, operators):
     """Creates a graph dictionary.
 

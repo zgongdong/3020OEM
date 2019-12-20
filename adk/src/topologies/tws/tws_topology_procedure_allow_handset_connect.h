@@ -16,7 +16,7 @@
 typedef struct
 {
     bool allow;
-} ALLOW_HANDSET_CONNECT_PARAMS_T; 
+} ALLOW_HANDSET_CONNECT_PARAMS_T;
 
 
 extern const ALLOW_HANDSET_CONNECT_PARAMS_T proc_allow_handset_connect_allow;
@@ -25,6 +25,6 @@ extern const ALLOW_HANDSET_CONNECT_PARAMS_T proc_allow_handset_connect_allow;
 extern const ALLOW_HANDSET_CONNECT_PARAMS_T proc_allow_handset_connect_disallow;
 #define PROC_ALLOW_HANDSET_CONNECT_DATA_DISALLOW  ((Message)&proc_allow_handset_connect_disallow)
 
-extern tws_topology_procedure_fns_t proc_allow_handset_connect_fns;
+extern const tws_topology_procedure_fns_t proc_allow_handset_connect_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_ALLOW_HANDSET_CONNECT_H */

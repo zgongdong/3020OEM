@@ -433,7 +433,7 @@ extern void terminate_runlevel(void);
 extern void sched_norunlevels(void);
 #define sched(runlevel) sched_norunlevels()
 #else /* SCHEDULER_WITHOUT_RUNLEVELS */
-extern void sched(uint16f runlevel);
+extern void sched(uint16 runlevel);
 #endif /* SCHEDULER_WITHOUT_RUNLEVELS */
 
 #ifndef SCHEDULER_WITHOUT_RUNLEVELS
@@ -466,7 +466,7 @@ extern void sched(uint16f runlevel);
  * Returns TRUE if the new run level is set; FALSE if the scheduler is
  * already running at run level "level" or higher.
  */
-extern bool set_runlevel(uint16f level);
+extern bool set_runlevel(uint16 level);
 #endif /* ndef SCHEDULER_WITHOUT_RUNLEVELS */
 
 /**
@@ -565,7 +565,7 @@ extern bool cancel_timed_message(qid q,
  * This function is usually called within an interrupt handler to signal an
  * event to a background task.
  */
-extern void raise_bg_int(taskid task_id, uint16f bgIntBitPos);
+extern void raise_bg_int(taskid task_id, uint16 bgIntBitPos);
 
 
 /**

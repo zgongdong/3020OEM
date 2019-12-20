@@ -12,7 +12,7 @@
 #include <panic.h>
 
 
-#define DEVICE_LIST_MAX_NUM_DEVICES 8
+#define DEVICE_LIST_MAX_NUM_DEVICES 6
 
 static device_t device_list[DEVICE_LIST_MAX_NUM_DEVICES];
 

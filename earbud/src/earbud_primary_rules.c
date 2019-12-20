@@ -30,6 +30,7 @@
 #include <state_proxy.h>
 #include <rules_engine.h>
 #include <peer_signalling.h>
+#include <mirror_profile.h>
 
 #include <bdaddr.h>
 #include <panic.h>
@@ -70,22 +71,18 @@ DEFINE_RULE(ruleInEarScoTransferToEarbud);
 DEFINE_RULE(ruleOutOfEarLedsEnable);
 DEFINE_RULE(ruleInEarLedsDisable);
 DEFINE_RULE(ruleInCaseEnterDfu);
-DEFINE_RULE(ruleOutOfCaseAllowHandsetConnect);
-DEFINE_RULE(ruleInCaseRejectHandsetConnect);
 
-DEFINE_RULE(ruleDfuAllowHandsetConnect);
 DEFINE_RULE(ruleCheckUpgradable);
 DEFINE_RULE(ruleOutOfCaseTerminateDfu);
 
 DEFINE_RULE(ruleInCaseScoTransferToHandset);
 DEFINE_RULE(ruleSelectMicrophone);
 DEFINE_RULE(ruleScoForwardingControl);
+DEFINE_RULE(ruleScoMirroringControl);
 
  DEFINE_RULE(rulePairingConnectTwsPlusA2dp);
  DEFINE_RULE(rulePairingConnectTwsPlusHfp);
 
-DEFINE_RULE(ruleInEarAncEnable);
-DEFINE_RULE(ruleOutOfEarAncDisable);
 
 DEFINE_RULE(ruleOutOfCaseAncTuning);
 DEFINE_RULE(ruleInCaseAncTuning);
@@ -107,10 +104,10 @@ const rule_entry_t primary_rules_set[] =
     /*! \} */
 
     RULE(RULE_EVENT_ROLE_SWITCH,                    ruleAutoHandsetPair,            CONN_RULES_HANDSET_PAIR),
-
     /*! \{
-        Rules that control handset connection permitted/denied */
-    RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseAllowHandsetConnect,   CONN_RULES_ALLOW_HANDSET_CONNECT),
+        Rules to drive ANC tuning. */
+    RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseAncTuning,             CONN_RULES_ANC_TUNING_STOP),
+    RULE(RULE_EVENT_IN_CASE,                    ruleInCaseAncTuning,                CONN_RULES_ANC_TUNING_START),
     /*! \} */
 
     RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseTerminateDfu,          CONN_RULES_EXIT_DFU),
@@ -131,22 +128,11 @@ const rule_entry_t primary_rules_set[] =
      *   These are likely to stay in the application rule set.
      ****/
 
-    /*! \{ */
-    RULE(RULE_EVENT_DFU_CONNECT,                ruleDfuAllowHandsetConnect,         CONN_RULES_ALLOW_HANDSET_CONNECT),
-    /*! \} */
-    /*! \{
-        Rules to drive ANC tuning. */
-    RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseAncTuning,             CONN_RULES_ANC_TUNING_STOP),
-    RULE(RULE_EVENT_IN_CASE,                    ruleInCaseAncTuning,                CONN_RULES_ANC_TUNING_START),
-    RULE(RULE_EVENT_OUT_EAR,                    ruleOutOfEarAncDisable,             CONN_RULES_ANC_DISABLE),
-    RULE(RULE_EVENT_IN_EAR,                     ruleInEarAncEnable,                 CONN_RULES_ANC_ENABLE),
-    /*! \} */
     /*! \{
         Rules to start DFU when going in the case. */
     RULE(RULE_EVENT_IN_CASE,                    ruleInCaseEnterDfu,                 CONN_RULES_ENTER_DFU),
     /*! \} */
 
-    RULE(RULE_EVENT_IN_CASE,                    ruleInCaseRejectHandsetConnect,     CONN_RULES_REJECT_HANDSET_CONNECT),
     /*! \{
         Rules to control audio pauses when in/out of the ear. */
     RULE(RULE_EVENT_OUT_EAR,                    ruleOutOfEarA2dpActive,             CONN_RULES_A2DP_TIMEOUT),
@@ -409,9 +395,9 @@ static rule_action_t ruleInEarA2dpRestart(void)
 */
 static rule_action_t ruleOutOfEarScoActive(void)
 {
-    if (ScoFwdIsSending() && StateProxy_IsPeerInEar())
+    if ((ScoFwdIsSending() || MirrorProfile_IsEscoActive()) && StateProxy_IsPeerInEar())
     {
-        PRIMARY_RULE_LOG("ruleOutOfEarScoActive, ignore as we have SCO forwarding running and peer is in ear");
+        PRIMARY_RULE_LOG("ruleOutOfEarScoActive, ignore as we have SCO forwarding / mirroring running and peer is in ear");
         return rule_action_ignore;
     }
 
@@ -505,18 +491,6 @@ static rule_action_t ruleInEarLedsDisable(void)
         PRIMARY_RULE_LOG("ruleInEarLedsDisable, ignore as in ear but in ear LEDs enabled");
         return rule_action_ignore;
     }
-}
-
-static rule_action_t ruleInEarAncEnable(void)
-{
-    PRIMARY_RULE_LOG("ruleInEarAncEnable, run");
-    return rule_action_run;
-}
-
-static rule_action_t ruleOutOfEarAncDisable(void)
-{
-    PRIMARY_RULE_LOG("ruleOutOfEarAncDisable, run");
-    return rule_action_run;
 }
 
 /*! @brief Determine if a handset disconnect should be allowed */
@@ -635,38 +609,6 @@ static rule_action_t ruleInCaseEnterDfu(void)
 }
 
 
-static rule_action_t ruleDfuAllowHandsetConnect(void)
-{
-#ifdef INCLUDE_DFU
-    bdaddr handset_addr;
-
-    /* If we're already connected to handset then don't connect */
-    if (appDeviceIsHandsetConnected())
-    {
-        PRIMARY_RULE_LOG("ruleDfuAllowHandsetConnect, ignore as already connected to handset");
-        return rule_action_ignore;
-    }
-    /* This rule has been run when entering the special DFU mode.
-       This should only be entered when we restart during an update, or if
-       the user has requested it (only possible if appConfigDfuOnlyFromUiInCase()
-       is TRUE */
-    if (appConfigDfuOnlyFromUiInCase())
-    {
-        PRIMARY_RULE_LOG("ruleDfuAllowHandsetConnect - run as use in case DFU");
-        return rule_action_run;
-    }
-    if (appSmIsInDfuMode())
-    {
-        PRIMARY_RULE_LOG("ruleDfuAllowHandsetConnect, run as in DFU mode");
-        return rule_action_run;
-    }
-    PRIMARY_RULE_LOG("ruleDfuAllowHandsetConnect, ignore as not DFU");
-#endif /* INCLUDE_DFU */
-
-    return rule_action_ignore;
-}
-
-
 static rule_action_t ruleCheckUpgradable(void)
 {
     bool allow_dfu = TRUE;
@@ -728,40 +670,26 @@ static rule_action_t ruleOutOfCaseTerminateDfu(void)
     return rule_action_ignore;
 }
 
-static rule_action_t ruleOutOfCaseAllowHandsetConnect(void)
-{
-    PRIMARY_RULE_LOG("ruleOutOfCaseAllowHandsetConnect, run as out of case");
-    return rule_action_run;
-}
-
-static rule_action_t ruleInCaseRejectHandsetConnect(void)
-{
-#ifdef INCLUDE_DFU
-    if (appSmIsDfuPending())
-    {
-        PRIMARY_RULE_LOG("ruleInCaseRejectHandsetConnect, ignored as DFU pending");
-        return rule_action_ignore;
-    }
-#endif
-
-    PRIMARY_RULE_LOG("ruleInCaseRejectHandsetConnect, run as in case and no DFU");
-    return rule_action_run;
-}
-
 static rule_action_t ruleInCaseAncTuning(void)
 {
     if (appConfigAncTuningEnabled())
+    {
+        PRIMARY_RULE_LOG("ruleInCaseAncTuning, run and enter into the tuning mode");
         return rule_action_run;
-    else
-        return rule_action_ignore;
+    }
+    PRIMARY_RULE_LOG("ruleInCaseAncTuning, ignored");
+    return rule_action_ignore;
 }
 
 static rule_action_t ruleOutOfCaseAncTuning(void)
 {
     if (appConfigAncTuningEnabled())
+    {
+        PRIMARY_RULE_LOG("ruleOutOfCaseAncTuning, run and exit from the tuning mode");
         return rule_action_run;
-    else
-        return rule_action_ignore;
+    }
+    PRIMARY_RULE_LOG("ruleOutOfCaseAncTuning, ignored");
+    return rule_action_ignore;
 }
 
 static rule_action_t ruleInCaseScoTransferToHandset(void)
@@ -800,6 +728,31 @@ static rule_action_t ruleSelectMicrophone(void)
     return rule_action_ignore;
 }
 
+static rule_action_t ruleScoMirroringControl(void)
+{
+    const bool mirroring_enabled = TRUE;
+    const bool mirroring_disabled = FALSE;
+
+    /* only need to consider this rule if we have SCO audio on the earbud */
+    if (!appHfpIsScoActive())
+    {
+        PRIMARY_RULE_LOG("ruleScoMirroringControl, ignore as no active SCO");
+        return rule_action_ignore;
+    }
+    if (!StateProxy_IsPeerInEar())
+    {
+        PRIMARY_RULE_LOG("ruleScoMirroringControl, run and disable mirroring as peer out of ear");
+        return RULE_ACTION_RUN_PARAM(mirroring_disabled);
+    }
+    if (StateProxy_IsPeerInEar())
+    {
+        PRIMARY_RULE_LOG("ruleScoForwardingControl, run and enable forwarding as peer in ear");
+        return RULE_ACTION_RUN_PARAM(mirroring_enabled);
+    }
+
+    PRIMARY_RULE_LOG("ruleScoMirroringControl, ignore");
+    return rule_action_ignore;
+}
 static rule_action_t ruleScoForwardingControl(void)
 {
     const bool forwarding_enabled = TRUE;

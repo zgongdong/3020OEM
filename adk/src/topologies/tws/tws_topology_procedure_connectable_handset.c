@@ -29,7 +29,7 @@ void TwsTopology_ProcedureConnectableHandsetStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureConnectableHandsetCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_connectable_handset_fns = {
+const tws_topology_procedure_fns_t proc_connectable_handset_fns = {
     TwsTopology_ProcedureConnectableHandsetStart,
     TwsTopology_ProcedureConnectableHandsetCancel,
     NULL,

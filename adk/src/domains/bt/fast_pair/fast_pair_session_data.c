@@ -37,6 +37,7 @@ typedef struct fastpair_account_key_info
 
 /* Fast Pair model id */
 const uint32 model_id = 0x9D893B;
+
 /* Fast Pair seed */
 const uint16 seed[FAST_PAIR_PRIVATE_KEY_LEN/2] = {0x11ac, 0x5a6e, 0x0e49, 0x5aa3, 0xe3e0, 0xbb20, 0xac0e, 0xf136, 0x5dfb, 0x5282, 0x002b, 0x37f2, 0x28f1,
 0xd18c, 0xa613, 0x8de2};
@@ -121,17 +122,15 @@ static void fastpair_print_account_keys(uint16 num_keys, uint8* account_keys)
     }
 }
 
-/*! \brief Initialize the Fast Pair Session Data Module
+/*! \brief Register Fast Pair PDDU
  */
-void fastPair_DeviceInit(void)
+void FastPair_RegisterPersistentDeviceDataUser(void)
 {
     DeviceDbSerialiser_RegisterPersistentDeviceDataUser(
-    0x1,
-    fastpair_get_device_data_len,
-    fastpair_serialise_persistent_device_data,
-    fastpair_deserialise_persistent_device_data);
-    DEBUG_LOG("Fastpair session data init");
-    DeviceDbSerialiser_Deserialise();
+        0x1,
+        fastpair_get_device_data_len,
+        fastpair_serialise_persistent_device_data,
+        fastpair_deserialise_persistent_device_data);
 }
 
 /*! \brief Get the Fast Pair Model ID
@@ -150,7 +149,7 @@ void fastPair_GetAntiSpoofingPrivateKey(uint8* aspk)
 
     for(uint16 i=0, j=FAST_PAIR_PRIVATE_KEY_LEN/2; i <(FAST_PAIR_PRIVATE_KEY_LEN/2) && j > 0; i++,j--)
     {
-        /* Use last 16 words of M array in rsa_decrypt_constant_mod structure */
+		/* Use last 16 words of M array in rsa_decrypt_constant_mod structure */
         unscrambled_aspk[i] = private_key[i] ^ rsa_decrypt_constant_mod.M[RSA_SIGNATURE_SIZE - j] ^ seed[i];
     }
     ByteUtilsMemCpyUnpackString(aspk, (const uint16 *)&unscrambled_aspk[0], FAST_PAIR_PRIVATE_KEY_LEN);

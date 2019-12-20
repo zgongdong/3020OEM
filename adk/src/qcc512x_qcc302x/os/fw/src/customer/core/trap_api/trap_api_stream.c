@@ -118,7 +118,7 @@ bool StreamPipePair(Sink * sink_a, Sink * sink_b, uint16 size_a_to_b, uint16 siz
 
 #endif /* TRAPSET_STREAM */
 
-#if TRAPSET_SHADOWING
+#if TRAPSET_MIRRORING
 Source StreamAclMarshalSource(const tp_bdaddr * tpaddr)
 {
     IPC_STREAM_ACL_MARSHAL_SOURCE ipc_send_prim;

@@ -30,7 +30,7 @@ void TwsTopology_ProcedureAllowHandsetConnectStart(Task result_task,
                                                    Message goal_data);
 void TwsTopology_ProcedureAllowHandsetConnectCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_allow_handset_connect_fns = {
+const tws_topology_procedure_fns_t proc_allow_handset_connect_fns = {
     TwsTopology_ProcedureAllowHandsetConnectStart,
     TwsTopology_ProcedureAllowHandsetConnectCancel,
     NULL,
@@ -46,7 +46,7 @@ void TwsTopology_ProcedureAllowHandsetConnectStart(Task result_task,
 
     UNUSED(result_task);
 
-    DEBUG_LOG("TwsTopology_ProcedureAllowHandsetConnectStart");
+    DEBUG_LOG("TwsTopology_ProcedureAllowHandsetConnectStart allow %d", param->allow);
 
     ConManagerAllowHandsetConnect(param->allow);
 

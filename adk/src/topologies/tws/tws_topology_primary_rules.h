@@ -43,6 +43,7 @@ enum tws_topology_primary_goals
     TWSTOP_PRIMARY_GOAL_HANDOVER_START,
     TWSTOP_PRIMARY_GOAL_HANDOVER_FAILED,
     TWSTOP_PRIMARY_GOAL_STATIC_HANDOVER_IN_CASE,
+    TWSTOP_PRIMARY_GOAL_ALLOW_HANDSET_CONNECT,
 
     TWSTOP_PRIMARY_GOAL_NOP,
 };
@@ -76,6 +77,11 @@ typedef struct
 {
     bool enable;
 } TWSTOP_PRIMARY_GOAL_LE_CONNECTABLE_HANDSET_T;
+
+typedef struct
+{
+    bool allow;
+} TWSTOP_PRIMARY_GOAL_ALLOW_HANDSET_CONNECT_T;
 
 /*! \brief TWS Topology primary rules task data. */
 typedef struct

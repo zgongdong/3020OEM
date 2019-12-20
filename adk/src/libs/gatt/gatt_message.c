@@ -146,6 +146,8 @@ gatt_status_t gatt_message_status(att_result_t result)
         CASE(ATT_RESULT_INSUFFICIENT_ENCRYPTION, gatt_status_insufficient_encryption);
         CASE(ATT_RESULT_UNSUPPORTED_GROUP_TYPE, gatt_status_unsupported_group_type);
         CASE(ATT_RESULT_INSUFFICIENT_RESOURCES, gatt_status_insufficient_resources);
+        CASE(ATT_RESULT_DATABASE_OUT_OF_SYNC, gatt_status_db_out_of_sync);
+        CASE(ATT_RESULT_VALUE_NOT_ALLOWED, gatt_status_value_not_allowed);
         CASE(ATT_RESULT_APP_MASK, gatt_status_application_error);       
         CASE(ATT_RESULT_DEVICE_NOT_FOUND, gatt_status_device_not_found);
         CASE(ATT_RESULT_SIGN_FAILED, gatt_status_sign_failed);

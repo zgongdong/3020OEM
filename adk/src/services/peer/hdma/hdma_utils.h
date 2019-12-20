@@ -49,7 +49,7 @@
 #define MIN_HANDOVER_RETRY_TIME_LOW_MS 0
 #define MIN_HANDOVER_RETRY_TIME_HIGH_MS 0
 #define MIN_HANDOVER_RETRY_TIME_CRITICAL_MS 0
-#define OUT_OF_EAR_TIME_BEFORE_HANDOVER_MS 1500
+#define OUT_OF_EAR_TIME_BEFORE_HANDOVER_MS 2100
 #define INVALID_TIMESTAMP 0xFFFFFFF
 #define HDMA_UNKNOWN 0xFF
 #define HDMA_UNKNOWN_QUALITY 0xFF
@@ -67,17 +67,21 @@ typedef struct{
     int16 low;
 }hdma_urgency_thresholds_t;
 
+#ifdef INCLUDE_HDMA_RSSI_EVENT
 /*  Following filters specify half life, max age, and thresholds by urgency: critical, high, low for RSSI Quality  */
-extern hdma_urgency_thresholds_t rssiHalfLife_ms;
-extern hdma_urgency_thresholds_t rssiMaxAge_ms;
-extern hdma_urgency_thresholds_t absRSSIThreshold;
-extern hdma_urgency_thresholds_t relRSSIThreshold;
+extern const hdma_urgency_thresholds_t rssiHalfLife_ms;
+extern const hdma_urgency_thresholds_t rssiMaxAge_ms;
+extern const hdma_urgency_thresholds_t absRSSIThreshold;
+extern const hdma_urgency_thresholds_t relRSSIThreshold;
+#endif
 
+#ifdef INCLUDE_HDMA_MIC_QUALITY_EVENT
 /*  Following filters specify half life, max age, and thresholds by urgency: critical, high, low for Voice Quality  */
-extern hdma_urgency_thresholds_t vqHalfLife_ms ;
-extern hdma_urgency_thresholds_t vqMaxAge_ms;
-extern hdma_urgency_thresholds_t absVQThreshold ;
-extern hdma_urgency_thresholds_t relVQThreshold;
+extern const hdma_urgency_thresholds_t vqHalfLife_ms ;
+extern const hdma_urgency_thresholds_t vqMaxAge_ms;
+extern const hdma_urgency_thresholds_t absVQThreshold ;
+extern const hdma_urgency_thresholds_t relVQThreshold;
+#endif
 
 #endif
 

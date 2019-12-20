@@ -6,8 +6,9 @@
 \file
 \defgroup   hdma HDMA
 \ingroup    peer_service
-\brief      Component is used to decide when handover is required between primary and secondary earbuds. It currently uses placement of earbud (in case, in ear, out ear) for making a handover decision.
-The input will be sourced from the State Proxy module, which is responsible for communication between the buds. To source these inputs, HDMA will register a task with State Proxy during initialization. 
+\brief      Component is used to decide when handover is required between primary and secondary earbuds. It currently uses placement of earbud (in case, in ear, out ear) and critical battery level for making a handover decision.
+Decision making based on battery level is configurable. The input will be sourced from the State Proxy module, which is responsible for communication between the buds.
+To source these inputs, HDMA will register a task with State Proxy during initialization.
 */
 
 
@@ -83,6 +84,14 @@ bool Hdma_Init(Task client_task);
                  FALSE De-initialisation failed
 */
 bool Hdma_Destroy(void);
+
+/*! \brief Trigger an external request to handover.
+    \return bool TRUE if external handover request was sent, otherwise FALSE.
+
+    \note This will cause a hdma_handover_decision_t to be sent to the client_task
+    with reason HDMA_HANDOVER_REASON_EXTERNAL and HDMA_HANDOVER_URGENCY_CRITICAL.
+*/
+bool Hdma_ExternalHandoverRequest(void);
 
 /*\}*/
 

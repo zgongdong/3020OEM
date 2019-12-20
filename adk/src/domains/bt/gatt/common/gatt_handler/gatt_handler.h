@@ -15,7 +15,7 @@
 #define APP_GATT_SERVER_INSTANCES   (1)
 
 /*! list of gatt servers */
-typedef enum {gatt_server_gaa} gatt_server_t;
+typedef enum {gatt_server_gaa_comm, gatt_server_gaa_media_server, gatt_server_gaa_ams_proxy, gatt_server_gaa_ancs_proxy} gatt_server_t;
 
 /*! Structure holding information for the gatt task */
 typedef struct

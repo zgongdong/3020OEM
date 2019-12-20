@@ -39,3 +39,7 @@ ADD_BATTERY_SERVICE(RIGHT)
 #ifdef INCLUDE_GAA_COMM_SERVER
 #include "gatt_gaa_comm_server_db.dbi"
 #endif
+
+#ifdef INCLUDE_GAA_MEDIA_SERVER
+#include "gatt_gaa_media_server_db.dbi"
+#endif

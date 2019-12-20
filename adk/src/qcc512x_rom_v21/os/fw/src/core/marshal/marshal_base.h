@@ -40,7 +40,11 @@ typedef struct marshal_base
     const marshal_type_descriptor_t * const *type_desc_list;
 
     /** The number of types in the list of type descriptors */
-    size_t type_desc_list_elements;
+    uint8 type_desc_list_elements;
+
+    /** Set to one during initialisation if the type descriptions contain
+        shared objects */
+    unsigned has_shared_objects : 1;
 
 } marshal_base_t;
 

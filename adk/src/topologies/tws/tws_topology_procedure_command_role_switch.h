@@ -12,7 +12,9 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_command_role_switch_fns;
+#include "peer_signalling.h"
+
+extern const tws_topology_procedure_fns_t proc_command_role_switch_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_COMMAND_ROLE_SWITCH_H */
 

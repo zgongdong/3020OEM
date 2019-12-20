@@ -21,9 +21,11 @@ NOTES
 #include "avrcp_private.h"
 #include "avrcp_init.h"
 #include "avrcp_profile_handler.h"
+#include "avrcp_handover_policy.h"
 
 #include "marshal.h"
 #include <sink.h>
+#include <source.h>
 #include <stream.h>
 #include <panic.h>
 #include <stdlib.h>
@@ -253,13 +255,15 @@ static void avrcpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
 {
     UNUSED(tp_bd_addr);
 
-    if (newRole)
+    if (newRole && avrcp_marshal_inst)
     {
-        /* Commit must be called after unmarshalling */
-        PanicNull(avrcp_marshal_inst);
-
+        Source src;
         /* Stitch unmarshalled AVRCP connection instance */
         stitchAvrcp(avrcp_marshal_inst->avrcp, &avrcp_marshal_inst->bd_addr);
+        
+        /* Set the handover policy */
+        src = StreamSourceFromSink(avrcp_marshal_inst->avrcp->sink);
+        PanicFalse(avrcpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW_WITHOUT_DATA));
     }
 }
 
@@ -276,11 +280,8 @@ RETURNS
 */
 static void avrcpHandoverComplete( const bool newRole )
 {
-    if (newRole)
+    if (newRole && avrcp_marshal_inst)
     {
-        /* Commit must be called after unmarshalling */
-        PanicNull(avrcp_marshal_inst);
-
         UnmarshalDestroy(avrcp_marshal_inst->unmarshaller, FALSE);
         avrcp_marshal_inst->unmarshaller = NULL;
         free(avrcp_marshal_inst);

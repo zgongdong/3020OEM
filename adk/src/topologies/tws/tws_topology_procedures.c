@@ -21,7 +21,7 @@ typedef struct
     TaskData task;
 } twsTopProcDelayCfmTaskData;
 
-twsTopProcDelayCfmTaskData tws_topology_proc_delay_cfm = {twsTopology_ProcDelayCfmHandleMessage};
+const twsTopProcDelayCfmTaskData tws_topology_proc_delay_cfm = {twsTopology_ProcDelayCfmHandleMessage};
 
 #define TwsTopProcDelayCfmGetTask() (&tws_topology_proc_delay_cfm.task)
 

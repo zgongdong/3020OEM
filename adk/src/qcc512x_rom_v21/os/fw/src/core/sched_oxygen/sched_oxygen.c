@@ -165,7 +165,6 @@ SCHED_TASK_LIST(ARRAYS)
 #define SCHED_TASK_START_PRIORITY_EXPAND_TABLE(tsk, init_fn, tsk_fn, lvl, pri)\
     {\
         (taskid)(priority_task_id_ ## tsk),                             \
-        FALSE,                                                          \
         init_fn,            /* init: initialisation function */         \
         tsk_fn,             /* handler */                               \
         queue_ ## tsk,      /* mqueues: array of queues */              \
@@ -173,6 +172,7 @@ SCHED_TASK_LIST(ARRAYS)
         NULL,               /* flushmsg      */                         \
         NULL,               /* private memory area */                   \
         TASK_RUNLEVEL(lvl)                                              \
+        FALSE,              /* prunable */                              \
         NULL                /* next */                                  \
     },
 /** No per-queue handling */
@@ -216,8 +216,8 @@ BG_INT_LIST(WRAPPER)
 /*lint -e750 */
 #define BG_INT_EXPAND_STRUCT(a, b)\
     BG_INT_PRIORITY_EXPAND_STRUCT(a, b, DEFAULT_PRIORITY)
-#define BG_INT_PRIORITY_EXPAND_STRUCT(a, b, p) {BG_INT_ID_AS_UINT(a), FALSE, \
-                                                 b ## _wrap, FALSE, NULL, NULL},
+#define BG_INT_PRIORITY_EXPAND_STRUCT(a, b, p) {BG_INT_ID_AS_UINT(a), \
+                                                 b ## _wrap, FALSE, FALSE, NULL, NULL},
 
 /**
  * Array of service functions, indexed by bg_int number.
@@ -226,7 +226,7 @@ BG_INT_LIST(WRAPPER)
  */
 BGINT bg_ints[] = {
     BG_INT_LIST(STRUCT)
-    {(bg_int_ids)0, FALSE, (bg_int_fn)NULL, FALSE, NULL, NULL}
+    {(bg_int_ids)0, (bg_int_fn)NULL, FALSE, FALSE, NULL, NULL}
 };
 
 /*@}*/
@@ -291,7 +291,7 @@ int SchedInterruptActive = 0;
 static struct {
     /** Run level at which scheduler is currently operating - initialised to
      * illegal value (in init_sched) to simplify initialisation routine */
-    uint16f current_runlevel;
+    uint16 current_runlevel;
 } sched_flags;
 #endif
 
@@ -1018,7 +1018,7 @@ static void init_tasks(void)
  * @param first_time TRUE if no task initialisation has been done yet
  * @param runlevel The new runlevel the scheduler is entering.
  */
-static void init_tasks(bool first_time, uint16f runlevel)
+static void init_tasks(bool first_time, uint16 runlevel)
 #endif
 {
     int n;
@@ -1398,7 +1398,7 @@ void sched_norunlevels(void)
  * Note that the scheduler can be halted by a call to \c terminate_runlevel.
  * This will cause it to exit once all bg ints and messages have been consumed.
  */
-void sched(uint16f runlevel)
+void sched(uint16 runlevel)
 #endif
 {
 #ifndef SCHEDULER_WITHOUT_RUNLEVELS
@@ -1493,7 +1493,7 @@ void sched(uint16f runlevel)
  *
  * \param runlevel The new runlevel to run at.
  */
-bool set_runlevel(uint16f runlevel)
+bool set_runlevel(uint16 runlevel)
 {
     /* Sanity check on runlevel argument */
     if (runlevel >= N_RUNLEVELS)
@@ -1748,7 +1748,7 @@ bool create_task(
         p_task->next = *pp_task;
         *pp_task = p_task;
         p_task->id = SET_PRIORITY_TASK_ID(task_priority,index);
-        p_task->prunable = FALSE;
+        p_task->prunable = 0;
         id = p_task->id;
     }
 
@@ -1759,7 +1759,7 @@ bool create_task(
         *pp_bgint = p_bgint;
         p_bgint->id = SET_PRIORITY_TASK_ID(task_priority,index);
         MARK_AS_BG_INT(p_bgint->id);
-        p_bgint->prunable = FALSE;
+        p_bgint->prunable = 0;
         id = p_bgint->id;
     }
 
@@ -1870,7 +1870,7 @@ void delete_task(taskid id)
     {
         if (!pTask->prunable)
         {
-            pTask->prunable = TRUE; /* Atomic */
+            pTask->prunable = 1;
             PL_PRINT_P1(TR_PL_SCHED_TASK_DELETE,
                         "Task 0x%06x is queued for delete\n",
                         pTask->id);
@@ -1888,7 +1888,7 @@ void delete_task(taskid id)
     {
         if (!p_bgint->prunable)
         {
-            p_bgint->prunable = TRUE; /* Atomic */
+            p_bgint->prunable = 1;
             PL_PRINT_P1(TR_PL_SCHED_TASK_DELETE,
                         "Bg int 0x%06x is queued for delete\n",
                         p_bgint->id);
@@ -1982,7 +1982,7 @@ msgid put_message(qid queueId, uint16 mi, void *mv)
  * only valid background interrupts can be called or from raise_bg_int which
  * does all the validation.
  */
-static void unsafe_raise_bg_int(taskid task_id, uint16f bgIntStatus,
+static void unsafe_raise_bg_int(taskid task_id, uint16 bgIntStatus,
                                 BGINT *p_bg_int)
 {
     /*
@@ -2062,7 +2062,7 @@ void raise_static_bg_int(enum bg_int_indices_enum index)
  * This function is usually called within an interrupt handler to signal an
  * event to a background task.
  */
-void raise_bg_int(taskid task_id, uint16f bgIntBitPos)
+void raise_bg_int(taskid task_id, uint16 bgIntBitPos)
 {
     BGINT *p_bg_int;
 
@@ -2093,7 +2093,7 @@ void raise_bg_int(taskid task_id, uint16f bgIntBitPos)
         panic_diatribe(PANIC_OXYGOS_INVALID_TASK_ID, task_id);
     }
 
-    unsafe_raise_bg_int(task_id, SET_BG_INT_POS(bgIntBitPos), p_bg_int);
+    unsafe_raise_bg_int(task_id, (uint16)SET_BG_INT_POS(bgIntBitPos), p_bg_int);
 }
 
 
@@ -2401,7 +2401,7 @@ bool get_message_for_current_task(uint16 *pmi,void **pmv)
  */
 bool get_highest_bg_int(taskid bg_int_id, uint16f *highest_bg_int)
 {
-    uint16f bgIntStatus;
+    uint16  bgIntStatus;
     uint16f priority_index = GET_TASK_PRIORITY(bg_int_id);
     BGINT *current_bg_int;
 
@@ -2446,7 +2446,7 @@ bool get_highest_bg_int(taskid bg_int_id, uint16f *highest_bg_int)
         block_interrupts();
 
         /* clear the background interrupt and decrement the counts */
-        current_bg_int->raised &= ~(bgIntStatus);
+        current_bg_int->raised &= (uint16)~(bgIntStatus);
         TotalNumMessages--;
         background_work_pending = (TotalNumMessages != 0);
         bg_ints_in_priority[priority_index].num_raised--;

@@ -23,7 +23,7 @@ void TwsTopology_ProcedureCancelFindRoleStart(Task result_task,
                                               Message goal_data);
 void TwsTopology_ProcedureCancelFindRoleCancel(twstop_proc_cancel_cfm_func_t proc_cancel_fn);
 
-tws_topology_procedure_fns_t proc_cancel_find_role_fns = {
+const tws_topology_procedure_fns_t proc_cancel_find_role_fns = {
     TwsTopology_ProcedureCancelFindRoleStart,
     TwsTopology_ProcedureCancelFindRoleCancel,
     NULL,

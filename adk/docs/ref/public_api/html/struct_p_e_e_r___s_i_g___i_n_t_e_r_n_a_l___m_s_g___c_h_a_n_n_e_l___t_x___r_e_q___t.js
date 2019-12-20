@@ -1,7 +1,0 @@
-var struct_p_e_e_r___s_i_g___i_n_t_e_r_n_a_l___m_s_g___c_h_a_n_n_e_l___t_x___r_e_q___t =
-[
-    [ "channel", "struct_p_e_e_r___s_i_g___i_n_t_e_r_n_a_l___m_s_g___c_h_a_n_n_e_l___t_x___r_e_q___t.html#ab7d20a2add3e96e7038d9a56bfb9151f", null ],
-    [ "client_task", "struct_p_e_e_r___s_i_g___i_n_t_e_r_n_a_l___m_s_g___c_h_a_n_n_e_l___t_x___r_e_q___t.html#a23352cbf0297d99ec681013fe17c5c2c", null ],
-    [ "msg", "struct_p_e_e_r___s_i_g___i_n_t_e_r_n_a_l___m_s_g___c_h_a_n_n_e_l___t_x___r_e_q___t.html#ab99c5f57cd0d331d2c7de4e6b92c5e05", null ],
-    [ "msg_size", "struct_p_e_e_r___s_i_g___i_n_t_e_r_n_a_l___m_s_g___c_h_a_n_n_e_l___t_x___r_e_q___t.html#a4a5b729787a95c0486b466de2d2ff1a0", null ]
-];

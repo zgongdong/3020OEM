@@ -41,7 +41,6 @@ le_scan_manager_data_t  scan_sm;
 typedef struct
 {
     le_scan_result_t status;
-    le_scan_handle_t handle;
 }le_scan_manager_status_t;
 
 /******************************************************************************
@@ -52,17 +51,17 @@ static void leScanManager_SetScanEnableAndActive(bool is_active);
 static bool leScanManager_isDuplicate(Task requester);
 static void leScanManager_SetScanParameters(le_scan_interval_t scan_interval);
 static uint8 leScanManager_GetEmptySlotIndex(void);
-static le_scan_handle_t leScanManager_AcquireScan(le_scan_interval_t scan_interval, le_advertising_report_filter_t * filter,Task task);
+static le_scan_settings_t* leScanManager_AcquireScan(le_scan_interval_t scan_interval, le_advertising_report_filter_t * filter,Task task);
 static void leScanManager_SetScanAndAddAdvertisingReport(le_scan_interval_t scan_interval, le_advertising_report_filter_t* filter);
-static uint8 leScanManager_GetIndexFromHandle(le_scan_handle_t handle);
-static bool leScanManager_ReleaseScan(le_scan_handle_t handle);
+static uint8 leScanManager_GetIndexFromTask(Task task);
+static bool leScanManager_ReleaseScan(Task task);
 static bool leScanManager_ReInitialiasePreviousActiveScans(void);
 static bool leScanManager_CheckForFastScanInterval(void);
 static bool leScanManager_ClearScanOnTask(Task requester);
 static void leScanManager_HandleEnable(Task task );
 static void leScanManager_HandleStart(Task task, le_scan_interval_t scan_interval,le_advertising_report_filter_t* filter);
 static void leScanManager_HandleDisable(Task task );
-static void leScanManager_HandleStop(Task task, le_scan_handle_t handle);
+static void leScanManager_HandleStop(Task task);
 static void leScanManager_HandlePause(Task task );
 static void leScanManager_HandleResume(Task task);
 static void leScanManager_HandleScanEnable(connection_lib_status status);
@@ -88,7 +87,6 @@ static void leScanManager_SendStartCfm(Task task,le_scan_manager_status_t scan_s
 {
     MAKE_MESSAGE(LE_SCAN_MANAGER_START_CFM);
     message->status = scan_status.status;
-    message->handle = scan_status.handle;
     MessageSend(task,LE_SCAN_MANAGER_START_CFM,message);
 }
 static void leScanManager_SendStopCfm(Task task,le_scan_manager_status_t scan_status)
@@ -145,7 +143,6 @@ static void leScanManager_handleScanFailure(scanCommand cmd , Task req)
         {
             MAKE_MESSAGE(LE_SCAN_MANAGER_START_CFM);
             message->status = LE_SCAN_MANAGER_RESULT_FAILURE;
-            message->handle = NULL;
             MessageSend(req, LE_SCAN_MANAGER_START_CFM, message);
         }
         break;
@@ -213,27 +210,27 @@ static void leScanManager_SetScanParameters(le_scan_interval_t scan_interval)
 */
 static uint8 leScanManager_GetEmptySlotIndex(void)
 {
-    uint8 handle_index;
+    uint8 settings_index;
     le_scan_manager_data_t* sm_data = LeScanManagerGetTaskData();
 
-    for (handle_index = 0; handle_index < MAX_ACTIVE_SCANS; handle_index++)
+    for (settings_index = 0; settings_index < MAX_ACTIVE_SCANS; settings_index++)
     {
-        if (sm_data->active_handle[handle_index] == NULL)
+        if (sm_data->active_settings[settings_index] == NULL)
         {
             break;
         }
     }
 
-    return handle_index;
+    return settings_index;
 }
 static bool leScanManager_isDuplicate(Task requester)
 {
     le_scan_manager_data_t* sm_data = LeScanManagerGetTaskData();
-    int handle_index;
+    int settings_index;
 
-    for (handle_index = 0; handle_index < MAX_ACTIVE_SCANS; handle_index++)
+    for (settings_index = 0; settings_index < MAX_ACTIVE_SCANS; settings_index++)
     {
-        if ((sm_data->active_handle[handle_index]!= NULL) && (sm_data->active_handle[handle_index]->scan_task == requester))
+        if ((sm_data->active_settings[settings_index]!= NULL) && (sm_data->active_settings[settings_index]->scan_task == requester))
         {
             return TRUE;
         }
@@ -241,29 +238,29 @@ static bool leScanManager_isDuplicate(Task requester)
     return FALSE;
 }
 
-static void leScanManager_FreeScanHandle(le_scan_handle_t scan_handle)
+static void leScanManager_FreeScanSettings(le_scan_settings_t *scan_settings)
 {
-    if(scan_handle->filter.find_tpaddr != NULL)
+    if(scan_settings->filter.find_tpaddr != NULL)
     {
-        free(scan_handle->filter.find_tpaddr);
+        free(scan_settings->filter.find_tpaddr);
     }
-    free(scan_handle->filter.pattern);
-    free(scan_handle);
+    free(scan_settings->filter.pattern);
+    free(scan_settings);
 }
 
 static bool leScanManager_ClearScanOnTask(Task requester)
 {
     le_scan_manager_data_t* sm_data = LeScanManagerGetTaskData();
-    int handle_index;
+    int settings_index;
 
-    for (handle_index = 0; handle_index < MAX_ACTIVE_SCANS; handle_index++)
+    for (settings_index = 0; settings_index < MAX_ACTIVE_SCANS; settings_index++)
     {
-        if ((sm_data->active_handle[handle_index]!= NULL)&&(sm_data->active_handle[handle_index]->scan_task == requester))
+        if ((sm_data->active_settings[settings_index]!= NULL)&&(sm_data->active_settings[settings_index]->scan_task == requester))
         {
-            leScanManager_FreeScanHandle(sm_data->active_handle[handle_index]);
-            if (sm_data->confirmation_handle == sm_data->active_handle[handle_index])
-                sm_data->confirmation_handle = NULL;
-            sm_data->active_handle[handle_index] = NULL;
+            leScanManager_FreeScanSettings(sm_data->active_settings[settings_index]);
+            if (sm_data->confirmation_settings == sm_data->active_settings[settings_index])
+                sm_data->confirmation_settings = NULL;
+            sm_data->active_settings[settings_index] = NULL;
 
             return TRUE;
         }
@@ -271,50 +268,50 @@ static bool leScanManager_ClearScanOnTask(Task requester)
     return FALSE;
 }
 
-/*! \brief Aquire handle to start scanning for an LE device.
+/*! \brief Acquire scan settings to start scanning for an LE device.
     \param  scan interval
     \param  pointer to filter parameters
-    @retval handle
+    \return The acquired scan settings, or NULL if the scan settings were not acquired.
 */
 
-static le_scan_handle_t leScanManager_AcquireScan(le_scan_interval_t scan_interval, le_advertising_report_filter_t* filter, Task task)
+static le_scan_settings_t* leScanManager_AcquireScan(le_scan_interval_t scan_interval, le_advertising_report_filter_t* filter, Task task)
 {
-    le_scan_handle_t handle;
+    le_scan_settings_t *scan_settings;
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
-    uint8 handle_index = leScanManager_GetEmptySlotIndex();
+    uint8 settings_index = leScanManager_GetEmptySlotIndex();
     
-    if (handle_index < MAX_ACTIVE_SCANS)
+    if (settings_index < MAX_ACTIVE_SCANS)
     {
-        DEBUG_LOG("leScanManager_AcquireScan handle available.");
-        sm_data->active_handle[handle_index] = PanicUnlessMalloc(sizeof(struct le_scan_handle));
-        sm_data->active_handle[handle_index]->scan_interval = scan_interval;
-        sm_data->active_handle[handle_index]->filter.ad_type = filter->ad_type;
-        sm_data->active_handle[handle_index]->filter.interval =filter->interval;
-        sm_data->active_handle[handle_index]->filter.size_pattern =filter->size_pattern;
+        DEBUG_LOG("leScanManager_AcquireScan scan settings available.");
+        sm_data->active_settings[settings_index] = PanicUnlessMalloc(sizeof(*scan_settings));
+        sm_data->active_settings[settings_index]->scan_interval = scan_interval;
+        sm_data->active_settings[settings_index]->filter.ad_type = filter->ad_type;
+        sm_data->active_settings[settings_index]->filter.interval =filter->interval;
+        sm_data->active_settings[settings_index]->filter.size_pattern =filter->size_pattern;
  
-        sm_data->active_handle[handle_index]->filter.pattern = PanicUnlessMalloc(filter->size_pattern);
+        sm_data->active_settings[settings_index]->filter.pattern = PanicUnlessMalloc(filter->size_pattern);
 
-        memcpy(sm_data->active_handle[handle_index]->filter.pattern , filter->pattern , sizeof(uint8)*(filter->size_pattern));
+        memcpy(sm_data->active_settings[settings_index]->filter.pattern , filter->pattern , sizeof(uint8)*(filter->size_pattern));
         if(filter->find_tpaddr != NULL)
         {
-            sm_data->active_handle[handle_index]->filter.find_tpaddr = PanicUnlessMalloc(sizeof(tp_bdaddr));
-            memcpy(sm_data->active_handle[handle_index]->filter.find_tpaddr , filter->find_tpaddr , sizeof(tp_bdaddr));
+            sm_data->active_settings[settings_index]->filter.find_tpaddr = PanicUnlessMalloc(sizeof(tp_bdaddr));
+            memcpy(sm_data->active_settings[settings_index]->filter.find_tpaddr , filter->find_tpaddr , sizeof(tp_bdaddr));
         }
         else
         {
-            sm_data->active_handle[handle_index]->filter.find_tpaddr = NULL;
+            sm_data->active_settings[settings_index]->filter.find_tpaddr = NULL;
         }
         
-        sm_data->active_handle[handle_index]->scan_task = task;
+        sm_data->active_settings[settings_index]->scan_task = task;
 
-        handle = sm_data->active_handle[handle_index];
+        scan_settings = sm_data->active_settings[settings_index];
     }
     else
     {
-        DEBUG_LOG("leScanManager_AcquireScan handle unavailable.");
-        handle = NULL;
+        DEBUG_LOG("leScanManager_AcquireScan scan settings unavailable.");
+        scan_settings = NULL;
     }
-    return handle;
+    return scan_settings;
 }
 
 /*! \brief Sets scan, connection parameters and then adds advertising filter and enables scan.
@@ -338,44 +335,50 @@ static void leScanManager_SetScanAndAddAdvertisingReport(le_scan_interval_t scan
                                             filter->pattern);
 }
 
-/*! \brief Matches a handle to its represetative index number.
-    \param  pointer to handle to be released
-    @retval The index number or MAX_ACTIVE_SCANS if a handle does not match
+/*! \brief Matches a task to its represetative index number.
+    \param  task  to task to search
+    @retval The index number or MAX_ACTIVE_SCANS if a task does not match
 */
-static uint8 leScanManager_GetIndexFromHandle(le_scan_handle_t handle)
+static uint8 leScanManager_GetIndexFromTask(Task task)
 {
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
-    uint8 handle_index;
-    for (handle_index = 0; handle_index < MAX_ACTIVE_SCANS; handle_index++)
+    uint8 settings_index;
+    for (settings_index = 0; settings_index < MAX_ACTIVE_SCANS; settings_index++)
     {
-        if ((sm_data->active_handle[handle_index] == handle) && (handle != NULL))
+        le_scan_settings_t *scan_settings = sm_data->active_settings[settings_index];
+        if (scan_settings && scan_settings->scan_task == task)
         {
             break;
         }
     }
 
-    return handle_index;
+    return settings_index;
 }
 
-/*! \brief Release handle scanning for an LE device.
-    \param  pointer to handle to be released
-    @retval TRUE if the handle is released
+
+
+/*! \brief Release task scanning for an LE device.
+    \param  task The scan task to be released
+    @retval TRUE if the scan for the task is released
 */
-static bool leScanManager_ReleaseScan(le_scan_handle_t handle)
+static bool leScanManager_ReleaseScan(Task task)
 {
     bool released = FALSE;
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
-    uint8 handle_index = leScanManager_GetIndexFromHandle(handle);
+    uint8 settings_index = leScanManager_GetIndexFromTask(task);
 
-    if ((handle_index < MAX_ACTIVE_SCANS) && (handle != NULL))
+    if (settings_index < MAX_ACTIVE_SCANS)
     {
-        DEBUG_LOG("leScanManager_ReleaseScan handle released");
-             
-        leScanManager_FreeScanHandle(sm_data->active_handle[handle_index]);
-        if (sm_data->confirmation_handle == sm_data->active_handle[handle_index])
-            sm_data->confirmation_handle = NULL;
-        sm_data->active_handle[handle_index] = NULL;
-   
+        le_scan_settings_t *scan_settings = sm_data->active_settings[settings_index];
+
+        DEBUG_LOG("leScanManager_ReleaseScan scan settings released");
+        leScanManager_FreeScanSettings(scan_settings);
+        if (sm_data->confirmation_settings == scan_settings)
+        {
+            sm_data->confirmation_settings = NULL;
+        }
+        sm_data->active_settings[settings_index] = NULL;
+
         released = TRUE;
     }
 
@@ -386,13 +389,13 @@ static bool leScanManager_ReleaseScan(le_scan_handle_t handle)
 static bool leScanManager_ReInitialiasePreviousActiveScans(void)
 {
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
-    uint8 handle_index;
+    uint8 settings_index;
     bool result = FALSE;
-    for (handle_index = 0; handle_index < MAX_ACTIVE_SCANS; handle_index++)
+    for (settings_index = 0; settings_index < MAX_ACTIVE_SCANS; settings_index++)
     {
-        if(sm_data->active_handle[handle_index] != NULL)
+        if(sm_data->active_settings[settings_index] != NULL)
         {            
-            leScanManager_SetScanAndAddAdvertisingReport(sm_data->active_handle[handle_index]->scan_interval, &sm_data->active_handle[handle_index]->filter);
+            leScanManager_SetScanAndAddAdvertisingReport(sm_data->active_settings[settings_index]->scan_interval, &sm_data->active_settings[settings_index]->filter);
             result = TRUE;
         }
     }
@@ -400,20 +403,20 @@ static bool leScanManager_ReInitialiasePreviousActiveScans(void)
     return result;
 }
 
-/*! \brief Check active handles for fast scan interval.
+/*! \brief Check active settings for fast scan interval.
     @retval TRUE if a fast scan interval exists
 */
 static bool leScanManager_CheckForFastScanInterval(void)
 {
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
     bool fast_scan_exists = FALSE;
-    uint8 handle_index;
+    uint8 settings_index;
 
-    for (handle_index = 0; handle_index < MAX_ACTIVE_SCANS; handle_index++)
+    for (settings_index = 0; settings_index < MAX_ACTIVE_SCANS; settings_index++)
     {
-        if (sm_data->active_handle[handle_index] != NULL) 
+        if (sm_data->active_settings[settings_index] != NULL) 
         {
-            if (sm_data->active_handle[handle_index]->scan_interval == le_scan_interval_fast)
+            if (sm_data->active_settings[settings_index]->scan_interval == le_scan_interval_fast)
             {
                 fast_scan_exists = TRUE;
                 break;
@@ -444,10 +447,10 @@ static bool leScanManager_FilterAddress(const typed_bdaddr* scan_taddr)
     tp_bdaddr public_addr;
     le_scan_manager_data_t *sm_data = LeScanManagerGetTaskData();
 
-    if(sm_data->confirmation_handle != NULL)
+    if(sm_data->confirmation_settings != NULL)
     {
         /* If client task is interested in finding specific device then resolve all RPA devices to check for a match */
-        if(sm_data->confirmation_handle->filter.find_tpaddr != NULL)
+        if(sm_data->confirmation_settings->filter.find_tpaddr != NULL)
         {
             memset(&public_addr, 0, sizeof(tp_bdaddr));
             
@@ -468,7 +471,7 @@ static bool leScanManager_FilterAddress(const typed_bdaddr* scan_taddr)
             }
 
             /* If matching address is found send the message only to requested task */
-            if(BdaddrTpIsSame(sm_data->confirmation_handle->filter.find_tpaddr, &public_addr))
+            if(BdaddrTpIsSame(sm_data->confirmation_settings->filter.find_tpaddr, &public_addr))
                 return TRUE;        
         }
     }
@@ -516,7 +519,7 @@ static void leScanManager_HandleAdverts(const CL_DM_BLE_ADVERTISING_REPORT_IND_T
         TaskList_MessageSendWithSize(sm_data->client_list, LE_SCAN_MANAGER_ADV_REPORT_IND, message,size);
 
         /* If client task is interested in finding specific device then resolve all RPA devices to check for a match */
-        if((sm_data->confirmation_handle != NULL) && leScanManager_FilterAddress(&(scan->current_taddr)))
+        if((sm_data->confirmation_settings != NULL) && leScanManager_FilterAddress(&(scan->current_taddr)))
         {
             MAKE_CL_MESSAGE_WITH_LEN_TO_TASK(LE_SCAN_MANAGER_ADV_REPORT_IND,size);
 
@@ -532,14 +535,14 @@ static void leScanManager_HandleAdverts(const CL_DM_BLE_ADVERTISING_REPORT_IND_T
             message_task->current_taddr.addr.uap =  scan->current_taddr.addr.uap;
             message_task->current_taddr.addr.lap =  scan->current_taddr.addr.lap;
         
-            message_task->permanent_taddr.type =  sm_data->confirmation_handle->filter.find_tpaddr->taddr.type;
-            message_task->permanent_taddr.addr.nap = sm_data->confirmation_handle->filter.find_tpaddr->taddr.addr.nap;
-            message_task->permanent_taddr.addr.uap = sm_data->confirmation_handle->filter.find_tpaddr->taddr.addr.uap;
-            message_task->permanent_taddr.addr.lap = sm_data->confirmation_handle->filter.find_tpaddr->taddr.addr.lap;
+            message_task->permanent_taddr.type =  sm_data->confirmation_settings->filter.find_tpaddr->taddr.type;
+            message_task->permanent_taddr.addr.nap = sm_data->confirmation_settings->filter.find_tpaddr->taddr.addr.nap;
+            message_task->permanent_taddr.addr.uap = sm_data->confirmation_settings->filter.find_tpaddr->taddr.addr.uap;
+            message_task->permanent_taddr.addr.lap = sm_data->confirmation_settings->filter.find_tpaddr->taddr.addr.lap;
 
-            MessageSend(sm_data->confirmation_handle->scan_task, LE_SCAN_MANAGER_ADV_REPORT_IND, message_task);
-            free(sm_data->confirmation_handle->filter.find_tpaddr);
-            sm_data->confirmation_handle->filter.find_tpaddr = NULL;
+            MessageSend(sm_data->confirmation_settings->scan_task, LE_SCAN_MANAGER_ADV_REPORT_IND, message_task);
+            free(sm_data->confirmation_settings->filter.find_tpaddr);
+            sm_data->confirmation_settings->filter.find_tpaddr = NULL;
         }
     }
 }
@@ -547,7 +550,7 @@ static void leScanManager_HandleAdverts(const CL_DM_BLE_ADVERTISING_REPORT_IND_T
 static void leScanManager_HandleEnable(Task task)
 {
     bool respond = FALSE;
-    le_scan_manager_status_t scan_result;
+    le_scan_manager_status_t scan_result = {LE_SCAN_MANAGER_RESULT_FAILURE};
     scanState current_state = LeScanManagerGetState();
     DEBUG_LOG("leScanManager_HandleEnable Current State %d",current_state);
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
@@ -612,7 +615,7 @@ static void leScanManager_HandleDisable(Task task)
 {
     scanState current_state = LeScanManagerGetState();
     bool respond = FALSE;
-    le_scan_manager_status_t scan_result = {0};
+    le_scan_manager_status_t scan_result = {LE_SCAN_MANAGER_RESULT_FAILURE};
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
 
     DEBUG_LOG("leScanManager_HandleDisable Current State %d busy %d",current_state, sm_data->is_busy);
@@ -659,8 +662,8 @@ static void leScanManager_HandleStart(Task task, le_scan_interval_t scan_interva
     scanState current_state = LeScanManagerGetState();
     DEBUG_LOG("leScanManager_HandleStart Current State is:: %d", current_state);
     bool respond = FALSE;
-    le_scan_manager_status_t scan_result;
-    le_scan_handle_t handle = NULL;
+    le_scan_manager_status_t scan_result = {LE_SCAN_MANAGER_RESULT_FAILURE};
+    le_scan_settings_t *scan_settings = NULL;
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
 
     if(leScanManager_isDuplicate(task))
@@ -684,12 +687,12 @@ static void leScanManager_HandleStart(Task task, le_scan_interval_t scan_interva
             {
                 /* Save the scan parameters and respond. Scan shall start on resume/enable */
                 DEBUG_LOG("leScanManager_HandleStart Cannot start scanning in state %d!", current_state);
-                handle = leScanManager_AcquireScan(scan_interval,filter,task);
+                scan_settings = leScanManager_AcquireScan(scan_interval,filter,task);
                 
-                if(handle)
+                if(scan_settings)
                 {
-                    DEBUG_LOG("leScanManager_HandleStart new handle created.");
-                    sm_data->confirmation_handle = handle;
+                    DEBUG_LOG("leScanManager_HandleStart new scan settings created.");
+                    sm_data->confirmation_settings = scan_settings;
                 }
                 scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
                 respond = TRUE;
@@ -698,15 +701,15 @@ static void leScanManager_HandleStart(Task task, le_scan_interval_t scan_interva
 
             case LE_SCAN_MANAGER_STATE_ENABLED:
             {
-                /* Acquire the Scan and save the Filter Details in Local Structure, Handle is returned and sent to Client */
-                handle = leScanManager_AcquireScan(scan_interval,filter,task);
+                /* Acquire the Scan and save the Filter Details in Local Structure */
+                scan_settings = leScanManager_AcquireScan(scan_interval,filter,task);
 
-                if(handle)
+                if(scan_settings)
                 {
-                    sm_data->confirmation_handle = handle;
+                    sm_data->confirmation_settings = scan_settings;
                     sm_data->requester = task;
                     LeScanManagerSetCurrentCommand(LE_SCAN_MANAGER_CMD_START);
-                    DEBUG_LOG("leScanManager_HandleStart new handle created.");
+                    DEBUG_LOG("leScanManager_HandleStart new scan settings created.");
                     leScanManager_SetScanAndAddAdvertisingReport(scan_interval,filter);
                     leScanManager_SetScanEnableAndActive(TRUE);
                 }
@@ -716,14 +719,14 @@ static void leScanManager_HandleStart(Task task, le_scan_interval_t scan_interva
             case LE_SCAN_MANAGER_STATE_SCANNING:
             {
                 /* Save the scan parameters and respond. Scan shall start on resume */
-                handle = leScanManager_AcquireScan(scan_interval,filter,task);
+                scan_settings = leScanManager_AcquireScan(scan_interval,filter,task);
 
-                if(handle)
+                if(scan_settings)
                 {
-                    sm_data->confirmation_handle = handle;
+                    sm_data->confirmation_settings = scan_settings;
                     sm_data->requester = task;
                     LeScanManagerSetCurrentCommand(LE_SCAN_MANAGER_CMD_START);
-                    DEBUG_LOG("leScanManager_HandleStart new handle created.");
+                    DEBUG_LOG("leScanManager_HandleStart new scan settings created.");
                     leScanManager_SetScanEnableAndActive(FALSE);
                 }
                 else
@@ -739,18 +742,17 @@ static void leScanManager_HandleStart(Task task, le_scan_interval_t scan_interva
     }
     if(respond)
     {
-        scan_result.handle = handle;
         leScanManager_SendStartCfm(task,scan_result);
     }
 }
 
-static void leScanManager_HandleStop(Task task, le_scan_handle_t handle)
+static void leScanManager_HandleStop(Task task)
 {
     scanState current_state = LeScanManagerGetState();
     DEBUG_LOG("leScanManager_HandleStop Current State is:: %d", current_state);
 
     bool respond = FALSE;
-    le_scan_manager_status_t scan_result = {0};
+    le_scan_manager_status_t scan_result = {LE_SCAN_MANAGER_RESULT_FAILURE};
 
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
 
@@ -768,7 +770,7 @@ static void leScanManager_HandleStop(Task task, le_scan_handle_t handle)
             case LE_SCAN_MANAGER_STATE_ENABLED:
             case LE_SCAN_MANAGER_STATE_PAUSED:
             {
-                leScanManager_ReleaseScan(handle);
+                leScanManager_ReleaseScan(task);
                 scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
                 respond = TRUE;
             }
@@ -777,17 +779,17 @@ static void leScanManager_HandleStop(Task task, le_scan_handle_t handle)
             case LE_SCAN_MANAGER_STATE_SCANNING:
             {
                 /* Stop the scan and respond once scan is stopped. */
-                if (leScanManager_ReleaseScan(handle))
+                if (leScanManager_ReleaseScan(task))
                 {
                     sm_data->requester = task;
                     LeScanManagerSetCurrentCommand(LE_SCAN_MANAGER_CMD_STOP);
-                    DEBUG_LOG("leScanManager_HandleStop handle released.");
+                    DEBUG_LOG("leScanManager_HandleStop scan settings released.");
                     leScanManager_SetScanEnableAndActive(FALSE);
                 }
                 else
                 {
-                    /* Handle not found */
-                    DEBUG_LOG("leScanManager_HandleStop cannot release scan");
+                    /* Settings not found */
+                    DEBUG_LOG("leScanManager_HandleStop cannot release scan settings");
                     scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
                     respond = TRUE;
                 }
@@ -809,7 +811,7 @@ static void leScanManager_HandlePause(Task task )
     scanState current_state = LeScanManagerGetState();
     DEBUG_LOG("leScanManager_HandlePause Current State is:: %d", current_state);
     bool respond = FALSE;
-    le_scan_manager_status_t scan_result = {0};
+    le_scan_manager_status_t scan_result = {LE_SCAN_MANAGER_RESULT_FAILURE};
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
     sm_data->is_paused = TRUE;
 
@@ -868,7 +870,7 @@ static void leScanManager_HandleResume(Task task)
     DEBUG_LOG("leScanManager_HandleResume Current State is:: %d", current_state);
     
     bool respond = FALSE;
-    le_scan_manager_status_t scan_result = {0};
+    le_scan_manager_status_t scan_result = {LE_SCAN_MANAGER_RESULT_FAILURE};
 
     le_scan_manager_data_t * sm_data = LeScanManagerGetTaskData();
     sm_data->is_paused = FALSE;
@@ -896,19 +898,25 @@ static void leScanManager_HandleResume(Task task)
                 {
                     leScanManager_SetState(LE_SCAN_MANAGER_STATE_ENABLED);
                     scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
+                    respond = TRUE;
                 }
             }
             break;
 
             case LE_SCAN_MANAGER_STATE_DISABLED:
             case LE_SCAN_MANAGER_STATE_ENABLED:
+            {
+                /* Returning Success as default CFM Message */
+                scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
+                respond = TRUE;
+            }
             break;
 
             case LE_SCAN_MANAGER_STATE_SCANNING:
             {
-                /* Unexpected to receive Resume during scanning */
-                scan_result.status = LE_SCAN_MANAGER_RESULT_FAILURE;
-                DEBUG_LOG("LeScanManager_Resume cant be handled in state %d",current_state);
+                /* Returning Success as scanning is in progress already */
+                scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
+                DEBUG_LOG("LeScanManager_Resume returning success as scanning in progress!");
                 respond = TRUE;
             }
             break;
@@ -948,7 +956,6 @@ static void leScanManager_HandleScanEnable(connection_lib_status status)
                     leScanManager_SetState(LE_SCAN_MANAGER_STATE_SCANNING);
                     leScanManager_addClient(sm_data->requester);
 
-                    scan_result.handle = sm_data->confirmation_handle;
                     scan_result.status = LE_SCAN_MANAGER_RESULT_SUCCESS;
                     leScanManager_SendStartCfm(sm_data->requester,scan_result);
                }
@@ -1077,14 +1084,13 @@ void LeScanManager_Start(Task task, le_scan_interval_t scan_interval, le_adverti
     leScanManager_HandleStart(task,scan_interval,filter);
 }
 
-void LeScanManager_Stop(Task task, le_scan_handle_t handle)
+void LeScanManager_Stop(Task task)
 {
     DEBUG_LOG("LeScanManager_Stop");
     PanicNull(task);
-    PanicNull(handle);
     PanicFalse(LeScanManagerGetState() > LE_SCAN_MANAGER_STATE_UNINITIALIZED);
 
-    leScanManager_HandleStop(task,handle);
+    leScanManager_HandleStop(task);
 
 }
 
@@ -1127,3 +1133,7 @@ bool LeScanManager_HandleConnectionLibraryMessages(MessageId id, Message message
     return FALSE;
 }
 
+bool LeScanManager_IsTaskScanning(Task task)
+{
+    return leScanManager_isDuplicate(task);
+}

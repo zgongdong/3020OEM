@@ -8,15 +8,15 @@ primary_service {
     name : "ROLE_SELECTION_SERVICE",
     sdp  : FALSE, # Included as an aide memoire. SDP records only of use for BREDR.
     characteristic {
-        uuid        : UUID_ROLE_SEL_SHADOWING_STATE,
-        name        : "ROLE_SELECTION_SHADOWING_STATE",
+        uuid        : UUID_ROLE_SEL_MIRRORING_STATE,
+        name        : "ROLE_SELECTION_MIRRORING_STATE",
         flags       : [ FLAG_IRQ, FLAG_ENCR_R ],
         properties  : [ read, notify ],
         size_value  : 0x01,
         value       : 0x00,
         client_config
         {
-            name  : "ROLE_SELECTION_SHADOWING_STATE_CLIENT_CONFIG",
+            name  : "ROLE_SELECTION_MIRRORING_STATE_CLIENT_CONFIG",
             flags : [ FLAG_IRQ , FLAG_DYNLEN ]
         }
     },

@@ -31,7 +31,7 @@ void TwsTopology_ProcedurePermitConnectionLeStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedurePermitConnectionLeCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_permit_connection_le_fns = {
+const tws_topology_procedure_fns_t proc_permit_connection_le_fns = {
     TwsTopology_ProcedurePermitConnectionLeStart,
     TwsTopology_ProcedurePermitConnectionLeCancel,
     NULL,

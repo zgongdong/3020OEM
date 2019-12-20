@@ -158,7 +158,7 @@ class AcatArgumentParser(object):
         """Populates the given GlobalOptions instance.
 
         Args:
-            global_options (:obj:`GlobalOptions'): A GlobalOptions instance.
+            global_options (:obj:GlobalOptions): A GlobalOptions instance.
         """
         self._parse()
         self._check()

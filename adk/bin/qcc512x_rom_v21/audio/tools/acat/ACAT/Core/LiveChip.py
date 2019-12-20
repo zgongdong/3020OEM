@@ -73,14 +73,15 @@ class LiveChip(ChipData.ChipData):
         50). Addresses can be from any valid DM region (DM1, PM RAM,
         mapped NVMEM, memory-mapped registers, etc.).
 
-        Note:
+        .. note::
+
             The length supplied is measured in addressable units.
 
-                get_data(addr) will return a single value;
-                get_data(addr, 1) will return a list with a single member.
-                get_data(addr, 10) will return a list with ten members or
-                    a list with three members (when the memory is octet
-                    addressed, 32bit words).
+                * ``get_data(addr)`` will return a single value;
+                * ``get_data(addr, 1)`` will return a list with a single member.
+                * ``get_data(addr, 10)`` will return a list with ten
+                  members or a list with three members (when the memory is
+                  octet addressed, 32bit words).
 
         Note that reading PM RAM via DM is not supported (since not all chips
         map PM into DM). Use `get_data_pm()` instead.
@@ -151,6 +152,10 @@ class LiveChip(ChipData.ChipData):
                     address + cu.convert_byte_len_word(
                         length, Arch.addr_per_word
                     ) - Arch.addr_per_word)
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+
         except Exception as exception:
             if "Transport failure (Unable to read)" in exception:
                 sys.stderr.write(str(exception))
@@ -220,6 +225,10 @@ class LiveChip(ChipData.ChipData):
                     address + cu.convert_byte_len_word(
                         length, Arch.addr_per_word
                         ) - Arch.addr_per_word)
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+
         except Exception as exception:
             if "Transport failure (Unable to read)" in exception:
                 sys.stderr.write(str(exception))
@@ -229,11 +238,11 @@ class LiveChip(ChipData.ChipData):
 
     @re_entrant_lock_decorator
     def get_proc_reg(self, name):
-        """Return the value of the processor register specified in 'name'.
+        """Return the value of the processor register specified in ``name``.
 
-        `name` is a string containing the name of the register in upper or
-        lower case, with or without the prefix 'REGFILE_' e.g.
-        "REGFILE_PC", "rMAC", "R10".
+        ``name`` is a string containing the name of the register in upper or
+        lower case, with or without the prefix ``REGFILE_`` e.g.
+        ``REGFILE_PC``, ``rMAC``, ``R10``.
 
         Args:
             name
@@ -275,9 +284,10 @@ class LiveChip(ChipData.ChipData):
         Addresses can only be from any valid DM RAM or memory mapped
         register region.  e.g. set_data(0x3e5d, [1 2 3])
 
-        Note:
-            set_data(address, [val]) writes address with a single value val.
-            set_data(address, [val1 ... valn]) writes the list of values
+        .. note::
+
+            * ``set_data(address, [val])`` writes address with a single value val.
+            * ``set_data(address, [val1 ... valn])`` writes the list of values
                 to memory starting from address.
 
         This function should only be implemented for live chips. And should not
@@ -333,6 +343,10 @@ class LiveChip(ChipData.ChipData):
                         address + cu.convert_byte_len_word(
                             length, Arch.addr_per_word
                         ) - Arch.addr_per_word)
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+
         except Exception as exception:
             if "Transport failure (Unable to read)" in exception:
                 sys.stderr.write(str(exception))

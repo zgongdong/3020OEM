@@ -44,6 +44,16 @@ enum tws_topology_dfu_rules_goals
 
     TWSTOP_DFU_GOAL_CONNECTABLE_HANDSET,
 
+        /*! Allow handset BR/EDR connections in the connection manager. */
+    TWSTOP_DFU_GOAL_ALLOW_HANDSET_CONNECT,
+
+    /** Disconnect handset (BR/EDR) profiles and links (BR/EDR and/or LE) when
+     * DFU transport is BLE.
+     * This is required to synchronize rules for handling abort scenarios when
+     * DFU transport is BLE.
+     */
+    TWSTOP_DFU_GOAL_LE_PRI_ABORT_CLEANUP,
+
         /*! Value used when there is no DFU goal */
     TWSTOP_DFU_GOAL_NOP,
 };

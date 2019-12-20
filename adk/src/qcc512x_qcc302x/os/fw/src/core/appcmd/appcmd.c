@@ -13,6 +13,8 @@
 
 #include "assert.h"
 
+#define NUM_TEST_HANDLERS 3
+
 #define APPCMD_MASK 0x003f
 
 #define APPCMD_RSP_BUF_REMOTE_FLAG (1U << 31)
@@ -34,7 +36,7 @@ const uint32 appcmd_protocol_version = 0;
 static struct {
     appcmd_test_handler_fn *fn;
     APPCMD_TEST_ID           command;
-} test_handlers[24];
+} test_handlers[NUM_TEST_HANDLERS];
 
 /** Number of registered test handlers */
 static uint32 handler_count = 0;

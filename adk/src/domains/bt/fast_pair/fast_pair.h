@@ -51,6 +51,8 @@
 #define FAST_PAIR_QUARANTINE_TIMEOUT            (300)
 /* Maximum bumber of Failure attempts */
 #define FAST_PAIR_MAX_FAIL_ATTEMPTS             (10)
+/* Maximum BLE connections allowed */
+#define MAX_BLE_CONNECTIONS    (2)
 
 /*! \brief Type of passkey owners */
 typedef enum
@@ -78,6 +80,7 @@ typedef enum
      fast_pair_state_event_crypto_decrypt,             /*! Crypto AES Decrypt confirmation */
      fast_pair_state_event_timer_expire,               /*! FP Procedure Timer expired */
      fast_pair_state_event_power_off,                  /*! Power Off event by user */
+     fast_pair_state_event_auth,                       /*! CL_SM_AUTHENTICATE_CFM received from application */
 } fast_pair_state_event_id;
 
 
@@ -88,6 +91,12 @@ typedef struct
     fast_pair_state_event_id id;
     void *args;
 } fast_pair_state_event_t;
+
+/*! \brief Event arguments for SM authentication event */
+typedef struct
+{
+    CL_SM_AUTHENTICATE_CFM_T* auth_cfm;
+} fast_pair_state_event_auth_args_t;
 
 /*! \brief Fast Pair module state machine states */
 typedef enum fast_pair_states
@@ -145,6 +154,10 @@ typedef struct
     uint16  failure_count;
     /*! Session Data. Will be cleaned when moving to Idle */
     fast_pair_session_data_t session_data;
+    /*! Peer BD address used to make ACL connection */
+    bdaddr peer_bd_addr[MAX_BLE_CONNECTIONS];
+    /*! Random address used to make ACL connection */
+    bdaddr own_random_address[MAX_BLE_CONNECTIONS];
 } fastPairTaskData;
 
 
@@ -158,6 +171,16 @@ typedef struct
     \returns TRUE if successfully processed
  */
 bool FastPair_Init(Task init_task);
+
+/*! Message Handler to handle CL message coming from application
+
+    \param   id        Identifier of the message
+    \param  message        The message content
+    \param  already_handled        boolean variable to check if message is already handled or not
+
+    \returns  already_handled
+ */
+bool FastPair_HandleConnectionLibraryMessages(MessageId id, Message message, bool already_handled);
 
 /*! Handler for all messages to fast pair Module
 
@@ -174,6 +197,15 @@ bool FastPair_Init(Task init_task);
     \returns None
  */
 void FastPair_HandleMessage(Task task, MessageId id, Message message);
+
+
+/*! \brief Initialize the Fast Pair Session Data Module
+
+    \param None
+
+    \return None
+ */
+void FastPair_RegisterPersistentDeviceDataUser(void);
 
 /*! Handler for all events sent to fast pair state machine
 

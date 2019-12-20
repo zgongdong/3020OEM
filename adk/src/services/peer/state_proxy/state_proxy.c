@@ -32,7 +32,7 @@
 #include <hfp_profile.h>
 #include <av.h>
 #include <pairing.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 /*! \todo should not be including the application FSM */
 #include <earbud_sm.h>
 
@@ -129,8 +129,12 @@ static void stateProxy_HandlePeerSigConnectionInd(const PEER_SIG_CONNECTION_IND_
             StateProxy_SendInitialState();
         }
         break;
+
         case peerSigStatusDisconnected:
         {
+            /* reset remote device flgas to initial state*/
+            stateProxy_SetRemoteInitialFlags();
+            
             /* reset initial state sent, so we'll send it again on reconnect
              * and not try and send any event updates until then */
             stateProxy_GetTaskData()->initial_state_sent = FALSE;
@@ -328,7 +332,7 @@ static void stateProxy_HandleMessage(Task task, MessageId id, Message message)
             break;
 
             /* connection change indications */
-        case SHADOW_PROFILE_CONNECT_IND:
+        case MIRROR_PROFILE_CONNECT_IND:
             if (stateProxy_IsPrimary())
             {
                 break;
@@ -339,7 +343,7 @@ static void stateProxy_HandleMessage(Task task, MessageId id, Message message)
             break;
 
         /* disconnection change indications */
-        case SHADOW_PROFILE_DISCONNECT_IND:
+        case MIRROR_PROFILE_DISCONNECT_IND:
             if (stateProxy_IsPrimary())
             {
                 break;
@@ -422,15 +426,15 @@ static void stateProxy_HandleMessage(Task task, MessageId id, Message message)
             }
             break;
         case APP_HFP_SCO_CONNECTED_IND:
-        case SHADOW_PROFILE_ESCO_CONNECT_IND:
-            /* Treat shadow/actual eSCO connect identically, without message content */
+        case MIRROR_PROFILE_ESCO_CONNECT_IND:
+            /* Treat mirror/actual eSCO connect identically, without message content */
             stateProxy_FlagIndicationHandler(MARSHAL_TYPE_APP_HFP_SCO_CONNECTED_IND_T, TRUE,
                                              NULL, 0);
             stateProxy_MicQualityKick();
             break;
         case APP_HFP_SCO_DISCONNECTED_IND:
-        case SHADOW_PROFILE_ESCO_DISCONNECT_IND:
-            /* Treat shadow/actual eSCO disconnect identically, without message content */
+        case MIRROR_PROFILE_ESCO_DISCONNECT_IND:
+            /* Treat mirror/actual eSCO disconnect identically, without message content */
             stateProxy_FlagIndicationHandler(MARSHAL_TYPE_APP_HFP_SCO_DISCONNECTED_IND_T, FALSE,
                                              NULL, 0);
             stateProxy_MicQualityKick();
@@ -530,7 +534,7 @@ bool StateProxy_Init(Task init_task)
     appHfpStatusClientRegister(stateProxy_GetTask());
     appAvStatusClientRegister(stateProxy_GetTask());
     Pairing_ActivityClientRegister(stateProxy_GetTask());
-    ShadowProfile_ClientRegister(stateProxy_GetTask());
+    MirrorProfile_ClientRegister(stateProxy_GetTask());
     /* \todo also need to register for audio mic quality notifications, but they
      * dont' exist yet */
 

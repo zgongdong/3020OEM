@@ -208,6 +208,11 @@ HTML_DOCUMENT_END = """</body>
 def html_simple_element(string, tag, attr_str=""):
     """
     Creates a simple HTML element containing the input string.
+
+    Args:
+        string
+        tag
+        attr_str
     """
     if attr_str != "":
         attr_str = " " + attr_str
@@ -386,26 +391,24 @@ def plain_to_html(plain_text):
 
 
 class Section(object):
-    """
-    @brief Class to encapsulate a section. In html a section is represented as
-    header followed by a series of divs.
+    """Class to encapsulate a section.
+
+    In html a section is represented as header followed by a series of divs.
+
+    Create a new section. When called publicly, the parent and level
+    parameters must not be given and the result will be a top level
+    section. The parameters are filled in when creating subsections which
+    users of this class should do by calling the subsection method on an
+    existing section.
+
+    Args:
+        title (str): Plain text title.
+        parent: Pointer to the parent object.
+        level (int): Nesting depth of this object.
+        proc: processor being documented.
     """
 
     def __init__(self, title, parent=None, level=1, proc='P0'):
-        """
-        @brief Initialises the object.
-        @param[in] self Pointer to the current object
-        @param[in] title Plain text title
-        @param[in] parent Pointer to the parent object
-        @param[in] level Nesting depth of this object
-        @param[in] current processor being documented
-
-        Create a new section. When called publicly, the parent and level
-        parameters must not be given and the result will be a top level
-        section. The parameters are filled in when creating subsections which
-        users of this class should do by calling the subsection method on an
-        existing section.
-        """
         # A section can have subsections this relation is represented by the
         # reference to the link
         self.parent = parent
@@ -417,14 +420,14 @@ class Section(object):
         self.proc = proc
 
     def subsection(self, title):
-        """
-        @brief Create a subsection of this section
-        @param[in] self Pointer to the current object
-        @param[in] title Plain text title
+        """Create a subsection of this section.
 
         This creates a new section as a subsection of this one. Once that has
         been done, the add_report method of this section must not be called.
         It's still safe to call add_alert and add_error.
+
+        Args:
+            title (str): Plain text title.
         """
         section = self.__class__(title, self, self.level + 1, proc=self.proc)
         self.subsections.append(section)
@@ -438,21 +441,21 @@ class Section(object):
     # Alerts and errors can be detected quite late: after we've created
     # subsections. We don't want to emit a warning in these cases.
     def add_alert(self, content):
-        """
-        @brief Function used for adding an alert to the report
-        @param[in] self Pointer to the current object
-        @param[in] content HTML of the alert
+        """Function used for adding an alert to the report.
 
         Note that this function handles just the in-line alert message. The
         links at the top of the document are handled by the caller.
+
+        Args:
+            content (str): HTML of the alert
         """
         self._add_content(html_alert(content))
 
     def add_error(self, content):
-        """
-        @brief Function used for adding an error report to the report
-        @param[in] self Pointer to the current object
-        @param[in] content HTML of the error message
+        """Function used for adding an error report to the report.
+
+        Args:
+            content (str): HTML of the error message.
 
         Note that this function handles just the in-line error message. The
         links at the top of the document are handled by the caller.
@@ -460,10 +463,10 @@ class Section(object):
         self._add_content(html_error(content))
 
     def add_report(self, content):
-        """
-        @brief Function used for adding content to the report
-        @param[in] self Pointer to the current object
-        @param[in] content HTML to be added to the report
+        """Function used for adding content to the report.
+
+        Args:
+            content (str): HTML to be added to the report.
         """
         if self.subsections:
             sys.stderr.write(
@@ -483,10 +486,7 @@ class Section(object):
         self._add_content(html_report(content))
 
     def get_links(self):
-        """
-        @brief Generate the menu pertaining to this section
-        @param[in] self Pointer to the current object
-        """
+        """Generate the menu pertaining to this section."""
         links = ""
         if self.title != "":
             links += html_link_to_tag(
@@ -496,14 +496,12 @@ class Section(object):
             html_unordered_list([x.get_links() for x in self.subsections])
 
     def content_to_html(self):
-        """
-        @brief Convert section to html format.
-        @param[in] self Pointer to the current object
+        """Convert section to html format.
 
         Note that this always returns either an empty string or a string
         containing one or more HTML block level element so it must not be
-        wrapped in anything that can't contain such elements (most notably <p>
-        tags).
+        wrapped in anything that can't contain such elements (most notably
+        ``<p>`` tags).
         """
         if self.title != "":
             string_title = html_tag(
@@ -525,25 +523,22 @@ class Section(object):
         return string_title + string_content
 
     def get_parent(self):
-        """
-        @brief Returns the parent of this section
-        @param[in] self Pointer to the current object
-        """
+        """Returns the parent of this section."""
         return self.parent
 
 
 class HtmlFormatter(Formatter):
-    """
-    @brief Implements the Formatter interface to provide html output. Creates
-    table of content for each section. Each section is displayed in different
-    html section with a title. The sections are separated with lines.
+    """Implements the Formatter interface to provide html output.
+
+    Creates table of content for each section. Each section is displayed in
+    different html section with a title. The sections are separated with lines.
     """
 
     def __init__(self, file_path):
-        """
-        @brief Initialises the object.
-        @param[in] self Pointer to the current object
-        @param[in] file_path
+        """Initialises the object.
+
+        Args:
+            file_path (str)
         """
 
         # All the lines we want to output
@@ -560,10 +555,10 @@ class HtmlFormatter(Formatter):
         super(HtmlFormatter, self).__init__()
 
     def section_start(self, header_str):
-        """
-        @brief Starts a new section. Sections can be nested.
-        @param[in] self Pointer to the current object
-        @param[in] header_str
+        """Starts a new section. Sections can be nested.
+
+        Args:
+            header_str (str)
         """
         # we should remove any newline character from the header
         header_str = header_str.replace('\n|\r', '')
@@ -574,10 +569,7 @@ class HtmlFormatter(Formatter):
             self.active_section = self.active_section.subsection(header_str)
 
     def section_end(self):
-        """
-        @brief End a section
-        @param[in] self Pointer to the current object
-        """
+        """End a section."""
         if self.active_section:
             self.active_section = self.active_section.get_parent()
         else:
@@ -587,10 +579,9 @@ class HtmlFormatter(Formatter):
             )
 
     def section_reset(self):
-        """
-        @brief Reset the section formatting, ending all open sections.
+        """Reset the section formatting, ending all open sections.
+
         This is provided so that in case of an error we can continue safely.
-        @param[in] self Pointer to the current object
         """
         self.active_section = None
 
@@ -606,10 +597,10 @@ class HtmlFormatter(Formatter):
         return self.active_section
 
     def output(self, string_to_output):
-        """
-        @brief Normal body text. Lists/dictionaries will be compacted.
-        @param[in] self Pointer to the current object
-        @param[in] string_to_output
+        """Normal body text. Lists/dictionaries will be compacted.
+
+        Args:
+            string_to_output (str)
         """
 
         html = plain_to_html(string_to_output)
@@ -619,18 +610,18 @@ class HtmlFormatter(Formatter):
         self._output_object.add_report(html)
 
     def output_svg(self, string_to_output):
-        """
-        @brief Normal body text. Lists/dictionaries will be compacted.
-        @param[in] self Pointer to the current object
-        @param[in] string_to_output
+        """Normal body text. Lists/dictionaries will be compacted.
+
+        Args:
+            string_to_output (str)
         """
         self._output_object.add_report(string_to_output)
 
     def output_raw(self, string_to_output):
-        """
-        @brief Unformatted text output. Useful when displaying tables.
-        @param[in] self Pointer to the current object
-        @param[in] string_to_output
+        """Unformatted text output. Useful when displaying tables.
+
+        Args:
+            string_to_output (str)
         """
         html = plain_to_html(string_to_output)
         if html == "":
@@ -639,14 +630,14 @@ class HtmlFormatter(Formatter):
 
         self._output_object.add_report(html_pre_output)
 
-
     def alert(self, alert_str):
-        """
-        @brief Raise a alert - important information that we want to be
-            highlighted.
-        For example, 'pmalloc pools exhausted' or 'chip has panicked'.
-        @param[in] self Pointer to the current object
-        @param[in] alert_str
+        """Raise a alert.
+        
+        important information that we want to be highlighted.  For example,
+        ``pmalloc pools exhausted`` or ``chip has panicked``.
+
+        Args:
+            alert_str (str): The message to display in String.
         """
         # Make sure alerts have the same type
         alert_str = str(alert_str)
@@ -656,11 +647,13 @@ class HtmlFormatter(Formatter):
         self.alerts.append((alert_str, self.proc))
 
     def error(self, error_str):
-        """
-        @brief Raise an error. This signifies some problem with the analysis tool
-        itself, e.g. an analysis can't complete for some reason.
-        @param[in] self Pointer to the current object
-        @param[in] error_str
+        """Raise an error.
+
+        This signifies some problem with the analysis tool itself, e.g. an
+        analysis can't complete for some reason.
+
+        Args:
+            error_str (str)
         """
         # Make sure errors have the same type
         error_str = str(error_str)
@@ -670,10 +663,10 @@ class HtmlFormatter(Formatter):
         self.errors.append((error_str, self.proc))
 
     def flush(self):
-        """
-        @brief Output all logged events (body text, alerts, errors etc.) to
-            the given file.
-        @param[in] self Pointer to the current object
+        """Output all logged events.
+        
+        Events such as body text, alerts, errors etc. will be saved into the
+        given file.
         """
 
         # menu

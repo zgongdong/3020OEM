@@ -185,6 +185,7 @@ typedef enum dm_prim_tag
     ENUM_DM_VS_EVENT_IND,
     ENUM_DM_WRITE_SC_HOST_SUPPORT_OVERRIDE_CFM,
     ENUM_DM_READ_SC_HOST_SUPPORT_OVERRIDE_MAX_BD_ADDR_CFM,
+    ENUM_DM_ACL_CLOSE_CFM,
 
     /*-------------------------------------------------------------
       Security Management Primitives
@@ -858,6 +859,7 @@ typedef enum dm_prim_tag
 #define DM_ACL_CLOSE_REQ                 ((dm_prim_t)(ENUM_DM_ACL_CLOSE_REQ))
 #define DM_ACL_OPENED_IND                ((dm_prim_t)(ENUM_DM_ACL_OPENED_IND))
 #define DM_ACL_CLOSED_IND                ((dm_prim_t)(ENUM_DM_ACL_CLOSED_IND))
+#define DM_ACL_CLOSE_CFM                 ((dm_prim_t)(ENUM_DM_ACL_CLOSE_CFM))
 #define DM_SET_DEFAULT_LINK_POLICY_REQ   ((dm_prim_t)(ENUM_DM_SET_DEFAULT_LINK_POLICY_REQ))
 
 #define DM_LP_WRITE_POWERSTATES_REQ      ((dm_prim_t)(ENUM_DM_LP_WRITE_POWERSTATES_REQ))
@@ -4289,7 +4291,7 @@ typedef struct
  *      The DM allows both L2CAP and the application to request ACLs.
  *      The DM keeps track of who has an interest in
  *      each ACL, and will only disconnect the ACL when all interested parties
- *      have released the ACL (by DM_ACL_DISCONNECT_REQ and DM_ACL_CLOSE_REQ).
+ *      have released the ACL (by DM_ACL_CLOSE_REQ).
  *
  *      DM_ACL_OPEN_REQ registers the application's interest in the ACL. DM will
  *      create the link if it does not already exist. DM will always respond
@@ -4299,9 +4301,7 @@ typedef struct
  *      using it.
  *
  *      The DM keeps the application informed of the state of all ACLs via the
- *      DM_ACL_OPENED_IND and DM_ACL_CLOSED_IND primitives. Note that there is
- *      no specific response to DM_ACL_CLOSE_REQ, as the DM_ACL_CLOSED_IND is
- *      only issued when all users of the ACL have released it.
+ *      DM_ACL_OPENED_IND and DM_ACL_CLOSED_IND primitives.
  *
  *----------------------------------------------------------------------------*/
 
@@ -4375,12 +4375,26 @@ typedef struct
 /*----------------------------------------------------------------------------*
  * PURPOSE
  *      Request from the application to close the ACL to the specified device.
- *      An application may send this request only if it previously requested
- *      ACL creation via the DM_ACL_OPEN_REQ primitive.
+ *      An application may send this request for the ACLs which are established.
  *
- *      There is no specific response to this primitive - DM_ACL_CLOSED_IND is
- *      issued when the ACL is closed, but the DM may keep the ACL open if L2CAP
- *      is still using it.
+ *      Application will be notified with DM_ACL_CLOSED_CFM primitive once the
+ *      close operation is finished.
+ *
+ *      If DM_ACL_FLAG_ALL is set, then confirmation to the application
+ *      will be sent after all the ACLs are disconnected.
+ *      Note: If this flag is set then any Bluetooth address will be ignored.
+ *
+ *      If DM_ACL_FLAG_FORCE is not set, then disconnection will be processed
+ *      only when all channels using ACL is closed. Bluestack will send the
+ *      DM_ACL_CLOSE_CFM only after ACL is disconnected. Applications should
+ *      be aware of this behavior.
+ *
+ *      If there is a pending close request for an ACL link, then any subsequent
+ *      close request from application for the same BD Address will be rejected
+ *      with DM_ACL_CLOSE_BUSY.
+ *
+ *      DM_ACL_CLOSED_IND primitive is issued for each ACL when it is closed,
+ *      but the DM may keep the ACL open if L2CAP is still using it.
  *
  *----------------------------------------------------------------------------*/
 typedef struct
@@ -4388,8 +4402,28 @@ typedef struct
     dm_prim_t               type;      /* Always DM_ACL_CLOSE_REQ */
     TYPED_BD_ADDR_T         addrt;     /* Remote device address */
     uint16_t                flags;     /* See definitions for DM_ACL_OPEN_REQ */
-    uint8_t                 reason;    /* Only used if 'FORCE' flag set */
+    hci_reason_t            reason;    /* Only used if 'FORCE' flag set */
 } DM_ACL_CLOSE_REQ_T;
+
+/*----------------------------------------------------------------------------*
+ * PURPOSE
+ *      Confirmation to an application request (DM_ACL_CLOSE_REQ) to disconnect
+ *      the established ACL.
+ *      addrt will set to zero if DM_ACL_FLAG_ALL is set in DM_ACL_CLOSE_REQ.
+ *----------------------------------------------------------------------------*/
+#define DM_ACL_CLOSE_SUCCESS          ((uint8_t)0) /* ACL close Success */
+#define DM_ACL_CLOSE_BUSY             ((uint8_t)1) /* ACL close in progress with peer*/
+#define DM_ACL_CLOSE_NO_CONNECTION    ((uint8_t)2) /* NO ACL connection with peer */
+#define DM_ACL_CLOSE_LINK_TRANSFERRED ((uint8_t)3) /* ACL link transferred */
+
+typedef struct
+{
+    dm_prim_t               type;      /* Always DM_ACL_CLOSE_CFM */
+    phandle_t               phandle;   /* Destination phandle */
+    TYPED_BD_ADDR_T         addrt;     /* Peer device address */
+    uint16_t                flags;     /* Same as DM_ACL_CLOSE_REQ */
+    uint8_t                 status;    /* Success or failure */
+} DM_ACL_CLOSE_CFM_T;
 
 /*----------------------------------------------------------------------------*
  * PURPOSE
@@ -8164,6 +8198,7 @@ typedef union
 
     DM_ACL_CLOSED_IND_T                                     dm_acl_closed_ind;
     DM_ACL_CLOSE_REQ_T                                      dm_acl_close_req;
+    DM_ACL_CLOSE_CFM_T                                      dm_acl_close_cfm;
     DM_ACL_OPEN_CFM_T                                       dm_acl_open_cfm;
     DM_ACL_OPENED_IND_T                                     dm_acl_opened_ind;
     DM_ACL_OPEN_REQ_T                                       dm_acl_open_req;

@@ -38,18 +38,18 @@ typedef struct
     TaskData lib_task;              /*!< The task for an instance of the GATT server */
     Task app_task;                  /*!< Task for the app using the server */
     uint16 initialised;             /*!< Flag indicating initialised */
-                                    /*!  Current shadowing state to be notified to clients */
-    GattRoleSelectionServiceShadowingState shadow_state;
+                                    /*!  Current mirroring state to be notified to clients */
+    GattRoleSelectionServiceMirroringState mirror_state;
                                     /*!  Current figure of merit */
     grss_figure_of_merit_t figure_of_merit;
-    bool shadow_state_notified;     /*!< Flag indicating if the shadow state needs to be notified */
+    bool mirror_state_notified;     /*!< Flag indicating if the mirror state needs to be notified */
     bool figure_of_merit_notified;  /*!< Flag indicating if the figure of merit needs to be notified */
-    uint16 shadow_client_config;    /*!< Config for the state notifications */
+    uint16 mirror_client_config;    /*!< Config for the state notifications */
     uint16 merit_client_config;     /*!< Config for the figure of merit notifications */
 } GATT_ROLE_SELECTION_SERVER;
 
 
-/*! Message sent to command a shadowing state change - select the role */
+/*! Message sent to command a mirroring state change - select the role */
 typedef struct
 {
     GattRoleSelectionServiceControlOpCode  command;
@@ -85,15 +85,15 @@ bool GattRoleSelectionServerInit(GATT_ROLE_SELECTION_SERVER *instance,
 
 
 /*!
-    @brief Inform the server of the shadowing state
+    @brief Inform the server of the mirroring state
 
     @param instance     pointer to the data for this instance of the server
-    @param shadow_state state that will be sent on reads, or notified to the client
+    @param mirror_state state that will be sent on reads, or notified to the client
     @param cid          connection identifier for this server
 */
-void GattRoleSelectionServerSetShadowState(GATT_ROLE_SELECTION_SERVER *instance,
+void GattRoleSelectionServerSetMirrorState(GATT_ROLE_SELECTION_SERVER *instance,
                                            uint16 cid,
-                                           GattRoleSelectionServiceShadowingState shadow_state);
+                                           GattRoleSelectionServiceMirroringState mirror_state);
 
 
 /*!

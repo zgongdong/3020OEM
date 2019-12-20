@@ -34,6 +34,7 @@
 #include "trap_api/partition.h" 
 #include "trap_api/sdmmc.h" 
 #include "trap_api/audio_clock.h" 
+#include "trap_api/test2.h" 
 #include "trap_api/feature.h" 
 #include "trap_api/imageupgrade.h" 
 #include "trap_api/i2c.h" 
@@ -984,50 +985,6 @@ typedef struct IPC_STREAM_FAST_PIPE_SINK {
 #endif /* TRAPSET_FASTPIPE */
 
 
-#if TRAPSET_SHADOWING
-typedef struct IPC_ACL_HANDOVER_PREPARE {
-    IPC_HEADER header;
-    const TP_BD_ADDR_T * acl_addr;
-    const TP_BD_ADDR_T * recipient;
-} IPC_ACL_HANDOVER_PREPARE;
-
-typedef struct IPC_ACL_HANDOVER_PREPARED {
-    IPC_HEADER header;
-    uint16 handle;
-} IPC_ACL_HANDOVER_PREPARED;
-
-typedef struct IPC_STREAM_ACL_MARSHAL_SOURCE {
-    IPC_HEADER header;
-    const TP_BD_ADDR_T * tpaddr;
-} IPC_STREAM_ACL_MARSHAL_SOURCE;
-
-typedef struct IPC_STREAM_ACL_MARSHAL_SINK {
-    IPC_HEADER header;
-    const TP_BD_ADDR_T * tpaddr;
-} IPC_STREAM_ACL_MARSHAL_SINK;
-
-typedef struct IPC_ACL_HANDOVER_COMMIT {
-    IPC_HEADER header;
-    uint16 handle;
-} IPC_ACL_HANDOVER_COMMIT;
-
-typedef struct IPC_ACL_HANDOVER_CANCEL {
-    IPC_HEADER header;
-    uint16 handle;
-} IPC_ACL_HANDOVER_CANCEL;
-
-typedef struct IPC_STREAM_AUDIO_SYNC_SOURCE {
-    IPC_HEADER header;
-    Operator opid;
-} IPC_STREAM_AUDIO_SYNC_SOURCE;
-
-typedef struct IPC_ACL_HANDOVER_PREPARE_STATUS_RSP {
-    IPC_HEADER header;
-    acl_handover_prepare_status ret;
-} IPC_ACL_HANDOVER_PREPARE_STATUS_RSP;
-#endif /* TRAPSET_SHADOWING */
-
-
 #if TRAPSET_LCD
 typedef struct IPC_LCD_CONFIGURE {
     IPC_HEADER header;
@@ -1341,6 +1298,43 @@ typedef struct IPC_VM_RESET_SOURCE_RSP {
     vm_reset_source ret;
 } IPC_VM_RESET_SOURCE_RSP;
 #endif /* TRAPSET_CORE */
+
+
+#if TRAPSET_TEST2
+typedef struct IPC_TEST2_CW_TRANSMIT {
+    IPC_HEADER header;
+    uint16 channel;
+    uint16 power;
+} IPC_TEST2_CW_TRANSMIT;
+
+typedef struct IPC_TEST2_RF_STOP {
+    IPC_HEADER header;
+} IPC_TEST2_RF_STOP;
+
+typedef struct IPC_TEST2_TX_DATA {
+    IPC_HEADER header;
+    HopChannels * channel;
+    uint16 power;
+    uint16 hopping;
+    uint16 payload;
+    uint16 packet_type;
+    uint16 packet_length;
+    const BD_ADDR_T * bt_addr;
+    uint16 lt_addr;
+} IPC_TEST2_TX_DATA;
+
+typedef struct IPC_TEST2_RX_START {
+    IPC_HEADER header;
+    HopChannels * channel;
+    uint16 hopping;
+    uint16 payload;
+    uint16 packet_type;
+    uint16 packet_length;
+    const BD_ADDR_T * bt_addr;
+    uint16 lt_addr;
+} IPC_TEST2_RX_START;
+
+#endif /* TRAPSET_TEST2 */
 
 
 #if TRAPSET_NFC
@@ -1884,6 +1878,12 @@ typedef struct IPC_OPERATOR_FRAMEWORK_RELEASE {
     uint16 * sinklist;
 } IPC_OPERATOR_FRAMEWORK_RELEASE;
 
+typedef struct IPC_AUDIO_MAP_CPU_SPEED {
+    IPC_HEADER header;
+    audio_dsp_clock_type clock_mode;
+    uint32 freq;
+} IPC_AUDIO_MAP_CPU_SPEED;
+
 typedef struct IPC_AUDIO_DSP_GET_CLOCK_RSP {
     IPC_HEADER header;
     bool ret;
@@ -2048,6 +2048,50 @@ typedef struct IPC_CRYPTO_AES128_CBC {
 } IPC_CRYPTO_AES128_CBC;
 
 #endif /* TRAPSET_CRYPTO */
+
+
+#if TRAPSET_MIRRORING
+typedef struct IPC_ACL_HANDOVER_PREPARE {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * acl_addr;
+    const TP_BD_ADDR_T * recipient;
+} IPC_ACL_HANDOVER_PREPARE;
+
+typedef struct IPC_ACL_HANDOVER_PREPARED {
+    IPC_HEADER header;
+    uint16 handle;
+} IPC_ACL_HANDOVER_PREPARED;
+
+typedef struct IPC_STREAM_ACL_MARSHAL_SOURCE {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * tpaddr;
+} IPC_STREAM_ACL_MARSHAL_SOURCE;
+
+typedef struct IPC_STREAM_ACL_MARSHAL_SINK {
+    IPC_HEADER header;
+    const TP_BD_ADDR_T * tpaddr;
+} IPC_STREAM_ACL_MARSHAL_SINK;
+
+typedef struct IPC_ACL_HANDOVER_COMMIT {
+    IPC_HEADER header;
+    uint16 handle;
+} IPC_ACL_HANDOVER_COMMIT;
+
+typedef struct IPC_ACL_HANDOVER_CANCEL {
+    IPC_HEADER header;
+    uint16 handle;
+} IPC_ACL_HANDOVER_CANCEL;
+
+typedef struct IPC_STREAM_AUDIO_SYNC_SOURCE {
+    IPC_HEADER header;
+    Operator opid;
+} IPC_STREAM_AUDIO_SYNC_SOURCE;
+
+typedef struct IPC_ACL_HANDOVER_PREPARE_STATUS_RSP {
+    IPC_HEADER header;
+    acl_handover_prepare_status ret;
+} IPC_ACL_HANDOVER_PREPARE_STATUS_RSP;
+#endif /* TRAPSET_MIRRORING */
 
 
 #if TRAPSET_BDADDR
@@ -2228,10 +2272,6 @@ typedef union IPC_RSP {
     IPC_PSSTORES_RSP ipc_psstores_rsp;
     IPC_VM_RESET_SOURCE_RSP ipc_vm_reset_source_rsp;
 #endif /* TRAPSET_CORE */
-#if TRAPSET_FONT
-    IPC_FONTID_RSP ipc_fontid_rsp;
-    IPC_SIZE_T_RSP ipc_size_t_rsp;
-#endif /* TRAPSET_FONT */
 #if TRAPSET_BLUESTACK
     IPC_VM_GET_PUBLIC_ADDRESS_RSP ipc_vm_get_public_address_rsp;
     IPC_INQUIRYPRIORITY_RSP ipc_inquirypriority_rsp;
@@ -2260,6 +2300,9 @@ typedef union IPC_RSP {
 #if TRAPSET_BITSERIAL
     IPC_BITSERIAL_HANDLE_RSP ipc_bitserial_handle_rsp;
 #endif /* TRAPSET_BITSERIAL */
+#if TRAPSET_MIRRORING
+    IPC_ACL_HANDOVER_PREPARE_STATUS_RSP ipc_acl_handover_prepare_status_rsp;
+#endif /* TRAPSET_MIRRORING */
 #if TRAPSET_CHARGER2
     IPC_CHARGER_BATTERY_STATUS_RSP ipc_charger_battery_status_rsp;
 #endif /* TRAPSET_CHARGER2 */
@@ -2284,9 +2327,10 @@ typedef union IPC_RSP {
 #if TRAPSET_IMAGEUPGRADE
     IPC_HASH_CONTEXT_T_RSP ipc_hash_context_t_rsp;
 #endif /* TRAPSET_IMAGEUPGRADE */
-#if TRAPSET_SHADOWING
-    IPC_ACL_HANDOVER_PREPARE_STATUS_RSP ipc_acl_handover_prepare_status_rsp;
-#endif /* TRAPSET_SHADOWING */
+#if TRAPSET_FONT
+    IPC_FONTID_RSP ipc_fontid_rsp;
+    IPC_SIZE_T_RSP ipc_size_t_rsp;
+#endif /* TRAPSET_FONT */
 #if TRAPSET_WAKE_ON_AUDIO
     IPC_AUDIO_DSP_GET_CLOCK_RSP ipc_audio_dsp_get_clock_rsp;
     IPC_AUDIO_POWER_SAVE_MODE_RSP ipc_audio_power_save_mode_rsp;

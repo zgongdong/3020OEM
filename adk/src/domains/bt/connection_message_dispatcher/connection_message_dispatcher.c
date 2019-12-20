@@ -347,6 +347,7 @@ static group_type_t connectionMessageDispatcher_GetGroupType(MessageId id)
         case CL_SM_ENCRYPTION_CHANGE_IND:
         case CL_DM_ACL_OPENED_IND:
         case CL_DM_ACL_CLOSED_IND:
+        case CL_DM_ACL_CLOSE_CFM:
         case CL_DM_BLE_SECURITY_CFM:
         case CL_DM_LINK_SUPERVISION_TIMEOUT_IND:
         case CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM:

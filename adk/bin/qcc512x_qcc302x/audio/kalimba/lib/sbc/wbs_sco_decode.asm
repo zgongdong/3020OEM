@@ -270,17 +270,16 @@ $sco_decoder.wbs.validate:
    M1 = ADDR_PER_WORD;
    r6 = r0;
 
-   M[r9 + $sbc.mem.WBS_PAYLOAD_ALIGN_FIELD] = 0; // new packet always has word alignment
    r0 = M[r9 + $sbc.mem.WBS_SYNC_FIELD];
 
    if NZ jump havesync;
-      // prepend the last payload word from previous packet (override status word)
+      // prepend the last payload word from previous packet (overrides timestamp word)
       // this will allow sync-words to cross SCO boundaries
-      M2 = -5*ADDR_PER_WORD;
-      r0 = M[I0,M2];
-      r0 = M[I0,MK1];
-      M2 = 3*ADDR_PER_WORD;
-      r1 = M[I0,M2];
+      M2 = -6*ADDR_PER_WORD;
+      r0 = M[I0,M2];       // r0=M[0], I0=-6
+      r1 = M[I0,MK1];      // r1=M[-6], I0=-5
+      M2 = 4*ADDR_PER_WORD;//
+      r0 = M[I0,M2];       // r0=M[-5], I0=-1
       Null = r5 AND 1;
       if Z jump insert_last_word;
          r0 = r0 AND 0xff;
@@ -289,7 +288,7 @@ $sco_decoder.wbs.validate:
          r1 = r1 AND 0xff;
          r1 = r1 OR r0;
       insert_last_word:
-      M[I0,0] = r1;
+      M[I0,0] = r1;       // M[-1] = M[-6]
       r5 = r5 + 2;
 
       // search for syncword and set payload align flag
@@ -601,7 +600,7 @@ buffer_decode_loop:
 
    // if a complete frame is in the buffer, decode it... if not, exit
    Null = r0 - $M.wbs.decoder.WBS_ENCODED_FRAME_SIZE_B;
-   if NZ jump decode_done;
+   if NEG jump decode_done;
 
 #ifdef WBS_DECOUPLED
    // There may be a frame to decode check whether we were asked to
@@ -987,9 +986,10 @@ copy_unaligned: // word-unaligned copy
    r6 = 8;
    r3 = r3 LSHIFT r6, r4 = M[I0, 0];
    do unaligned_copy_loop;
+      r3 = r3 AND 0xFFFF;
+      r4 = r4 AND 0xFFFF;
       r4 = r4 LSHIFT -8;
       r1 = r3 OR r4, r3 = M[I0, M1];
-      r1 = r1 AND 0xffff;
       r3 = r3 LSHIFT r6, M[I4, MK1] = r1, r4 = M[I0, 0];
    unaligned_copy_loop:
    r3 = M[I0, -MK1]; // over-read

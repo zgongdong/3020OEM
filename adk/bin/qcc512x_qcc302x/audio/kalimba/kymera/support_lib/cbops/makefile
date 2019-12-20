@@ -31,6 +31,9 @@ C_SRC += cbops_support_extra.c
 S_SRC += cbops_rate_monitor_operator_extra.asm
 C_SRC += cbops_rate_monitor_op_extra.c
 C_SRC += cbops_sidetone_filter.c
+# kalsim DL build doesn't require this
+C_SRC += $(if $(findstring $(KALSIM_CONFIG), True), ,$(if $(findstring $(CAPABILITY_DOWNLOAD_BUILD), true), cbops_iir_resamplerv2_op_extra.c, ))
+
 S_SRC += $(if $(findstring $(KALSIM_CONFIG), True), ,$(if $(findstring $(CAPABILITY_DOWNLOAD_BUILD), true), dsl_aec_reference_rom.asm, ))
 S_SRC += $(if $(findstring $(KALSIM_CONFIG), True), ,$(if $(findstring $(CAPABILITY_DOWNLOAD_BUILD), true), dsl_cbops_dc_offset_op.asm, ))
 

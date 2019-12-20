@@ -172,8 +172,8 @@ typedef enum
 #define     GATT_AMS_CLIENT_MESSAGE_BASE                0x66F0
 #define     GATT_AMS_PROXY_SERVER_MESSAGE_BASE          0x6700
 #define     GATT_ANCS_PROXY_SERVER_MESSAGE_BASE         0x6710
-#define     GATT_BMS_SERVER_MESSAGE_BASE                0x6720
-#define     GATT_GAA_COMM_SERVER_MESSAGE_BASE         0x6730
+#define     GATT_GAA_MEDIA_SERVER_MESSAGE_BASE          0x6720
+#define     GATT_GAA_COMM_SERVER_MESSAGE_BASE           0x6730
 
 
 /*! @brief  Message base for non profile libraries */
@@ -234,6 +234,8 @@ typedef enum
 /*! @brief Message base for transport manager libraries*/
 #define     TRANSPORT_MGR_MESSAGE_BASE                             0x7F7A
 #define     VA_AUDIO_MGR_MESSAGE_BASE           0x7F80
+/*! @brief Message base for Input Event Manager library*/
+#define     INPUT_EVENT_MANAGER_MESSAGE_BASE    0x7F8A
 #endif /* _LIBRARY_H */
 
 /*@}*/

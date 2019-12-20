@@ -14,7 +14,7 @@
 #include "tws_topology_procedure_script_engine.h"
 #include <message.h>
 
-extern tws_topology_procedure_fns_t proc_handover_fns;
+extern const tws_topology_procedure_fns_t proc_handover_fns;
 
 #endif /* TWS_TOPOLOGY_PROCEDURE_HANDOVER_H */
 

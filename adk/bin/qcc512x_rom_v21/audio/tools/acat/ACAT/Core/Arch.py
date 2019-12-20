@@ -26,10 +26,10 @@ Module holding the chip architecture related data.
 # this provides a common format).
 # Set by a call to chip_select.
 # * kal_arch is an integer, e.g. 3, 4, 5
-# * chip_arch is a string containing e.g. "Bluecore", "Hydra", "KAS"
+# * chip_arch is a string containing e.g. "Bluecore" and "Hydra"
 # * chip_id is either an integer representing the chip id, e.g. 28
 #   (see http://wiki/ChipVersionIDs), or a string representing the
-#   internal name of the chip (e.g. "amber")
+#   internal name of the chip (e.g. "crescendo")
 kal_arch = 0
 chip_arch = None
 chip_id = 0
@@ -72,7 +72,7 @@ def chip_clear():
     pRegions = None
 
 
-dRegions_Amber = {
+dRegions_Hydra = {
     'DM1RAM': (0x000000, 0x004000),
     # The view from DM; the processor sees the PM address
     'PMRAM': (0x100000, 0x120000),
@@ -85,9 +85,9 @@ dRegions_Amber = {
     # Also aliased to DM1, confusingly.
     'DM2RAM': (0xff8000, 0xffc000),
     'MMR': (0xffe000, 0x1000000),  # Memory-mapped registers
-    # PMRAM which should really be a DC section but the Amber
-    # coredump tool desn't to know the difference. Ignore it
-    # and read the values from the chip.
+    # PMRAM which should really be a DC section but the coredump tool
+    # desn't to know the difference. Ignore it and read the values from
+    # the chip.
     'IGNORE': (0x10000000, 0x10010000)
 }
 
@@ -119,20 +119,6 @@ dRegions_Rick = {
     'MCU1': (0xffe000, 0xfff000),  # Windowed XAP memory
     'MCU2': (0xfff000, 0xfffe00),  # Windowed XAP memory
     'MMR': (0xfffe00, 0x1000000),  # Memory-mapped registers
-}
-
-dRegions_KAS = {
-    'DM1RAM': (0x000000, 0x008000),
-    'SLT': (0x000002, 0x000004),  # SLT is a subregion of DM1RAM.
-    # The view from DM1 (PMWIN_24); the processor sees the PM address
-    'PMRAM': (0x040000, 0x043000),
-    # We've created an out of bounds region (DEBUG_REGION).
-    'DEBUG': (0xFFD000, 0xFFE000),
-    'DM2RAM': (0xff3000, 0xFFA7FF),
-    'NVMEM0': (0xFFA800, 0xFFA9FF),  # const16
-    'NVMEM1': (0xFFAa00, 0xFFAF99),  # const24
-    'MMR': (0xfffe00, 0x1000000),  # Memory-mapped registers
-    'DM2SHARED': (0xFFAF9A, 0xFFAFFF),  # Memory shared with host
 }
 
 dRegions_Crescendo_d00 = {
@@ -217,24 +203,31 @@ dRegions_AuraPlus = {
     'MMR': (0xffff8000, 0x100000000)  # Memory-mapped registers
 }
 
-dRegions_Napier = {
-    'DM1RAM': (0x00000000, 0x00048000),
+dRegions_Mora = {
+    'DM1RAM': (0x00000000, 0x00160000),
     # The view from DM; used for constants right now.
-    'PMRAM': (0x00100000, 0x00110000),
+    'PMRAM': (0x00400000, 0x00460000),
+    'BAC': (0x00800000, 0x00C00000),
     # 'DMFLASHWIN1_LARGE_REGION' (note name confusion)
     'NVMEM0': (0xf8000000, 0xf8800000),
     # 'DMFLASHWIN2_LARGE_REGION' (note name confusion)
     'NVMEM1': (0xf8800000, 0xf9000000),
     'NVMEM2': (0xf9000000, 0xf9800000),
     'NVMEM3': (0xf9800000, 0xfa000000),
+    'NVMEM4': (0xfa000000, 0xfa800000),
+    'NVMEM5': (0xfa800000, 0xfb000000),
+    'NVMEM6': (0xfb000000, 0xfb800000),
+    'NVMEM7': (0xfb800000, 0xfc000000),
     # Lots more NVMEM windows here...
     'DEBUG': (0x13500000, 0x13600000),
-    'DM2RAM': (0xfff00000, 0xfff48000),  # Aliased to DM1.
+    'DBG_PTCH': (0x14500000, 0x14600000),
+    'DBG_DWL': (0x15500000, 0x15600000),
+    'DM2RAM': (0xff000000, 0xff160000),  # Aliased to DM1.
     'MMR': (0xffff8000, 0x100000000)  # Memory-mapped registers
 }
 
 # PM regions
-pRegions_Amber = {
+pRegions_Hydra = {
     'PMCACHE': (0x000000, 0x000800),
     'PMRAM': (0x000000, 0x004000),
     'PMROM': (0x400000, 0x440000)
@@ -252,10 +245,6 @@ pRegions_Rick = {
     'PMCACHE': (0x00b000, 0x00c000),
     # Technically could run up to 0xffffff, but no-one has that much flash.
     'PMROM': (0x00c000, 0x200000)
-}
-
-pRegions_KAS = {
-    'PMRAM': (0x000000, 0x040000)  # No NVMEM
 }
 
 pRegions_Crescendo = {
@@ -280,14 +269,13 @@ pRegions_AuraPlus = {
     'PMRAM': (0x04000000, 0x0401C000)
 }
 
-
-pRegions_Napier = {
-    'PMCACHE': (0, 0),  # Doesn't seem to be one at the moment
+pRegions_Mora = {
+    'PMCACHE': (0, 0),  # Assume that the PM cache is disabled
     'PMROM': (0x00000000, 0x02000000),
-    # No defined region for SLT at the moment
     'SLT': (0x00000020, 0x00000028),
-    'PMRAM': (0x04000000, 0x04010000)
+    'PMRAM': (0x04000000, 0x04060000)
 }
+
 
 #####################
 # Utility functions #
@@ -297,10 +285,11 @@ pRegions_Napier = {
 def chip_select(l_kal_arch, l_chip_arch, l_chip_id, l_chip_revision=None):
     """Sets dRegions and pRegions, based on chip architecture/ID.
 
-    * l_kal_arch is an integer, e.g. 3, 4, 5
-    * l_chip_arch is a string containing e.g. "Bluecore", "Hydra", "KAS"
-    * l_chip_id is an integer representing the chip id, e.g. 28
-      (see http://wiki/ChipVersionIDs)
+     * ``l_kal_arch`` is an integer, e.g. 3, 4, 5
+     * ``l_chip_arch`` is a string containing e.g. ``Bluecore`` and ``Hydra``.
+     * ``l_chip_id`` is an integer representing the chip id, e.g. 28
+       (see http://wiki/ChipVersionIDs)
+
     This function must be called prior to any calls to get_dm_region or
     get_pm_region.
 
@@ -377,6 +366,13 @@ def chip_select(l_kal_arch, l_chip_arch, l_chip_id, l_chip_revision=None):
         chip_cpu_speed_mhz = 120
         addr_per_word = 4
         dm_ram_aliased = True
+    elif kal_arch == 4 and chip_arch == "Hydra" and chip_id == 0x50:
+        # Mora
+        dRegions = dRegions_Mora
+        pRegions = pRegions_Mora
+        chip_cpu_speed_mhz = 240
+        addr_per_word = 4
+        dm_ram_aliased = True
     elif kal_arch == 5 and chip_arch == "Bluecore":
         # Rick
         dRegions = dRegions_Rick
@@ -385,26 +381,10 @@ def chip_select(l_kal_arch, l_chip_arch, l_chip_id, l_chip_revision=None):
         addr_per_word = 1
         dm_ram_aliased = False
     elif kal_arch == 5 and chip_arch == "Hydra":
-        # Assume this is Amber, for now. We might need to make further
-        # distinction later.
-        dRegions = dRegions_Amber
-        pRegions = pRegions_Amber
+        dRegions = dRegions_Hydra
+        pRegions = pRegions_Hydra
         chip_cpu_speed_mhz = 80
         addr_per_word = 1
-        dm_ram_aliased = True
-    elif kal_arch == 5 and chip_arch == "KAS":
-        # KAS
-        dRegions = dRegions_KAS
-        pRegions = pRegions_KAS
-        chip_cpu_speed_mhz = 200
-        addr_per_word = 1
-        dm_ram_aliased = False
-    elif kal_arch == 4 and chip_arch == "Napier":
-        # Napier
-        dRegions = dRegions_Napier
-        pRegions = pRegions_Napier
-        chip_cpu_speed_mhz = 128
-        addr_per_word = 4
         dm_ram_aliased = True
     else:
         raise Exception("Unknown/unsupported chip architecture")

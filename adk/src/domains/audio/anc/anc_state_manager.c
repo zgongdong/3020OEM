@@ -483,9 +483,6 @@ static bool handleEnabledEvent(anc_state_manager_event_id_t event)
     bool event_handled = FALSE;
     anc_state_manager_t next_state = anc_state_manager_disabled;
 
-    DEBUG_ASSERT(anc_data.actual_enabled, "handleEnabledEvent: ANC actual not enabled in Enabled state\n");
-    DEBUG_ASSERT(anc_data.requested_enabled, "handleEnabledEvent: ANC requested not enabled in Enabled state\n");
-
     switch (event)
     {
         case anc_state_manager_event_power_off:
@@ -556,9 +553,6 @@ static bool handleDisabledEvent(anc_state_manager_event_id_t event)
 {
     /* Assume failure until proven otherwise */
     bool event_handled = FALSE;
-
-    DEBUG_ASSERT(!anc_data.actual_enabled, "handleDisabledEvent: ANC actual enabled in Disabled state\n");
-    DEBUG_ASSERT(!anc_data.requested_enabled, "handleDisabledEvent: ANC requested enabled in Disabled state\n");
 
     switch (event)
     {

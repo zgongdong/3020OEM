@@ -228,7 +228,13 @@ static const uint8 mp3_bitrate[2][16] = {
 #define STATS_LATE_OFFSET   1
 #define STATS_LOST_OFFSET   2
 
+/* For aptX adaptive the rtp timestamp field contains 2 numbers
+   Lower 16 bits contain the sample count
+   Upper 16 bits contain the ttp adjust setting
+   */
 
+#define RTP_TIMESTAMP_APTX_AD_GET_SAMPLES(x) (x & 0x0000ffff);
+#define RTP_TIMESTAMP_APTX_AD_GET_TTP_ADJ(x) (TIME_INTERVAL)((int16)(x >> 16));
 
 /*****************************************************************************
  * Private Function Definitions

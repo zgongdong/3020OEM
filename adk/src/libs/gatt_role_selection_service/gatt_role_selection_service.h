@@ -21,24 +21,24 @@
 #include "gatt_manager.h"
 
 
-/*! Shadowing states known by the Role Selection Service */
+/*! Mirroring states known by the Role Selection Service */
 typedef enum
 {
-    GrssShadowStateIdle,
-    GrssShadowStateActingPrimary,
-    GrssShadowStateCandidate,
-    GrssShadowStateConnectedPrimary,
-    GrssShadowStateRecoverPhone,
-    GrssShadowStateRecoverPrimary,
-    GrssShadowStateRecoverSecondary,
-    GrssShadowStatePrimary,
-    GrssShadowStateSecondary,
-    GrssShadowStateWannabePrimary,
-    GrssShadowStateTwsPlus,
+    GrssMirrorStateIdle,
+    GrssMirrorStateActingPrimary,
+    GrssMirrorStateCandidate,
+    GrssMirrorStateConnectedPrimary,
+    GrssMirrorStateRecoverPhone,
+    GrssMirrorStateRecoverPrimary,
+    GrssMirrorStateRecoverSecondary,
+    GrssMirrorStatePrimary,
+    GrssMirrorStateSecondary,
+    GrssMirrorStateWannabePrimary,
+    GrssMirrorStateTwsPlus,
 
         /*! Internal state that should never be sent over GATT */
-    GrssShadowStateUnknown,
-} GattRoleSelectionServiceShadowingState;
+    GrssMirrorStateUnknown,
+} GattRoleSelectionServiceMirroringState;
 
 
 /*! Type for the figure of merit used by the role selection 
@@ -58,9 +58,9 @@ typedef enum
 } GattRoleSelectionServiceControlOpCode;
 
 
-    /* Definitions for the Shadowing State PDU */
-/*! Size of the shadow state PDU returned */
-#define GRSS_SIZE_SHADOW_STATE_PDU_OCTETS       1
+    /* Definitions for the Mirroring State PDU */
+/*! Size of the mirror state PDU returned */
+#define GRSS_SIZE_MIRROR_STATE_PDU_OCTETS       1
 
     /* Definitions for the Figure Of Merit PDU */
 /*! Size of the figure of merit PDU returned */

@@ -45,7 +45,7 @@ class Cbuffer(ct.Variable):
     """Class representing a circular buffer.
 
     Args:
-        var (obj:`Variable'): CBuffer variable that has been casted from a
+        var (obj:Variable): CBuffer variable that has been casted from a
             pointer.
         is_old_version (bool)
 
@@ -331,8 +331,8 @@ class Buffers(Analysis.Analysis):
         for a given list of buffers.
 
         Args:
-            buffers (:obj:`list` of :obj:`tuple'): Each buffer described
-                as a tuple of (name, address).
+            buffers (list): Each buffer described as a tuple of (name,
+                address).
             screen_width (int): Screen width in characters.
             live_plotting (bool): The live_plotting mode will continuously
                 display the buffer usage until an exit event is received.
@@ -576,7 +576,8 @@ class Buffers(Analysis.Analysis):
         if you want to use the buffer content in a analysis or a separate
         script/program.
 
-        Examples:
+        Examples::
+
             The usage of this function can be something similar to below:
 
                 buffer_content =  buffers.get_content(
@@ -594,13 +595,16 @@ class Buffers(Analysis.Analysis):
                 variable.
 
             start_with (str, optional): Where to start to read the buffer.
+
                 The following options are supported:
-                    "base" - Reading will start at the base address of the
+
+                    * ``base`` - Reading will start at the base address of the
                         buffer.
-                    "read" - Starting with the read address of the buffer.
-                    "write" - Starting with the write address of the
+                    * ``read`` - Starting with the read address of the buffer.
+                    * ``write`` - Starting with the write address of the
                         buffer. This can be useful when you want to
                         display the oldest data in the buffer first.
+
             only_available_data (bool, optional): If true, only the
                 available data in the buffer will be displayed. If false,
                 everything in the buffer is displayed (This can be useful
@@ -633,12 +637,14 @@ class Buffers(Analysis.Analysis):
                 variable.
             start_with (str, optional): Where to start to read the buffer.
                 The following options are supported:
-                    "base" - Reading will start at the base address of the
-                        buffer.
-                    "read" - Starting with the read address of the buffer.
-                    "write" - Starting with the write address of the
-                        buffer. This can be useful when you want to
-                        display the oldest data in the buffer first.
+
+                    * ``base`` - Reading will start at the base address of the
+                      buffer.
+                    * ``read`` - Starting with the read address of the buffer.
+                    * ``write`` - Starting with the write address of the
+                      buffer. This can be useful when you want to
+                      display the oldest data in the buffer first.
+
             only_available_data (bool, optional): If true, only the
                 available data in the buffer will be displayed. If false,
                 everything in the buffer is displayed (This can be useful
@@ -659,7 +665,7 @@ class Buffers(Analysis.Analysis):
         # and finally display the buffer content
         self.formatter.output_raw(output_str)
 
-    def plot_cbuffer_live(self, cbuffer_addr):
+    def plot_cbuffer_live(self, cbuffer_addr, conversion_function=None):
         """Displays the cbuffer live.
 
         Constantly reads the content of a cbuffer and displays it using
@@ -668,6 +674,9 @@ class Buffers(Analysis.Analysis):
 
         Args:
             cbuffer_addr (int): cbuffer's struct address.
+            conversion_function (object): A conversion function. When not
+                given, the method uses `u32_to_frac32` function in
+                CoreUtils.py package.
         """
         if self._plt is None:
             self.formatter.output(
@@ -684,6 +693,9 @@ class Buffers(Analysis.Analysis):
                 "mode. Try to execute ACAT in Interactive mode instead."
             )
             return
+
+        if conversion_function is None:
+            conversion_function = cu.u32_to_frac32
 
         # When `matplotlib` library is installed it is safe to assume
         # `pylab` is installed as well.
@@ -704,7 +716,7 @@ class Buffers(Analysis.Analysis):
                 )
 
                 pt_input = {
-                    'conversion_function': cu.u32_to_frac32,
+                    'conversion_function': conversion_function,
                     'buffer_dict': buffer_dict,
                     'output_format': 'bytes_handler',
                     'title_string': None

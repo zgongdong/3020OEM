@@ -473,6 +473,8 @@ task_list_t *TaskList_Duplicate(task_list_t* list);
     \param id The message ID to send to the task_list_t.
     \param[in] data Pointer to the message content.
     \param size_data The sizeof the message content.
+
+    \note If the size_data parameter is zero, the data parameter must be NULL.
 */
 void TaskList_MessageSendWithSize(task_list_t *list, MessageId id, void *data, size_t size_data);
 
@@ -483,6 +485,8 @@ void TaskList_MessageSendWithSize(task_list_t *list, MessageId id, void *data, s
     \param[in] data Pointer to the message content.
     \param size_data The sizeof the message content.
     \param delay The delay in ms before the message will be sent.
+
+    \note If the size_data parameter is zero, the data parameter must be NULL.
 */
 void TaskList_MessageSendLaterWithSize(task_list_t *list, MessageId id, void *data, size_t size_data, uint32 delay);
 
@@ -509,7 +513,7 @@ void TaskList_MessageSendLaterWithSize(task_list_t *list, MessageId id, void *da
     message structure type string.
 */
 #define TaskList_MessageSendLater(list, id, message, delay) \
-    TaskList_MessageSendLaterWithSize(list, id, message, delay sizeof(id##_T), delay)
+    TaskList_MessageSendLaterWithSize(list, id, message, sizeof(id##_T), delay)
 
 /*! \brief Send a message without content to all tasks in the task list.
 

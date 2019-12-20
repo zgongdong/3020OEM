@@ -216,8 +216,6 @@ static bool unmarshal_values(unmarshal_context_t *u)
         /* Indicates end of marshalled object values */
         if (MARSHAL_TYPES_MAX == object.type)
         {
-            /* Register shared members before unmarshalling object indexes */
-            assert(mobs_iterate(&u->base.object_set, u->root_index, register_shared_members));
             return TRUE;
         }
 
@@ -277,6 +275,11 @@ bool unmarshal(unmarshal_context_t *u, void **addr, marshal_type_t *type)
             if (!unmarshal_values(u))
             {
                 break;
+            }
+            if (u->base.has_shared_objects)
+            {
+                /* Register shared members before unmarshalling object indexes */
+                assert(mobs_iterate(&u->base.object_set, u->root_index, register_shared_members));
             }
             u->state = UNMARSHAL_POINTER_INDEXES;
         }

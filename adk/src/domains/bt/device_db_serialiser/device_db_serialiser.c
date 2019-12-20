@@ -24,7 +24,7 @@
 
 #define DBS_PDD_FRAME_TYPE      0xDB
 
-#define MAX_NUM_DEVICES_IN_PDL  8
+#define MAX_NUM_DEVICES_IN_PDL  6
 
 /*! \brief Stores the function pointers for a registered PDDU */
 typedef struct

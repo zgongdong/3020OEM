@@ -93,7 +93,6 @@ typedef enum
     tws_topology_procedure_secondary_static_handover,
     tws_topology_procedure_primary_static_handover_in_case,
 
-    tws_topology_procedure_event_suppress,
     tws_topology_procedure_primary_static_handover,
     tws_topology_procedure_dfu_in_case,
     
@@ -179,7 +178,7 @@ void TwsTopology_DelayedCancelCfmCallback(twstop_proc_cancel_cfm_func_t cancel_f
     </PRE>
 */
 #define DEFINE_TOPOLOGY_SCRIPT(name, list) \
-    const tws_topology_procedure_fns_t *name##_procs[] = { \
+    const tws_topology_procedure_fns_t * const name##_procs[] = { \
         list(XDEF_TOPOLOGY_SCRIPT_FNS) \
         }; \
     const Message name##_procs_data[] = { \

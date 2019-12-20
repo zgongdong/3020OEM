@@ -67,12 +67,6 @@ enum earbud_primary_rules_messages
     /*! Update upgrade state */
     CONN_RULES_DFU_ALLOW,
 
-    /*! Allow connections from handset */
-    CONN_RULES_ALLOW_HANDSET_CONNECT,
-
-    /*! Reject connections from handset */
-    CONN_RULES_REJECT_HANDSET_CONNECT,
-
     /*! Hangup an active call */
     CONN_RULES_HANGUP_CALL,
 
@@ -91,11 +85,8 @@ enum earbud_primary_rules_messages
     /*! Control if SCO forwarding is enabled or disabled. */
     CONN_RULES_SCO_FORWARDING_CONTROL,
 
-    /*! Enable ANC */
-    CONN_RULES_ANC_ENABLE,
-
-    /*! Disable ANC */
-    CONN_RULES_ANC_DISABLE,
+    /*! Control if SCO mirroring is enabled or disabled. */
+    CONN_RULES_SCO_MIRRORING_CONTROL,
 
     /*! Start ANC Tuning */
     CONN_RULES_ANC_TUNING_START,
@@ -155,6 +146,13 @@ typedef struct
     /*! TRUE enable SCO forwarding, FALSE disable SCO forwarding. */
     bool forwarding_control;
 } CONN_RULES_SCO_FORWARDING_CONTROL_T;
+
+/*! \brief Definition of #CONN_RULES_SCO_MIRRORING_CONTROL action message. */
+typedef struct
+{
+    /*! TRUE enable SCO mirroring, FALSE disable SCO mirroring. */
+    bool enable;
+} CONN_RULES_SCO_MIRRORING_CONTROL_T;
 
 /*! \brief Definition of #CONN_RULES_DFU_ALLOW action message. */
 typedef struct

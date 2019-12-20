@@ -44,8 +44,8 @@ typedef enum
 /*! \brief Device supports Handover profile. */
 #define DEVICE_PROFILE_HANDOVER (1 << 5)
 
-/*! \brief Device supports Shadow profile. */
-#define DEVICE_PROFILE_SHADOW   (1 << 6)
+/*! \brief Device supports Mirror profile. */
+#define DEVICE_PROFILE_MIRROR   (1 << 6)
 
 /*! Bit in handset flags defining if we need to send the link key to the peer earbud. */
 #define DEVICE_FLAGS_HANDSET_LINK_KEY_TX_REQD       (1 << 0)
@@ -60,9 +60,9 @@ typedef enum
 #define DEVICE_FLAGS_IS_PTS                         (1 << 4)
 /*! Bit in flags indicating that this device is ME
     \todo Probably duplicated by DEVICE_TYPE_SELF, but how we manage change of address is still TBD */
-#define DEVICE_FLAGS_SHADOWING_ME                   (1 << 6)
-/*! Bit in flags indicating that, when required for shadowing, this device has the Central role */
-#define DEVICE_FLAGS_SHADOWING_C_ROLE               (1 << 7)
+#define DEVICE_FLAGS_MIRRORING_ME                   (1 << 6)
+/*! Bit in flags indicating that, when required for mirroring, this device has the Central role */
+#define DEVICE_FLAGS_MIRRORING_C_ROLE               (1 << 7)
 /*! Bit in flags indicating that this device's address is the primary address. */
 #define DEVICE_FLAGS_PRIMARY_ADDR                   (1 << 8)
 /*! Bit in flags indicating that this device's address is the primary address. */
@@ -122,6 +122,9 @@ extern deviceTaskData  app_device;
 /*! Get pointer to Device Management data structure */
 #define DeviceGetTaskData()  (&app_device)
 #define DeviceGetVersionClientTasks() (task_list_flexible_t *)(&app_device.device_version_client_tasks)
+
+/*! \brief Register BT Device Persistent Device Data User with Device DB Serialiser. */
+void BtDevice_RegisterPddu(void);
 
 /*! \brief Initialse the device manager application module. */
 bool appDeviceInit(Task init_task);
@@ -388,11 +391,11 @@ bool appDeviceIsPeerAvrcpConnectedForAv(void);
 */
 bool appDeviceIsPeerScoFwdConnected(void);
 
-/*! \brief Determine if shadow_profile is connected to peer earbud.
+/*! \brief Determine if mirror_profile is connected to peer earbud.
 
-    \return bool TRUE shadow_profile to peer is connected, FALSE otherwise.
+    \return bool TRUE mirror_profile to peer is connected, FALSE otherwise.
 */
-bool appDeviceIsPeerShadowConnected(void);
+bool appDeviceIsPeerMirrorConnected(void);
 
 /*! \brief Set flag for handset device indicating if address needs to be sent to peer earbud.
 

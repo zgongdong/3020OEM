@@ -4,6 +4,8 @@
 #define IPC_PRIVATE_H_
 
 #define IO_DEFS_MODULE_KALIMBA_INTERPROC_INT
+#define IO_DEFS_MODULE_K32_CORE
+#define IO_DEFS_MODULE_APPS_SYS_CPU_MEMORY_MAP
 #include "ipc/ipc.h"
 #include "hydra/hydra.h"
 #include "hydra/hydra_types.h"

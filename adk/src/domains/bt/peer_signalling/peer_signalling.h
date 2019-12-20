@@ -129,32 +129,8 @@ enum peer_signalling_messages
     /*! Module initialisation complete */
     PEER_SIG_INIT_CFM = PEER_SIG_MESSAGE_BASE,
 
-    /*! Result of operation to send link key to peer. */
-    PEER_SIG_LINK_KEY_TX_CFM,
-
-    /*! Peer link key received. */
-    PEER_SIG_LINK_KEY_RX_IND,
-
     /*! Signalling link to peer established. */
     PEER_SIG_CONNECTION_IND,
-
-    /*! Pair Handset command received. */
-    PEER_SIG_PAIR_HANDSET_IND,
-
-    /*! Result of operation to send AVRCP_PEER_CMD_PAIR_HANDSET_ADDRESS to peer. */
-    PEER_SIG_PAIR_HANDSET_CFM,
-
-    /*! Data received over a peer signalling message channel. */
-    PEER_SIG_MSG_CHANNEL_RX_IND,
-
-    /*! Confirmation of delivery of a peer signalling message channel transmission. */
-    PEER_SIG_MSG_CHANNEL_TX_CFM,
-
-    /*! Peer request to connect to the handset */
-    PEER_SIG_CONNECT_HANDSET_IND,
-
-    /*! Confirmation of delivery of connect handset message */
-    PEER_SIG_CONNECT_HANDSET_CFM,
 
     /*! Confirmation of transmission of peer signalling marshalled message channel
      *  transmission.
@@ -177,9 +153,6 @@ typedef enum
     /*! Channel ID for SCO Forwarding control messages. */
     PEER_SIG_MSG_CHANNEL_SCOFWD,
 
-    /*! Channel ID for Peer Sync messages. */
-    PEER_SIG_MSG_CHANNEL_PEER_SYNC,
-
     /*! Channel ID for State Proxy messages. */
     PEER_SIG_MSG_CHANNEL_STATE_PROXY,
 
@@ -198,8 +171,8 @@ typedef enum
     /*! Channel ID for Fast Pair Account Key Sync messages */
     PEER_SIG_MSG_CHANNEL_FP_ACCOUNT_KEY_SYNC,
 
-    /*! Channel ID for shadow profile messages. */
-    PEER_SIG_MSG_CHANNEL_SHADOW_PROFILE,
+    /*! Channel ID for mirror profile messages. */
+    PEER_SIG_MSG_CHANNEL_MIRROR_PROFILE,
 
     /*! Channel ID for Peer UI messages. */
     PEER_SIG_MSG_CHANNEL_PEER_UI,
@@ -207,25 +180,12 @@ typedef enum
     /*! Channel ID for Topology messages. */
     PEER_SIG_MSG_CHANNEL_TOPOLOGY,
 
+    /*! Channel ID for Peer Link Key messages. */
+    PEER_SIG_MSG_CHANNEL_PEER_LINK_KEY,
+
     /* Number of peer sig channels */
     PEER_SIG_MSG_CHANNEL_MAX
 } peerSigMsgChannel;
-
-/*! Message sent to client task with result of operation to send link key to peer. */
-typedef struct
-{
-    peerSigStatus status;           /*!< Status of request */
-    bdaddr handset_addr;            /*!< Handset that this response refers to */
-} PEER_SIG_LINK_KEY_TX_CFM_T;
-
-/*! Message sent to client task with handset link key received from peer. */
-typedef struct
-{
-    peerSigStatus status;           /*!< Status of request */
-    bdaddr handset_addr;            /*!< Handset that this response refers to */
-    uint16 key_len;                 /*!< Length of the link key in <B>uint16s, not octets</B> */
-    uint16 key[1];                  /*!< Link key. This will be the full length, \ref key_len */
-} PEER_SIG_LINK_KEY_RX_IND_T;
 
 /*! Message sent to clients registered to receive notification of peer signalling
     connection and disconnection events.
@@ -237,46 +197,6 @@ typedef struct
 {
     peerSigStatus status;           /*!< Connected / disconected status (see message description) */
 } PEER_SIG_CONNECTION_IND_T;
-
-/*! Message sent to pairing module to pair with a handset. */
-typedef struct
-{
-    bdaddr handset_addr;            /*!< Address of handset to pair with */
-} PEER_SIG_PAIR_HANDSET_IND_T;
-
-/*! Message content when peer is requesting connect to handset */
-typedef struct
-{
-    bool play_media;
-} PEER_SIG_CONNECT_HANDSET_IND_T;
-
-/*! Message sent to client task with result of operation to send pair handset command to peer. */
-typedef struct
-{
-    peerSigStatus status;           /*!< Status of pairing message */
-    bdaddr handset_addr;            /*!< Address of handset the status applies to */
-} PEER_SIG_PAIR_HANDSET_CFM_T;
-
-/*! Message sent to client task with result of operation to send connect handset command to peer. */
-typedef struct
-{
-    peerSigStatus status;           /*!< Status of connect message */
-} PEER_SIG_CONNECT_HANDSET_CFM_T;
-
-/*! \brief Notification of incoming message on a peer signalling channel. */
-typedef struct
-{
-    peerSigMsgChannel channel;      /*!< Channel over which message received. */
-    uint16 msg_size;                /*!< Size of data in msg field. */
-    uint8 msg[1];                   /*!< Message contents. */
-} PEER_SIG_MSG_CHANNEL_RX_IND_T;
-
-/*! \brief Confirmation of delivery of a message channel transmission. */
-typedef struct
-{
-    peerSigStatus status;           /*!< Result of msg channel transmission. */
-    peerSigMsgChannel channel;      /*!< Msg channel transmission channel used. */
-} PEER_SIG_MSG_CHANNEL_TX_CFM_T;
 
 /*! \brief Confirmation of transmission of a marshalled message channel message. */
 typedef struct
@@ -317,17 +237,8 @@ typedef enum
     /*! Message to shut down link to peer */
     PEER_SIG_INTERNAL_SHUTDOWN_REQ,
 
-    /*! Message to send Link Key to peer */
-    PEER_SIG_INTERNAL_LINK_KEY_REQ,
-
     /*! Message to teardown peer signalling channel due to inactivity */
     PEER_SIG_INTERNAL_INACTIVITY_TIMER,
-
-    /*! Message to send AVRCP_PEER_CMD_PAIR_HANDSET_ADDRESS to peer. */
-    PEER_SIG_INTERNAL_PAIR_HANDSET_REQ,
-
-    /*! Request to send traditional peer signalling message. */
-    PEER_SIG_INTERNAL_MSG_CHANNEL_TX_REQ,
 
 } PEER_SIG_INTERNAL_MSG;
 
@@ -337,68 +248,10 @@ typedef struct
     bdaddr peer_addr;           /*!< Address of peer */
 } PEER_SIG_INTERNAL_STARTUP_REQ_T;
 
-/*! Message definition for action to send link key to peer. */
-typedef struct
-{
-    Task client_task;           /*!< Task to receive any response */
-    bdaddr handset_addr;        /*!< Handset that link key is for  */
-    uint16 key_len;             /*!< Length of link key, in octets */
-    uint8 key[1];               /*!< Link key. This will be the full length, key_len */
-} PEER_SIG_INTERNAL_LINK_KEY_REQ_T;
-
-/*! Message definition for action to send pair handset command. */
-typedef struct
-{
-    Task client_task;           /*!< Task to receive any response */
-    bdaddr handset_addr;        /*!< Handset that peer should try to pair with */
-} PEER_SIG_INTERNAL_PAIR_HANDSET_REQ_T;
-
-/*! Message definition for action to send connect handset command. */
-typedef struct
-{
-    Task client_task;           /*!< Task to receive any response */
-    bool play_media;            /*!< Play media once handset is connected */
-} PEER_SIG_INTERNAL_CONNECT_HANDSET_REQ_T;
-
-/*! Structure used to request message channel transmission to peer. */
-typedef struct
-{
-    Task client_task;           /*!< Task to receive the msg tx result. */
-    peerSigMsgChannel channel;  /*!< Channel over which to transmit message. */
-    uint16 msg_size;            /*!< Size of data in msg. */
-    uint8 msg[1];               /*!< Message data to transmit. */
-} PEER_SIG_INTERNAL_MSG_CHANNEL_TX_REQ_T;
 
 /*! \brief Initialise the peer signalling module.
  */
 bool appPeerSigInit(Task init_task);
-
-/*! \brief Send handset link key to peer headset.
-
-    \param      task         Task to send confirmation message to.
-    \param[in]  handset_addr Address of handset to pair with.
-    \param[in]  key          Pointer to the link key to send
-    \param      key_len      Length of the link key <B>in uint16's (not octets)</B>
-*/
-void appPeerSigLinkKeyToPeerRequest(Task task, const bdaddr *handset_addr,
-                                  const uint16 *key, uint16 key_len);
-
-/*! \brief Inform peer earbud of address of handset with which it should pair.
-
-    \param[in] task         Task to send confirmation message to.
-    \param[in] handset_addr Address of handset to pair with.
-*/
-void appPeerSigTxPairHandsetRequest(Task task, const bdaddr* handset_addr);
-
-/*! \brief Register task with peer signalling for Link Key TX/RX operations.
-
-    \param client_task Task to send messages to regarding link key operations.
- */
-void appPeerSigLinkKeyTaskRegister(Task client_task);
-
-/*! \brief Unregister task with peer signalling for Link Key TX/RX operations.
- */
-void appPeerSigLinkKeyTaskUnregister(void);
 
 /*! \brief Try and connect peer signalling channel with specified peer earbud.
 
@@ -426,12 +279,6 @@ void appPeerSigClientRegister(Task client_task);
  */
 void appPeerSigClientUnregister(Task client_task);
 
-/*! \brief Register task to receive handset commands.
-
-    \param handset_commands_task    Task to receive handset commands.
-  */
-void appPeerSigHandsetCommandsTaskRegister(Task handset_commands_task);
-
 /*! \brief Disconnect peer signalling channel
 
     If peer signalling is not connected or is already in the process of
@@ -440,34 +287,6 @@ void appPeerSigHandsetCommandsTaskRegister(Task handset_commands_task);
     \param[in] task The client task that PEER_SIG_CONNECT_CFM will be sent to.
 */
 void appPeerSigDisconnect(Task task);
-
-/*! \brief Register to receive PEER_SIG_MSG_CHANNEL_RX_IND messages for a channel.
-
-    \param[in] task         Task to receive PEER_SIG_MSG_CHANNEL_RX_IND messages
-    \param     channel Channel to receive messages for.
- */
-void appPeerSigMsgChannelTaskRegister(Task task, peerSigMsgChannel channel);
-
-/*! \brief Stop receiving PEER_SIG_MSG_CHANNEL_RX_IND messages.
-
-    \param[in] task         Task to cancel receiving PEER_SIG_MSG_CHANNEL_RX_IND messages
-    \param[in] channel Channel to unregister.
-*/
-void appPeerSigMsgChannelTaskUnregister(Task task, peerSigMsgChannel channel);
-
-/*! \brief Request a transmission on a message channel.
-
-    \param[in] task      Task to send confirmation message to.
-    \param channel       Channel to transmit on.
-    \param[in] msg       Payload of message.
-    \param msg_size      Length of message in bytes.
-
-    A PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM will be sent when the message is
-    transmitted. Peer signalling will free the msg when transmitted.
- */
-void appPeerSigMsgChannelTxRequest(Task task,
-                                   peerSigMsgChannel channel,
-                                   const uint8* msg, uint16 msg_size);
 
 /*! \brief Register a task for a marshalled message channel(s).
     \param[in] task             Task to associate with the channel(s).

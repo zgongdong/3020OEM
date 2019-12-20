@@ -18,29 +18,10 @@
                                                                     return FALSE; \
                                                                  }
 
-/* Utility function to populate the codec configuration to be passed to Audio DSP */
-static void audioManager_PopulateVoiceCaptureParam(voice_capture_params_t *voice_params, 
-                                                                                                     const audio_manager_audio_config_t  *audio_config)
-{
-    switch(audio_config->codec_type)
-    {
-        case audio_manager_codec_sbc:
-            {
-                sbc_encoder_params_t *sbc = (sbc_encoder_params_t*)(audio_config->codec_config);
-                voice_params->encoder_params.sbc = *sbc;
-            }
-        break;
-
-        default:
-            Panic();
-        break;
-    }
-}
-
 /******************************************************************************/
 void AudioManager_Init(void)
 {
-    DEBUG_LOGF("AudioManager_Init");
+    DEBUG_LOG("AudioManager_Init");
     if(AudioManager_DataInit())
     {
         AudioManager_SetState(audio_manager_state_idle);
@@ -49,9 +30,9 @@ void AudioManager_Init(void)
 }
 
 /******************************************************************************/
-bool AudioManager_StartCapture(voiceDataReceived voice_data_received, const audio_manager_audio_config_t *audio_config)
+bool AudioManager_StartCapture(voiceDataReceived voice_data_received, const va_audio_voice_capture_params_t *audio_config)
 {
-    DEBUG_LOGF("AudioManager_StartCapture");
+    DEBUG_LOG("AudioManager_StartCapture");
 
     RETURN_IF_NOT_INITIALIZED();
 
@@ -61,9 +42,7 @@ bool AudioManager_StartCapture(voiceDataReceived voice_data_received, const audi
 
     if(AudioManager_IsStartCaptureAllowed())
     {
-        voice_capture_params_t params;
-        audioManager_PopulateVoiceCaptureParam(&params, audio_config);
-        Kymera_StartVoiceCapture(AudioManager_GetTask(), &params);
+        Kymera_StartVoiceCapture(AudioManager_GetTask(), audio_config);
         AudioManager_RegisterVoiceDataReceivedCallback(voice_data_received);
         /* Record the state change */
         AudioManager_StartCaptureInitiated();
@@ -76,7 +55,7 @@ bool AudioManager_StartCapture(voiceDataReceived voice_data_received, const audi
 /******************************************************************************/
 bool AudioManager_StopCapture(void)
 {
-    DEBUG_LOGF("AudioMnager_StopCapture");
+    DEBUG_LOG("AudioMnager_StopCapture");
 
     RETURN_IF_NOT_INITIALIZED();
 
@@ -99,6 +78,3 @@ void AudioManager_DeInit(void)
 {
     AudioManager_DataDeInit();
 }
-
-
-

@@ -51,13 +51,14 @@
 
 
 /*! Defines the roles changed task list initalc capacity */
-#define ROLE_CHANGED_TASK_LIST_INIT_CAPACITY 1
+#define MESSAGE_CLIENT_TASK_LIST_INIT_CAPACITY 1
 
 typedef enum
 {
     TWSTOP_INTERNAL_START = TWSTOP_INTERNAL_MSG_BASE,
     TWSTOP_INTERNAL_HANDLE_PENDING_GOAL,
     TWSTOP_INTERNAL_PEER_SIG_MSG,
+    TWSTOP_INTERNAL_CLEAR_HANDOVER_PLAY,
     TWSTOP_INTERNAL_MSG_MAX,
 } tws_topology_internal_message_t;
 
@@ -91,7 +92,7 @@ typedef struct
 
     /*! List of clients registered to receive TWS_TOPOLOGY_ROLE_CHANGED_IND_T
      * messages */
-    TASK_LIST_WITH_INITIAL_CAPACITY(ROLE_CHANGED_TASK_LIST_INIT_CAPACITY)   role_changed_tasks;
+    TASK_LIST_WITH_INITIAL_CAPACITY(MESSAGE_CLIENT_TASK_LIST_INIT_CAPACITY)   message_client_tasks;
 
     /*! Task handler for pairing activity notification */
     TaskData                pairing_notification_task;
@@ -119,12 +120,14 @@ typedef struct
     handover_data_t         handover_info;
 
     /*! List of internal TWS Topology clients using peer signalling
-        with peer TWS Topology component. One client is always the core
-        tws topology task itself, the others are procedures. */
+        with peer TWS Topology component. The core tws topology task 
+        receives the messages directly - the list contains procedures
+        that may be interested. */
     task_list_capacity_2_t  peer_sig_msg_client_list;
 
-    /*! Control injection of events into topology rules engines */
-    bool                suppress_events;
+    /*! Can be used to control whether topology attempts handset connection */
+    bool                prohibit_connect_to_handset;
+
 } twsTopologyTaskData;
 
 /* Make the tws_topology instance visible throughout the component. */
@@ -137,7 +140,7 @@ extern twsTopologyTaskData tws_topology;
 #define TwsTopologyGetTask()             (&tws_topology.task)
 
 /*! Get pointer to the TWS Topology role changed tasks */
-#define TwsTopologyGetRoleChangedTasks() (task_list_flexible_t *)(&tws_topology.role_changed_tasks)
+#define TwsTopologyGetMessageClientTasks() (task_list_flexible_t *)(&tws_topology.message_client_tasks)
 
 /*! Macro to create a TWS topology message. */
 #define MAKE_TWS_TOPOLOGY_MESSAGE(TYPE) TYPE##_T *message = (TYPE##_T*)PanicNull(calloc(1,sizeof(TYPE##_T)))
@@ -145,7 +148,6 @@ extern twsTopologyTaskData tws_topology;
 void twsTopology_SetRole(tws_topology_role role);
 tws_topology_role twsTopology_GetRole(void);
 void twsTopology_SetActingInRole(bool acting);
-bool TwsTopology_IsPeerBdAddr(bdaddr* addr);
 void twsTopology_RulesSetEvent(rule_events_t event);
 void twsTopology_RulesResetEvent(rule_events_t event);
 void twsTopology_RulesMarkComplete(MessageId message);

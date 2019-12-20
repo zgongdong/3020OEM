@@ -38,7 +38,7 @@ void TwsTopology_ProcedureProhibitBtStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureProhibitBtCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_prohibit_bt_fns = {
+const tws_topology_procedure_fns_t proc_prohibit_bt_fns = {
     TwsTopology_ProcedureProhibitBtStart,
     TwsTopology_ProcedureProhibitBtCancel,
     NULL,

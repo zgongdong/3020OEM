@@ -31,7 +31,12 @@ typedef struct
     marshal_type_t type;
 } TWSTOP_PEER_SIG_MSG_RX_T;
 
-/*! \brief Add a local client to use the topology peer signalling channel. */
+/*! \brief Add a local client to use the topology peer signalling channel. 
+
+    Clients will be sent 
+    \li incoming peer signalling messages
+    \li PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM messages
+ */
 void TwsTopology_RegisterPeerSigClient(Task task);
 
 /*! \brief Unregister a local client from using the topology peer signalling channel. */
@@ -43,7 +48,7 @@ void TwsTopology_HandleMarshalledMsgChannelRxInd(PEER_SIG_MARSHALLED_MSG_CHANNEL
 /*! \brief Handle confirmation that message was transmitted on topology peer signalling channel. */
 void TwsTopology_HandleMarshalledMsgChannelTxCfm(PEER_SIG_MARSHALLED_MSG_CHANNEL_TX_CFM_T* cfm);
 
-/*! \brief Send command to Secondary Earbud to execute role switch. */
-void TwsTopology_SecondaryRoleSwitchCommand(void);
+/*! \brief Send command to Secondary Earbud to execute static handover. */
+void TwsTopology_SecondaryStaticHandoverCommand(void);
 
 #endif /* TWS_TOPOLOGY_PEER_SIG_H_ */

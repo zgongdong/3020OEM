@@ -14,6 +14,7 @@
 #include "scofwd_profile_config.h"
 #include "kymera.h"
 #include "usb_common.h"
+#include <vmal.h>
 
 /*!< State data for the DSP configuration */
 kymeraTaskData  app_kymera;
@@ -233,18 +234,12 @@ kymera_chain_handle_t appKymeraScoCreateChain(const appKymeraScoChainInfo *info)
 
     theKymera->sco_info = info;
 
-    /* Ensure audio is turned on */
-    OperatorFrameworkEnable(1);
-    
-    /* Configure DSP power mode appropriately for SCO chain */
-    appKymeraConfigureDspPowerMode(FALSE);
-
     /* Create chain and return handle */
     theKymera->chainu.sco_handle = ChainCreate(info->chain);
 
-    /* Now chain is created, we can decrement reference count */
-    OperatorFrameworkEnable(0);
-    
+    /* Configure DSP power mode appropriately for SCO chain */
+    appKymeraConfigureDspPowerMode(FALSE);
+
     return theKymera->chainu.sco_handle;
 }
 
@@ -419,14 +414,13 @@ static void kymera_msg_handler(Task task, MessageId id, Message msg)
         {
             const MESSAGE_USB_ENUMERATED_T *m = (const MESSAGE_USB_ENUMERATED_T *)msg;
             DEBUG_LOG("appkymera MESSAGE_USB_ENUMERATED.");
-            KymeraAnc_TuningCreateChain(m->sample_rate);
+            KymeraAnc_TuningStart(m->sample_rate);
             break;
         }
 
-
         case MESSAGE_USB_SUSPENDED:
             DEBUG_LOG("appkymera MESSAGE_USB_SUSPENDED");
-            KymeraAnc_TuningDestroyChain();
+            KymeraAnc_TuningStop();
         break;
 
         case KYMERA_INTERNAL_A2DP_START:
@@ -624,7 +618,13 @@ static void kymera_msg_handler(Task task, MessageId id, Message msg)
 
         case KYMERA_INTERNAL_ANC_TUNING_STOP:
             KymeraAnc_TuningDestroyChain();
+        break;
+
+        case KYMERA_INTERNAL_AUDIO_SS_DISABLE:
+            DEBUG_LOG("appKymera KYMERA_INTERNAL_AUDIO_SS_DISABLE");
+            OperatorsFrameworkDisable();
             break;
+
 
         default:
             break;

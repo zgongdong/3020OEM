@@ -12,6 +12,7 @@
 #include "fast_pair_pairing_if.h"
 #include "fast_pair_gfps.h"
 #include "fast_pair_events.h"
+#include "fast_pair_advertising.h"
 
 static bool fastPair_SendKbPResponse(fast_pair_state_event_crypto_encrypt_args_t* args)
 {
@@ -52,6 +53,27 @@ static bool fastPair_HandlePairingRequest(bool* args)
         fastPair_SetState(theFastPair, FAST_PAIR_STATE_IDLE);
     }
     return status;
+}
+
+static bool fastpair_StateWaitPairingRequestHandleAuthCfm(fast_pair_state_event_auth_args_t* args)
+{
+    le_adv_data_set_t data_set;
+    fastPairTaskData *theFastPair;
+
+    theFastPair = fastPair_GetTaskData();
+
+    if(args->auth_cfm->status == auth_status_success)
+    {
+        DEBUG_LOG("fastpair_StateWaitPairingRequestHandleAuthCfm. CL_SM_AUTHENTICATE_CFM status %d", args->auth_cfm->status);
+        data_set = le_adv_data_set_handset_unidentifiable;
+        fastPair_SetIdentifiable(data_set);
+
+        /* After setting the identifiable parameter to unidentifiable, Set the FP state to idle */
+        fastPair_SetState(theFastPair, FAST_PAIR_STATE_IDLE);
+
+        return TRUE;
+    }
+    return FALSE;
 }
 
 bool fastPair_StateWaitPairingRequestHandleEvent(fast_pair_state_event_t event)
@@ -103,7 +125,17 @@ bool fastPair_StateWaitPairingRequestHandleEvent(fast_pair_state_event_t event)
             fastPair_SetState(theFastPair, FAST_PAIR_STATE_IDLE);
         }
         break;
-        
+
+        case fast_pair_state_event_auth:
+        {
+            if(event.args == NULL)
+            {
+                return FALSE;
+            }
+            status = fastpair_StateWaitPairingRequestHandleAuthCfm((fast_pair_state_event_auth_args_t *) event.args);
+        }
+        break;
+
         default:
         {
             DEBUG_LOG("Unhandled event [%d]", event.id);

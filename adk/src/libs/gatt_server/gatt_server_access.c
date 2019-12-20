@@ -164,7 +164,7 @@ static bool handleGattServiceChangedCCfgAccessRequest(Task gatt_task, const GATT
     return FALSE;
 }
 
-#ifdef GATT_CACHING
+
 /*******************************************************************************
 NAME
     handleGattClientSupportFeaturesAccessRequest
@@ -183,6 +183,7 @@ RETURN
 */
 static bool handleGattClientSupportFeaturesAccessRequest(Task gatt_task, const GATT_MANAGER_SERVER_ACCESS_IND_T *ind)
 {
+#ifdef GATT_CACHING
     if (ind && gatt_task)
     {
         uint8 val;
@@ -222,8 +223,12 @@ static bool handleGattClientSupportFeaturesAccessRequest(Task gatt_task, const G
         return TRUE;
     }
     return FALSE;
-}
+#else
+    GattManagerServerAccessResponse(gatt_task, ind->cid, ind->handle, gatt_status_attr_not_found, 0, NULL);
+    return TRUE;
 #endif
+}
+
 
 /******************************************************************************/
 bool gattServerHandleGattManagerAccessInd(Task gatt_task, const GATT_MANAGER_SERVER_ACCESS_IND_T *ind)
@@ -240,10 +245,10 @@ bool gattServerHandleGattManagerAccessInd(Task gatt_task, const GATT_MANAGER_SER
 
             case HANDLE_GATT_SERVICE_CHANGED_CLIENT_CONFIG:
                 return handleGattServiceChangedCCfgAccessRequest(gatt_task, ind);
-#ifdef GATT_CACHING                
+
             case HANDLE_GATT_CLIENT_SUPPORTED_FEATURES:
                 return handleGattClientSupportFeaturesAccessRequest(gatt_task, ind);
-#endif
+
             default:
                 /* ERROR */
                 break;

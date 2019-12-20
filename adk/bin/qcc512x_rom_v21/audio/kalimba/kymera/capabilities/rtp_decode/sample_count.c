@@ -266,8 +266,8 @@ void get_samples_in_packet(RTP_DECODE_OP_DATA *opx_data, RTP_FRAME_DECODE_DATA* 
         case APTXADAPTIVE:
         {
             frame_data->valid = TRUE;
-            /* We don't know the number of samples yet. */
-            frame_data->frame_samples = 0;
+            /* Extract the number of samples from the RTP Timestamp */
+            frame_data->frame_samples = RTP_TIMESTAMP_APTX_AD_GET_SAMPLES(frame_data->rtp_timestamp);
             frame_data->frame_length = payload_size;
             frame_data->nr_of_frames = 1;
             break;

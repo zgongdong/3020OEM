@@ -69,14 +69,12 @@ bool fastPair_GattFPServerInitialize(Task task);
 */
 void fastPair_SendFPNotification(uint16 fp_characteristic_uuid, uint8 *value);
 
-
 /*! @brief Handle messages from the GATT Fast Pair Service library.
 
     \param      task    The task the message is delivered to
                 id      The ID for the GATT message
                 message The message payload
 */
-
 void fastPair_GattFPServerMsgHandler(Task task, MessageId id, Message message);
 
 #endif /*! GATT_FP_SERVER_H_ */

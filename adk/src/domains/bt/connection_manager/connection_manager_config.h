@@ -1,5 +1,5 @@
 /*!
-\copyright  Copyright (c) 2018 Qualcomm Technologies International, Ltd.\n
+\copyright  Copyright (c) 2018 - 2019 Qualcomm Technologies International, Ltd.\n
             All Rights Reserved.\n
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \file       connection_manager_config.h
@@ -11,7 +11,7 @@
 
 
 /*! Number of paired devices that are remembered */
-#define appConfigMaxPairedDevices()     (4)
+#define appConfigMaxTrustedDevices()     (6)
 
 /*! Page timeout to use as one earbud attempting connection to the other Earbud. */
 #define appConfigEarbudPageTimeout()    (0x4000)

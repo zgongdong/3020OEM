@@ -617,9 +617,32 @@ typedef enum panicid
     PANIC_PSFLASH_STORE_CORRUPT = 0xe9,
 
     /**
+     * Random number generator init failure.
+     */
+    PANIC_RAND_INIT_FAILURE = 0xea,
+
+    /**
      * The P1 messaging system has been given a null task list 
      */
     PANIC_P1_VM_MESSAGE_NULL_TASK_LIST = 0xeb,
+
+    /**
+     * The unmarshalling response is not success
+     * The diatribe is the reason:
+     *  0 : ID of the unmarshalling data is not BTSS ID
+     *  1 : Status returned after update BTSS is not success
+     **/
+    PANIC_UNMARSHAL_FAIL = 0xec,
+
+    /**
+     * The serialised flow of ACCMDs has been violated
+     */
+    PANIC_ACCMD_SEQUENCE_ERROR = 0xed,
+
+    /**
+     * An ACCMD has returned a fatal status code
+     */
+    PANIC_ACCMD_FATAL_STATUS = 0xee,
 
     /**
      * NOTE: 0x07ff is the highest panic code in the Qualcomm range

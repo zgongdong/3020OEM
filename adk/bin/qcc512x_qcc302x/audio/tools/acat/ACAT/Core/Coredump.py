@@ -27,6 +27,7 @@ from ACAT.Core.exceptions import (
     CoredumpParsingError, OutOfRangeError, InvalidDmAddressError,
     InvalidDmLengthError
 )
+from ACAT.Core.logger import method_logger
 from ACAT.Interpreter import Interactive as ia
 
 logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class Coredump(ChipData.ChipData):
 
         self.coredump_lines = coredump_lines
         self.chip_id = None  # Global chip version (e.g. 12280000)
-        # string containing one of "Bluecore", "Hydra", "KAS".
+        # string containing one of "Bluecore" or Hydra"
         self.chip_architecture = None
         self.kalimba_architecture = None  # integer, e.g. 3, 4, 5.
         self.chip_revision = None
@@ -135,7 +136,7 @@ class Coredump(ChipData.ChipData):
         line = next(coredump_iterator)
 
         if 'XCD3' in line:
-            # A HydraCore coredump, e.g. Amber.
+            # A HydraCore coredump, e.g. Crescendo.
             self.chip_architecture = "Hydra"
             # We use the 'SS' directive to find each subsystem
             section_directive = r'SS '
@@ -150,16 +151,15 @@ class Coredump(ChipData.ChipData):
         # Parse the general (non-subsystem-specific) bit
         # of coredump data for things like the global chip
         # version. This includes everything we see prior
-        #  to the first section directive.
+        # to the first section directive.
         while line[:len(section_directive)] != section_directive:
             try:
                 line = next(coredump_iterator)
+
             except StopIteration:
                 # Hit the end of the file
-                raise CoredumpParsingError(
-                    "No DSP section found - don't forget to use "
-                    "the '-dsp' option when running coredump"
-                )
+                raise CoredumpParsingError("No DSP section found!")
+
             if line[:3] == 'AT ':
                 # AT: architecture type, e.g. "AT BC7"
                 # Don't know whether this is useful or not.
@@ -231,7 +231,7 @@ class Coredump(ChipData.ChipData):
                     datablock = None
                 elif line[:3] == 'IS ' and not self.ignore_processor:
                     # II: build ID string, e.g. "IS UNRELEASED
-                    # amber_lpc svc-audio_dsp 2012-06-08 16:27:34"
+                    # crescendo_lpc svc-audio_dsp 2018-06-08 16:27:34"
                     # Not available in old Bluecore coredumps (before
                     # B-204537). Remove newline
                     self.firmware_id_string = line[3:].rstrip()
@@ -403,14 +403,16 @@ class Coredump(ChipData.ChipData):
         """Returns the contents of one or more addresses in DM.
 
         This allows you to grab a chunk of memory, e.g. get_data(0x600, 50).
-        Note:
+
+        .. note::
+
             The length supplied is measured in addressable units.
 
-            get_data(addr) will return a single value;
-            get_data(addr, 1) will return a tuple with a single member.
-            get_data(addr, 10) will return a tuple with ten members or a
-                tuple with three members (when the memory is octet
-                addressed, 32bit words).
+            * ``get_data(addr)`` will return a single value;
+            * ``get_data(addr, 1)`` will return a tuple with a single member.
+            * ``get_data(addr, 10)`` will return a tuple with ten members
+              or a tuple with three members (when the memory is octet
+              addressed, 32bit words).
 
         If the address is out of range, a KeyError exception will be raised.
         If the address is valid but the length is not (i.e. address+length
@@ -501,12 +503,13 @@ class Coredump(ChipData.ChipData):
                         address + i - Arch.addr_per_word)
         return tuple(rawdata)
 
+    @method_logger(logger)
     def get_proc_reg(self, name):
-        """Returns the value of the processor register specified in 'name'.
+        """Returns the value of the processor register specified in ``name``.
 
         name is a string containing the name of the register in upper or
-        lower case, with or without the prefix 'REGFILE_' e.g.
-        "REGFILE_PC", "rMAC", "R10".
+        lower case, with or without the prefix ``REGFILE_`` e.g.
+        ``REGFILE_PC``, ``rMAC``, ``R10``.
 
         Args:
             name
@@ -533,6 +536,7 @@ class Coredump(ChipData.ChipData):
         regs_copy = copy.deepcopy(self.registers)
         return regs_copy
 
+    @method_logger(logger)
     def get_banked_reg(self, address, bank=None):
         """Returns the value of a register in a specific bank.
 
@@ -554,6 +558,7 @@ class Coredump(ChipData.ChipData):
                 "Invalid banked register address " +
                 hex(address))
 
+    @method_logger(logger)
     def get_all_banked_regs(self, addr_bank_sel_reg):
         """Returns all the banked registers in string format.
 
@@ -577,10 +582,12 @@ class Coredump(ChipData.ChipData):
 
         return banks
 
+    @method_logger(logger)
     def get_firmware_id(self):
         """Returns the firmware ID integer."""
         return self.firmware_id
 
+    @method_logger(logger)
     def get_firmware_id_string(self):
         """Returns the firmware ID string."""
         return self.firmware_id_string.strip(

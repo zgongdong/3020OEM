@@ -13,6 +13,6 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_disconnect_le_connections_fns;
+extern const tws_topology_procedure_fns_t proc_disconnect_le_connections_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_DISCONNECT_LE_CONNECTIONS_H */

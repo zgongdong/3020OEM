@@ -40,8 +40,8 @@ void initialise_os(void)
     cache_test();
 #endif /* ENABLE_CACHE_TEST_LARGE_CODE */
 
-    /* Disable debug counters to save current */
-    hal_set_reg_dbg_counters_en(0);
+    /* Disable internal counters to save current */
+    /* Do not disable dbg_counters - QMDE needs them (TF-22835) */
     hal_set_prefetch_config_counters_en(0);
     hal_set_doloop_cache_config_counters_en(0);
 

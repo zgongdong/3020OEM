@@ -49,6 +49,9 @@ Private Constant Definitions
 /* Enables some debug log in this file */
 #define SPKR_TTP_DEBUGx
 
+/* Account for possible timestamp discontinuity in supplied tags after void tags */
+#define AEC_REFERENCE_LOWER_TTP_THRESHOLD_FOR_POTENTIAL_NONCONTIGUOUS_TAGS
+
 /****************************************************************************
 Private Function Declarations
 */
@@ -385,13 +388,27 @@ static bool aec_reference_spkr_ttp_get_error(AEC_REFERENCE_OP_DATA *op_extra_dat
                     }
                 }
 
-#ifdef SPKR_TTP_DEBUG
                 if(op_extra_data->spkr_void_tag_observed)
                 {
+#ifdef SPKR_TTP_DEBUG
                     L2_DBG_MSG2("AEC REFERENCE, stopped seeing VOID tags, time=%d, %d",
                                 hal_get_time(), op_extra_data->spkr_void_tag_counter);
-                }
 #endif
+#ifdef AEC_REFERENCE_LOWER_TTP_THRESHOLD_FOR_POTENTIAL_NONCONTIGUOUS_TAGS
+                    /* In timed-playback mode we expect to receive contiguous timestamps.
+                     * TIMESTAMP tags coming after one or more inserted VOID tags (which have
+                     * no timestamp) are expected to have accounted for the duration of inserted
+                     * tags otherwise there will be a sudden jump in expected time to play.
+                     * We don't expect that to happen, however to avoid abrupt latency change
+                     * in case that happen, we switch to lower threshold so extra latency will
+                     * be discarded immediately. It will quickly go back
+                     * to normal threshold.
+                     */
+                    op_extra_data->spkr_error_threshold =
+                        SPKR_TTP_MAX_LATENCY_LOW_THRESHOLD_US;
+#endif
+                }
+
                 /* void tag not seen */
                 op_extra_data->spkr_void_tag_observed = FALSE;
 

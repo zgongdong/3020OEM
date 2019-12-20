@@ -53,6 +53,7 @@ DESCRIPTION
 #define SET_TIME_TO_PLAY_LATENCY 0x2012
 
 #define SET_LATENCY_LIMITS       0x2015
+#define SET_TTP_STATE            0x201a
 
 #define USB_AUDIO_SET_CONNECTION_CONFIG 0x0002
 
@@ -142,9 +143,10 @@ DESCRIPTION
 #define MUSIC_PROCESSING_MODE_PASSTHROUGH     3
 
 /* Constants for Set Data Format messages values */
-#define SET_DATA_FORMAT_ENCODED 0
-#define SET_DATA_FORMAT_PCM     1
-#define SET_DATA_FORMAT_ENCODED_32_BIT  13
+#define SET_DATA_FORMAT_ENCODED               0
+#define SET_DATA_FORMAT_PCM                   1
+#define SET_DATA_FORMAT_16_BIT_WITH_METADATA  2
+#define SET_DATA_FORMAT_ENCODED_32_BIT       13
 
 #define SOURCE_SYNC_GROUP_META_DATA_FLAG      ((uint32)(1 << 31))
 #define SOURCE_SYNC_GROUP_TTP_FLAG            ((uint32)(1 << 30))

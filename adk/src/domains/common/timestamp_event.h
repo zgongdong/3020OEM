@@ -70,11 +70,11 @@ typedef enum
     /*! Address swap procedure has completed */
     TIMESTAMP_EVENT_ADDRESS_SWAP_COMPLETED,
 
-    /*! eSCO shadowing is connecting */
-    TIMESTAMP_EVENT_ESCO_SHADOWING_CONNECTING,
+    /*! eSCO mirroring is connecting */
+    TIMESTAMP_EVENT_ESCO_MIRRORING_CONNECTING,
 
-    /*! eSCO shadowing is connected */
-    TIMESTAMP_EVENT_ESCO_SHADOWING_CONNECTED,
+    /*! eSCO mirroring is connected */
+    TIMESTAMP_EVENT_ESCO_MIRRORING_CONNECTED,
 
     /*! Role swap command received on Secondary Earbud */
     TIMESTAMP_EVENT_ROLE_SWAP_COMMAND_RECEIVED,
@@ -97,11 +97,11 @@ typedef enum
     /*! AVRCP profile disconnected from handset */
     TIMESTAMP_EVENT_PROFILE_DISCONNECTED_AVRCP,
 
-    /*! A2DP shadowing is connecting */
-    TIMESTAMP_EVENT_A2DP_SHADOWING_CONNECTING,
+    /*! A2DP mirroring is connecting */
+    TIMESTAMP_EVENT_A2DP_MIRRORING_CONNECTING,
 
-    /*! A2DP shadowing is connected */
-    TIMESTAMP_EVENT_A2DP_SHADOWING_CONNECTED,
+    /*! A2DP mirroring is connected */
+    TIMESTAMP_EVENT_A2DP_MIRRORING_CONNECTED,
 
     /*! Clean connections starting */
     TIMESTAMP_EVENT_CLEAN_CONNECTIONS_STARTED,

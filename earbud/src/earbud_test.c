@@ -25,20 +25,9 @@
 #include "peer_link_keys.h"
 #include "microphones.h"
 #include "volume_messages.h"
+#include "device_db_serialiser.h"
 
-#if defined(HAVE_9_BUTTONS)
-#include "9_buttons.h"
-#elif defined(HAVE_7_BUTTONS)
-#include "7_buttons.h"
-#elif defined(HAVE_6_BUTTONS)
-#include "6_buttons.h"
-#elif defined(HAVE_4_BUTTONS)
-#include "4_buttons.h"
-#elif defined(HAVE_2_BUTTONS)
-#include "2_button.h"
-#elif defined(HAVE_1_BUTTON)
-#include "1_button.h"
-#endif
+#include "anc_state_manager.h"
 
 #include <device_properties.h>
 #include <device_list.h>
@@ -55,7 +44,7 @@
 #include <peer_signalling.h>
 #include <handset_service.h>
 #include <connection_manager.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 
 
 #include <cryptovm.h>
@@ -590,8 +579,8 @@ bool appTestIsPeerA2dpConnected(void)
         }
         else
         {
-            /* If A2DP is not connected, test if A2DP shadowing is connected instead */
-            connected = ShadowProfile_IsConnected();
+            /* If A2DP is not connected, test if A2DP mirroring is connected instead */
+            connected = MirrorProfile_IsConnected();
         }
     }
 
@@ -618,8 +607,8 @@ bool appTestIsPeerA2dpStreaming(void)
         }
         else
         {
-            /* If A2DP is not streaming, test if A2DP shadowing is streaming instead */
-            streaming = ShadowProfile_IsA2dpActive();
+            /* If A2DP is not streaming, test if A2DP mirroring is streaming instead */
+            streaming = MirrorProfile_IsA2dpActive();
         }
     }
 
@@ -678,29 +667,6 @@ void appTestAvTogglePlayPause(void)
     LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_toggle_play_pause);
 }
 
-#ifdef INCLUDE_SHADOWING
-#include "tws_topology_private.h"
-/*! \brief Start Handset information handover procedure with the Peer. */
-bool earbudTest_HandsetHandover(void)
-{
-    bdaddr bd_addr;
-
-    if(appDeviceIsHandsetConnected() && appDeviceGetHandsetBdAddr(&bd_addr))
-    {
-        tp_bdaddr tp_handset_addr;
-
-        /* Convert the bd-address format */
-        BdaddrTpFromBredrBdaddr(&tp_handset_addr, &bd_addr);
-
-        if(HandoverProfile_Handover(&tp_handset_addr) == HANDOVER_PROFILE_STATUS_SUCCESS)
-        {
-            twsTopology_SetRole(tws_topology_role_secondary);
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-#endif
 
 /*! \brief Send the Avrcp pause command to the Handset
 */
@@ -1212,35 +1178,36 @@ void appTestSetPtsMode(bool Enabled)
 
 bool appTestPtsSetAsPeer(void)
 {
-#if 0 // Break PTS Tester pending updates to bt_device VMCSA-1006
-    bdaddr addr;
-    if (appDeviceGetHandsetBdAddr(&addr))
+    bdaddr handset_addr;
+    bdaddr peer_addr;
+    device_t device;
+    uint16 flags = 0;
+    deviceType type = DEVICE_TYPE_EARBUD;
+
+    if (appDeviceGetHandsetBdAddr(&handset_addr))
     {
-        appDeviceAttributes attributes;
-        if (appDeviceGetHandsetAttributes(&addr, &attributes, NULL))
+        device = BtDevice_GetDeviceForBdAddr(&handset_addr);
+        if (device)
         {
-            bdaddr peer_addr;
-            /* Delete peer pairing if it exists */
             if (appDeviceGetPeerBdAddr(&peer_addr))
             {
                 ConnectionAuthSetPriorityDevice(&peer_addr, FALSE);
                 ConnectionSmDeleteAuthDevice(&peer_addr);
             }
-
-            attributes.type = DEVICE_TYPE_EARBUD;
-            attributes.tws_version = DEVICE_TWS_VERSION;
-            attributes.supported_profiles = DEVICE_PROFILE_A2DP;
-            attributes.flags |= DEVICE_FLAGS_IS_PTS;
-
-            appDeviceSetAttributes(&addr, &attributes);
-            DEBUG_LOGF("appTestPtsSetAsPeer, converting device %x,%x,%lx into Peer/PTS pairing",
-                       addr.nap, addr.uap, addr.lap);
-            DEBUG_LOG("appTestPtsSetAsPeer, rebooting");
-            appSmReboot();
+            Device_SetProperty(device, device_property_type, &type, sizeof(deviceType));
+            Device_SetPropertyU16(device, device_property_tws_version, DEVICE_TWS_VERSION);
+            Device_GetPropertyU16(device, device_property_flags, &flags);
+            flags |= DEVICE_FLAGS_SECONDARY_ADDR;
+            flags |= DEVICE_FLAGS_IS_PTS;
+            Device_SetPropertyU16(device, device_property_flags, flags);
+            Device_SetPropertyU8(device, device_property_supported_profiles, DEVICE_PROFILE_A2DP);
+            
+            DeviceDbSerialiser_Serialise();
+            
+            appPowerReboot();
             return TRUE;
         }
     }
-#endif
 
     DEBUG_LOG("appTestPtsSetAsPeer, failed");
     return FALSE;
@@ -1307,18 +1274,18 @@ MAKE_TEST_API_FUNC_FROM_CONFIG_FUNC(uint32, TemperatureMeasurementIntervalMs)
 //!@}
 
 
-uint16 FFA_coefficients[15] = {0xFD66, 0x00C4, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0101, 0xFFE6, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
-uint16 FFB_coefficients[15] = {0xFE66, 0xFF5F, 0xFFC8, 0x0028, 0x0071, 0x001C, 0xFFC9, 0x00E1, 0xFFEC, 0xFF18, 0xFFF2, 0x0028, 0x0015, 0x0027, 0xFFE6};
-uint16 FB_coefficients[15] =  {0x004C, 0xFCE0, 0xFF5E, 0x0118, 0x0094, 0x0016, 0xFFCB, 0x00C6, 0x0100, 0xFDD4, 0xFF4C, 0x0161, 0xFF64, 0xFFFD, 0x0057};
-uint16 ANC0_FLP_A_SHIFT_1 = 8; //LPF
-uint16 ANC0_FLP_A_SHIFT_2 = 9;
-uint16 ANC0_FLP_B_SHIFT_1 = 8;
-uint16 ANC0_FLP_B_SHIFT_2 = 8;
-uint16 ANC1_FLP_A_SHIFT_1 = 5;
-uint16 ANC1_FLP_A_SHIFT_2 = 5;
-uint16 ANC1_FLP_B_SHIFT_1 = 5;
-uint16 ANC1_FLP_B_SHIFT_2 = 5;
-uint16 DC_FILTER_SHIFT = 7;
+const uint16 FFA_coefficients[15] = {0xFD66, 0x00C4, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0101, 0xFFE6, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
+const uint16 FFB_coefficients[15] = {0xFE66, 0xFF5F, 0xFFC8, 0x0028, 0x0071, 0x001C, 0xFFC9, 0x00E1, 0xFFEC, 0xFF18, 0xFFF2, 0x0028, 0x0015, 0x0027, 0xFFE6};
+const uint16 FB_coefficients[15] =  {0x004C, 0xFCE0, 0xFF5E, 0x0118, 0x0094, 0x0016, 0xFFCB, 0x00C6, 0x0100, 0xFDD4, 0xFF4C, 0x0161, 0xFF64, 0xFFFD, 0x0057};
+const uint16 ANC0_FLP_A_SHIFT_1 = 8; //LPF
+const uint16 ANC0_FLP_A_SHIFT_2 = 9;
+const uint16 ANC0_FLP_B_SHIFT_1 = 8;
+const uint16 ANC0_FLP_B_SHIFT_2 = 8;
+const uint16 ANC1_FLP_A_SHIFT_1 = 5;
+const uint16 ANC1_FLP_A_SHIFT_2 = 5;
+const uint16 ANC1_FLP_B_SHIFT_1 = 5;
+const uint16 ANC1_FLP_B_SHIFT_2 = 5;
+const uint16 DC_FILTER_SHIFT = 7;
 
 #include <operator.h>
 #include <vmal.h>
@@ -1586,18 +1553,8 @@ void appTestAncTuningSetSource(void)
 
 void appTestEnterDfuWhenEnteringCase(bool unused)
 {
-    bool enter_dfu_logical_input_sent = FALSE;
-
-    DEBUG_LOG("appTestEnterDfuWhenEnteringCase");
-
+    bool enter_dfu_logical_input_sent = appSmEnterDfuWhenEnteringCase();
     UNUSED(unused);
-
-    if (appPeerSigIsConnected() && appSmIsOutOfCase())
-    {
-        MessageSend(LogicalInputSwitch_GetTask(), APP_BUTTON_DFU, NULL);
-        enter_dfu_logical_input_sent = TRUE;
-    }
-
     DEBUG_LOG("appTestEnterDfuWhenEnteringCase cmd_sent=%d", enter_dfu_logical_input_sent);
 }
 
@@ -1855,21 +1812,33 @@ static device_t earbudTest_GetHandset(void)
 
 void EarbudTest_ConnectHandset(void)
 {
-    device_t handset_device = earbudTest_GetHandset();
-    if (handset_device)
+    bdaddr handset_addr = {0};
+
+    if (appDeviceGetHandsetBdAddr(&handset_addr))
     {
-        Device_SetProperty(handset_device, device_property_profiles_connect_order, profile_list, sizeof(profile_list));
-        ProfileManager_ConnectProfilesRequest(&SmGetTaskData()->task, handset_device);
+        device_t handset_device = BtDevice_GetDeviceForBdAddr(&handset_addr);
+        uint8 profiles_to_connect = BtDevice_GetLastConnectedProfilesForDevice(handset_device);
+
+        if (!profiles_to_connect)
+        {
+            Device_GetPropertyU8(handset_device,device_property_supported_profiles, &profiles_to_connect);
+        }
+
+        DEBUG_LOG("EarbudTest_ConnectHandset lap=%6x profiles=%02x", handset_addr.lap, profiles_to_connect);
+
+        HandsetService_ConnectAddressRequest(SmGetTask(), &handset_addr, profiles_to_connect);
     }
 }
 
 void EarbudTest_DisconnectHandset(void)
 {
-    device_t handset_device = earbudTest_GetHandset();
-    if (handset_device)
+    bdaddr handset_addr = {0};
+
+    if (appDeviceGetHandsetBdAddr(&handset_addr))
     {
-        Device_SetProperty(handset_device, device_property_profiles_disconnect_order, profile_list, sizeof(profile_list));
-        ProfileManager_DisconnectProfilesRequest(&SmGetTaskData()->task, handset_device);
+        DEBUG_LOG("EarbudTest_DisconnectHandset lap=%6x", handset_addr.lap);
+
+        HandsetService_DisconnectRequest(SmGetTask(), &handset_addr);
     }
 }
 
@@ -1923,7 +1892,7 @@ bool appTestPrimaryAddressIsFromThisBoard(void)
 
     if (appDeviceGetFlags(&self, &flags))
     {
-        if (flags & DEVICE_FLAGS_SHADOWING_C_ROLE)
+        if (flags & DEVICE_FLAGS_MIRRORING_C_ROLE)
         {
             is_primary = TRUE;
         }
@@ -2075,4 +2044,93 @@ void appTestVaRelease(void)
     /* Simulates a "Button Up" event for the default configuration
     of a dedicated VA button */
     LogicalInputSwitch_SendPassthroughLogicalInput(ui_input_va_6);
+}
+void EarbudTest_SetAncEnable(void)
+{
+    if (appPhyStateIsOutOfCase())
+    {
+        DEBUG_LOG("EarbudTest_SetAncEnable");
+        Ui_InjectUiInput(ui_input_anc_on);
+    }
+}
+
+void EarbudTest_SetAncDisable(void)
+{
+    if (appPhyStateIsOutOfCase())
+    {
+        DEBUG_LOG("EarbudTest_SetAncDisable");
+        Ui_InjectUiInput(ui_input_anc_off);
+    }
+}
+
+void EarbudTest_SetAncToggleOnOff(void)
+{
+    if (appPhyStateIsOutOfCase())
+    {
+        DEBUG_LOG("EarbudTest_SetAncToggleOnOff");
+        Ui_InjectUiInput(ui_input_anc_toggle_on_off);
+    }
+}
+
+void EarbudTest_SetAncMode(anc_mode_t mode)
+{
+    if (appPhyStateIsOutOfCase())
+    {
+        DEBUG_LOG("EarbudTest_SetAncMode");
+        switch(mode)
+        {
+            case anc_mode_1:
+                Ui_InjectUiInput(ui_input_anc_set_mode_1);
+                break;
+            case anc_mode_2:
+                Ui_InjectUiInput(ui_input_anc_set_mode_2);
+                break;
+            case anc_mode_3:
+                Ui_InjectUiInput(ui_input_anc_set_mode_3);
+                break;
+            case anc_mode_4:
+                Ui_InjectUiInput(ui_input_anc_set_mode_4);
+                break;
+            case anc_mode_5:
+                Ui_InjectUiInput(ui_input_anc_set_mode_5);
+                break;
+            case anc_mode_6:
+                Ui_InjectUiInput(ui_input_anc_set_mode_6);
+                break;
+            case anc_mode_7:
+                Ui_InjectUiInput(ui_input_anc_set_mode_7);
+                break;
+            case anc_mode_8:
+                Ui_InjectUiInput(ui_input_anc_set_mode_8);
+                break;
+            case anc_mode_9:
+                Ui_InjectUiInput(ui_input_anc_set_mode_9);
+                break;
+            case anc_mode_10:
+                Ui_InjectUiInput(ui_input_anc_set_mode_10);
+                break;
+            default:
+                Ui_InjectUiInput(ui_input_anc_set_mode_1);
+                break;
+        }
+    }
+}
+
+bool EarbudTest_GetAncstate(void)
+{
+     DEBUG_LOG("EarbudTest_GetAncstate");
+     return AncStateManager_IsEnabled();
+
+}
+
+anc_mode_t EarbudTest_GetAncMode(void)
+{
+     DEBUG_LOG("EarbudTest_GetAncstate");
+     return AncStateManager_GetMode();
+}
+
+void appTestSetFixedRole(peer_find_role_fixed_role_t role)
+{
+    DEBUG_LOG("appTestSetFixedRole role=%d", role);
+    PeerFindRole_SetFixedRole(role);
 }

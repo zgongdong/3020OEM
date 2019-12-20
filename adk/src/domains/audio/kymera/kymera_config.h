@@ -119,4 +119,20 @@
 */
 #define appConfigEnableAptxStereoMix() (0)
 
+/*! Will give significant audio heap savings.
+    Achieved by buffering the local channel of the aptX demux output in place of buffering the decoder output.
+*/
+#define appConfigAptxNoPcmLatencyBuffer() TRUE
+
+/*! Will give significant audio heap savings. Only works when AAC stereo is forwarded.
+    Achieved by buffering the decoder input in place of buffering the decoder output.
+*/
+#define appConfigAacNoPcmLatencyBuffer()  TRUE
+
+/*! Will give significant audio heap savings at the cost of MCPS
+    Achieved by re-encoding and re-decoding the latency buffer (which buffers the local channel output of the decoder)
+    LOW DSP clock is not enough to run SBC forwarding when this option is enabled
+*/
+#define appConfigSbcNoPcmLatencyBuffer()  FALSE
+
 #endif /* KYMERA_CONFIG_H */

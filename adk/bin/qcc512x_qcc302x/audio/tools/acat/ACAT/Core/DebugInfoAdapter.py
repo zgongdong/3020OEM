@@ -10,6 +10,7 @@ DebugInfoAdapter is used to read Kymera elf and the downloadable bundles
 transparently to the user. This module implements the DebugInfoInterface.
 """
 import copy
+import logging
 import numbers
 
 from . import Arch
@@ -21,11 +22,14 @@ from ACAT.Core.exceptions import (
     DebugInfoNoLabelError, InvalidPmAddressError,
     InvalidDebuginfoCallError
 )
+from ACAT.Core.logger import method_logger
 
 try:
     from future_builtins import hex
 except ImportError:
     pass
+
+logger = logging.getLogger(__name__)
 
 BUNDLE_ERROR_MSG = "Bundle with elf id {0} is missing!\n"\
     "Use -j option or load_bundle(r\"<path>\") in interactive\n"\
@@ -43,17 +47,19 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         debug info. The rest is just Debug info mapped based on the elf id
         in integer.
 
-        self.debug_infos = {
-            None: ["patch", "kymera"],
-            pathc_elf_id: "patch",
-            kymera_elf_id: "kymera",
-            bundle_elf_id_1: "bundle_1"
-            bundle_elf_id_1: "bundle_1"
-            ....
-        }
+        ::
+
+            self.debug_infos = {
+                None: ["patch", "kymera"],
+                pathc_elf_id: "patch",
+                kymera_elf_id: "kymera",
+                bundle_elf_id_1: "bundle_1"
+                bundle_elf_id_1: "bundle_1"
+                ....
+            }
 
     Args:
-        ker: Kalimba's .elf file reader object.
+        ker: Kalimba's ``.elf`` file reader object.
     """
 
     def __init__(self, ker):
@@ -100,6 +106,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
                 self.debug_infos.pop(old_elf_id)
                 self.debug_infos[new_elf_id] = ker_debug_info
 
+    @method_logger(logger)
     def get_ker_debug_infos(self):
         """Gets all the KerDebugInfo instances."""
         return [
@@ -112,6 +119,25 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         """Gets all the constant variables."""
         return self._call_debuginfo_elfid(elf_id, "get_constants_variables")
 
+    @method_logger(logger)
+    def get_sched_task_module_data_type(self, cap_name, elf_id=None):
+        """Returns the schedular task module data type.
+
+        Args:
+            task_module_name (str): Schedular task module name.
+            elf_id (int, optional)
+
+        Returns:
+            The name of the extra data type for the given module name.
+            Returns None if no information found.
+        """
+        return self._call_debuginfo_elfid(
+            elf_id,
+            "get_sched_task_module_data_type",
+            cap_name
+        )
+
+    @method_logger(logger)
     def get_cap_data_type(self, cap_name, elf_id=None):
         """Returns the data type name for a given capability.
 
@@ -132,6 +158,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             cap_name
         )
 
+    @method_logger(logger)
     def get_constant_strict(self, name, elf_id=None):
         """Returns value is a ConstSym object (which may be None).
 
@@ -149,6 +176,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             name
         )
 
+    @method_logger(logger)
     def get_var_strict(self, identifier, elf_id=None):
         """Searchs list of variables for an identifier (name or address).
 
@@ -169,6 +197,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             identifier
         )
 
+    @method_logger(logger)
     def get_dm_const(self, address, length=0, elf_id=None):
         """Get a const from DM.
 
@@ -189,6 +218,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             address, length
         )
 
+    @method_logger(logger)
     def get_source_info(self, address):
         """Gets information about a code address (integer).
 
@@ -211,6 +241,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             return_sym.nearest_label = None
             return return_sym
 
+    @method_logger(logger)
     def get_nearest_label(self, address):
         """Finds the nearest label to the supplied code address.
 
@@ -222,6 +253,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         """
         return self._call_debuginfo_pm_addr(address, "get_nearest_label")
 
+    @method_logger(logger)
     def get_instruction(self, address):
         """Returns the contents of Program Memory at the supplied address.
 
@@ -235,6 +267,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         """
         return self._call_debuginfo_pm_addr(address, "get_instruction")
 
+    @method_logger(logger)
     def get_enum(self, enum_name, member=None, elf_id=None):
         """Gets an enum.
 
@@ -269,20 +302,23 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             enum_name, member
         )
 
+    @method_logger(logger)
     def get_type_info(self, type_name_or_id, elf_id=None):
         """Gets type information.
 
         Takes a type name (e.g. 'ENDPOINT' or 'audio_buf_handle_struc') or
         a valid typeId, and looks up information in the type database.
         Returns a tuple containing:
-        * The (fully-qualified) name of the type.
-        * The typeid (redundant if 'type' is already a typeid).
-        * The pointed-to typeid (if the type is a pointer).
-        * The array length (if the type or pointed-to type is an array).
-        * The typeid which describes any members of this type (if it is a
-          structure or union).
-        * Type size in addressable units (if the type or pointed-to type
-          is a structure or union).
+
+            * The (fully-qualified) name of the type.
+            * The typeid (redundant if *type* is already a *typeid*).
+            * The pointed-to typeid (if the type is a pointer).
+            * The array length (if the type or pointed-to type is an
+              array).
+            * The typeid which describes any members of this type (if it
+              is a structure or union).
+            * Type size in addressable units (if the type or pointed-to
+              type is a structure or union).
 
         Note: Unfortunately, a small number of types are defined as
         an array, but have a length of 0. That means to determine whether or
@@ -305,6 +341,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             type_name_or_id
         )
 
+    @method_logger(logger)
     def read_const_string(self, address, elf_id=None):
         """Takes the address of a (filename) string in const, returns a string.
 
@@ -317,6 +354,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             address
         )
 
+    @method_logger(logger)
     def inspect_var(self, var, elf_id=None):
         """Inspects a variable.
 
@@ -332,6 +370,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             var
         )
 
+    @method_logger(logger)
     def is_maxim_pm_encoding(self, address):
         """Checks whether an address is encoded as Max or Min.
 
@@ -351,6 +390,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         """
         return self._call_debuginfo_pm_addr(address, "is_maxim_pm_encoding")
 
+    @method_logger(logger)
     def is_pm_private(self, address):
         """Checks if the pm address is private or not.
 
@@ -362,6 +402,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         """
         return self._call_debuginfo_pm_addr(address, "is_pm_private")
 
+    @method_logger(logger)
     def get_mmap_lst(self, elf_id):
         """Returns the mmap_lst for the boundle.
 
@@ -391,6 +432,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         """
         self.table = table
 
+    @method_logger(logger)
     def update_patches(self, patches):
         """Updates the downloaded bundles for the adapter.
 
@@ -414,6 +456,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
 
         self.debug_infos.update(patches)
 
+    @method_logger(logger)
     def update_bundles(self, bundles):
         """Updates the downloaded bundles for the adapter.
 
@@ -427,6 +470,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
             debug_info.set_bundle(True)
         self.debug_infos.update(bundles)
 
+    @method_logger(logger)
     def read_kymera_debuginfo(self, paths):
         """reads Kymera Debug Info.
 
@@ -447,6 +491,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         # Add to the general dictionary
         self.debug_infos[kymera_debug_info.get_elf_id()] = kymera_debug_info
 
+    @method_logger(logger)
     def is_elf_loaded(self, elf_id):
         """Checks if the elf file is loaded.
 
@@ -498,6 +543,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
     # Adapter Searchable Interface
     ##################################################
 
+    @method_logger(logger)
     def get_constant(self, name):
         """Gets a symbolic constant.
 
@@ -555,6 +601,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
 
         return result
 
+    @method_logger(logger)
     def get_var(self, identifier, elf_id=None):
         """Searches variables for the supplied identifier (name or address).
 
@@ -636,6 +683,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
 
         return result
 
+    @method_logger(logger)
     def get_kymera_debuginfo(self):
         """Returns Kymera's debug information.
 
@@ -646,6 +694,7 @@ class DebugInfoAdapter(di.DebugInfoInterface):
         # See __init__ for more.
         return self.debug_infos[None][1]
 
+    @method_logger(logger)
     def get_patch_debuginfo(self):
         """Returns the patch's debug information.
 
@@ -722,6 +771,9 @@ class DebugInfoAdapter(di.DebugInfoInterface):
 
         # search in Patches and Kymera
         for debug_info in self.debug_infos[None]:
+            if debug_info is None:
+                continue
+
             variable_by_address = debug_info.var_by_addr
             retval = self._check_for_addr(variable_by_address, address)
             if retval:

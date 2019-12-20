@@ -33,7 +33,7 @@ void TwsTopology_ProcedureSetAddressStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureSetAddressCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_set_address_fns = {
+const tws_topology_procedure_fns_t proc_set_address_fns = {
     TwsTopology_ProcedureSetAddressStart,
     TwsTopology_ProcedureSetAddressCancel,
     NULL,

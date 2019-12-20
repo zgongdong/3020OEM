@@ -112,10 +112,7 @@ const uint8 sbc_caps_src[] =
     SBC_BLOCK_LENGTH_16         | SBC_SUBBANDS_8             | SBC_ALLOCATION_SNR         | SBC_ALLOCATION_LOUDNESS,
 
     SBC_BITPOOL_MIN,
-    SBC_BITPOOL_HIGH_QUALITY,
-
-    AVDTP_SERVICE_DELAY_REPORTING,
-    0
+    SBC_BITPOOL_HIGH_QUALITY
 };
 
 /*@{ \name AAC/AAC+ configuration bit fields*/

@@ -14,13 +14,6 @@ import inspect
 import logging
 import os
 import sys
-if sys.version_info.major == 3:
-    # Python 3
-    import builtins
-else:
-    # Python 2
-    import __builtin__ as builtins
-
 from collections import OrderedDict
 
 from ACAT.Core import Arch
@@ -29,6 +22,13 @@ from ACAT.Core import MulticoreSupport
 from ACAT.Core.LiveSpi import LiveSpi
 from ACAT.Display.table import HelpSection
 from ACAT.Interpreter.Interpreter import Interpreter
+
+if sys.version_info.major == 3:
+    # Python 3
+    import builtins
+else:
+    # Python 2
+    import __builtin__ as builtins
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +43,25 @@ except ImportError:
 
 
 def str_compare(str_a, str_b):
-    """
-    @brief Compares two string.
-    @param[in] str_a First string.
-    @param[in] str_b Second string.
-    @param[out] Returns: -1 if str_a should be before str_b in the ordered list.
-                          1 if str_a should be after str_b in the ordered list.
-                          0 the wo string should be in the same position.
+    """Compares two string.
+
+    Args:
+        str_a (str): First string.
+        str_b (str): Second string.
+
+    Returns:
+        -1 if str_a should be before str_b in the ordered list.  1 if str_a
+        should be after str_b in the ordered list.  0 the wo string should be
+        in the same position.
 
     This function is a simple string compare with the exception that "_" is
     counted as the last element to put private functions and variables at the
     end of the list.
-    Note: The function also assumes that if the two function contains "." the
-    part before the last "." could be ignored.
+
+    .. note::
+
+        The function also assumes that if the two function contains "." the
+        part before the last "." could be ignored.
     """
     # ignore everything before the last "."
     str_a = str_a.split(".")[-1]
@@ -69,7 +75,7 @@ def str_compare(str_a, str_b):
         return -1
 
     # if non or both of the string contains "_" just use a simple string.
-    # compair.
+    # compare.
     if str_a == str_b:
         return 0
     if str_a > str_b:
@@ -79,41 +85,52 @@ def str_compare(str_a, str_b):
 
 
 def get_potential_object_names(object_dict, object_start_name):
-    """
-    @brief Returns the available variables of given a path (see example below).
-    @param[in] object_dict Dictionary containing all the available object in
-        the environment.
-    @param[in] object_start_name The name of the object in the enviroment.
-                This name can be a relative name for example:
-                vaible1.attribute1.sub_attribute1
+    """Returns the available variables of given a path.
+
+    Args:
+        object_dict (dict): Dictionary containing all the available object in
+            the environment.
+        object_start_name (str): The name of the object in the environment.
+            This name can be a relative name for example::
+
+                variable1.attribute1.sub_attribute1
 
     Lets assume we have an environment with two variables each with a few
-    attributes.
-    variable1,
-    variable1.attribute1
-    variable1.attribute1.sub_attribute1,
-    variable1.attribute1.sub_attribute2,
-    variable1.attribute2,
-    variable2,
-    variable2.attribute1
+    attributes.::
+
+        variable1,
+        variable1.attribute1
+        variable1.attribute1.sub_attribute1,
+        variable1.attribute1.sub_attribute2,
+        variable1.attribute2,
+        variable2,
+        variable2.attribute1
+
     As we can see each attribute counts as a separate variable.
 
     This function will return all the potential variables with the given start
     name. For example if the given name is "" the function will search in the
-    environment and finds two potential matches:
-    variable1
-    variable2
+    environment and finds two potential matches::
 
-    On the other hand if the object_start_name is "variable1." the function will
-    return the full name of the variable1 attributes which are:
-    variable1.attribute1
-    variable1.attribute2
-    Therefore "variable1." is like a scope in the environment.
+        variable1
+        variable2
 
-    Note. "variable1.blah" will return:
-    variable1.attribute1
-    variable1.attribute2
-    because "blah" is not a valid of attribute variable1.
+    On the other hand if the object_start_name is ``variable1.`` the
+    function will return the full name of the variable1 attributes which
+    are::
+
+        variable1.attribute1
+        variable1.attribute2
+
+    Therefore ``variable1.`` is like a scope in the environment.
+
+    .. Note::
+        ``variable1.blah`` will return::
+
+            variable1.attribute1
+            variable1.attribute2
+
+        because ``blah`` is not a valid of attribute ``variable1``.
     """
     # the prefix will hold all
     prefix = ""
@@ -129,7 +146,7 @@ def get_potential_object_names(object_dict, object_start_name):
             # now create a new environment with the attributes of the object.
             object_dict = {}
             for temp_attr in dir(local_object):
-                object_dict[temp_attr] = local_object.__getattribute__(temp_attr)
+                object_dict[temp_attr] = getattr(local_object, temp_attr)
         else:
             # exit recursive search.
             break
@@ -151,11 +168,12 @@ def get_potential_object_names(object_dict, object_start_name):
 
 
 def string_copleter(object_dict):
-    """
-    @brief Creates a completer function for the readline module.
-    @param[in] analyses_names List of the name of the analyses
-    @param[in] analyses_dict Dictionary containing all the analyses maped to the
-                name.
+    """Creates a completer function for the readline module.
+
+    Args:
+        analyses_names (list): List of the name of the analyses
+        analyses_dict (dict): Dictionary containing all the analyses maped to
+            the name.
     """
 
     def completer_func(text, state):
@@ -174,16 +192,15 @@ def string_copleter(object_dict):
 
 
 class HistoryConsole(code.InteractiveConsole):
-    """
-    @brief Class used enter to a interactive shell.
+    """Class used enter to a interactive shell.
+
+    Args:
+        local_vars: Local variables.
+        formatter: A formatter instance.
     """
 
-    def __init__(self, local_vars):
-        """
-        @brief Initialises the console object
-        @param[in] self Pointer to the current object
-        @param[in] locals Local variables.
-        """
+    def __init__(self, local_vars, formatter):
+        self._formatter = formatter
         # call the parent constructor. Cannot use super because the class is
         # an old style object
         code.InteractiveConsole.__init__(self, locals=local_vars)
@@ -205,8 +222,15 @@ class HistoryConsole(code.InteractiveConsole):
 
     def push(self, line):
         """Push a line to the interpreter.
-        see code.InteractiveConsole.push for more.
+
+        see ``code.InteractiveConsole.push`` for more.
+
+        Args:
+            line (str): A string to print.
         """
+        if self._formatter.log_file:
+            self._formatter.output('>>> {}'.format(line))
+
         # Save the history every time because there seems to be no other way
         # to ensure that history is kept when the session is Ctrl+C'd.
         if readline:
@@ -224,15 +248,15 @@ class HistoryConsole(code.InteractiveConsole):
 
 
 class Interactive(Interpreter):
-    """
-    @brief Class which encapsulates an interactive session.
-    Kick things off by calling run_all().
+    """Class which encapsulates an interactive session.
 
-    @param[in] p0 A Processor instance
-    @param[in] p1 A Processor instance
-    @param[in] analyses A list of requested analyses. If this
-               option is not provided all the default analyses
-               will be performed.
+    Kick things off by calling ``run_all()``.
+
+    Args:
+        p0: A Processor instance.
+        p1: A Processor instance.
+        analyses (list): A list of requested analyses. If this option is not
+            provided all the default analyses will be performed.
     """
 
     def __init__(self, p0=None, p1=None, analyses=None):
@@ -248,11 +272,12 @@ class Interactive(Interpreter):
         Get a slice of DM, starting from address and prints out the
         result in a nicely formatted manner.
 
-        @param[in] address Address to start from.
-        @param[in] words Number of words to read from the memory.
-        @param[in] processor Processor to use. Default is processor 0.
-        @param[in] words_per_line Number of words to print out. Default value
-                                 is 8 words.
+        Args:
+            address (int): Address to start from.
+            words (int): Number of words to read from the memory.
+            processor (int): Processor to use. Default is processor 0.
+            words_per_line (int): Number of words to print out. Default value
+                is 8 words.
         """
         if processor == 0:
             content = self.p0.chipdata.get_data(
@@ -275,10 +300,10 @@ class Interactive(Interpreter):
                 words_per_line))
 
     def load_bundle(self, bundle_path):
-        """
-        @brief Loads a bundle (also known as KDCs) and sets it for
-        both processors.
-        @param[in] bundle_path Path to the bundle name.
+        """Loads a bundle (also known as KDCs) and sets it for both processors.
+
+        Args:
+            bundle_path (str): Path to the bundle name.
         """
         bundle = MulticoreSupport.load_bundle(bundle_path)
         self.p0.debuginfo.update_bundles(bundle)
@@ -286,11 +311,7 @@ class Interactive(Interpreter):
             self.p1.debuginfo.update_bundles(bundle)
 
     def reconnect(self):
-        """
-        Reconnects to all live processors and reload debug info(s)
-
-        @param[in] self Pointer to the current object
-        """
+        """Reconnects to all live processors and reload debug info(s)."""
         try:
             self.p0.chipdata.reconnect()
             self.p0.debuginfo.reload()
@@ -303,10 +324,7 @@ class Interactive(Interpreter):
             pass
 
     def run(self):
-        """
-        @brief Reads and run instruction from the command line.
-        @param[in] self Pointer to the current object
-        """
+        """Reads and run instruction from the command line."""
         self._populate_namespace()
 
         if cu.global_options.use_ipython:
@@ -323,19 +341,22 @@ class Interactive(Interpreter):
             except ImportError:
                 logger.warning("IPython not installed. -I option ignored!")
 
-        history_console = HistoryConsole(local_vars=self._user_namespace)
+        history_console = HistoryConsole(
+            local_vars=self._user_namespace,
+            formatter=self.formatter
+        )
         # enter to interactive mode
         history_console.interact("Interactive mode - type help() for help.")
 
     def help(self, arg=None):
-        """
-        Prints the help text
+        """Prints the help text.
 
-        This Overloads the built-in help function.
-        help() prints the help text for Interactive mode;
-        help(foo) calls the standard help routine for thing 'foo'.
-        @param[in] self Pointer to the current object
-        @param[in] arg = None
+        This Overloads the built-in help function. ``help()`` prints the help
+        text for Interactive mode. ``help(foo)`` calls the standard help
+        routine for thing ``foo``.
+
+        Args:
+            arg
         """
         if len(self._user_namespace) == 0:
             self._populate_namespace()
@@ -347,8 +368,7 @@ class Interactive(Interpreter):
             self._print_help()
 
     def _called_externally(self):
-        """
-        Check whether the instance is called externally
+        """Check whether the instance is called externally.
 
         KATS and KSE are two major shells which are importing the ACAT and
         then call its functions. This is to make sure help blurb shows the
@@ -385,7 +405,7 @@ class Interactive(Interpreter):
         else:
             command_template = '{}:'
 
-        title_section = HelpSection()
+        title_section = HelpSection(formatter=self.formatter)
         title_section.title = "Audio Coredump Analysis Tool - Interactive mode"
         title_section.description = (
             "For each command, you can use help([command]) to get more "
@@ -393,39 +413,43 @@ class Interactive(Interpreter):
         )
         title_section.get_help(verbose=True)
 
-        builtin_commands_section = HelpSection()
+        builtin_commands_section = HelpSection(formatter=self.formatter)
         builtin_commands_section.title = "Built-in commands"
-        builtin_commands = [
+        builtin_commands = (
             'help',
+            'to_file',
             'get',
             'search',
             'mem_print',
             'kalaccess'
-        ]
+        )
+        interpreter_commands = ('help', 'to_file')
 
-        for builtin_command in builtin_commands:
-            implementation = self._user_namespace.get(builtin_command)
+        for command in builtin_commands:
+            implementation = self._user_namespace.get(command)
             if implementation is None:
                 # Built-in commands like kalaccess aren't always
                 # available.
                 continue
 
-            if self._called_externally() and builtin_command == 'help':
-                # `help' is a proper method and Interactive instance wouldn't
-                # need to prefix `acat.p0`.
-                builtin_command = 'acat.{}:'.format(builtin_command)
+            if self._called_externally() and command in interpreter_commands:
+                # Interactive commands don't need `acat.p0` prefix.
+                command = 'acat.{}:'.format(command)
 
             else:
-                builtin_command = command_template.format(builtin_command)
+                command = command_template.format(command)
 
             builtin_commands_section.add_item(
-                builtin_command,
+                command,
                 cu.get_title(implementation)
             )
         builtin_commands_section.get_help(verbose=True)
-        print('')
+        self.formatter.output('')
 
-        builtin_analysis_section = HelpSection(command_width=25)
+        builtin_analysis_section = HelpSection(
+            command_width=25,
+            formatter=self.formatter
+        )
         builtin_analysis_section.title = "Built-in analysis is available via:"
         for analysis in self.analyses:
             implementation = self._user_namespace.get(analysis.lower())
@@ -434,9 +458,9 @@ class Interactive(Interpreter):
                 cu.get_title(implementation)
             )
         builtin_analysis_section.get_help(verbose=True)
-        print('')
+        self.formatter.output('')
 
-        other_method_section = HelpSection()
+        other_method_section = HelpSection(formatter=self.formatter)
         other_method_section.title = "Other methods are available via:"
         for method in ('chipdata', 'debuginfo'):
             implementation = self._user_namespace.get(method)
@@ -445,28 +469,28 @@ class Interactive(Interpreter):
                 cu.get_title(implementation)
             )
         other_method_section.get_help(verbose=True)
-        print('')
+        self.formatter.output('')
 
-        examples_section = HelpSection(command_width=40)
+        examples_section = HelpSection(
+            command_width=40,
+            formatter=self.formatter
+        )
         examples_section.title = "Examples"
         examples = (
             (
                 "get('audio_slt_table')",
                 "Get the variable named 'audio_slt_table'"
-            ),(
+            ), (
                 "get('mm_doloop_start')",
                 "Get the register named 'MM_DOLOOP_START'"
-            ),(
+            ), (
                 "chipdata.get_data(0xd00, 30)",
-                "Get a slice of DM, starting from address " \
-                "0xd00 and 30 addressable units. Alternatively " \
+                "Get a slice of DM, starting from address "
+                "0xd00 and 30 addressable units. Alternatively "
                 "use mem_print."
-            ),(
+            ), (
                 "get(0x406c10)",
                 "Get the code entry at address 0x406c10"
-            ),(
-                "to_file('file_name')",
-                "Sets the output to a file."
             )
         )
         for example, description in examples:
@@ -500,7 +524,7 @@ class Interactive(Interpreter):
         # We used to define 'ihelp' to avoid masking Python's built-in help
         # function. We don't need it any more, but keep it for now to avoid
         # confusing users.
-        if processor.kalaccess:
+        if processor.kalaccess and processor.kalaccess.is_connected():
             self._user_namespace["kalaccess"] = processor.kalaccess
         self._user_namespace["search"] = processor.search
         self._user_namespace["get"] = processor.get
@@ -509,8 +533,9 @@ class Interactive(Interpreter):
         self._user_namespace["load_bundle"] = self.load_bundle
 
         # Make the default kymera elf id easily accessible
-        self._user_namespace["kymera_debuginfo"] = processor.debuginfo.get_kymera_debuginfo()
-        self._user_namespace["kymera_elf_id"] = processor.debuginfo.get_kymera_debuginfo().elf_id
+        debug_info = processor.debuginfo.get_kymera_debuginfo()
+        self._user_namespace["kymera_debuginfo"] = debug_info
+        self._user_namespace["kymera_elf_id"] = debug_info.elf_id
 
         self._user_namespace["ihelp"] = self.help
         self._user_namespace["help"] = self.help
@@ -533,7 +558,7 @@ class Interactive(Interpreter):
             # Utility function to reconnect.
             self._user_namespace["reconnect"] = self.reconnect
 
-        # We need to perform the ID check before people start typing in commands
-        # and getting confusing answers.
+        # We need to perform the ID check before people start typing in
+        # commands and getting confusing answers.
         processor.sanitycheck.analyse_firmware_id()
 ##################################################

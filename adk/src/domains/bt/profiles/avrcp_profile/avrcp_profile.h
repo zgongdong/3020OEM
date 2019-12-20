@@ -124,6 +124,7 @@ void appAvAvrcpVolumeNotification(avInstanceTaskData *theInst, uint8 volume);
 void appAvAvrcpPlayStatusNotification(avInstanceTaskData *theInst, avrcp_play_status play_status);
 
 void appAvrcpInstanceHandleMessage(avInstanceTaskData *theInst, MessageId id, Message message);
+void appAvrcpClearPlaybackLock(avInstanceTaskData *theInst);
 
 
 void appAvVolumeUpRemoteStart(void);

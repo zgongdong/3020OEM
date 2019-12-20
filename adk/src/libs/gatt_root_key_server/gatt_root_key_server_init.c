@@ -40,9 +40,9 @@ bool GattRootKeyServerInit(GATT_ROOT_KEY_SERVER *instance,
 
     instance->status = 0;
 
-    /*! \todo Can the initial shadow client config sensibly come in init_params
+    /*! \todo Can the initial mirror client config sensibly come in init_params
                 And can it sensibly be stored (for this server use case) */
-    instance->shadow_client_config = 0;
+    instance->mirror_client_config = 0;
 
     /* Register the service with gatt manager */
     registration_params.task = &instance->lib_task;

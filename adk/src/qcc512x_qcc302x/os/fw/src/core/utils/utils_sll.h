@@ -91,7 +91,11 @@ typedef void (*utils_SLLFunctorFunction)(utils_SLLFunctor *f,
  *
  * \post utils_SLL_isEmpty(s)
  */
+#ifdef DOXYGEN_ONLY
+extern void UTILS_SLL_STATIC_INIT(void)
+#else
 #define UTILS_SLL_STATIC_INIT {NULL}
+#endif /* DOXYGEN_ONLY */
 
 /*****************************************************************************
  * Public Function Declarations

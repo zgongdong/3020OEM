@@ -32,7 +32,7 @@ void TwsTopology_ProcedurePriConnectablePeerStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedurePriConnectablePeerCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_pri_connectable_peer_fns = {
+const tws_topology_procedure_fns_t proc_pri_connectable_peer_fns = {
     TwsTopology_ProcedurePriConnectablePeerStart,
     TwsTopology_ProcedurePriConnectablePeerCancel,
     NULL,

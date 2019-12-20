@@ -80,8 +80,11 @@ unsigned GattConnect_GetMtu(unsigned cid);
 /*! @brief Register an observer with that gatt_connect module.
 
     \param callback     Callback funtions to register
+
+    \note The connect observer manager only stores a pointer, so the callback object needs to have a lifetime
+          as long as the system (or until the unimplemented DeRegister function is provided).
 */
-void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t *callback);
+void GattConnect_RegisterObserver(const gatt_connect_observer_callback_t * const callback);
 
 
 #endif 

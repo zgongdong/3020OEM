@@ -268,6 +268,10 @@ void ConnectionInitEx3(Task theAppTask, const msg_filter *msgFilter , uint16 Tdl
     /* Disable Cross Transport Key Derivation during Pairing. */
     if (options & CONNLIB_OPTIONS_CTKD_DISABLE)
         theCm.flags |= CONNECTION_FLAG_CTKD_DISABLE;
+
+    /* Enable Selective Cross Transport Key Derivatoin during Pairing. */
+    if (options & CONNLIB_OPTIONS_SELECTIVE_CTKD)
+        theCm.flags |= CONNECTION_FLAG_SELECTIVE_CTKD;
     
     /* Start the initialization process */
     MessageSend(connectionGetCmTask(), CL_INTERNAL_INIT_REQ, NO_PAYLOAD);

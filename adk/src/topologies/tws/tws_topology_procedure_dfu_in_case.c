@@ -22,7 +22,7 @@ void TwsTopology_ProcedureDfuInCaseStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureDfuInCaseCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_dfu_in_case_fns = {
+const tws_topology_procedure_fns_t proc_dfu_in_case_fns = {
     TwsTopology_ProcedureDfuInCaseStart,
     TwsTopology_ProcedureDfuInCaseCancel,
     NULL,

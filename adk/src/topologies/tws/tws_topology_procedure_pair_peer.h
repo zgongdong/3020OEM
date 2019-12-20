@@ -23,7 +23,7 @@ typedef struct
     bool success;
 } PROC_PAIR_PEER_RESULT_T;
 
-extern tws_topology_procedure_fns_t proc_pair_peer_fns;
+extern const tws_topology_procedure_fns_t proc_pair_peer_fns;
 
 extern const tws_topology_proc_script_t pair_peer_script;
 

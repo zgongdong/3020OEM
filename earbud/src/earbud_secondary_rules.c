@@ -63,10 +63,13 @@ SecondaryRulesTaskData secondary_rules_task_data;
     Rule function prototypes, so we can build the rule tables below. */
 DEFINE_RULE(ruleOutOfCaseAllowHandsetConnect);
 DEFINE_RULE(ruleOutOfCasePeerSignallingConnect);
-DEFINE_RULE(ruleInCaseRejectHandsetConnect);
 DEFINE_RULE(ruleCheckUpgradable);
 DEFINE_RULE(ruleInCaseEnterDfu);
 DEFINE_RULE(ruleOutOfCaseTerminateDfu);
+DEFINE_RULE(ruleForwardLinkKeys);
+DEFINE_RULE(ruleOutOfCaseAncTuning);
+DEFINE_RULE(ruleInCaseAncTuning);
+
 /*! \} */
 
 /*! \brief Set of rules to run on Earbud startup. */
@@ -77,12 +80,14 @@ const rule_entry_t secondary_rules_set[] =
 
     /* Rules to start DFU when going in the case. */
     RULE(RULE_EVENT_IN_CASE,                    ruleInCaseEnterDfu,                 SEC_CONN_RULES_ENTER_DFU),
-
-    /* Rules that control handset connection permitted/denied */
-    RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseAllowHandsetConnect,   CONN_RULES_ALLOW_HANDSET_CONNECT),    
-    RULE(RULE_EVENT_IN_CASE,                    ruleInCaseRejectHandsetConnect,     CONN_RULES_REJECT_HANDSET_CONNECT),
+    /* Rules to drive ANC tuning. */
+    RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseAncTuning,             CONN_RULES_ANC_TUNING_STOP),
+    RULE(RULE_EVENT_IN_CASE,                    ruleInCaseAncTuning,                CONN_RULES_ANC_TUNING_START),
 
     RULE(RULE_EVENT_OUT_CASE,                   ruleOutOfCaseTerminateDfu,          CONN_RULES_EXIT_DFU),
+
+    /* Rules to synchronise link keys. */
+    RULE(RULE_EVENT_PEER_CONNECTED,             ruleForwardLinkKeys,                CONN_RULES_PEER_SEND_LINK_KEYS),
 };
 
 /*! \brief Types of event that can cause connect rules to run. */
@@ -116,20 +121,6 @@ static rule_action_t ruleOutOfCasePeerSignallingConnect(void)
     }
 
     return rule_action_ignore;
-}
-
-static rule_action_t ruleInCaseRejectHandsetConnect(void)
-{
-#ifdef INCLUDE_DFU
-    if (appSmIsDfuPending())
-    {
-        SECONDARY_RULE_LOG("ruleInCaseRejectHandsetConnect, ignored as DFU pending");
-        return rule_action_ignore;
-    }
-#endif
-
-    SECONDARY_RULE_LOG("ruleInCaseRejectHandsetConnect, run as in case and no DFU");
-    return rule_action_run;
 }
 
 static rule_action_t ruleCheckUpgradable(void)
@@ -166,12 +157,12 @@ static rule_action_t ruleInCaseEnterDfu(void)
 #ifdef INCLUDE_DFU
     if (appSmIsInCase() && appSmIsDfuPending())
     {
-        SECONDARY_RULE_LOG("ruleInCaseCheckDfu, run as still in case & DFU pending/active");
+        SECONDARY_RULE_LOG("ruleInCaseEnterDfu, run as still in case & DFU pending/active");
         return rule_action_run;
     }
     else
     {
-        SECONDARY_RULE_LOG("ruleInCaseCheckDfu, ignore as not in case or no DFU pending");
+        SECONDARY_RULE_LOG("ruleInCaseEnterDfu, ignore as not in case or no DFU pending");
         return rule_action_ignore;
     }
 #else
@@ -183,14 +174,60 @@ static rule_action_t ruleOutOfCaseTerminateDfu(void)
 {
     if (appSmIsInDfuMode())
     {
-        DEBUG_LOG("ruleOutOfCaseTerminateDfu. Run as in DFU mode");
+        SECONDARY_RULE_LOG("ruleOutOfCaseTerminateDfu. Run as in DFU mode");
         return rule_action_run;
     }
-    DEBUG_LOG("ruleOutOfCaseTerminateDfu. Ignore, not in DFU mode");
+    SECONDARY_RULE_LOG("ruleOutOfCaseTerminateDfu. Ignore, not in DFU mode");
     return rule_action_ignore;
 }
 
+/*! @brief Rule to determine if Earbud should attempt to forward handset link-key to peer
+    @startuml
 
+    start
+        if (IsPairedWithPeer()) then (yes)
+            :Forward any link-keys to peer;
+            stop
+        else (no)
+            :Not paired;
+            end
+    @enduml
+*/
+static rule_action_t ruleForwardLinkKeys(void)
+{
+    if (BtDevice_IsPairedWithPeer())
+    {
+        SECONDARY_RULE_LOG("ruleForwardLinkKeys, run");
+        return rule_action_run;
+    }
+    else
+    {
+        SECONDARY_RULE_LOG("ruleForwardLinkKeys, ignore as there's no peer");
+        return rule_action_ignore;
+    }
+}
+
+static rule_action_t ruleInCaseAncTuning(void)
+{
+    if (appConfigAncTuningEnabled())
+    {
+        SECONDARY_RULE_LOG("ruleInCaseAncTuning, run and enter into the tuning mode");
+        return rule_action_run;
+    }
+    SECONDARY_RULE_LOG("ruleInCaseAncTuning, ignored");
+    return rule_action_ignore;
+}
+
+static rule_action_t ruleOutOfCaseAncTuning(void)
+{
+    if (appConfigAncTuningEnabled())
+    {
+        SECONDARY_RULE_LOG("ruleOutOfCaseAncTuning, run and exit from the tuning mode");
+        return rule_action_run;
+    }
+    SECONDARY_RULE_LOG("ruleOutOfCaseAncTuning, ignored");
+    return rule_action_ignore;
+}
 /*****************************************************************************
  * END RULES FUNCTIONS
  *****************************************************************************/

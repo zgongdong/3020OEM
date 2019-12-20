@@ -56,5 +56,22 @@ bool AudioDspClockConfigure(audio_dsp_clock_configuration * clock_config);
  * \ingroup trapset_wake_on_audio
  */
 bool AudioDspGetClock(audio_dsp_clock * dsp_clock);
+
+/**
+ *  \brief Maps abstract audio clock speed to frequencies. 
+ *         This trap modifies the internal lookup table of Audio DSP clocks
+ *  speeds. 
+ *         This allows the actual clock frequency for each of the modes in the
+ *  enum audio_dsp_clock_type to be set.
+ *         
+ *  \param clock_mode  Audio DSP abstract clock speed. 
+ *  \param freq  Actual value of Audio DSP clock frequency specified in Hz. 
+ *  \return TRUE if clock speed request has succeeded, FALSE otherwise.
+ * 
+ * \note This trap may NOT be called from a high-priority task handler
+ * 
+ * \ingroup trapset_wake_on_audio
+ */
+bool AudioMapCpuSpeed(audio_dsp_clock_type clock_mode, uint32 freq);
 #endif /* TRAPSET_WAKE_ON_AUDIO */
 #endif

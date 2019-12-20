@@ -11,7 +11,6 @@ Interpreter abstraction class.
 import traceback
 import importlib
 
-from ACAT.Core import CoreTypes as ct
 from ACAT.Core import CoreUtils as cu
 from ACAT.Core.TypeDependencies import check_dependencies
 from ACAT.Core.constants import ANALYSES
@@ -19,18 +18,16 @@ from ACAT.Core.exceptions import OutdatedFwAnalysisError
 
 
 class Interpreter(object):
-    """
-    @brief Base class for all interpreters.
+    """Base class for all interpreters.
 
-    @param[in] p0 A Processor instance
-    @param[in] p1 A Processor instance
-    @param[in] analyses A list of requested analyses. If this
-               option is not provided all the default analyses
-               will be performed.
-    @param[in] analyses_exceptions A list/tuple of analyses
-               which should not be included. This option is
-               more useful if the child class is relying on
-               default analyses.
+    Args:
+        p0: A Processor instance
+        p1: A Processor instance
+        analyses (list): A list of requested analyses. If this option is not
+            provided all the default analyses will be performed.
+        analyses_exceptions (list): A list/tuple of analyses which should not
+            be included. This option is more useful if the child class is
+            relying on default analyses.
     """
 
     def __init__(self, p0=None, p1=None, analyses=None, analyses_exceptions=None):
@@ -67,18 +64,17 @@ class Interpreter(object):
         self._load_analyses()
 
     def run(self):
-        """
-        @brief Interpreter runner
-        """
+        """Interpreter runner."""
         raise NotImplementedError()
 
     def get_analysis(self, name, processor):
-        """
-        @brief  Function to get an initialised analysis. This is used by the
-            Analysis module.
-        @param[in] self Pointer to the current object
-        @param[in] name Analysis name
-        @param[in] processor processor number.
+        """Gets an initialised analysis.
+        
+        This is used by the Analysis module.
+
+        Args:
+            name (str): Analysis name
+            processor (int): processor number.
         """
         if processor == 0:
             return self.p0.available_analyses[name]
@@ -86,10 +82,14 @@ class Interpreter(object):
         return self.p1.available_analyses[name]
 
     def to_file(self, file_name, suppress_stdout=False):
-        """
-        Directs the output  of all analyses to a file. Analyses can have
-        separate files as output by using the analysis to file function
-        "analysis.to_file()".
+        """Directs the output  of all analyses to a file.
+
+        Analyses can have separate files as output by using the analysis to
+        file function ``ANALYSIS NAME].to_file()``.
+
+        Args:
+            file_name (str)
+            suppress_stdout (bool)
         """
         self.formatter.change_log_file(file_name, suppress_stdout)
 
@@ -100,11 +100,11 @@ class Interpreter(object):
                 ].formatter = self.formatter
 
     def _load_analysis(self, analysis, processor):
-        """
-        @brief  Function to import and instantiate one analysis.
-        @param[in] self Pointer to the current object
-        @param[in] analysis Analysis name
-        @param[in] processor processor number.
+        """ Function to import and instantiate one analysis.
+
+        Args:
+            analysis: Analysis name
+            processor: Processor number.
 
         Raises:
             ImportError: When the given analysis name is invalid.
@@ -162,10 +162,7 @@ class Interpreter(object):
         raise OutdatedFwAnalysisError()
 
     def _load_analyses(self):
-        """
-        @brief  Function to import and instantiate all the available analyses.
-        @param[in] self Pointer to the current object
-        """
+        """Function to import and instantiate all the available analyses."""
         # Inspect every variable - shouldn't take too long to do this
         # up-front.
         for processor in sorted(self.processors.keys()):
@@ -202,6 +199,10 @@ class Interpreter(object):
                     )
                     # in case of an import error the analysis is not available.
                     unavailable_analyses.append(analysis)
+
+                except (SystemExit, KeyboardInterrupt, GeneratorExit):
+                    raise
+
                 except Exception:
                     # The analysis failed to initialise. Not much we can do
                     # about that.
@@ -222,9 +223,7 @@ class Interpreter(object):
                 formatter.section_end()
 
     def _flush_output(self):
-        """
-        Function used to flush the output of the interpreter.
-        """
+        """Function used to flush the output of the interpreter."""
         self.formatter.flush()
 
         for processor in self.processors:

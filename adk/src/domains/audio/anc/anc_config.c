@@ -18,8 +18,8 @@
  * Kymera_config for reference.
  */
 
-#define getFeedForwardLeftMicConfig() ((appConfigAncFeedForwardMic() == microphone_none) ? microphone_none : appConfigAncFeedForwardMic() + 1)
-#define getFeedBackLeftMicConfig() ((appConfigAncFeedBackMic() == microphone_none) ? microphone_none : appConfigAncFeedBackMic() + 1)
+#define getFeedForwardLeftMicConfig() ((appConfigAncFeedForwardMic() == microphone_none) ? microphone_none : appConfigAncFeedForwardMic())
+#define getFeedBackLeftMicConfig() ((appConfigAncFeedBackMic() == microphone_none) ? microphone_none : appConfigAncFeedBackMic())
 
 
 anc_readonly_config_def_t anc_readonly_config =

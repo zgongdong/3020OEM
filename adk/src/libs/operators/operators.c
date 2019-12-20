@@ -483,6 +483,18 @@ typedef struct
     uint16 interval_count;
 }rtp_set_ttp_notification_t;
 
+typedef struct
+{
+    uint16 msg_id;
+    uint16 mode;
+    uint16 ttp_most_significant_word;
+    uint16 ttp_least_significant_word;
+    uint16 sp_adj_most_significant_word;
+    uint16 sp_adj_least_significant_word;
+    uint16 latency_most_significant_word;
+    uint16 latency_least_significant_word;
+}ttp_set_state_t;
+
 /****************************************************************************
 DESCRIPTION
     Convert music_processing_mode_t to a value understood by the dsp
@@ -1761,15 +1773,29 @@ void OperatorsSetSwitchedPassthruMode(Operator  spc_op, spc_mode_t mode)
 void OperatorsSetSwitchedPassthruEncoding(Operator spc_op, spc_format_t format)
 {
     spc_msg_t switched_passthru_ctrl;
+    switched_passthru_ctrl.msg_id = SPC_SET_FORMAT;
 
-    switched_passthru_ctrl.msg_id = (uint16)SPC_SET_FORMAT;
+    switch(format)
+    {
+        case spc_op_format_encoded:
 #ifdef AUDIO_32BIT_DATA
-    switched_passthru_ctrl.set_value = (uint16)(format == spc_op_format_pcm ?
-            SET_DATA_FORMAT_PCM : SET_DATA_FORMAT_ENCODED_32_BIT);
+            switched_passthru_ctrl.set_value = SET_DATA_FORMAT_ENCODED_32_BIT;
 #else
-    switched_passthru_ctrl.set_value = (uint16)(format == spc_op_format_pcm ?
-            SET_DATA_FORMAT_PCM : SET_DATA_FORMAT_ENCODED);
+            switched_passthru_ctrl.set_value = SET_DATA_FORMAT_ENCODED;
 #endif
+            break;
+
+        case spc_op_format_pcm:
+            switched_passthru_ctrl.set_value = SET_DATA_FORMAT_PCM;
+            break;
+
+        case spc_op_format_16bit_with_metadata:
+            switched_passthru_ctrl.set_value = SET_DATA_FORMAT_16_BIT_WITH_METADATA;
+            break;
+
+        default:
+            Panic();
+    }
 
     PanicFalse(VmalOperatorMessage(spc_op,
                                    (void*)&switched_passthru_ctrl,
@@ -1904,4 +1930,20 @@ void OperatorsRtpSetTtpNotification(Operator rtp_op, bool enable)
     rtp_msg.interval_count = enable ? 1 : 0;
 
     PanicFalse(VmalOperatorMessage(rtp_op, &rtp_msg, size_msg, NULL, 0));
+}
+
+void OperatorsStandardSetTtpState(Operator op, ttp_mode_t mode, uint32 ttp, uint32 sp_adj, uint32 latency)
+{
+    ttp_set_state_t ttp_msg;
+    uint16 size_msg = SIZEOF_OPERATOR_MESSAGE(ttp_msg);
+
+    ttp_msg.msg_id = SET_TTP_STATE;
+    ttp_msg.mode = mode;
+    ttp_msg.ttp_most_significant_word = (uint16)(0xffff & (ttp >> 16));
+    ttp_msg.sp_adj_most_significant_word = (uint16)(0xffff & (sp_adj >> 16));
+    ttp_msg.sp_adj_least_significant_word = (uint16)(0xffff & sp_adj);
+    ttp_msg.ttp_least_significant_word = (uint16)(0xffff & ttp);
+    ttp_msg.latency_most_significant_word = (uint16)(0xffff & (latency >> 16));
+    ttp_msg.latency_least_significant_word = (uint16)(0xffff & latency);
+    PanicFalse(VmalOperatorMessage(op, &ttp_msg, size_msg, NULL, 0));
 }

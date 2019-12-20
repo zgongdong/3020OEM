@@ -12,6 +12,6 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_prohibit_bt_fns;
+extern const tws_topology_procedure_fns_t proc_prohibit_bt_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_PROHIBIT_BT_H */

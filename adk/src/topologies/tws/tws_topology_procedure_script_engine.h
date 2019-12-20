@@ -18,7 +18,7 @@ typedef struct
 {
     /* pointer to array of procedure function structs for the procedures
      * to be run through */
-    const tws_topology_procedure_fns_t** script_procs;
+    const tws_topology_procedure_fns_t * const * script_procs;
 
     /* pointer to array of procedure data objects used as params for
      * those procedures which require them. Entries may be NULL for

@@ -56,7 +56,7 @@ static const gatt_connect_observer_callback_t peer_pair_le_connect_callback =
     .OnDisconnection = peer_pair_le_GattDisconnect
 };
 
-static le_adv_data_callback_t peer_pair_le_advert_callback =
+static const le_adv_data_callback_t peer_pair_le_advert_callback =
 {
     .GetNumberOfItems = peer_pair_le_NumberOfAdvItems,
     .GetItem = peer_pair_le_GetAdvDataItems,
@@ -369,19 +369,27 @@ static void peer_pair_le_add_paired_device_entries(unsigned local_flag, unsigned
     
     DEBUG_LOG("peer_pair_le_add_paired_device_entries. Me: %04x Primary:%d C_Role:%d",
                     local_taddr.addr.lap,
-                    !!(local_flag & DEVICE_FLAGS_SHADOWING_C_ROLE),
+                    !!(local_flag & DEVICE_FLAGS_MIRRORING_C_ROLE),
                     !!(local_flag & DEVICE_FLAGS_PRIMARY_ADDR));
 
     peer_pair_le_add_device_entry(&local_taddr, DEVICE_TYPE_SELF, 
-                                  DEVICE_FLAGS_SHADOWING_ME | local_flag);
+                                  DEVICE_FLAGS_MIRRORING_ME | local_flag);
     
+    /* Set the protection for local earbud so just in case when trusted device list(appConfigMaxTrustedDevices)
+       is exhasuted, connection library will not overwrite entry of this earbud in the PDL */
+    ConnectionAuthSetPriorityDevice(&local_taddr.addr, TRUE);
+
     DEBUG_LOG("peer_pair_le_add_paired_device_entries. Peer: %04x Primary:%d C_Role:%d",
                     peer_taddr.addr.lap,
-                    !!(remote_flag & DEVICE_FLAGS_SHADOWING_C_ROLE),
+                    !!(remote_flag & DEVICE_FLAGS_MIRRORING_C_ROLE),
                     !!(remote_flag & DEVICE_FLAGS_PRIMARY_ADDR));
 
     peer_pair_le_add_device_entry(&peer_taddr, DEVICE_TYPE_EARBUD, 
                                   DEVICE_FLAGS_JUST_PAIRED | remote_flag);
+
+    /* Set the protection for peer earbud so just in case when trusted device list(appConfigMaxTrustedDevices)
+       is exhasuted, connection library will not overwrite entry of this earbud in the PDL */
+    ConnectionAuthSetPriorityDevice(&peer_taddr.addr, TRUE);
 
     /* Now the peer has paired, update the PDL with its persistent device data. This is in order to ensure
        we don't lose peer attributes in the case of unexpected power loss. N.b. Normally serialisation occurs
@@ -442,7 +450,7 @@ static void peer_pair_le_handle_irk_replaced(const CL_SM_AUTH_REPLACE_IRK_CFM_T 
     
     peer_pair_le_clone_peer_keys();
 
-    peer_pair_le_add_paired_device_entries(DEVICE_FLAGS_SECONDARY_ADDR, DEVICE_FLAGS_SHADOWING_C_ROLE |
+    peer_pair_le_add_paired_device_entries(DEVICE_FLAGS_SECONDARY_ADDR, DEVICE_FLAGS_MIRRORING_C_ROLE |
                                                                         DEVICE_FLAGS_PRIMARY_ADDR);
     peer_pair_le_send_pair_confirm(peer_pair_le_status_success);
     peer_pair_le_set_state(PEER_PAIR_LE_STATE_COMPLETED);
@@ -481,7 +489,7 @@ static void peer_pair_le_handle_server_keys_written(const GATT_ROOT_KEY_SERVER_K
     peer_pair_le_clone_peer_keys();
 
     peer_pair_le_send_pair_confirm(peer_pair_le_status_success);
-    peer_pair_le_add_paired_device_entries(DEVICE_FLAGS_SHADOWING_C_ROLE | DEVICE_FLAGS_PRIMARY_ADDR,
+    peer_pair_le_add_paired_device_entries(DEVICE_FLAGS_MIRRORING_C_ROLE | DEVICE_FLAGS_PRIMARY_ADDR,
                                            DEVICE_FLAGS_SECONDARY_ADDR);
 
     peer_pair_le_set_state(PEER_PAIR_LE_STATE_COMPLETED_WAIT_FOR_DISCONNECT);
@@ -489,13 +497,10 @@ static void peer_pair_le_handle_server_keys_written(const GATT_ROOT_KEY_SERVER_K
 
 static void peer_pair_le_handle_start_scan (const LE_SCAN_MANAGER_START_CFM_T* message)
 {
-   peerPairLeRunTimeData *pp1 = PeerPairLeGetData();
-   
-   if(NULL == message->handle)
-   { 
-       DEBUG_LOG(" peer_pair_le_handle_start_scan. Unable to acquire scan");
-   } 
-   pp1->scan = message->handle;
+    if(LE_SCAN_MANAGER_RESULT_SUCCESS != message->status)
+    {
+        DEBUG_LOG(" peer_pair_le_handle_start_scan. Unable to acquire scan");
+    }
 }
 
 static void peer_pair_le_handle_advertisement_ind(const CL_DM_BLE_ADVERTISING_REPORT_IND_T* message)
@@ -638,7 +643,7 @@ static void peer_pair_le_handler(Task task, MessageId id, Message message)
             break;
          /* ---- LE SCAN Manager messages ---- */
         case LE_SCAN_MANAGER_START_CFM:
-            DEBUG_LOG("peer_find_role_handler LE Scan Manager is Started!");
+            DEBUG_LOG("peer_pair_le_handler LE Scan Manager is Started!");
             peer_pair_le_handle_start_scan((LE_SCAN_MANAGER_START_CFM_T*)message);
             break;
         

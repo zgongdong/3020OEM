@@ -21,10 +21,10 @@ Internal functions
 void handleRoleSelectionNotification(GATT_ROLE_SELECTION_CLIENT *instance, 
                                      const GATT_MANAGER_REMOTE_SERVER_NOTIFICATION_IND_T *ind)
 {
-    if (    GRSS_SIZE_SHADOW_STATE_PDU_OCTETS == ind->size_value
+    if (    GRSS_SIZE_MIRROR_STATE_PDU_OCTETS == ind->size_value
         && (ind->handle == instance->handle_state))
     {
-        GattRoleSelectionServiceShadowingState state = (GattRoleSelectionServiceShadowingState)ind->value[0];
+        GattRoleSelectionServiceMirroringState state = (GattRoleSelectionServiceMirroringState)ind->value[0];
 
         if (state != instance->peer_state)
         {

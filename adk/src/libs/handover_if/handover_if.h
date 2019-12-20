@@ -6,15 +6,15 @@ FILE NAME
     handover_if.h
 
 DESCRIPTION
-    Header file for the TWS Shadowing Handover interface library.
+    Header file for the TWS Mirroring Handover interface library.
 
 */
 
 /*!
-\defgroup twss twss
+\defgroup twsm twsm
 \ingroup vm_libs
 
-\brief  Interface TWS Shadowing Handover API.
+\brief  Interface TWS Mirroring Handover API.
 
 \section Handover_Interface_intro INTRODUCTION
 

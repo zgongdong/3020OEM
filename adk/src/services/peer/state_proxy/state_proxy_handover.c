@@ -42,11 +42,11 @@ const marshal_type_descriptor_t marshal_type_descriptor_state_proxy_task_data_t 
 
 /*----------------------------------------------------------------------------*/
 
-marshal_type_t state_proxy_marshal_types[] = {
+const marshal_type_t state_proxy_marshal_types[] = {
     MARSHAL_TYPE(state_proxy_task_data_t)
 };
 
-marshal_type_list_t state_proxy_marshal_types_list = {state_proxy_marshal_types, ARRAY_DIM(state_proxy_marshal_types)};
+const marshal_type_list_t state_proxy_marshal_types_list = {state_proxy_marshal_types, ARRAY_DIM(state_proxy_marshal_types)};
 
 REGISTER_HANDOVER_INTERFACE(STATE_PROXY, &state_proxy_marshal_types_list, stateProxy_Veto, stateProxy_Marshal, stateProxy_Unmarshal, stateProxy_Commit);
 

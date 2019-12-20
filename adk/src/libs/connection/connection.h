@@ -726,8 +726,17 @@ typedef enum
     \param security The required security (ble_security_type).
     \param conn_type The type of BLE Connection (ble_connection_type).
 
-    This will enable the security for an existing BLE connection. If bonding 
-    is required then this will occur as part of the security scenario. 
+    This will initiate Pairing and General Bonding for an existing LE
+    connection.
+
+    If bonding is required, then this must also be set as a parameter during the
+    IO Capability exchange (see the ConnectionSmIoCapabilityResponse()
+    function).
+
+    LE Secure Connections are enabled by default, regardless of the Connection
+    Library Initialisation options, which are for BR/EDR Secure Connections
+    (see the ConnectionInitEx3() function and CONNLIB_OPTIONS_*).
+
     A CL_DM_BLE_SECURITY_CFM message will be received indicating the outcome.
 */
 void ConnectionDmBleSecurityReq(
@@ -1704,6 +1713,55 @@ typedef struct
     hci_status      status;
     uint16          number_of_rx_packets;
 } CL_DM_BLE_TEST_END_CFM_T;
+
+/*!
+  \brief Received if Selective Cross Transport Key Derivation has been
+  enabled, during pairing where the link key for the other transport could
+  be derived. See #CONNLIB_OPTIONS_SELECTIVE_CTKD.
+
+  The application must respond using the
+  ConnectionSmGenerateCrossTransKeyRequestResponse() function.
+*/
+typedef struct
+{
+    /*! The remote device address. */
+    tp_bdaddr   tpaddr;
+    /*! Unique connection identifier to be returned in the response. */
+    uint8       identifier;
+    /*! Reserved for future use. */
+    uint16      flags;
+} CL_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND_T;
+
+/*!
+    \brief Cross Transport Key flags type
+
+    Used for the flags parameter in the
+    ConnectionSmgenerateCrossTransKeyRequestRespons() function.
+*/
+typedef enum {
+    /*! Disable Cross Transport Key Derivation for this device connection. */
+    cross_trans_key_disable,
+    /*! Enable Cross Transport Key Derivation for this device conneciton. */
+    cross_trans_key_enable,
+
+    /*! Always the last enumeration. */
+    cross_trans_key_last
+} ctk_flags_type;
+
+/*!
+    \brief ConnectionSmGenerateCrossTransKeyRequestResponse
+
+    Used to respond to the #CL_SM_GENREATE_CROS_TRANS_KEY_REQUEST_IND message.
+
+    \param tpaddr The peer device address from the IND message.
+    \param identifier Connection identifier from the IND message.
+    \param flags Flags defined in the #ctk_flags_type.
+ */
+void ConnectionSmGenerateCrossTransKeyRequestResponse(
+        const tp_bdaddr *tpaddr,
+        uint8           identifier,
+        ctk_flags_type  flags
+        );
 
 #endif /* DISABLE_BLE */
 

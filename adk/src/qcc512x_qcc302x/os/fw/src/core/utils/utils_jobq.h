@@ -30,7 +30,7 @@
  * - 1 Fn ptr.
  *
  * Known uses:-
- * - To schedule event delivery to the SSSM on NFC & WIFI BOOT
+ * - To schedule event delivery to the SSSM on NFC BOOT
  *
  * \see utils_JobQ
  */
@@ -45,7 +45,7 @@ typedef struct utils_Job utils_Job;
  * - 1 Data ptr
  *
  * Known uses:-
- * - Patch-safe scheduling of event delivery to the SSSM on NFC & WIFI BOOT
+ * - Patch-safe scheduling of event delivery to the SSSM on NFC BOOT
  */
 typedef struct utils_JobQ utils_JobQ;
 

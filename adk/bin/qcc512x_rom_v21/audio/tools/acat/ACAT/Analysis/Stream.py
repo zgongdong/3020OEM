@@ -28,6 +28,7 @@ except ImportError:
     # `urllib` and `urlparse` have Changed in Python3
     import urllib.parse as urlparse
     import urllib.request as urllib  # Redefine the imported urllib
+from subprocess import CalledProcessError
 
 from . import Analysis
 from ..Core import Graphviz
@@ -147,12 +148,6 @@ class Endpoint(object):
     state = None
 
     def __init__(self, ep, name, stream, is_state_type_equal_to_name=True):
-        try:
-            cbops_analysis = stream.interpreter.get_analysis(
-                "cbops", stream.chipdata.processor
-            )
-        except KeyError:
-            cbops_analysis = None
         self.raw_data = ep
         self.stream = stream
 
@@ -210,12 +205,6 @@ class Endpoint(object):
         self.cbops = ep.get_member('cbops')
         if self.cbops.value != 0:
             self.cbops = stream.chipdata.cast(self.cbops.value, "cbops_mgr")
-            if stream.cbopsanalysis_on and cbops_analysis is not None:
-                self.cbops = cbops_analysis.analyse_endpoints_cbops(self.cbops)
-            else:
-                self.cbops = str(self.cbops)
-        else:
-            self.cbops = str(self.cbops)
 
         self._connected_to = ep.get_member("connected_to").value
         self._ep_to_kick = ep.get_member('ep_to_kick').value
@@ -577,7 +566,8 @@ class Stream(Analysis.Analysis):
         Analysis.Analysis.__init__(self, **kwarg)
         self.transforms = []
         self.endpoints = []
-        self.cbopsanalysis_on = False
+
+        self._cbops_analysis = None
 
     def run_all(self, cbopsanalysis_on=False):
         """Runs a complete analysis of Streams.
@@ -589,8 +579,6 @@ class Stream(Analysis.Analysis):
             cbopsanalysis_on (bool): If True, the CBOPs mgr will also be
                 analysed and displayed.
         """
-        # self.cbopsanalysis_on decides on whether CBOPs are analysed or not
-        self.cbopsanalysis_on = cbopsanalysis_on
         self.formatter.section_start("Streams")
         if Graphviz.is_grapviz_available():
             self.create_graph_img()
@@ -599,7 +587,7 @@ class Stream(Analysis.Analysis):
         self.analyse_transforms(
             True, True
         )
-        self.analyse_endpoints(self.cbopsanalysis_on)
+        self.analyse_endpoints(cbopsanalysis_on)
         self.analyse_chains()
         self.plot_transforms_buffers(screen_width=120, live_plotting=False)
         self.analyse_rm_pairs()
@@ -771,7 +759,7 @@ class Stream(Analysis.Analysis):
             buffers.append((t.direction_str, t.buffer))
         return buffers
 
-    def plot_transforms_buffers(self, screen_width=120, live_plotting=True):
+    def plot_transforms_buffers(self, screen_width=0, live_plotting=True):
         """Prints out buffers usages.
 
         Displays the transform buffers usage in a console progress bar way
@@ -783,6 +771,16 @@ class Stream(Analysis.Analysis):
                 continuously display the buffer usage until an exit event
                 is received.
         """
+        if screen_width == 0:
+            try:
+                # Auto detect mode. Make the width 90% of the terminal
+                # width.
+                screen_width = int(os.get_terminal_size().columns * 0.9)
+
+            except AttributeError:
+                # Python2, set a default screen width.
+                screen_width = 120
+
         self._read_all_transforms()
         buffers = []
         for t in self.transforms:
@@ -826,13 +824,15 @@ class Stream(Analysis.Analysis):
             cbopsanalysis_on (bool, optional): If True, CBOPs mgr analysis
                 will also be displayed.
         """
-        self.cbopsanalysis_on = cbopsanalysis_on
         # Refresh our lists of endpoints and transforms
         self._read_all_endpoints()
         self._read_all_transforms()
 
         self.formatter.section_start("Endpoints")
         for endpoint in self.endpoints:
+            if cbopsanalysis_on:
+                self._analyse_cbops_mngr(endpoint)
+
             self.formatter.section_start(endpoint.title_str)
             self.formatter.output(endpoint.desc_str)
             # Check the latency specific information
@@ -864,11 +864,13 @@ class Stream(Analysis.Analysis):
             ep_id
             cbopsanalysis_on (bool, optional)
         """
-        self.cbopsanalysis_on = cbopsanalysis_on
         # Refresh our lists of endpoints and transforms
         # (Need to do both, in this order, if we want endpoints to contain
         # a reference to attached transforms.)
         ep = self.get_endpoint(ep_id)
+
+        if cbopsanalysis_on:
+            self._analyse_cbops_mngr(ep)
 
         self.formatter.output(str(ep))
         if ep.name == "audio" and ep.direction == "SINK":
@@ -1022,6 +1024,15 @@ class Stream(Analysis.Analysis):
                 "Please install graphviz from www.graphviz.org\n"
                 "Make sure the Graphviz is in the PATH"
             )
+        except CalledProcessError as error:
+            # Graphviz library executes `dot` executable in background but
+            # instead of handling Popen's exceptions it passes it on. We are
+            # catching the exception and translate it into a user friendlier
+            # form.
+            self.formatter.error(
+                "Graphviz generates error whilst using `dot` library! "
+                "Error: {}".format(error)
+            )
 
     def create_graph_img(self):
         """Draws a graphical representation of streams chain.
@@ -1082,7 +1093,7 @@ class Stream(Analysis.Analysis):
         html_file.write(live_html_text)
         html_file.close()
 
-        # try to opend the html file
+        # Try to open the html file.
         if os.name == 'nt':
             os.system("start " + html_file.name)
         elif os.name == 'nt':
@@ -1091,10 +1102,8 @@ class Stream(Analysis.Analysis):
             # Give up. Let the user open it.
             self.formatter.output("Please open " + html_file.name)
 
-        # start_new_thread(self._live_graph, ())
-
         self.formatter.output("Press enter to exit from graph update.")
-        # Create and run the GrapUdater
+        # Create and run an instance of GraphUpdate.
         exit_event = threading.Event()
         exit_event.clear()
         reader = GraphUpdate(
@@ -1102,11 +1111,18 @@ class Stream(Analysis.Analysis):
             helper=self
         )
         reader.start()
-        # wait until a key is pressed.
+        # Wait until Enter is pressed.
         sys.stdin.read(1)
         exit_event.set()
-        # wait for the task to finish
+        # Wait for the task to finish.
         reader.join()
+
+        # Clean up the both html and svg files.
+        for filename in (html_file.name, '{}/graph.svg'.format(TEMP_DIR)):
+            try:
+                os.unlink(filename)
+            except OSError as error:
+                logger.warning("Unable to delete a file: %s", error)
 
     def analyse_rm_pairs(self):
         """Prints out the available ratematch pairs."""
@@ -1220,6 +1236,24 @@ class Stream(Analysis.Analysis):
     #######################################################################
     # Private methods - don't call these externally.
     #######################################################################
+
+    def _analyse_cbops_mngr(self, endpoint):
+        self._get_cbops_analysis()
+
+        if self._cbops_analysis and endpoint.cbops.value:
+            self._cbops_analysis.analyse_endpoints_cbops(endpoint.cbops)
+
+    def _get_cbops_analysis(self):
+        if self._cbops_analysis:
+            return self._cbops_analysis
+
+        try:
+            self._cbops_analysis = self.interpreter.get_analysis(
+                "cbops", self.chipdata.processor
+            )
+
+        except KeyError:
+            self._cbops_analysis = None
 
     def _read_transform(self, transform):
         """Reads a transform.

@@ -99,9 +99,13 @@ class HeapPmMem(NewHeapPmMem):
         # Aura has an extra 6K PM Heap for P1 since patch 4881
         aura_pm_heap_p1_extra = 0x1800
 
-        active_num_cores = self.chipdata.get_var_strict(
-            'L_active_num_cores'
-        ).value
+        try:
+            active_num_cores = self.chipdata.get_var_strict(
+                'L_active_num_cores'
+            ).value
+        except DebugInfoNoVariableError:
+            # The variable might be missing in some emulators. i.e. Kalsim.
+            active_num_cores = 1
 
         if patch_available_p1_ext and is_aurachip:
             if heap_number > 2:

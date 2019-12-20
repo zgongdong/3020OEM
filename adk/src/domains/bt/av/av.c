@@ -306,7 +306,7 @@ static bool av_GetVolume(const bdaddr *bd_addr, uint8 *volume)
     return (device) ? Device_GetPropertyU8(device, device_property_a2dp_volume, volume) : FALSE;
 }
 
-static void appAvVolumeAttributeStore(avTaskData *theAv)
+void appAvVolumeAttributeStore(avTaskData *theAv)
 {
     bdaddr bd_addr = {0};
     bool status;
@@ -757,23 +757,55 @@ bool appAvInstanceShouldConnectMediaChannel(const avInstanceTaskData *theInst, u
     return (*seid != AV_SEID_INVALID);
 }
 
+/*! \brief Cancel any queued AVRCP disconnect requests
+
+    \param[in] av_inst Instance to cancel queud AVRCP disconnect requests for.
+*/
+static void appAvAvrcpCancelQueuedDisconnectRequests(avInstanceTaskData *av_inst)
+{
+    Task task = &av_inst->av_task;
+    MessageCancelAll(task, AV_INTERNAL_AVRCP_DISCONNECT_REQ);
+    MessageCancelAll(task, AV_INTERNAL_AVRCP_DISCONNECT_LATER_REQ);
+}
+
 static void appAvAvrcpConnectLaterRequest(avInstanceTaskData *theInst, uint32 delay)
 {
     Task task = &theInst->av_task;
-    MessageCancelAll(task, AV_INTERNAL_AVRCP_DISCONNECT_LATER_REQ);
+
+    /* Cancel any queued disconnect requests */
+    appAvAvrcpCancelQueuedDisconnectRequests(theInst);
+
     MessageSendLater(task, AV_INTERNAL_AVRCP_CONNECT_LATER_REQ, NULL, delay);
     DEBUG_LOGF("appAvAvrcpConnectLaterRequest(0x%x) delay=%d", theInst, delay);
 }
 
+/*! \brief Cancel any queued AVRCP connect requests
+
+    \param[in] av_inst Instance to cancel queued AVRCP connect requests for.
+*/
+static void appAvAvrcpCancelQueuedConnectRequests(avInstanceTaskData *av_inst)
+{
+    Task task = &av_inst->av_task;
+
+    if (MessageCancelAll(task, AV_INTERNAL_AVRCP_CONNECT_REQ))
+    {
+        /* Call ConManagerReleaseAcl to decrement the reference count on the
+           ACL that was added when ConManagerCreateAcl was called in
+           appAvAvrcpConnectRequest for the queued connect request. */
+        ConManagerReleaseAcl(&av_inst->bd_addr);
+    }
+    MessageCancelAll(task, AV_INTERNAL_AVRCP_CONNECT_LATER_REQ);
+}
+
 static void appAvAvrcpDisconnectLaterRequest(avInstanceTaskData *theInst, uint32 delay)
 {
-    if (appAvIsAvrcpConnected(theInst))
-    {
-        Task task = &theInst->av_task;
-        MessageCancelAll(task, AV_INTERNAL_AVRCP_CONNECT_LATER_REQ);
-        MessageSendLater(task, AV_INTERNAL_AVRCP_DISCONNECT_LATER_REQ, NULL, delay);
-        DEBUG_LOGF("appAvAvrcpDisconnectLaterRequest(0x%x) delay=%d", theInst, delay);
-    }
+    Task task = &theInst->av_task;
+
+    /* Cancel any queued connect requests */
+    appAvAvrcpCancelQueuedConnectRequests(theInst);
+
+    MessageSendLater(task, AV_INTERNAL_AVRCP_DISCONNECT_LATER_REQ, NULL, delay);
+    DEBUG_LOGF("appAvAvrcpDisconnectLaterRequest(0x%x) delay=%d", theInst, delay);
 }
 
 /*! \brief Setup A2DP syncronisation of an AV instance with its forwarding peer, if necessary
@@ -838,6 +870,21 @@ static void appAvA2dpSyncDisable(avInstanceTaskData *theInst)
 
     /* Unregister any sync instance registered with this instance */
     appA2dpSyncUnregisterInstance(theInst);
+
+    DEBUG_LOG("VMCSA-2681 appAvA2dpSyncDisable called for instance %p", theInst);
+    DEBUG_LOG("VMCSA-2681 appAvA2dpSyncDisable Instance. peer:%d handset:%d",
+                            appDeviceIsPeer(&theInst->bd_addr),
+                            appDeviceIsHandset(&theInst->bd_addr));
+    if (theOtherInst)
+    {
+        DEBUG_LOG("VMCSA-2681 appAvA2dpSyncDisable Otherinst. peer:%d handset:%d",
+                                appDeviceIsPeer(&theOtherInst->bd_addr),
+                                appDeviceIsHandset(&theOtherInst->bd_addr));
+    }
+    else
+    {
+        DEBUG_LOG("VMCSA-2681 appAvA2dpSyncDisable Otherinst. None");
+    }
 
     /* If this is the peer a2dp instance, un-register from the handset instance
        so that it doesn't try to sync after the peer a2dp instance has gone. */
@@ -1742,6 +1789,8 @@ bool appAvA2dpConnectRequest(const bdaddr *bd_addr, appAvA2dpConnectFlags a2dp_f
 {
     avInstanceTaskData *theInst;
 
+
+
     /* Check if AV instance to this device already exists */
     theInst = appAvInstanceFindFromBdAddr(bd_addr);
     if (theInst == NULL)
@@ -1884,8 +1933,7 @@ static void av_CancelQueuedAvrcpDisconnectRequests(const bdaddr* bd_addr)
     avInstanceTaskData *theInst = appAvInstanceFindFromBdAddr(bd_addr);
     if (theInst != NULL)
     {
-        MessageCancelAll(&theInst->av_task, AV_INTERNAL_AVRCP_DISCONNECT_REQ);
-        MessageCancelAll(&theInst->av_task, AV_INTERNAL_AVRCP_DISCONNECT_LATER_REQ);
+        appAvAvrcpCancelQueuedDisconnectRequests(theInst);
     }
 }
 
@@ -1995,11 +2043,15 @@ bool appAvAvrcpDisconnectRequest(Task client_task, avInstanceTaskData *av_inst)
 {
     if (av_inst)
     {
+        /* Cancel any queued connect messages and release the lock */
+        appAvAvrcpCancelQueuedConnectRequests(av_inst);
+
         MAKE_AV_MESSAGE(AV_INTERNAL_AVRCP_DISCONNECT_REQ);
         message->client_task = client_task;
         PanicFalse(appAvIsValidInst(av_inst));
         MessageSendConditionally(&av_inst->av_task, AV_INTERNAL_AVRCP_DISCONNECT_REQ,
                                  message, &appAvrcpGetLock(av_inst));
+
         DEBUG_LOGF("appAvAvrcpDisconnectRequest(0x%x)", client_task);
         return TRUE;
     }
@@ -2017,6 +2069,7 @@ bool appAvAvrcpDisconnectRequest(Task client_task, avInstanceTaskData *av_inst)
  */
 bool appAvConnectPeer(const bdaddr* peer_addr)
 {
+
     return appAvA2dpConnectRequest(peer_addr, A2DP_CONNECT_NOFLAGS);
 }
 
@@ -2052,10 +2105,15 @@ bool appAvConnectHandset(bool play)
     if (appDeviceGetHandsetBdAddr(&bd_addr) && BtDevice_IsProfileSupported(&bd_addr, DEVICE_PROFILE_A2DP))
     {
         appAvA2dpConnectFlags flags = A2DP_CONNECT_MEDIA;
+
+        /* Clear flag that sets A2DP_START_MEDIA_PLAYBACK if connecting by bdaddr */
+        appAvPlayOnHandsetConnection(FALSE);
+
         if (play)
         {
             flags |= A2DP_START_MEDIA_PLAYBACK;
         }
+
         return appAvA2dpConnectRequest(&bd_addr, flags);
     }
 
@@ -2118,6 +2176,7 @@ bool appAvConnectWithBdAddr(const bdaddr *bd_addr)
     /* See if known */
     if (BtDevice_isKnownBdAddr(bd_addr))
     {
+
         return appAvA2dpConnectRequest(bd_addr, A2DP_CONNECT_MEDIA);
     }
     else
@@ -2148,10 +2207,19 @@ void Av_A2dpConnectWithBdAddr(const Task client_task, bdaddr *bd_addr)
     if (device)
     {
         task_list_t * req_task_list = TaskList_GetBaseTaskList(&AvGetTaskData()->a2dp_connect_request_clients);
+        appAvA2dpConnectFlags connect_flags = A2DP_CONNECT_MEDIA;
+        avTaskData *theAv = AvGetTaskData();
+
         av_CancelQueuedA2dpDisconnectRequests(bd_addr);
 
         ProfileManager_AddRequestToTaskList(req_task_list, device, client_task);
-        if (!appAvA2dpConnectRequest(bd_addr, A2DP_CONNECT_MEDIA))
+        if (theAv->play_on_connect && appDeviceIsHandset(bd_addr))
+        {
+            connect_flags |= A2DP_START_MEDIA_PLAYBACK;
+            theAv->play_on_connect = FALSE;
+        }
+
+        if (!appAvA2dpConnectRequest(bd_addr, connect_flags))
         {
             /* If A2DP is already connected send a connect cfm */
             ProfileManager_SendConnectCfmToTaskList(req_task_list, bd_addr, profile_manager_success, av_A2dpSendConnectCfm);
@@ -2291,6 +2359,7 @@ bool appAvIsValidInst(avInstanceTaskData* theInst)
  */
 bool appAvInstanceStartMediaPlayback(avInstanceTaskData *theInst)
 {
+        
     if (appA2dpIsConnectedMedia(theInst) && appAvIsAvrcpConnected(theInst))
     {
         if (theInst->a2dp.bitfields.flags & A2DP_START_MEDIA_PLAYBACK)
@@ -2629,6 +2698,14 @@ void appAvHintPlayStatus(avrcp_play_status status)
         }
     }
 }
+
+void appAvPlayOnHandsetConnection(bool play)
+{
+    avTaskData *theAv = AvGetTaskData();
+
+    theAv->play_on_connect = play;
+}
+
 
 void appAvConfigStore(void)
 {

@@ -58,9 +58,6 @@ typedef struct
     /*! Devices found while scanning for a peer. We track the 2 with highest RSSI */
     peerPairLeFoundDevice   scanned_devices[2];
 
-    /*! Details of the current scan (if any) provided by LeScanManager_Start */
-    le_scan_handle_t        scan;
-
     /*! Details of the current LE advertising data set */
     le_adv_data_set_handle  advert_handle;
 

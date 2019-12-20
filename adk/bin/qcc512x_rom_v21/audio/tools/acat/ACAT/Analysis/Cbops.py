@@ -58,6 +58,7 @@ class Cbops(Analysis.Analysis):
     CBOPS_OPERATORS = {
         "$cbops.copy_op.main": None,
         "$cbops.dc_remove.main": "cbops_dc_remove",
+        "$cbops.dc_remove2.main": "cbops_dc_remove", # label is used in patches only
         "$cbops.g711.main": "cbops_g711",
         "$cbops.rate_adjustment_and_shift.main": "cbops_rate_adjustment_and_shift",
         "$cbops.shift.main": "cbops_shift",
@@ -363,6 +364,9 @@ class Cbops(Analysis.Analysis):
             self.formatter.output(
                 "Override operator exists: {}".format(override_op_exist)
             )
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
 
         except Exception as exception:
             # This should be error happening during parsing the linked list

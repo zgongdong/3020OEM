@@ -274,6 +274,13 @@ static void connectionBluestackHandlerDm(connectionState *theCm, const DM_UPRIM_
                     );
                 return;
 
+            case DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND:
+                PRINT(("DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_INDn"));
+                connectionHandleDmSmGenerateCrossTransKeyRequestInd(
+                        (const DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND_T *)message
+                        );
+                return;
+
             case DM_BLE_UPDATE_CONNECTION_PARAMETERS_CFM:
                 PRINT(("DM_BLE_UPDATE_CONNECTION_PARAMETERS_CFM\n"));
                 connectionHandleDmBleUpdateConnectionParametersCfm(
@@ -597,6 +604,11 @@ static void connectionBluestackHandlerDm(connectionState *theCm, const DM_UPRIM_
                 case DM_ACL_CLOSED_IND: /* 28697 */
                     PRINT(("DM_ACL_CLOSED_IND\n"));
                     connectionHandleDmAclClosedInd(theCm->theAppTask, &theCm->smState, (const DM_ACL_CLOSED_IND_T*)message);
+                    return;
+
+                case DM_ACL_CLOSE_CFM:
+                    PRINT(("DM_ACL_CLOSE_CFM\n"));
+                    connectionHandleDmAclCloseCfm(theCm->theAppTask, (const DM_ACL_CLOSE_CFM_T*)message);
                     return;
 
                 case DM_SM_BONDING_CFM: /*B-56544 */

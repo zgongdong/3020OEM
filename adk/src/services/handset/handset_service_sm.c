@@ -165,8 +165,16 @@ static void handsetServiceSm_EnterDisconnected(handset_service_state_machine_t *
     {
         addr = HandsetServiceSm_GetLeBdaddr(sm);
     }
+
     /* Notify registered clients of this disconnect event. */
-    HandsetService_SendDisconnectedIndNotification(&addr, handset_service_status_disconnected);
+    if (sm->disconnect_reason == hci_error_conn_timeout)
+    {
+        HandsetService_SendDisconnectedIndNotification(&addr, handset_service_status_link_loss);
+    }
+    else
+    {
+        HandsetService_SendDisconnectedIndNotification(&addr, handset_service_status_disconnected);
+    }
 
     /* If there are no open connections to this handset, destroy this state machine. */
     if (handsetServiceSm_AllConnectionsDisconnected(sm, FALSE))
@@ -257,6 +265,9 @@ static void handsetServiceSm_EnterConnectedBredr(handset_service_state_machine_t
 
     /* Complete outstanding connect requests */
     HandsetServiceSm_CompleteConnectRequests(sm, handset_service_status_success);
+
+    /* Complete any outstanding disconnect requests. */
+    HandsetServiceSm_CompleteDisconnectRequests(sm, handset_service_status_failed);
 
     /* Notify registered clients about this connection */
     HandsetService_SendConnectedIndNotification(sm->handset_device, connected_profiles);
@@ -793,8 +804,9 @@ void HandsetServiceSm_HandleProfileManagerConnectedInd(handset_service_state_mac
 
     case HANDSET_SERVICE_STATE_CONNECTING_BREDR_ACL:
     case HANDSET_SERVICE_STATE_CONNECTING_BREDR_PROFILES:
-        /* Crossover between a locally initiated connect and a remote one. */
-        /* TBD: what to do here? */
+        /* A profile that was requested has connected. Nothing else to do
+           at this moment as we are waiting for the CFM when all requested
+           profiles have connected. */
         break;
 
     case HANDSET_SERVICE_STATE_CONNECTED_BREDR:
@@ -807,6 +819,17 @@ void HandsetServiceSm_HandleProfileManagerConnectedInd(handset_service_state_mac
             /* Update the "last connected" profile list */
             BtDevice_SetLastConnectedProfilesForDevice(sm->handset_device, connected_profiles, TRUE);
         }
+        break;
+
+    case HANDSET_SERVICE_STATE_DISCONNECTING_BREDR:
+        /* Although we are disconnecting, if a profile re-connects the handset
+           state should reflect the actual situation, so go back to the
+           CONNECTED state. */
+
+        DEBUG_LOG("HandsetServiceSm_HandleProfileManagerConnectedInd something connected %d",
+                  !handsetServiceSm_AllConnectionsDisconnected(sm, TRUE));
+
+        HandsetServiceSm_SetState(sm, HANDSET_SERVICE_STATE_CONNECTED_BREDR);
         break;
 
     default:
@@ -852,6 +875,8 @@ void HandsetServiceSm_HandleProfileManagerDisconnectedInd(handset_service_state_
     case HANDSET_SERVICE_STATE_DISCONNECTING_BREDR:
         /* A disconnect request to the profile manager is in progress, so wait
            for the DISCONNECT_PROFILES_CFM and the ACL to be disconnected. */
+        DEBUG_LOG("HandsetServiceSm_HandleProfileManagerDisconnectedInd something connected %d",
+                  handsetServiceSm_AllConnectionsDisconnected(sm, TRUE));
         break;
 
     default:
@@ -863,7 +888,8 @@ void HandsetServiceSm_HandleProfileManagerDisconnectedInd(handset_service_state_
 static void HandsetServiceSm_HandleConManagerBredrDisconnectionInd(handset_service_state_machine_t *sm,
     const CON_MANAGER_CONNECTION_IND_T *ind)
 {
-    HS_LOG("HandsetServiceSm_HandleConManagerBredrDisconnectionInd");
+    HS_LOG("HandsetServiceSm_HandleConManagerBredrDisconnectionInd state %u hci_reason %u",
+            sm->state, ind->reason);
 
     if(sm->handset_device == 0)
     {
@@ -871,6 +897,9 @@ static void HandsetServiceSm_HandleConManagerBredrDisconnectionInd(handset_servi
     }
 
     assert(sm->handset_device == BtDevice_GetDeviceForBdAddr(&ind->bd_addr));
+
+    /* store the reason for handset disconnection */
+    sm->disconnect_reason = ind->reason;
 
     /* Proceed only if all the profiles are disconnected */
     if(!handsetServiceSm_AllConnectionsDisconnected(sm, TRUE))

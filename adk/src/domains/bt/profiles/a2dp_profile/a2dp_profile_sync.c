@@ -17,6 +17,8 @@
 #include "av.h"
 #include "a2dp_profile.h"
 #include "a2dp_profile_sync.h"
+#include "a2dp_profile_config.h"
+#include "earbud_test.h"
 
 /*! \{
     Macros for diagnostic output that can be suppressed.
@@ -67,6 +69,11 @@ static void appA2dpSyncSendInternalMediaConnectReq(avInstanceTaskData *theInst, 
     MAKE_AV_MESSAGE(AV_INTERNAL_A2DP_CONNECT_MEDIA_REQ);
     message->seid = seid;
     message->delay_ms = 0;
+    if (appTestIsPtsMode())
+    {
+        /* Add delay to allow the remote side to set up A2DP in PTS tests */
+        message->delay_ms = appConfigA2dpMediaConnectDelayAfterLocalA2dpConnectMs();
+    }
     appA2dpSyncSendInternalMessage(theInst, AV_INTERNAL_A2DP_CONNECT_MEDIA_REQ, message);
 }
 

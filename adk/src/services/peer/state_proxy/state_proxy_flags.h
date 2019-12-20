@@ -20,6 +20,9 @@ typedef struct state_proxy_msg_empty_payload
 /*! \brief Get flags state for initial state message. */
 void stateProxy_GetInitialFlags(void);
 
+/*! \brief Set remote device flags to initial state. */
+void stateProxy_SetRemoteInitialFlags(void);
+
 /*! \brief Handle local flags event. 
     \param[in] marshal_type Marshalling type definition for the flags.
     \param[in] setting Boolean value to set the flag to.

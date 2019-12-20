@@ -287,16 +287,17 @@ void connectionHandleDmBleReadRandomAddress(
              * with the peer. */
             if (req->peer_tpaddr) {
                 temp_tpaddr = (*req->peer_tpaddr);
+                free(req->peer_tpaddr);
             }
-        break;
+            break;
         default:
             CL_DEBUG(("Read Random Address: flags out of range.\n"));
             Panic();
-        break;
-    }
+            break;
+        }
 
-    BdaddrConvertTpVmToBluestack(&prim->tp_peer_addrt, &temp_tpaddr);
-    VmSendDmPrim(prim);
+        BdaddrConvertTpVmToBluestack(&prim->tp_peer_addrt, &temp_tpaddr);
+        VmSendDmPrim(prim);
     }
     else
     {

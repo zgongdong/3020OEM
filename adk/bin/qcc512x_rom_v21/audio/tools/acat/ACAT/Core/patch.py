@@ -79,6 +79,10 @@ class ProcessorPatcher(object):
                     "The build is associated with a patch but no patch "
                     "is provided"
                 )
+
+            except (SystemExit, KeyboardInterrupt, GeneratorExit):
+                raise
+
             except Exception as error:
                 logger.warning(
                     'The build is patched with an invalid ID. %s',

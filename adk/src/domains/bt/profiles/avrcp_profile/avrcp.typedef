@@ -50,7 +50,7 @@
         <member marshal="true" doc="Current state of AVRCP state machine">avAvrcpState state</member>
         <member marshal="false" doc="AVRCP operation lock, used to serialise AVRCP operations">uint16 lock</member>
         <member marshal="false" doc="Register notification lock, used to serialise notifications">uint16 notification_lock</member>
-        <member marshal="false" doc="Playback status lock, set when AVRCP Play or Pause sent.  Cleared when playback status received, or after timeout">uint16 playback_lock</member>
+        <member marshal="true" doc="Playback status lock, set when AVRCP Play or Pause sent.  Cleared when playback status received, or after timeout">uint16 playback_lock</member>
         <member marshal="true" doc="AVRCP bitfields data">avrcpTaskDataBitfields bitfields</member>
         <member marshal="false" doc="List of clients for AVRCP messages for this link">task_list_t *client_list</member>
         <member marshal="false" doc="Count of the number of clients registered for this AVRCP link">uint8 client_lock</member>

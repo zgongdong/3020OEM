@@ -9,7 +9,7 @@
 ACAT module version definition
 '''
 
-__version__ = '1.8.2'  # pylint: disable=invalid-name
+__version__ = '1.9.1'  # pylint: disable=invalid-name
 
 version_info = [  # pylint: disable=invalid-name
     __version__.split('.')[ind]

@@ -10,13 +10,7 @@
 #define FAST_PAIR_SESSION_DATA_H_
 #include "fast_pair_account_key_sync.h"
 
-/*! \brief Initialize the Fast Pair Session Data Module
 
-    \param None
-
-    \return None
- */
-void fastPair_DeviceInit(void);
 
 /*! \brief Get the Fast Pair Model ID
 

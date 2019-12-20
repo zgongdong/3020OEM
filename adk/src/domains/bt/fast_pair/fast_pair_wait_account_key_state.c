@@ -54,6 +54,19 @@ static bool fastpair_AccountKeyWriteEventHandler(fast_pair_state_event_account_k
 
     return status;
 }
+
+static bool fastPair_HandleAdvBloomFilterCalc(fast_pair_state_event_crypto_hash_args_t* args)
+{
+    DEBUG_LOG("fastPair_HandleAdvBloomFilterCalc");
+
+    if(args->crypto_hash_cfm->status == success)
+    {
+        fastPair_AdvHandleHashCfm(args->crypto_hash_cfm);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 bool fastPair_StateWaitAccountKeyHandleEvent(fast_pair_state_event_t event)
 {
     bool status = FALSE;
@@ -94,6 +107,12 @@ bool fastPair_StateWaitAccountKeyHandleEvent(fast_pair_state_event_t event)
                 return FALSE;
             }
             status = fastpair_AccountKeyWriteEventHandler((fast_pair_state_event_account_key_write_args_t *)event.args);
+        }
+        break;
+
+        case fast_pair_state_event_crypto_hash:
+        {
+            status = fastPair_HandleAdvBloomFilterCalc((fast_pair_state_event_crypto_hash_args_t *)event.args);
         }
         break;
 

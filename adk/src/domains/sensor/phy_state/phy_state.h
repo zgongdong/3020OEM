@@ -101,6 +101,8 @@ typedef struct
     bool in_proximity;
     /*! Lock used to conditionalise sending of PHY_STATE_INIT_CFM. */
     uint16 lock;
+    /*! Last state reported to clients. */
+    phyState reported_state;
 } phyStateTaskData;
 
 /*! \brief Messages which may be sent by the Physical State module. */
@@ -131,6 +133,8 @@ typedef enum
     PHY_STATE_INTERNAL_OUT_OF_EAR_EVENT,
     PHY_STATE_INTERNAL_MOTION,
     PHY_STATE_INTERNAL_NOT_IN_MOTION,
+    /*! Timer used to limit rate of PHY_STATE_CHANGED_IND messages generated. */
+    PHY_STATE_INTERNAL_TIMEOUT_NOTIFICATION_LIMIT,
 } PHY_STATE_INTERNAL_MSG;
 
 /*!< Physical state of the Earbud. */
@@ -138,6 +142,9 @@ extern phyStateTaskData app_phy_state;
 
 /*! Get pointer to physical state data structure */
 #define PhyStateGetTaskData()   (&app_phy_state)
+
+/*! Get physical state task used for messaging. */
+#define PhyStateGetTask()       (&app_phy_state.task)
 
 /*! Get pointer to physical state client tasks */
 #define PhyStateGetClientTasks()   (task_list_flexible_t *)(&app_phy_state.client_tasks)

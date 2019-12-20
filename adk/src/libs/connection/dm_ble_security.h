@@ -40,4 +40,20 @@ RETURNS
 */
 void connectionHandleDmSmSecurityCfm(const DM_SM_SECURITY_CFM_T *cfm);        
 
+
+/*****************************************************************************
+NAME
+    connectionHandleDmSmGenerateCrossTransKeyRequestInd
+
+DESCRIPTION
+    Handle the DM_SM_GENREATE_CROSS_TRANS_KEY_REQUEST_IND message from
+    Bluesack.
+
+RETUNS
+    void
+*/
+void connectionHandleDmSmGenerateCrossTransKeyRequestInd(
+        const DM_SM_GENERATE_CROSS_TRANS_KEY_REQUEST_IND_T *ind
+        );
+
 #endif /* DISABLE_BLE */

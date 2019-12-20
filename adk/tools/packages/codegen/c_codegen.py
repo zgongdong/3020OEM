@@ -25,6 +25,10 @@ class Indented(object):
     def indented_print(self, string):
         print(self.indent() + string, file=self.outfile)
 
+    def ignore_indent_print(self, string):
+        print(string, file=self.outfile)
+
+
 class CDefinition(Indented):
     ''' Base class for creating enums, structs, unions '''
     def __init__(self, type, name, array=False, typedef=False, eol=",", doc=""):
@@ -129,7 +133,7 @@ class CommentBlockDoxygen(Indented):
     def doxy_brief(self, brief):
         self.indented_print("\\brief {}".format(brief))
     def doxy_page(self, page_title):
-        self.indented_print("\\page {}".format(page_title))
+        self.ignore_indent_print("\\page {}".format(page_title))
 
 class HeaderGuards(object):
     ''' Use this class to print header file guards '''

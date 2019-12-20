@@ -6,6 +6,7 @@ Copyright (c) 2018  Qualcomm Technologies International, Ltd.
 #define INPUT_EVENT_MANAGER_H_
 
 #include <message.h>
+#include "library.h"
 
 #define IEM_NUM_PIOS  (96)
 #define IEM_NUM_BANKS (IEM_NUM_PIOS / 32)
@@ -21,6 +22,11 @@ typedef enum
     HELD_RELEASE,
     DOUBLE_CLICK
 } InputEventAction_t;
+
+typedef enum
+{
+    INPUT_EVENT_MANAGER_ENABLE_CFM = INPUT_EVENT_MANAGER_MESSAGE_BASE,
+} InputEventMessage_t;
 
 typedef struct
 {
@@ -45,6 +51,11 @@ Task InputEventManagerInit(Task client,
                            const InputActionMessage_t *action_table,
                            uint32 size_action_table,
                            const InputEventConfig_t *config);
+
+/*! @brief Enable the input event manager.
+           This function enables the PIO configurations. InputEventManagerInit() should be called prior to calling this function.
+           All the clients of IEM need to be registered before calling this function */
+void InputEventManagerEnable(void);
 
 /*! @brief Register a task to receive event notifications on the specified pio.
            When the specified pio changes state, the input event manager will

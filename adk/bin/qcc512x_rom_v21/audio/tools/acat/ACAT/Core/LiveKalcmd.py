@@ -204,10 +204,11 @@ class LiveKalcmd(LiveChip.LiveChip):
             chip_arch = "Hydra"
             chip_revision = 0
             chip_id = 0x4b
-        elif kalimba_name == "napier_audio":
-            chip_arch = "Napier"
+        elif kalimba_name == "QCC516x_audio":
+            # Mora
+            chip_arch = "Hydra"
             chip_revision = 0
-            chip_id = 0
+            chip_id = 0x50
         else:
             chip_arch = "Bluecore"
             raise Exception("Chip not supported! %s" % kalimba_name)
@@ -221,11 +222,11 @@ class LiveKalcmd(LiveChip.LiveChip):
     def get_proc_reg(self, name):
         """Returns the value of a Processor Register.
 
-        Return the value of the processor register specified in 'name'.
+        Return the value of the processor register specified in ``name``.
         name is a string containing the name of the register in upper or
-        lower case, with or without the prefix 'REGFILE_':
+        lower case, with or without the prefix ``REGFILE_``:
 
-            e.g. "REGFILE_PC", "rMAC", "R10".
+            e.g. ``REGFILE_PC``, ``rMAC``, ``R10``.
 
         Args:
             name

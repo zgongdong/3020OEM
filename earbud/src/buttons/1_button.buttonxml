@@ -3,7 +3,7 @@
 
 <message_map>
 
-    <message_group name="left_earbud_message_group">
+    <message_group name="media_message_group">
 
         <message>
             <messageName>APP_MFB_BUTTON_SINGLE_CLICK</messageName>
@@ -74,14 +74,14 @@
             <timeout_ms>12000</timeout_ms>
         </message>
 
-        <message>
+        <message device_specific="true">
             <messageName>APP_BUTTON_HELD_FACTORY_RESET</messageName>
             <buttonEvent>HELD</buttonEvent>
             <activePinFriendlyName>SYS_CTRL</activePinFriendlyName>
             <timeout_ms>15000</timeout_ms>
         </message>
 
-        <message>
+        <message device_specific="true">
             <messageName>APP_BUTTON_FACTORY_RESET</messageName>
             <buttonEvent>HELD_RELEASE</buttonEvent>
             <activePinFriendlyName>SYS_CTRL</activePinFriendlyName>
@@ -90,7 +90,7 @@
 
     </message_group>
     
-    <message_group name="right_earbud_message_group">
+    <message_group name="voice_assistant_message_group">
     
         <message>
             <messageName>APP_VA_BUTTON_DOWN</messageName>

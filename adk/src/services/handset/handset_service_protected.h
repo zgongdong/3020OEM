@@ -30,7 +30,7 @@
 /*! Client task list initial list */
 #define HANDSET_SERVICE_CLIENT_LIST_INIT_CAPACITY 1
 
-#define HANDSET_SERVICE_MAX_SM      2
+#define HANDSET_SERVICE_MAX_SM      3
 
 /*! \brief Data type to specify the state of LE advertising data set select/release operation */
 typedef enum

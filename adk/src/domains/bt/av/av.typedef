@@ -48,6 +48,7 @@
         <member marshal="false" doc="AV Task data bitfields">avTaskDataBitfields bitfields</member>
         <member marshal="true" doc="Bitmap of active suspend reasons">avSuspendReason suspend_state</member>
         <member marshal="false" doc="The AV volume">uint8 volume</member>
+        <member marshal="false" doc="Enable play on connect if connect to this device">bool play_on_connect</member>
         <member marshal="false" doc="AV Instances">avInstanceTaskData *av_inst[AV_MAX_NUM_INSTANCES]</member>
         <member marshal="false" doc="List of tasks registered via \ref appAvAvrcpClientRegister">task_list_t avrcp_client_list</member>
         <member marshal="false" doc="List of tasks registered via \ref appAvStatusClientRegister. These receive indications for AVRCP, A2DP and A2DP streaming">task_list_t av_status_client_list</member>

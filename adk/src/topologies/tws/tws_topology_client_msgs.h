@@ -26,4 +26,8 @@ void TwsTopology_SendRoleChangedInd(tws_topology_role role);
 */
 void TwsTopology_SendStartCfm(tws_topology_status_t sts, tws_topology_role role);
 
+/*! \brief Send indication to registered clients that handset disconnected goal has been reached.
+*/
+void TwsTopology_SendHandsetDisconnectedIndication(void);
+
 #endif /* TWS_TOPOLOGY_CLIENT_MSGS_H */

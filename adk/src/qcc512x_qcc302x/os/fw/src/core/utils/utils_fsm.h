@@ -44,7 +44,6 @@
  * generate compatible tables.
  * - Extend CCL fsm to generate alternative implementations (e.g. "code
  * switch").
- * - Consider adding submachines and unifying with SME/wifi engine.
  */
 typedef struct utils_fsmtype utils_fsmtype;
 

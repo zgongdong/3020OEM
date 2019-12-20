@@ -13,7 +13,7 @@
 #include "tws_topology_procedures.h"
 #include "tws_topology_procedure_script_engine.h"
 
-extern tws_topology_procedure_fns_t proc_find_role_fns;
+extern const tws_topology_procedure_fns_t proc_find_role_fns;
 
 typedef struct
 {
@@ -25,7 +25,5 @@ extern const FIND_ROLE_PARAMS_T proc_find_role_timeout;
 
 extern const FIND_ROLE_PARAMS_T proc_find_role_continuous;
 #define PROC_FIND_ROLE_TIMEOUT_DATA_CONTINUOUS  ((Message)&proc_find_role_continuous)
-
-extern const tws_topology_proc_script_t find_role_script;
 
 #endif /* TWS_TOPOLOGY_PROC_FIND_ROLE_H */

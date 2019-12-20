@@ -927,6 +927,12 @@
     PANIC_HYDRA_INVALID_PRIVATE_MEMORY_CONFIG_ENTRY = 0x10c6,
 
     /**
+     * Panic due to a MIB key no longer being supported in ROM.
+     * The argument is the psid of the offending MIB key.
+     */
+    PANIC_MIB_NOT_SUPPORTED = 0x10c7,
+
+    /**
      * NOTE: 0x17ff is the highest panic code in the Qualcomm range
      * Qualcomm add codes from the lowest free number towards this high one
      */

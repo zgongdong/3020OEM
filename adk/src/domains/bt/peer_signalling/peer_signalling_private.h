@@ -57,12 +57,9 @@ typedef enum
 
     /*! Lock for FSM transition states. */
     peer_sig_lock_fsm = 0x01,
-    
-    /*! Lock for busy handling a traditional message. */
-    peer_sig_lock_op = 0x02,
 
     /*! Lock for busy handling a marshalled message. */
-    peer_sig_lock_marshal = 0x04,
+    peer_sig_lock_marshal = 0x02,
 } peer_sig_lock;
 
 /*! Peer signalling module state. */
@@ -79,25 +76,10 @@ typedef struct
     /* State related to maintaining signalling channel with peer */
     bdaddr peer_addr;               /*!< Bluetooth address of the peer we are signalling */
 
-    /* Tasks registered to receive asynchronous incoming messages */
-    /* \todo These could move to use the generic msg channel mechanism and simplify
-     * the code. */
-    Task rx_link_key_task;          /*!< Task to send handset link key to when received from peer */
-    Task rx_handset_commands_task;  /*!< Task to send handset commands received from peer */
-
-    /* State required to service various signalling requests */
-    Task client_task;               /*!< Task to respond with result of current peer signalling operation */
-    uint16 current_op;              /*!< Type of in progress operation. */
-    bdaddr handset_addr;            /*!< Address of the handset for current operation */
-
-    /* State related to msg channel facility. */
-    task_list_t* msg_channel_tasks;         /*!< List of tasks and associated signalling channel. */
-    peerSigMsgChannel current_msg_channel; /*!< Remember msg channel in use for TX confirmation msgs. */
-
     /* State related to L2CAP peer signalling channel */
     uint16 local_psm;               /*!< L2CAP PSM registered */
     uint16 remote_psm;              /*!< L2CAP PSM registered by peer device */
-    uint8 sdp_search_attempts;         /*!< Count of failed SDP searches */
+    uint8 sdp_search_attempts;      /*!< Count of failed SDP searches */
     uint16 pending_connects;
     Sink link_sink;                 /*!< The sink of the L2CAP link */
     Source link_source;             /*!< The source of the L2CAP link */

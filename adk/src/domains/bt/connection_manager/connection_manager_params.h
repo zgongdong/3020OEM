@@ -14,6 +14,6 @@
 #define LE_CON_EVENT_LENGTH_MIN     0
 #define LE_CON_EVENT_LENGTH_MAX     160
 
-extern const ble_connection_params* cm_qos_params[cm_qos_max];
+extern const ble_connection_params* const cm_qos_params[cm_qos_max];
 
 #endif

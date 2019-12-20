@@ -10,6 +10,7 @@
 #include <audio_clock.h>
 #include <audio_power.h>
 #include <pio_common.h>
+#include <vmal.h>
 #include <anc_state_manager.h>
 
 #include "kymera_private.h"
@@ -29,6 +30,14 @@
 #define KYMERA_SOURCE_SYNC_INPUT_PORT (0)
 #define KYMERA_SOURCE_SYNC_OUTPUT_PORT (0)
 /*!@} */
+
+#ifdef INCLUDE_KYMERA_AEC
+#define isAecUsedInOutputChain() TRUE
+#else
+#define isAecUsedInOutputChain() FALSE
+#endif
+
+static uint8 audio_ss_client_count = 0;
 
 /* Configuration of source sync groups and routes */
 static const source_sync_sink_group_t sink_groups[] =
@@ -80,6 +89,72 @@ static void disconnectOutputChainFromAudioSink(Source chain_output)
 #else
     StreamDisconnect(chain_output, NULL);
 #endif
+}
+
+static uint32 divideAndRoundUp(uint32 dividend, uint32 divisor)
+{
+    if (dividend == 0)
+        return 0;
+    else
+        return ((dividend - 1) / divisor) + 1;
+}
+
+static unsigned getSbcFrameLength(const sbc_encoder_params_t *params)
+{
+    unsigned frame_length = 0;
+
+    unsigned num_subbands = params->number_of_subbands;
+    unsigned num_blocks = params->number_of_blocks;
+    unsigned bitpool = params->bitpool_size;
+
+    unsigned join = 0;
+    unsigned num_channels = 2;
+
+    /* As described in Bluetooth A2DP specification v1.3.2 section 12.9 */
+    switch (params->channel_mode)
+    {
+        case sbc_encoder_channel_mode_mono:
+            num_channels = 1;
+        // fall-through
+        case sbc_encoder_channel_mode_dual_mono:
+            frame_length = 4 + ((4 * num_subbands * num_channels) / 8) + divideAndRoundUp(num_blocks * num_channels * bitpool, 8);
+        break;
+
+        case sbc_encoder_channel_mode_joint_stereo:
+            join = 1;
+        // fall-through
+        case sbc_encoder_channel_mode_stereo:
+            frame_length = 4 + ((4 * num_subbands * num_channels) / 8) + divideAndRoundUp((join * num_subbands) + (num_blocks * bitpool), 8);
+        break;
+    }
+
+    return frame_length;
+}
+
+static unsigned getSbcBitRate(const sbc_encoder_params_t *params)
+{
+    uint32 sample_rate = params->sample_rate;
+    uint32 num_subbands = params->number_of_subbands;
+    uint32 num_blocks = params->number_of_blocks;
+    uint32 frame_length = getSbcFrameLength(params);
+
+    /* As described in Bluetooth A2DP specification v1.3.2 section 12.9 */
+    return divideAndRoundUp((8 * frame_length * sample_rate) / num_subbands, num_blocks);
+}
+
+unsigned appKymeraGetSbcEncodedDataBufferSize(const sbc_encoder_params_t *sbc_params, uint32 latency_in_ms)
+{
+    uint32 frame_length = getSbcFrameLength(sbc_params);
+    uint32 bitrate = getSbcBitRate(sbc_params);
+    uint32 size_in_bits = divideAndRoundUp(latency_in_ms * bitrate, 1000);
+    /* Round up this number if not perfectly divided by frame length to make sure we can buffer the latency required in SBC frames */
+    uint32 num_frames = divideAndRoundUp(size_in_bits, frame_length * 8);
+    size_in_bits = num_frames * frame_length * 8;
+    unsigned size_in_words = divideAndRoundUp(size_in_bits, CODEC_BITS_PER_MEMORY_WORD);
+
+    DEBUG_LOG("appKymeraGetSbcEncodedDataBufferSize: frame_length %u, bitrate %u, num_frames %u, buffer_size %u", frame_length, bitrate, num_frames, size_in_words);
+
+    return size_in_words;
 }
 
 int32 volTo60thDbGain(int16 volume_in_db)
@@ -155,10 +230,6 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
                     case AV_SEID_APTX_SNK:
                     case AV_SEID_APTX_ADAPTIVE_SNK:
                     case AV_SEID_APTX_ADAPTIVE_TWS_SNK:
-#ifdef INCLUDE_KYMERA_AEC
-                    case AV_SEID_SBC_SNK:
-                    case AV_SEID_APTX_MONO_TWS_SNK:
-#endif
                     {
                         /* Not enough MIPs to run aptX master (TWS standard) or
                         * aptX adaptive (TWS standard and TWS+) on slow clock */
@@ -167,8 +238,28 @@ void appKymeraConfigureDspPowerMode(bool tone_playing)
                     }
                     break;
 
+                    case AV_SEID_SBC_SNK:
+                    {
+                        if (isAecUsedInOutputChain() || appConfigSbcNoPcmLatencyBuffer())
+                        {
+                            cconfig.active_mode = AUDIO_DSP_BASE_CLOCK;
+                            mode = AUDIO_POWER_SAVE_MODE_1;
+                        }
+                    }
+                    break;
+
+                    case AV_SEID_APTX_MONO_TWS_SNK:
+                    {
+                        if (isAecUsedInOutputChain())
+                        {
+                            cconfig.active_mode = AUDIO_DSP_BASE_CLOCK;
+                            mode = AUDIO_POWER_SAVE_MODE_1;
+                        }
+                    }
+                    break;
+
                     default:
-                        break;
+                    break;
                 }
             }
         }
@@ -275,9 +366,10 @@ void appKymeraExternalAmpSetup(void)
 
 void appKymeraExternalAmpControl(bool enable)
 {
+    kymeraTaskData *theKymera = KymeraGetTaskData();
+
     if (appConfigExternalAmpControlRequired())
     {
-        kymeraTaskData *theKymera = KymeraGetTaskData();
         theKymera->dac_amp_usage += enable ? 1 : - 1;
 
         /* Drive PIO high if enabling AMP and usage has gone from 0 to 1,
@@ -293,6 +385,44 @@ void appKymeraExternalAmpControl(bool enable)
                                   appConfigExternalAmpControlDisableMask());
         }
     }
+
+    if(enable)
+    {
+        /* If we're enabling the amp then also call OperatorFrameworkEnable() so that the audio S/S will
+           remain on even if the audio chain is destroyed, this allows us to control the timing of when the audio S/S
+           and DACs are powered off to mitigate audio pops and clicks.*/
+
+        /* Cancel any pending audio s/s disable message since we're enabling.  If message was cancelled no need
+           to call OperatorFrameworkEnable() as audio S/S is still powered on from previous time */
+        if(MessageCancelFirst(&theKymera->task, KYMERA_INTERNAL_AUDIO_SS_DISABLE))
+        {
+            DEBUG_LOG("appKymeraExternalAmpControl, there is already a client for the audio SS");
+        }
+        else
+        {
+            DEBUG_LOG("appKymeraExternalAmpControl, adding a client to the audio SS");
+            OperatorsFrameworkEnable();
+        }
+
+        audio_ss_client_count++;
+    }
+    else
+    {
+        if (audio_ss_client_count > 1)
+        {
+            OperatorsFrameworkDisable();
+            audio_ss_client_count--;
+            DEBUG_LOGF("appKymeraExternalAmpControl, removed audio source, count is %d", audio_ss_client_count);
+        }
+        else
+        {
+            /* If we're disabling the amp then send a timed message that will turn off the audio s/s later rather than 
+            immediately */
+            DEBUG_LOGF("appKymeraExternalAmpControl, sending later KYMERA_INTERNAL_AUDIO_SS_DISABLE, count is %d", audio_ss_client_count);
+            MessageSendLater(&theKymera->task, KYMERA_INTERNAL_AUDIO_SS_DISABLE, NULL, appKymeraDacDisconnectionDelayMs());
+            audio_ss_client_count = 0;
+        }
+    }
 }
 
 void appKymeraConfigureSpcMode(Operator op, bool is_consumer)
@@ -300,18 +430,6 @@ void appKymeraConfigureSpcMode(Operator op, bool is_consumer)
     uint16 msg[2];
     msg[0] = OPMSG_SPC_ID_TRANSITION; /* MSG ID to set SPC mode transition */
     msg[1] = is_consumer;
-    PanicFalse(OperatorMessage(op, msg, 2, NULL, 0));
-}
-
-void appKymeraConfigureSpcDataFormat(Operator op, audio_data_format format)
-{
-#if defined(HAVE_STR_ROM_2_0_1) || defined(__QCC3400_APP__) || defined(__QCC514X_APPS__)
-    if (format == ADF_GENERIC_ENCODED)
-        format = ADF_GENERIC_ENCODED_32BIT;
-#endif                
-    uint16 msg[2];
-    msg[0] = OPMSG_OP_TERMINAL_DATA_FORMAT; /* MSG ID to set SPC data type */
-    msg[1] = format;
     PanicFalse(OperatorMessage(op, msg, 2, NULL, 0));
 }
 

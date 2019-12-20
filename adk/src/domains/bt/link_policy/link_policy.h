@@ -42,7 +42,7 @@ typedef enum lp_power_table_index
     POWERTABLE_HFP_SCO,
     POWERTABLE_AVRCP,     /* Used for both Handset and Peer links */
     POWERTABLE_PEER_MODE, /* Used Peer links when SCO forwarding or TWS+ with A2DP Streaming */
-    POWERTABLE_PEER_SHADOWING,
+    POWERTABLE_PEER_MIRRORING,
     /*! Must be the final value */
     POWERTABLE_UNASSIGNED,
 } lpPowerTableIndex;

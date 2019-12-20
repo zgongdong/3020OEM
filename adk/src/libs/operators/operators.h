@@ -385,7 +385,8 @@ typedef enum
 typedef enum
 {
    spc_op_format_encoded = 0,
-   spc_op_format_pcm
+   spc_op_format_pcm,
+   spc_op_format_16bit_with_metadata
 }spc_format_t;
 
 typedef enum
@@ -451,6 +452,14 @@ typedef struct
     aptx_adaptive_ssrc_ids_t ssrc_id;
     uint32  target_latency;
 } aptx_ad_mode_notification_t;
+
+typedef enum
+{
+    ttp_full      = 0,   /* Default mode of time to play. */
+    ttp_free_run  = 1,   /* Operation mode with no timing adjustment for data receive */
+    ttp_full_only = 2,   /* Switch time to play to full mode */
+    ttp_free_run_only= 3 /* Switch time to play to free run mode*/
+} ttp_mode_t;
 
 /* Macros to help create operator_setup_item_t */
 #define SOURCE_SYNC_PARAM_ID_LATENCY    (2)
@@ -1147,4 +1156,11 @@ DESCRIPTION
     Configure RTP to send TTP notifications.
 */
 void OperatorsRtpSetTtpNotification(Operator rtp_op, bool enable);
+
+/****************************************************************************
+DESCRIPTION
+    Set time to play state. sp_adj is expressed in Hz wherease ttp and latency
+    values are expressed in microseconds.
+*/
+void OperatorsStandardSetTtpState(Operator op, ttp_mode_t mode, uint32 ttp, uint32 sp_adj, uint32 latency);
 #endif /* LIBS_OPERATORS_OPERATORS_H_ */

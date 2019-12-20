@@ -14,7 +14,7 @@ the log user to relate log lines with their corresponding packages. Individual
 packages need to define their own loggers and pass it to the suitable
 decorator.
 
-See the example below for hypothetical package called `ACAT.Core.foo.py`:
+See the example below for hypothetical package called `ACAT.Core.foo.py`::
 
     # foo.py
     import logging
@@ -37,6 +37,7 @@ from __future__ import print_function
 
 import functools
 import json
+import numbers
 import os
 
 from logging.config import dictConfig
@@ -116,20 +117,15 @@ def function_logger(logger):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             """Wraps around the called function with the exact parameters."""
-            try:
-                # pylint: disable=star-args
-                logger.debug(_gen_call_repr(func, *args, **kwargs))
-                # Call the requested method with the same arguments
-                result = func(*args, **kwargs)
-                logger.debug('{} returned: {}'.format(
-                    func.__name__, str(result))
-                )
-                return result
+            # pylint: disable=star-args
+            logger.debug(_gen_call_repr(func, *args, **kwargs))
+            # Call the requested function with the same arguments.
+            result = func(*args, **kwargs)
+            logger.debug('{} returned: {}'.format(
+                func.__name__, str(_convert_to_hex(result)))
+            )
+            return result
 
-            except Exception as error:  # pylint: disable=broad-except
-                # Covers all the exceptions
-                logger.exception(error)
-                raise
         return wrapper
 
     return decorator
@@ -153,24 +149,52 @@ def method_logger(logger):
         @functools.wraps(method)
         def wrapper(*args, **kwargs):
             """Wraps around the called method with the exact parameters."""
-            try:
-                # pylint: disable=star-args
-                logger.debug(_gen_call_repr(method, *args[1:], **kwargs))
-                # Call the requested method with the same arguments
-                result = method(*args, **kwargs)
-                logger.debug('{} returned: {}'.format(
-                    method.__name__, str(result))
-                )
-                return result
+            # pylint: disable=star-args
+            logger.debug(_gen_call_repr(method, *args[1:], **kwargs))
+            # Call the requested method with the same arguments.
+            result = method(*args, **kwargs)
+            logger.debug('{} returned: {}'.format(
+                method.__name__, str(_convert_to_hex(result)))
+            )
+            return result
 
-            except Exception as error:  # pylint: disable=broad-except
-                # Covers all the exceptions
-                logger.exception(error)
-                raise
         return wrapper
 
     return decorator
 
+
+def _convert_to_hex(value):
+    """Converts the value to hex.
+
+    Args:
+        value (any): The value that needs to be converted into hex.
+
+    Returns:
+        Any: The converted value to hex can be in in forms of None, a tuple,
+            a list or a dictionary.
+    """
+    if isinstance(value, (list, tuple)):
+        output = []
+        for item in value:
+            output.append(_convert_to_hex(item))
+
+        return output
+
+    elif isinstance(value, dict):
+        output = {}
+        for key, val in value.items():
+            output[key] = _convert_to_hex(val)
+
+        return output
+
+    elif isinstance(value, bool):
+        return value
+
+    elif isinstance(value, numbers.Integral):
+        return hex(value)
+
+    else:
+        return value
 
 def _gen_call_repr(wrapped, *args, **kwargs):
     """Generate a representative message on how a method/function is called.
@@ -183,6 +207,9 @@ def _gen_call_repr(wrapped, *args, **kwargs):
     Returns:
         str: Method name with its arguments and keyword arguments.
     """
+    args = _convert_to_hex(args)
+    kwargs = _convert_to_hex(kwargs)
+
     kwargs_lst = sorted([('{}={}'.format(k, v)) for k, v in kwargs.items()])
     called_parameters = ', '.join(
         [str(param) for param in list(args) + kwargs_lst]

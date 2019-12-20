@@ -167,7 +167,7 @@ extern void wbs_dec_process_data(OPERATOR_DATA*, TOUCHED_TERMINALS*);
  *           2 means there is some data in input buffer, but unable to identify the WBS
  *             frame sync.
  */
-extern unsigned sco_decoder_wbs_validate(void* opdata, unsigned payload_length, unsigned *wbs_packet_length, unsigned *amount_advanced);
+extern unsigned sco_decoder_wbs_validate(void* opdata, unsigned payload_length, unsigned *wbs_packet_length, int *amount_advanced);
 
 /**
  * \brief Process an incoming WBS packet.

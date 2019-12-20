@@ -13,6 +13,11 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_clean_connections_fns;
+/*! Value used as a fail-safe timeut in case handset ACL is not closed.
+
+    This allows procedures/scripts to continue. */
+#define TWSTOP_PROC_CLOSE_HANDSET_IND_TIMEOUT_MS    (250)
+
+extern const tws_topology_procedure_fns_t proc_clean_connections_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_CLEAN_CONNECTIONS_H */

@@ -588,42 +588,6 @@ static void leAdvertisingManager_SetAllowAdvertising(bool allow)
     advMan->is_advertising_allowed = allow;
 }
 
-
-static void leAdvertisingManager_HandleLocalAddressConfigureCfmFailure(void)
-{    
-    DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleLocalAddressConfigureCfmFailure");
-    
-    adv_mgr_task_data_t *adv_task_data = AdvManagerGetTaskData();
-    
-    bool ret = 0;
-    
-    if(adv_task_data->dataset_handset_handle)
-    {
-        ret = MessageCancelAll(adv_task_data->dataset_handset_handle->task, LE_ADV_MGR_SELECT_DATASET_CFM);
-        if(ret)
-        {
-            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleLocalAddressConfigureCfmFailure Info, Reschedule cancelled LE_ADV_MGR_SELECT_DATASET_CFM messages");
-            MAKE_MESSAGE(LE_ADV_MGR_SELECT_DATASET_CFM);
-            message->status = le_adv_mgr_status_error_unknown;
-            MessageSendConditionally(adv_task_data->dataset_handset_handle->task, LE_ADV_MGR_SELECT_DATASET_CFM, message, &adv_task_data->blockingCondition);
-        }
-    }        
-    
-    ret = 0;
-    
-    if(adv_task_data->dataset_peer_handle)
-    {
-        ret = MessageCancelAll(adv_task_data->dataset_peer_handle->task, LE_ADV_MGR_SELECT_DATASET_CFM);
-        if(ret)
-        {
-            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleLocalAddressConfigureCfmFailure Info, Reschedule cancelled LE_ADV_MGR_SELECT_DATASET_CFM messages");
-            MAKE_MESSAGE(LE_ADV_MGR_SELECT_DATASET_CFM);
-            message->status = le_adv_mgr_status_error_unknown;
-            MessageSendConditionally(adv_task_data->dataset_peer_handle->task, LE_ADV_MGR_SELECT_DATASET_CFM, message, &adv_task_data->blockingCondition);
-        }
-    }        
-}
-
 /* Local Function to Handle Connection Library Advertise Enable Fail Response */
 static void leAdvertisingManager_HandleSetAdvertisingEnableCfmFailure(void)
 {
@@ -643,39 +607,10 @@ static void leAdvertisingManager_HandleSetAdvertisingEnableCfmFailure(void)
     MessageCancelAll(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE);
 }
 
-/* Local Function to Check if Local Address Setup is Required */
-static bool leAdvertisingManager_IsSetupLocalAddressRequired(void)
-{      
-    adv_mgr_task_data_t *adv_task_data = AdvManagerGetTaskData();
-    
-    if(adv_task_data->is_local_address_configured)
-        return FALSE;
-    
-    return TRUE;
-}
-
-/* Local Function to Set Up Advertising Parameters */
-static void leAdvertisingManager_SetupLocalAddress(void)
-{      
-    adv_mgr_task_data_t *adv_task_data = AdvManagerGetTaskData();
-
-    adv_task_data->blockingCondition = ADV_SETUP_BLOCK_ADV_LOCAL_ADDRESS_CFM;
-    
-    ConnectionDmBleConfigureLocalAddressAutoReq(ble_local_addr_generate_resolvable, NULL, BLE_RPA_TIMEOUT_DEFAULT);
-}
-
 /* Local Function to Set Up Advertising Parameters */
 static void leAdvertisingManager_SetupAdvertParams(const le_advert_start_params_t * params)
 {           
     DEBUG_LOG_LEVEL_1("leAdvertisingManager_SetupAdvertParams");
-        
-    if(leAdvertisingManager_IsSetupLocalAddressRequired())
-    {        
-        DEBUG_LOG_LEVEL_2("leAdvertisingManager_SetupAdvertParams Info, Local address setup is required");
-        
-        leAdvertisingManager_SetupLocalAddress();
-        return;
-    }   
     
     adv_mgr_task_data_t *adv_task_data = AdvManagerGetTaskData();
     adv_task_data->blockingCondition = ADV_SETUP_BLOCK_ADV_PARAMS_CFM;
@@ -710,7 +645,7 @@ static void leAdvertisingManager_HandleSetAdvertisingDataCfm(const CL_DM_BLE_SET
     else
     {
         DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingDataCfm Failure, Message Received in Unexpected Blocking Condition %x", adv_task_data->blockingCondition);
-        /* TODO: GAA LE Panic();*/
+        Panic();
     }
 }
 
@@ -741,8 +676,7 @@ static void leAdvertisingManager_HandleSetScanResponseDataCfm(const CL_DM_BLE_SE
     else
     {
         DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetScanResponseDataCfm Failure, Message Received in Unexpected Blocking Condition %x", adv_task_data->blockingCondition);    
-            
-       /* TODO: GAA LE Panic();*/
+        Panic();
     }
 }
 
@@ -781,48 +715,16 @@ static void leAdvertisingManager_HandleSetAdvertisingParamCfm(const CL_DM_BLE_SE
     }
 }
 
-/* Local Function to Handle Connection Library CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM Message */
-static void leAdvertisingManager_HandleLocalAddressConfigureCfm(const CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM_T *cfm)
+/* Local function to set the state machine to suspended state and cancel RPA notify messages */
+static void leAdvertisingManager_SetSuspendedStateAndCancelRpaNotifyMessages(void)
 {
-    DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleLocalAddressConfigureCfm");    
+    DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingEnableCfm");
     
-    adv_mgr_task_data_t *adv_task_data = AdvManagerGetTaskData();
+    LeAdvertisingManagerSm_SetState(le_adv_mgr_state_suspended);
     
-    if (adv_task_data->blockingCondition == ADV_SETUP_BLOCK_ADV_LOCAL_ADDRESS_CFM)
-    {            
-        DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleLocalAddressConfigureCfm Info, adv_task_data->blockingCondition is %x cfm->status is %x", adv_task_data->blockingCondition, cfm->status);    
-
-        if (success == cfm->status)
-        {
-            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleLocalAddressConfigureCfm Info, CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM received with success");    
-            
-            adv_task_data->is_local_address_configured = TRUE;
-            
-            leAdvertisingManager_SetupAdvertParams(&start_params);
-            
-        }
-        else
-        {                            
-            DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleLocalAddressConfigureCfm Failure, CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM received with failure");    
-            
-            leAdvertisingManager_HandleLocalAddressConfigureCfmFailure();
-            
-            adv_task_data->blockingCondition = ADV_SETUP_BLOCK_NONE;
-            
-        }            
-    }
-    else
-    {                            
-         DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleLocalAddressConfigureCfm Failure, Message Received in Unexpected Blocking Condition %x", adv_task_data->blockingCondition);    
-        
-        /* TO DO: Pending on Local Address Management Component */                            
-        /*Panic();*/
-    }
-    
-    
+    MessageCancelAll(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE);    
     
 }
-
 /* Local function to handle CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM message */
 static void leAdvertisingManager_HandleSetAdvertisingEnableCfm(const CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM_T *cfm)
 {
@@ -831,25 +733,31 @@ static void leAdvertisingManager_HandleSetAdvertisingEnableCfm(const CL_DM_BLE_S
     
     if (adv_task_data->blockingCondition == ADV_SETUP_BLOCK_ADV_ENABLE_CFM)
     {
-        if(LeAdvertisingManagerSm_IsSuspending())
+        if(hci_success == cfm->status)
         {
-            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in suspending state");    
-                        
-            /* Assume failure to disable is due to advertising already being disabled */
-            LeAdvertisingManagerSm_SetState(le_adv_mgr_state_suspended);
-            MessageCancelAll(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE);
-    
+            if(LeAdvertisingManagerSm_IsSuspending())
+            {
+                DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in suspending state");
+                
+                leAdvertisingManager_SetSuspendedStateAndCancelRpaNotifyMessages();
+            }
+            else if(LeAdvertisingManagerSm_IsAdvertisingStarting())
+            {
+                DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in starting state");
+
+                LeAdvertisingManagerSm_SetState(le_adv_mgr_state_started);
+                MessageSendLater(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE, NULL, D_SEC(BLE_RPA_TIMEOUT_DEFAULT));
+            }
         }
-        else if(LeAdvertisingManagerSm_IsAdvertisingStarting() && cfm->status == hci_success)
+        else if( (hci_error_command_disallowed == cfm->status) && LeAdvertisingManagerSm_IsSuspending() )
         {
-            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in starting state");    
-            
-            LeAdvertisingManagerSm_SetState(le_adv_mgr_state_started); 
-            MessageSendLater(AdvManagerGetTask(), LE_ADV_INTERNAL_MSG_NOTIFY_RPA_CHANGE, NULL, D_SEC(BLE_RPA_TIMEOUT_DEFAULT));
+            DEBUG_LOG_LEVEL_2("leAdvertisingManager_HandleSetAdvertisingEnableCfm Info, State machine is in suspending state, encountered an expected command disallowed error, treated as success, HCI status is %x", cfm->status);
+
+            leAdvertisingManager_SetSuspendedStateAndCancelRpaNotifyMessages();
         }
         else
         {
-            DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingEnableCfm Failure, CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM received with failure");    
+            DEBUG_LOG_LEVEL_1("leAdvertisingManager_HandleSetAdvertisingEnableCfm Failure, CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM received with failure, HCI status is %x", cfm->status);
             
             leAdvertisingManager_HandleSetAdvertisingEnableCfmFailure();
         }
@@ -930,6 +838,7 @@ static bool leAdvertisingManager_Start(const le_advert_start_params_t * params)
         else
         {
             DEBUG_LOG_LEVEL_2("leAdvertisingManager_Start Info, There is no data to advertise");
+            leAdvertisingManager_ClearData(start_params.set);
             return FALSE;
         }
     }
@@ -1004,7 +913,7 @@ static void leAdvertisingManager_SendReleaseDataSetCfmMessageConditionally(Task 
 }
 
 /* API Function to Register Callback Functions For LE Advertising Data */
-le_adv_mgr_register_handle LeAdvertisingManager_Register(Task task, const le_adv_data_callback_t * callback)
+le_adv_mgr_register_handle LeAdvertisingManager_Register(Task task, const le_adv_data_callback_t * const callback)
 {       
     DEBUG_LOG("LeAdvertisingManager_Register");
     
@@ -1155,11 +1064,7 @@ bool LeAdvertisingManager_HandleConnectionLibraryMessages(MessageId id, Message 
         case CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM:
             leAdvertisingManager_HandleSetAdvertisingEnableCfm((const CL_DM_BLE_SET_ADVERTISE_ENABLE_CFM_T *)message);
             return TRUE;
-            
-        case CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM:
-            leAdvertisingManager_HandleLocalAddressConfigureCfm((const CL_DM_BLE_CONFIGURE_LOCAL_ADDRESS_CFM_T *)message);
-            return TRUE;
-            
+
         default:
             return already_handled;
     }
@@ -1401,62 +1306,4 @@ bool LeAdvertisingManager_GetOwnAddressConfig(le_adv_own_addr_config_t * own_add
     own_address_config->timeout = BLE_RPA_TIMEOUT_DEFAULT;
     
     return TRUE;
-}
-
-/*! TODO: This is a test function to advertise Gaa Service untill VOICEUI-223  is fixed */
-void LeAdvertisingManager_SetupPretendScanResponse(void)
-{
-    uint16 size_name;
-    uint16 size_sr_data;
-
-    const char* name = (const char*)LocalName_GetPrefixedName(&size_name);
-
-    ConnectionDmBleSetAdvertiseEnable(FALSE);
-
-    uint8 ad_data[] =
-    {
-        2, ble_ad_type_flags, BLE_FLAGS_GENERAL_DISCOVERABLE_MODE | BLE_FLAGS_DUAL_CONTROLLER | BLE_FLAGS_DUAL_HOST,
-        5, ble_ad_type_complete_uuid16, 0x0F, 0x18, /* Battery */ 0x26, 0xFE, /* Gaa */
-    };
-
-    uint8 sr_data[31] =
-    {
-    /*  Gaa Comm service data; UUID = 0xFE26, ModelID = 0xF00100  */
-        6, ble_ad_type_service_data, 0x26, 0xFE, 0x00, 0x01, 0xF0
-    };
-
-    if (size_name > 22)
-    {
-        size_name = 22;
-        sr_data[8] = ble_ad_type_shortened_local_name;
-    }
-    else
-    {
-        sr_data[8] = ble_ad_type_complete_local_name;
-    }
-
-    size_sr_data = size_name + 9;
-    sr_data[7] = size_name + 1;
-
-    memcpy(sr_data + 9, name, size_name);
-
-    DEBUG_LOG("Advertising Data: %u", sizeof ad_data);
-
-    for(uint8 i = 0; i < sizeof ad_data; ++i)
-    {
-        uint8 ch = ad_data[i];
-        DEBUG_LOG("%3d 0x%02X %c", i, ch, ch > 31 && ch < 127 ? ch : '.');
-    }
-
-    DEBUG_LOG("Scan Response Data: %u", size_sr_data);
-
-    for(uint8 i = 0; i < size_sr_data; ++i)
-    {
-        uint8 ch = sr_data[i];
-        DEBUG_LOG("%3d 0x%02X %c", i, ch, ch > 31 && ch < 127 ? ch : '.');
-    }
-
-    ConnectionDmBleSetScanResponseDataReq(size_sr_data, sr_data);
-    ConnectionDmBleSetAdvertisingDataReq(sizeof ad_data, ad_data);
-    ConnectionDmBleSetAdvertiseEnable(TRUE);
 }

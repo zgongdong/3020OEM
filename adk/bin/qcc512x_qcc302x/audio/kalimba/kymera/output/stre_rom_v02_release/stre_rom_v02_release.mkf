@@ -1,5 +1,5 @@
-# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091617/kalimba/kymera/build/gen_config.py
-# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1910091617/kalimba/kymera/build/config/config.stre_rom_v02_release
+# Configuration file generated automatically by /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1911252038/kalimba/kymera/build/gen_config.py
+# from /home/svc-audio-dspsw/kymera_builds/builds/2019/kymera_1911252038/kalimba/kymera/build/config/config.stre_rom_v02_release
 # Any changes will be lost the next time the configuration is generated.
 
 CONFIG = stre_rom_v02_release

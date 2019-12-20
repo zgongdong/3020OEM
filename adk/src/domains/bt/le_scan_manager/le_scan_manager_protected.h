@@ -54,6 +54,13 @@ typedef struct
     uint16  scan_window;
 } le_scan_parameters_t;
 
+/* \brief LE scan settings. */
+typedef struct
+{
+    le_scan_interval_t scan_interval;
+    le_advertising_report_filter_t  filter;
+    Task scan_task;
+} le_scan_settings_t;
 
 /*! \brief LE scan manager task and state machine Strcuture. */
 typedef struct
@@ -62,10 +69,10 @@ typedef struct
    TaskData  task;
    /*! State for Scan Manager Module */
    scanState state;
-   /*! Current Scan Handle */
-   le_scan_handle_t confirmation_handle;
-   /*All Scan Handles*/
-   le_scan_handle_t active_handle[MAX_ACTIVE_SCANS];
+   /*! Current scan settings */
+   le_scan_settings_t *confirmation_settings;
+   /*! All scan settings */
+   le_scan_settings_t *active_settings[MAX_ACTIVE_SCANS];
    /*! Scan parameters */
    le_scan_parameters_t scan_parameters;
    /*! Pause State */

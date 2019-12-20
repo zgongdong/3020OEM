@@ -165,6 +165,8 @@ enum av_status_messages
     AV_A2DP_AUDIO_CONNECTED,
     AV_A2DP_AUDIO_DISCONNECTED,
 
+    /*! Message indicating that the media channel is available for use */
+
     AV_A2DP_CONNECT_CFM,
     AV_A2DP_DISCONNECT_CFM,
 
@@ -205,6 +207,9 @@ typedef struct
 {
     audio_source_t audio_source;
 } AV_A2DP_AUDIO_DISCONNECT_MESSAGE_T;
+
+
+/*! Message sent when the media channel is connected and available for use (whatever that means) */
 
 
 /*! \brief Message sent to indicate that an A2DP link has disconnected.
@@ -594,6 +599,17 @@ void appAvUiClientRegister(Task client_task);
 bool appAvConnectPeer(const bdaddr* peer_addr);
 bool appAvDisconnectPeer(const bdaddr* peer_addr);
 bool appAvConnectHandset(bool play);
+
+/*! If asked to connect to a handset, set the play flag so that media
+    starts on connection
+
+    \note This flag can be set directly using appAvConnectHandset() but a
+    handset connection can also be started via profile manager
+
+    \param  play    If TRUE, set the play flag
+ */
+void appAvPlayOnHandsetConnection(bool play);
+
 bool appAvConnectHandsetA2dpMedia(void);
 bool appAvDisconnectHandset(void);
 bool appAvConnectWithBdAddr(const bdaddr *bd_addr);
@@ -655,6 +671,7 @@ void appAvVolumeStop(int16 step);
 void appAvVolumeStart(int16 step);
 void appAvVolumeSet(uint8 volume, avInstanceTaskData *theOtherInst);
 bool appAvVolumeChange(int16 step);
+void appAvVolumeAttributeStore(avTaskData *theAv);
 
 /*! \brief Performs setup required when this device becomes the primary.
 

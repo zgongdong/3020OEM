@@ -32,8 +32,6 @@
 #include "volume_messages.h"
 
 #include <connection_manager.h>
-/*! \todo layer violation due to VMCSA-1327 */
-#include <tws_topology.h>
 
 /*! Macro for creating an AV message based on the message name */
 #define MAKE_AV_MESSAGE(TYPE) \
@@ -276,6 +274,9 @@ static void appAvrcpEnterDisconnected(avInstanceTaskData *theInst)
         TaskList_RemoveAllTasks(theInst->avrcp.client_list);
     }
     theInst->avrcp.client_lock = 0;
+
+    /* Clear notification lock */
+    theInst->avrcp.notification_lock = 0;
 
     /* Send ourselves a destroy message so that any other messages waiting on the
        operation lock can be handled */
@@ -1007,7 +1008,7 @@ static void appAvrcpSetPlaybackLock(avInstanceTaskData *theInst)
     }
 }
 
-static void appAvrcpClearPlaybackLock(avInstanceTaskData *theInst)
+void appAvrcpClearPlaybackLock(avInstanceTaskData *theInst)
 {
     if (theInst->avrcp.playback_lock)
     {
@@ -1324,7 +1325,7 @@ static void appAvrcpHandleAvrcpPassthroughIndication(avInstanceTaskData *theInst
                         if (ind->state == 0)
                         {
                             bdaddr peer_addr;
-                            TwsTopology_GetPeerBdAddr(&peer_addr);
+                            appDeviceGetPeerBdAddr(&peer_addr);
                             /* Make sure we are connected to default AV source */
                             if (appAvConnectPeer(&peer_addr))
                             {

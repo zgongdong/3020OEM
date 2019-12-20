@@ -9,6 +9,7 @@
 #include "le_advertising_manager_data.h"
 #include "le_advertising_manager_clients.h"
 #include "le_advertising_manager_uuid.h"
+#include "le_advertising_manager_local_name.h"
 
 #include <stdlib.h>
 #include <panic.h>
@@ -21,13 +22,21 @@
 
 #define for_all_params_in_set(params, set) for_all_completeness(params) for_all_placements(params) for_all_data_sets(params) if(set & (params)->data_set)
 
-
 typedef struct 
 {
     uint8  data[MAX_AD_DATA_SIZE_IN_OCTETS];
     uint8* head;
     uint8  space;
 } le_adv_data_packet_t;
+
+static void leAdvertisingManager_DebugDataItems(const uint8 size, const uint8 * data)
+{
+    if(size && data)
+    {
+        for(int i=0;i<size;i++)
+            DEBUG_LOG("Data[%d] is 0x%x", i, data[i]);
+    }
+}
 
 static le_adv_data_packet_t* leAdvertisingManager_CreatePacket(void)
 {
@@ -113,6 +122,7 @@ static void leAdvertisingManager_AddDataItem(const le_adv_data_item_t* item, con
         default:
         {
             added = FALSE;
+            DEBUG_LOG("leAdvertisingManager_AddDataItem, Unrecognised item placement attribute %d", params->placement);
             Panic();
             break;
         }
@@ -120,6 +130,13 @@ static void leAdvertisingManager_AddDataItem(const le_adv_data_item_t* item, con
     
     if(params->completeness != le_adv_data_completeness_can_be_skipped)
     {
+        DEBUG_LOG("leAdvertisingManager_AddDataItem, Cannot skip the item, item ptr is 0x%x", item);
+
+        if(item)
+        {
+            leAdvertisingManager_DebugDataItems(item->size, item->data);
+        }
+
         PanicFalse(added);
     }
 }
@@ -152,6 +169,12 @@ static void leAdvertisingManager_ProcessDataItem(const le_adv_data_item_t* item,
                 break;
             }
             
+            case ble_ad_type_complete_local_name:
+            {
+                LeAdvertisingManager_LocalNameRegister(item, params);
+                break;
+            }
+
             default:
             {
                 break;
@@ -171,10 +194,11 @@ static void leAdvertisingManager_BuildDataItem(const le_adv_data_item_t* item, c
             case ble_ad_type_complete_uuid16:
             case ble_ad_type_complete_uuid32:
             case ble_ad_type_complete_uuid128:
+            case ble_ad_type_complete_local_name:
             {
                 break;
             }
-            
+
             default:
             {
                 DEBUG_LOG("leAdvertisingManager_BuildDataItem %d", data_type);
@@ -195,7 +219,7 @@ static void leAdvertisingManager_ProcessClientData(le_adv_mgr_register_handle cl
         
         for(unsigned i = 0; i < num_items; i++)
         {
-            le_adv_data_item_t item = client_handle->callback.GetItem(params, i);
+            le_adv_data_item_t item = client_handle->callback->GetItem(params, i);
             leAdvertisingManager_ProcessDataItem(&item, params);
         }
     }
@@ -211,7 +235,7 @@ static void leAdvertisingManager_BuildClientData(le_adv_mgr_register_handle clie
         
         for(unsigned i = 0; i < num_items; i++)
         {
-            le_adv_data_item_t item = client_handle->callback.GetItem(params, i);
+            le_adv_data_item_t item = client_handle->callback->GetItem(params, i);
             leAdvertisingManager_BuildDataItem(&item, params);
         }
     }
@@ -223,7 +247,7 @@ static void leAdvertisingManager_ClearClientData(le_adv_mgr_register_handle clie
     
     if(num_items)
     {
-        client_handle->callback.ReleaseItems(params);
+        client_handle->callback->ReleaseItems(params);
     }
 }
 
@@ -263,6 +287,16 @@ static void leAdvertisingManager_ClearAllClientsData(const le_adv_data_params_t*
     }
 }
 
+static void leAdvertisingManager_BuildLocalNameData(const le_adv_data_params_t* params)
+{
+    le_adv_data_item_t item;
+    
+    if(LeAdvertisingManager_LocalNameGet(&item, params))
+    {
+        leAdvertisingManager_AddDataItem(&item, params);
+    }
+}
+
 static void leAdvertisingManager_BuildUuidData(const le_adv_data_params_t* params)
 {
     le_adv_data_item_t item;
@@ -289,6 +323,7 @@ bool leAdvertisingManager_BuildData(le_adv_data_set_t set)
     scan_rsp = leAdvertisingManager_CreatePacket();
     
     LeAdvertisingManager_UuidReset();
+    LeAdvertisingManager_LocalNameReset();
     
     for_all_params_in_set(&params, set)
     {
@@ -298,6 +333,7 @@ bool leAdvertisingManager_BuildData(le_adv_data_set_t set)
     for_all_params_in_set(&params, set)
     {
         leAdvertisingManager_BuildAllClientsData(&params);
+        leAdvertisingManager_BuildLocalNameData(&params);
         leAdvertisingManager_BuildUuidData(&params);
     }
     
@@ -313,6 +349,10 @@ void leAdvertisingManager_SetupScanResponseData(void)
     uint8 size_scan_rsp = leAdvertisingManager_GetPacketSize(scan_rsp);
     uint8* scan_rsp_start = size_scan_rsp ? scan_rsp->data : NULL;
     
+    DEBUG_LOG("leAdvertisingManager_SetupScanResponseData, Size is %d", size_scan_rsp);
+
+    leAdvertisingManager_DebugDataItems(size_scan_rsp, scan_rsp_start);
+
     ConnectionDmBleSetScanResponseDataReq(size_scan_rsp, scan_rsp_start);
 }
 
@@ -321,6 +361,10 @@ void leAdvertisingManager_SetupAdvertData(void)
     uint8 size_advert = leAdvertisingManager_GetPacketSize(advert);
     uint8* advert_start = size_advert ? advert->data : NULL;
     
+    DEBUG_LOG("leAdvertisingManager_SetupAdvertData, Size is %d", size_advert);
+
+    leAdvertisingManager_DebugDataItems(size_advert, advert_start);
+
     ConnectionDmBleSetAdvertisingDataReq(size_advert, advert_start);
 }
 

@@ -32,8 +32,10 @@ import argparse
 import glob
 from workspace_parse.workspace import Workspace
 
-import Tkinter as Tki 
-
+try:
+    import Tkinter as Tki  # Python 2.x
+except ImportError:
+    import tkinter as Tki  # Python 3.x
 
 class NoDeviceDetected(RuntimeError):
     """
@@ -302,9 +304,10 @@ def prompt_secondary_device_selection(devkit_root, primary_device_url):
                                                 if trb_dev.id != primary_device_id]
         other_usbdbg_devices = [UsbdbgDesc(usbdbg_dev) for usbdbg_dev in usbdbg_devices]
     elif primary_device_type in ("tc","usb2tc"):
+        # Unlike TRB devices USB degug devices return their ID as a string so we cast to int
         other_trb_devices = [TrbDesc(trb_dev) for trb_dev in trb_devices]
         other_usbdbg_devices = [UsbdbgDesc(usbdbg_dev) for usbdbg_dev in usbdbg_devices 
-                                                if usbdbg_dev.id != primary_device_id]
+                                                if int(usbdbg_dev.id) != primary_device_id]
     else:
         print("WARNING: unrecognised primary device URL '%s' during secondary "
               "device selection: aborting secondary device selection" % primary_device_url)
@@ -422,8 +425,12 @@ if __name__ == "__main__":
             pass
 
         primary_device_url = get_pylib_target(args.debug)
-        secondary_device_url = prompt_secondary_device_selection(args.kit,
+        # Only interested in secondary device in Pydbg tab
+        if args.tab_type is None:
+            secondary_device_url = prompt_secondary_device_selection(args.kit,
                                                                  primary_device_url)
+        else:
+            secondary_device_url = None
 
         #Setup the calling string for pydbg
         command_line = [args.pydbg_path]

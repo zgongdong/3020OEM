@@ -338,6 +338,7 @@ uint8 appHfpGetVolume(void);
 void appHfpConfigStore(void);
 void appHfpVolumeNotifyClients(uint8 new_volume);
 void appHfpError(MessageId id, Message message);
+void appHfpHandleInternalConfigWriteRequest(void);
 
 /*! \brief Register a task to receive HFP message group messages.
     \param task The task that will receive the messages.

@@ -253,6 +253,11 @@ typedef struct __wallclock_state
 #define rtime_to_rtime24(t) ((rtime24_t)(t & 0xFFFFFF))
 
 /**
+ * \brief  Convert sniff interval slots to sniff interval in milliseconds.
+ */
+#define rtime_get_sniff_interval_in_ms(slots) ((slots * 625)/1000)
+
+/**
  * \brief Calculate the time in microseconds before the time to play.
  * \param ttp The local-clock based time-to-play (in microseconds).
  * \return The time before the ttp, positive if the TTP is in the future,

@@ -33,6 +33,9 @@ typedef enum
 
     /*! Indication to clients that the Earbud role has changed. */
     TWS_TOPOLOGY_ROLE_CHANGED_IND,
+
+    /*! Indication to clients that handset have been disconnected. */
+    TWS_TOPOLOGY_HANDSET_DISCONNECTED_IND,
 } tws_topology_message_t;
 
 /*! Definition of status code returned by TWS Topology. */
@@ -104,17 +107,17 @@ bool TwsTopology_Init(Task init_task);
 */
 void TwsTopology_Start(Task requesting_task);
 
-/*! \brief Register client task to receive TWS_TOPOLOGY_ROLE_CHANGED_IND messages.
+/*! \brief Register client task to receive TWS topology messages.
  
-    \param[in] client_task Task to receive role changed message.
+    \param[in] client_task Task to receive messages.
 */
-void TwsTopology_RoleChangedRegisterClient(Task client_task);
+void TwsTopology_RegisterMessageClient(Task client_task);
 
-/*! \brief Unregister client task to stop receiving TWS_TOPOLOGY_ROLE_CHANGED_IND messages.
+/*! \brief Unregister client task to stop receiving TWS topology messages.
  
     \param[in] client_task Task to unregister.
 */
-void TwsTopology_RoleChangedUnRegisterClient(Task client_task);
+void TwsTopology_UnRegisterMessageClient(Task client_task);
 
 /*! \brief Find the current role of the Earbud.
     \return tws_topology_role Role of the Earbud.
@@ -171,9 +174,6 @@ void TwsTopology_SelectPrimaryAddress(bool primary);
 
 /*\}*/
 
-/*! \todo exposed to enable layer violation due to VMCSA-1327 */
-void TwsTopology_GetPeerBdAddr(bdaddr* addr);
-
 /*! \brief function for Application to prohibit or allow handover.
    
    If app sets prohibit to TRUE, handover will not occur. 
@@ -186,5 +186,16 @@ void TwsTopology_GetPeerBdAddr(bdaddr* addr);
     \param prohibit To prohibit or allow handover.
 */
 void TwsTopology_ProhibitHandover(bool prohibit);
+
+/*! \brief function to prohibit or allow connection to handset in TWS topology.
+   
+    Prohibits or allows topology to connect handset. When prohibited any connection attempt in progress will
+    be cancelled and any connected handset will be disconnected.
+
+    Note: By default handset connection is allowed.
+
+    \param prohibit TRUE to prohibit handset connection, FALSE to allow.
+*/
+void TwsTopology_ProhibitHandsetConnection(bool prohibit);
 
 #endif /* TWS_TOPOLOGY_H_ */

@@ -1,9 +1,8 @@
 /*!
-\copyright  Copyright (c) 2019 Qualcomm Technologies International, Ltd.\n
-            All Rights Reserved.\n
+\copyright  Copyright (c) 2019 Qualcomm Technologies International, Ltd.
+            All Rights Reserved.
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
-\version    
-\file       kymera_voice_capture.h
+\file
 \brief      Private header of voice captuer kymera module
 
 */
@@ -12,7 +11,7 @@
 #define KYMERA_VOICE_CAPTURE_H
 
 #include "domain_message.h"
-#include <audio_sbc_encoder_params.h>
+#include "va_audio_types.h"
 
 /*! \brief Messages send by kymera module. */
 typedef enum
@@ -27,7 +26,7 @@ typedef enum
 typedef struct
 {
     /*! TRUE on success, FALSE otherwise */
-    bool status;
+    bool   status;
     Source capture_source;
 } KYMERA_START_VOICE_CAPTURE_CFM_T;
 
@@ -39,22 +38,12 @@ typedef struct
     bool status;
 } KYMERA_STOP_VOICE_CAPTURE_CFM_T;
 
-/*! \brief Voice capture parameters */
-typedef struct
-{
-    union
-    {
-        sbc_encoder_params_t sbc;
-    } encoder_params;
-} voice_capture_params_t;
-
-#ifdef INCLUDE_KYMERA_VOICE_CAPTURE
 /*! \brief Start voice capture.
     \param client Task to send the CFM response to.
     \param params Parameters based on which the audio capture will be configured.
     \return A KYMERA_START_VOICE_CAPTURE_CFM message will be send to the client task.
 */
-void Kymera_StartVoiceCapture(Task client, const voice_capture_params_t *params);
+void Kymera_StartVoiceCapture(Task client, const va_audio_voice_capture_params_t *params);
 
 /*! \brief Stop voice capture.
     \param client Task to send the CFM response to.
@@ -65,10 +54,5 @@ void Kymera_StopVoiceCapture(Task client);
 /*! \brief Check if voice capture chain is up
 */
 bool Kymera_IsVoiceCaptureActive(void);
-#else
-#define Kymera_StartVoiceCapture(client, params) ((void)(0))
-#define Kymera_StopVoiceCapture(client) ((void)(0))
-#define Kymera_IsVoiceCaptureActive() FALSE
-#endif /* INCLUDE_KYMERA_VOICE_CAPTURE */
 
 #endif /* KYMERA_VOICE_CAPTURE_H */

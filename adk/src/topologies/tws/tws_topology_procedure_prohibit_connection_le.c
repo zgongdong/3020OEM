@@ -28,7 +28,7 @@ void TwsTopology_ProcedureProhibitConnectionLeStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureProhibitConnectionLeCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_prohibit_connection_le_fns = {
+const tws_topology_procedure_fns_t proc_prohibit_connection_le_fns = {
     TwsTopology_ProcedureProhibitConnectionLeStart,
     TwsTopology_ProcedureProhibitConnectionLeCancel,
     NULL,

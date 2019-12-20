@@ -57,7 +57,6 @@ bool get_pmalloc_config(pmalloc_pool_config *pool_config, unsigned *pool_config_
     /* Initialise pool_config array to zero */
     memset(pool_config, 0, MAX_NUM_POOLS * sizeof(pmalloc_pool_config));
  
-
     /* Add the pools request from the header to the returned array */
     pool_len = add_pmalloc_config(pool_config, MAX_NUM_POOLS, 0, pools_reqd,
                                   sizeof(pools_reqd)/sizeof(pools_reqd[0]));
@@ -247,7 +246,9 @@ static unsigned int add_pmalloc_config(pmalloc_pool_config *pool_config, unsigne
         /* Attempt to insert a new pool config element */
         inserted = FALSE;
 
-        new_size = source_config[i].size;
+        {
+            new_size = source_config[i].size;
+        }
         new_blocks = source_config[i].blocks;
 
         /* As we're now customer-facing, check the pool config element at this point

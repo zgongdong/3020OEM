@@ -152,8 +152,6 @@ typedef struct _TASK
 {
     taskid id; /**< priority + tskid of the task. Used as key to search
                           and identify task */
-    bool prunable; /**< State if this is a dynamic task and can be
-                                deleted*/
     void (*init)(void**); /**< Initialisation function. May be NULL */
     void (*handler)(void**); /**< Message handler. May be NULL */
     MSGQ *mqueues;   /**< Array of task's message queues. */
@@ -166,8 +164,9 @@ typedef struct _TASK
     MSG_FLUSH_HANDLER flush_msg;
     void *priv; /**< Private data for the task handler */
 #ifndef SCHEDULER_WITHOUT_RUNLEVELS
-    uint16f runlevel; /**< Runlevel of this task */
+    uint16 runlevel; /**< Runlevel of this task */
 #endif
+    unsigned int prunable:1; /**< If this is a dynamic task & can be deleted */
     struct _TASK  *next; /**< Pointer to the next task in a linked list */
 } TASK;
 
@@ -205,12 +204,11 @@ typedef void (*bg_int_fn)(void **priv);
 typedef struct _BGINT {
     /** BG int ID. Same as a task ID, except that bit 22 is set */
     taskid                  id;
-    bool                    prunable; /**< Indicates if this is a dynamic task
-                                            that can be deleted*/
     /** bg_int service function. */
     bg_int_fn               handler;
     /** Boolean or bitmap indicating the BG int has been raised */
-    uint16f                 raised;
+    uint16                  raised;
+    unsigned int            prunable:1; /**< Indicates if this is a dynamic task that can be deleted*/
     /** Pointer to either the associated task's or the local private memory
      * pointer. */
     void                    **ppriv;

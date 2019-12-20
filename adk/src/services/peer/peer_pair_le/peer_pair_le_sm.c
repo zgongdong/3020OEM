@@ -118,14 +118,12 @@ static void peer_pair_le_start_scanning(void)
 
 static void peer_pair_le_stop_scanning(void)
 {
-    peerPairLeRunTimeData *ppl = PeerPairLeGetData();
-
     DEBUG_LOG("peer_pair_le_stop_scanning");
 
-    if (ppl->scan)
+    if (LeScanManager_IsTaskScanning(PeerPairLeGetTask()))
     {
         MessageCancelAll(PeerPairLeGetTask(), PEER_PAIR_LE_TIMEOUT_FROM_FIRST_SCAN);
-        LeScanManager_Stop(PeerPairLeGetTask(),ppl->scan);
+        LeScanManager_Stop(PeerPairLeGetTask());
     }
 }
 

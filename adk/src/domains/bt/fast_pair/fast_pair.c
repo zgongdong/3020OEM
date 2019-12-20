@@ -156,6 +156,22 @@ static void fastPair_InitSessionData(void)
     theFastPair->session_data.aes_key = NULL;
 }
 
+/*! \brief Message Handler to handle CL messages coming from the application
+*/
+bool FastPair_HandleConnectionLibraryMessages(MessageId id, Message message, bool already_handled)
+{
+    switch(id)
+    {
+        case CL_SM_AUTHENTICATE_CFM:
+            DEBUG_LOG("FastPair_HandleConnectionLibraryMessages. CL_SM_AUTHENTICATE_CFM");
+            fastPair_AuthenticateCfm((CL_SM_AUTHENTICATE_CFM_T *)message);
+        break;
+
+        default:
+        break;
+    }
+    return already_handled;
+}
 
 /*! \brief Message Handler
 
@@ -163,7 +179,6 @@ static void fastPair_InitSessionData(void)
 */
 void FastPair_HandleMessage(Task task, MessageId id, Message message)
 {
-
     if((id >= GATT_FAST_PAIR_SERVER_MESSAGE_BASE) && (id < GATT_FAST_PAIR_SERVER_MESSAGE_TOP))
     {
         fastPair_GattFPServerMsgHandler(task, id, message);
@@ -409,9 +424,6 @@ bool FastPair_Init(Task init_task)
 
     /* Initialize the Fast Pair Advertising Interface */
     fastPair_SetUpAdvertising();
-
-    /* Initialize the Fast Pair Device Interface */
-    fastPair_DeviceInit();
 
     fastPair_InitSessionData();
 

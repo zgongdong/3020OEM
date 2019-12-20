@@ -11,6 +11,7 @@ ACAT's main script will import ACAT as a package and run it.
 import sys
 
 import ACAT
+from ACAT._version import __version__  # Used in ACAT Tab
 
 
 def main():

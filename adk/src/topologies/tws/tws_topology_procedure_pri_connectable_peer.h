@@ -13,7 +13,7 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_pri_connectable_peer_fns;
+extern const tws_topology_procedure_fns_t proc_pri_connectable_peer_fns;
 
 typedef struct
 {

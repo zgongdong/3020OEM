@@ -28,7 +28,7 @@ void TwsTopology_ProcedurePairPeerStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedurePairPeerCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_pair_peer_fns = {
+const tws_topology_procedure_fns_t proc_pair_peer_fns = {
     TwsTopology_ProcedurePairPeerStart,
     TwsTopology_ProcedurePairPeerCancel,
     NULL,

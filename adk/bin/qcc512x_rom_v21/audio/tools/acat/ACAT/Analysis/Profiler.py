@@ -128,7 +128,7 @@ class RunClksReader(threading.Thread, Analysis.Analysis):
         It uses the NUM_RUN_CLKS hardware register. It reads the register
         value and re-reads it after the given time; it calculates the
         cycle count (MCPS = millions of cycles per second) using the
-        following formula:
+        following formula::
 
                     delta * 2^register_shift
              MCPS = ------------------------

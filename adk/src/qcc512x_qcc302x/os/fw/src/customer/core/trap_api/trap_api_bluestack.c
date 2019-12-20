@@ -11,7 +11,7 @@
 #include "bluestack/l2cap_prim.h"
 #include "bluestack/rfcomm_prim.h"
 #include "bluestack/sds_prim.h"
-#include "bluestack/sdm_prim.h"
+#include "bluestack/mdm_prim.h"
 
 #include "ipc/ipc.h"
 #include "hydra_log/hydra_log.h"
@@ -27,7 +27,7 @@ PRESERVE_TYPE_FOR_DEBUGGING(L2CAP_PRIM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(RFC_PRIM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(SDC_PRIM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(SDS_PRIM_T)
-PRESERVE_TYPE_FOR_DEBUGGING(SDM_PRIM_T)
+PRESERVE_TYPE_FOR_DEBUGGING(MDM_PRIM_T)
 
 PRESERVE_TYPE_FOR_DEBUGGING(RFC_CLIENT_CONNECT_CFM_T)
 PRESERVE_TYPE_FOR_DEBUGGING(RFC_SERVER_CONNECT_CFM_T)
@@ -47,8 +47,8 @@ Task MessageAttTask(Task task)
 }
 #endif
 
-#if TRAPSET_SHADOWING
-Task MessageSdmTask(Task task)
+#if TRAPSET_MIRRORING
+Task MessageMdmTask(Task task)
 {
     return trap_api_register_message_task(task, IPC_MSG_TYPE_SDM);
 }
@@ -82,11 +82,11 @@ void VmSendSdpPrim(void * prim)
 }
 #endif
 
-#if TRAPSET_SHADOWING
-void VmSendSdmPrim(void * prim)
+#if TRAPSET_MIRRORING
+void VmSendMdmPrim(void * prim)
 {
-    L3_DBG_MSG1("SDM PRIM: ID 0x%x",((uint16*)prim)[0]);
-    ipc_send_bluestack(SDM_PRIM, prim);
+    L3_DBG_MSG1("MDM PRIM: ID 0x%x",((uint16*)prim)[0]);
+    ipc_send_bluestack(MDM_PRIM, prim);
 }
 #endif
 
@@ -195,7 +195,7 @@ void trap_api_send_bluestack_message(uint16 protocol, void *prim)
         case ATT_PRIM:
             hdlr = registered_hdlrs[IPC_MSG_TYPE_ATT];
         break;
-        case SDM_PRIM:
+        case MDM_PRIM:
             hdlr = registered_hdlrs[IPC_MSG_TYPE_SDM];
         break;
         default:
@@ -222,7 +222,7 @@ void trap_api_send_bluestack_message(uint16 protocol, void *prim)
             case SDP_PRIM:
                 L3_DBG_MSG1("SDP EVT: ID 0x%x",((uint16*)prim)[0]);
             break;
-            case SDM_PRIM:
+            case MDM_PRIM:
                 L3_DBG_MSG1("SDM EVT: ID 0x%x",((uint16*)prim)[0]);
             break;
             default:

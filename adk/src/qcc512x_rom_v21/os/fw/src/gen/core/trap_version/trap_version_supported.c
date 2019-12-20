@@ -5,7 +5,7 @@
  */
 #include "hydra/hydra_types.h"
 
-const uint32 trap_version[3] = {10, 2, 0};
+const uint32 trap_version[3] = {10, 3, 0};
 
 const uint32 trapset_bitmap[3] =
 {
@@ -13,7 +13,6 @@ const uint32 trapset_bitmap[3] =
     (1 <<  3) | /* FILE */
     (1 <<  4) | /* VOICE */
     (1 <<  5) | /* UART */
-    (1 <<  7) | /* ENERGY */
     (1 << 10) | /* AUDIO */
     (1 << 12) | /* KALIMBA */
     (1 << 13) | /* RFCOMM */

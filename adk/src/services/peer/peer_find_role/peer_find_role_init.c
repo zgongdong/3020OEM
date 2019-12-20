@@ -55,7 +55,7 @@ static const gatt_connect_observer_callback_t peer_find_role_connect_callback =
     .OnDisconnection = peer_find_role_GattDisconnect
 };
 
-static le_adv_data_callback_t peer_find_role_advert_callback =
+static const le_adv_data_callback_t peer_find_role_advert_callback =
 {
     .GetNumberOfItems = peer_find_role_NumberOfAdvItems,
     .GetItem = peer_find_role_GetAdvDataItems,
@@ -240,14 +240,21 @@ void peer_find_role_completed(peer_find_role_message_t role)
 
 void peer_find_role_notify_timeout(void)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+    if(PeerFindRole_GetFixedRole() == peer_find_role_fixed_role_secondary)
+    {
+        DEBUG_LOG("peer_find_role_notify_timeout. Don't notify clients. We're always secondary");
+    }
+    else
+    {
+        peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
-    DEBUG_LOG("peer_find_role_notify_timeout. Now acting primary");
+        DEBUG_LOG("peer_find_role_notify_timeout. Now acting primary");
 
         /*! \todo We will use different states for fast/slow
             We only timeout once, clear the flag */
-    pfr->role_timeout_ms = 0;
-    peer_find_role_notify_clients_immediately(PEER_FIND_ROLE_ACTING_PRIMARY);
+        pfr->role_timeout_ms = 0;
+        peer_find_role_notify_clients_immediately(PEER_FIND_ROLE_ACTING_PRIMARY);
+    }
 }
 
 
@@ -511,6 +518,31 @@ static void peer_find_role_handle_battery_level(const MESSAGE_BATTERY_LEVEL_UPDA
     pfr->scoring_info.battery_level_percent = battery->percent;
 }
 
+/*! Calculate which role the peer device should take based of the figure of merits
+
+    \param their_figure_of_merit Peer device figure of merit
+ */
+static GattRoleSelectionServiceControlOpCode
+            peerFindRole_CalculatePeerRoleOpcode(grss_figure_of_merit_t their_figure_of_merit)
+{
+    GattRoleSelectionServiceControlOpCode opcode = GrssOpcodeBecomeSecondary;
+
+    grss_figure_of_merit_t my_figure_of_merit;
+
+    peer_find_role_calculate_score();
+    my_figure_of_merit = peer_find_role_score();
+
+    DEBUG_LOG("peerFindRole_CalculatePeerRoleOpcode. My figure of merit:0x%x, Theirs:0x%x",
+               my_figure_of_merit,
+               their_figure_of_merit);
+
+    if (their_figure_of_merit > my_figure_of_merit)
+    {
+        opcode = GrssOpcodeBecomePrimary;
+    }
+
+    return opcode;
+}
 
 /*! Handler for the figure of merit from our peer
 
@@ -525,28 +557,32 @@ static void peer_find_role_handle_battery_level(const MESSAGE_BATTERY_LEVEL_UPDA
  */
 static void peer_find_role_handle_figure_of_merit(const GATT_ROLE_SELECTION_CLIENT_FIGURE_OF_MERIT_IND_T *ind)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-
     if (GRSS_FIGURE_OF_MERIT_INVALID == ind->figure_of_merit)
     {
         DEBUG_LOG("peer_find_role_handle_figure_of_merit ignoring invalid fom 0x%x", ind->figure_of_merit);
     }
     else
     {
-        grss_figure_of_merit_t theirs = ind->figure_of_merit;
-        grss_figure_of_merit_t mine;
-        pfr->remote_role = GrssOpcodeBecomeSecondary;
+        peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
 
         TimestampEvent(TIMESTAMP_EVENT_PEER_FIND_ROLE_MERIT_RECEIVED);
 
-        peer_find_role_calculate_score();
-        mine = peer_find_role_score();
-
-        DEBUG_LOG("peer_find_role_handle_figure_of_merit. Mine:0x%x Theirs:0x%x", mine, theirs);
-
-        if (theirs > mine)
+        switch(PeerFindRole_GetFixedRole())
         {
-            pfr->remote_role = GrssOpcodeBecomePrimary;
+            case peer_find_role_fixed_role_primary:
+                DEBUG_LOG("peer_find_role_handle_figure_of_merit. Fixed as a primary, tell other device to become secondary");
+                pfr->remote_role = GrssOpcodeBecomeSecondary;
+                break;
+
+            case peer_find_role_fixed_role_secondary:
+                DEBUG_LOG("peer_find_role_handle_figure_of_merit. Fixed as a secondary, tell other device to become primary");
+                pfr->remote_role = GrssOpcodeBecomePrimary;
+                break;
+
+            default:
+                DEBUG_LOG("peer_find_role_handle_figure_of_merit. Calculate peer role");
+                pfr->remote_role  = peerFindRole_CalculatePeerRoleOpcode(ind->figure_of_merit);
+                break;
         }
 
         GattRoleSelectionClientChangePeerRole(&pfr->role_selection_client,
@@ -576,9 +612,7 @@ static void peer_find_role_handle_connect_to_peer(void)
  */
 static void peer_find_role_handle_enable_scanning(void)
 {
-    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-
-    if (!pfr->scan)
+    if (!LeScanManager_IsTaskScanning(PeerFindRoleGetTask()))
     {
         DEBUG_LOG("peer_find_role_handle_enable_scanning. State: %d", peer_find_role_get_state());
 
@@ -631,7 +665,8 @@ void peer_find_role_update_media_flag(bool busy, peerFindRoleMediaBusyStatus_t m
         || (old_media_busy != pfr->media_busy))
     {
         DEBUG_LOG("peer_find_role_update_media_flag. Now 0x%x. Scan:%p. State:%d",
-                    pfr->media_busy, pfr->scan, pfr->state);
+                    pfr->media_busy,
+                    !LeScanManager_IsTaskScanning(PeerFindRoleGetTask()), pfr->state);
     }
 
 }
@@ -1082,12 +1117,52 @@ static void peer_find_role_handle_con_manager_disconnection(const CON_MANAGER_TP
 static void peer_find_role_handle_le_scan_manager_start_cfm(const LE_SCAN_MANAGER_START_CFM_T* cfm)
 {
     peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
-    pfr->scan = NULL;
-    if(cfm->status == LE_SCAN_MANAGER_RESULT_SUCCESS)
+
+    switch (cfm->status)
     {
-        pfr->scan = cfm->handle;
-        peer_find_role_scan_activity_set(PEER_FIND_ROLE_ACTIVE_SCANNING);
-    }    
+        case LE_SCAN_MANAGER_RESULT_SUCCESS:
+            DEBUG_LOG("peer_find_role_handle_le_scan_manager_start_cfm success");
+            peer_find_role_scan_activity_set(PEER_FIND_ROLE_ACTIVE_SCANNING);
+        break;
+
+        case LE_SCAN_MANAGER_RESULT_BUSY:
+            if (pfr->scan_enable)
+            {
+                DEBUG_LOG("peer_find_role_handle_le_scan_manager_start_cfm busy retrying");
+                peer_find_role_start_scanning_if_inactive();
+            }
+        break;
+
+        default:
+        case LE_SCAN_MANAGER_RESULT_FAILURE:
+            DEBUG_LOG("peer_find_role_handle_le_scan_manager_start_cfm  ignoring failure");
+        break;
+    }
+}
+
+static void peer_find_role_handle_le_scan_manager_stop_cfm(const LE_SCAN_MANAGER_STOP_CFM_T *cfm)
+{
+    peerFindRoleTaskData *pfr = PeerFindRoleGetTaskData();
+
+    switch (cfm->status)
+    {
+        case LE_SCAN_MANAGER_RESULT_SUCCESS:
+            DEBUG_LOG("peer_find_role_handle_le_scan_manager_stop_cfm success");
+        break;
+
+        case LE_SCAN_MANAGER_RESULT_BUSY:
+            if (!pfr->scan_enable)
+            {
+                DEBUG_LOG("peer_find_role_handle_le_scan_manager_stop_cfm busy retrying");
+                peer_find_role_stop_scan_if_active();
+            }
+        break;
+
+        default:
+        case LE_SCAN_MANAGER_RESULT_FAILURE:
+            DEBUG_LOG("peer_find_role_handle_le_scan_manager_stop_cfm  ignoring failure");
+        break;
+    }
 }
 
 static void peer_find_role_handle_prepared(void)
@@ -1134,6 +1209,25 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
 
     UNUSED(task);
 
+    /* Always handled messages */
+    switch (id)
+    {
+        /* ---- LE SCAN Manager messages ----
+            LESM can respond with LE_SCAN_MANAGER_RESULT_BUSY. If this happens
+            peer find role may need to re-try starting/stopping scanning.
+        */
+        case LE_SCAN_MANAGER_START_CFM:
+            peer_find_role_handle_le_scan_manager_start_cfm((LE_SCAN_MANAGER_START_CFM_T*)message);
+            return;
+
+        case LE_SCAN_MANAGER_STOP_CFM:
+            peer_find_role_handle_le_scan_manager_stop_cfm((LE_SCAN_MANAGER_STOP_CFM_T*)message);
+            return;
+
+        default:
+            break;
+    }
+
             /****************************************
              * MOST MESSAGES RECEIVED EVEN WHEN PEER
              * FIND ROLE IS NOT ACTIVE
@@ -1168,16 +1262,6 @@ static void peer_find_role_handler(Task task, MessageId id, Message message)
              case LE_ADV_MGR_RELEASE_DATASET_CFM:
                  peer_find_role_handle_adv_mgr_release_dataset_cfm((const LE_ADV_MGR_RELEASE_DATASET_CFM_T *)message);
                  break;
-
-             /* ---- LE SCAN Manager messages ---- */
-            case LE_SCAN_MANAGER_START_CFM:
-                DEBUG_LOG("peer_find_role_handler LE Scan Manager is Started!");
-                peer_find_role_handle_le_scan_manager_start_cfm((LE_SCAN_MANAGER_START_CFM_T*)message);
-                break;
-
-            case LE_SCAN_MANAGER_STOP_CFM:
-                DEBUG_LOG("peer_find_role_handler LE Scan Manager is Stopped!");
-                break;
 
             case LE_SCAN_MANAGER_ADV_REPORT_IND:
                 peer_find_role_handle_adv_report_ind((const LE_SCAN_MANAGER_ADV_REPORT_IND_T*)message);
@@ -1521,6 +1605,9 @@ bool PeerFindRole_Init(Task init_task)
     TaskList_Initialise(&peer_find_role.prepare_tasks);
 
     peer_find_role_set_state(PEER_FIND_ROLE_STATE_INITIALISED);
+
+    /* invalidate the fixed role setting forcing a PsRetrieve */
+    peer_find_role.fixed_role = peer_find_role_fixed_role_invalid;
 
     return TRUE;
 }

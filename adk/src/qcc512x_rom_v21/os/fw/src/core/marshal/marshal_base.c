@@ -25,6 +25,25 @@ static void base_mobs_init(marshal_base_t *base)
     assert(mobs_push(&base->object_set, &null_obj));
 }
 
+static void base_initialise_type_filters(marshal_base_t *base)
+{
+    uint32 type;
+    for (type = 0; type < base->type_desc_list_elements; type++)
+    {
+        uint32 member;
+        const marshal_type_descriptor_t *type_desc = base->type_desc_list[type];
+        for (member = 0; member < type_desc->members_len; member++)
+        {
+            const marshal_member_descriptor_t *member_desc = &type_desc->u.members[member];
+            if (member_desc->is_shared)
+            {
+                base->has_shared_objects = TRUE;
+                return;
+            }
+        }
+    }
+}
+
 void base_init(marshal_base_t *base,
                const marshal_type_descriptor_t * const *type_desc_list,
                size_t type_desc_list_elements)
@@ -33,8 +52,9 @@ void base_init(marshal_base_t *base,
 
     base_mobs_init(base);
 
-    base->type_desc_list_elements = type_desc_list_elements;
+    base->type_desc_list_elements = (uint8)type_desc_list_elements;
     base->type_desc_list = type_desc_list;
+    base_initialise_type_filters(base);
 }
 
 void base_uninit(marshal_base_t *base, bool free_all_objects)
@@ -223,6 +243,7 @@ static bool traverse_callback(marshal_base_t *base,
 bool object_tree_traverse(marshal_base_t *base, mob_t *object,
                           const traverse_callbacks_t *callbacks)
 {
+#ifdef ITERATIVE_TRAVERSE
     mobs_t object_set;
     mobs_init(&object_set);
     assert(mobs_push(&object_set, object));
@@ -230,10 +251,13 @@ bool object_tree_traverse(marshal_base_t *base, mob_t *object,
     while (mobs_size(&object_set))
     {
         mob_t parent;
+        assert(mobs_pop(&object_set, &parent));
+#else
+    {
+        mob_t parent = *object;
+#endif
         uint32 member;
         const marshal_type_descriptor_t *parent_type;
-
-        assert(mobs_pop(&object_set, &parent));
 
         parent_type = base->type_desc_list[parent.type];
 
@@ -241,7 +265,9 @@ bool object_tree_traverse(marshal_base_t *base, mob_t *object,
         if (!parent_type->members_len && callbacks->leaf_member &&
             !callbacks->leaf_member(base, &parent))
         {
+#ifdef ITERATIVE_TRAVERSE
             mobs_destroy(&object_set);
+#endif
             return FALSE;
         }
 
@@ -256,7 +282,7 @@ bool object_tree_traverse(marshal_base_t *base, mob_t *object,
             array_elements = member_descriptor->array_elements;
 
             /* Only change array elements for final member */
-            if (member_descriptor == (parent_type->u.members + (parent_type->members_len - 1)))
+            if (member == ((uint32)parent_type->members_len - 1))
             {
                 if (parent_type->dynamic_length &&
                     parent_type->dynamic_type == MARSHAL_DYNAMIC_ARRAY)
@@ -298,20 +324,31 @@ bool object_tree_traverse(marshal_base_t *base, mob_t *object,
                 child.type = arr_descriptor->type;
                 if (!traverse_callback(base, arr_descriptor, &child, &parent, callbacks))
                 {
+#ifdef ITERATIVE_TRAVERSE
                     mobs_destroy(&object_set);
+#endif
                     return FALSE;
                 }
 
                 if (!arr_descriptor->is_pointer && member_type->members_len)
                 {
+#ifdef ITERATIVE_TRAVERSE
                     /* Push item on the set - this function will subsequently
                        iterate through the members of the child */
                     assert(mobs_push(&object_set, &child));
+#else
+                    if (!object_tree_traverse(base, &child, callbacks))
+                    {
+                        return FALSE;
+                    }
+#endif
                 }
             }
         }
     }
+#ifdef ITERATIVE_TRAVERSE
     mobs_destroy(&object_set);
+#endif
     return TRUE;
 }
 

@@ -580,18 +580,18 @@ uint16 sdp_GetHandoverProfileAttributeSearchRequestSize(void)
     return sizeof(handover_profile_attribute_list);
 }
 
-/* Offset of the PSM in the Shadow Profile service record */
-#define SHADOW_PROFILE_L2CAP_PSM_OFFSET (33)
+/* Offset of the PSM in the Mirror Profile service record */
+#define MIRROR_PROFILE_L2CAP_PSM_OFFSET (33)
 
-/* Shadow Profile service record */
-static const uint8 shadow_profile_service_record[] =
+/* Mirror Profile service record */
+static const uint8 mirror_profile_service_record[] =
 {
    /* Offset */ /* ServiceClassIDList(0x0001), Data Element Sequence */
     /*  0 */    SDP_ATTR_ID(UUID_SERVICE_CLASS_ID_LIST),
     /*  3 */        SDP_DATA_EL_SEQ(17),
 
-    /*  UUID Qualcomm Shadow Profile (0000eb07-d102-11e1-9b23-00025b00a5a5) */
-    /*  5 */        SDP_DATA_EL_UUID128(UUID_SHADOW_PROFILE_SERVICE),
+    /*  UUID Qualcomm Mirror Profile (0000eb07-d102-11e1-9b23-00025b00a5a5) */
+    /*  5 */        SDP_DATA_EL_UUID128(UUID_MIRROR_PROFILE_SERVICE),
 
     /* 22 */    SDP_ATTR_ID(UUID_PROTOCOL_DESCRIPTOR_LIST),
     /* 25 */        SDP_DATA_EL_SEQ(8),
@@ -601,89 +601,89 @@ static const uint8 shadow_profile_service_record[] =
     /* 32 */                SDP_DATA_EL_UINT16(0x9999)
 };
 
-/* Shadow profile service search request */
-static const uint8 shadow_profile_service_search_request[] =
+/* Mirror profile service search request */
+static const uint8 mirror_profile_service_search_request[] =
 {
     SDP_DATA_EL_SEQ(17),                     /* type = DataElSeq, 17 bytes in DataElSeq */
-        SDP_DATA_EL_UUID128(UUID_SHADOW_PROFILE_SERVICE),
+        SDP_DATA_EL_UUID128(UUID_MIRROR_PROFILE_SERVICE),
 };
 
-/* Shadow profile attribute search request */
-static const uint8 shadow_profile_attribute_list[] =
+/* Mirror profile attribute search request */
+static const uint8 mirror_profile_attribute_list[] =
 {
     SDP_DATA_EL_SEQ(3),                                /* Data Element Sequence of 3 */
         SDP_ATTR_ID(UUID_PROTOCOL_DESCRIPTOR_LIST),
 };
 
 
-/*! \brief Set Shadow Profile L2CAP PSM into service record.
+/*! \brief Set Mirror Profile L2CAP PSM into service record.
 
     \param[in] record       Pointer to SDP service record.
-    \param[in] psm          PSM of Shadow profile.
+    \param[in] psm          PSM of Mirror profile.
 */
-void appSdpSetShadowProfilePsm(uint8 *record, uint16 psm)
+void appSdpSetMirrorProfilePsm(uint8 *record, uint16 psm)
 {
-    record[SHADOW_PROFILE_L2CAP_PSM_OFFSET + 0] = (psm >> 8) & 0xFF;
-    record[SHADOW_PROFILE_L2CAP_PSM_OFFSET + 1] = (psm >> 0) & 0xFF;
+    record[MIRROR_PROFILE_L2CAP_PSM_OFFSET + 0] = (psm >> 8) & 0xFF;
+    record[MIRROR_PROFILE_L2CAP_PSM_OFFSET + 1] = (psm >> 0) & 0xFF;
 }
 
-/*! \brief Get a pointer to the service record of Shadow Profile.
+/*! \brief Get a pointer to the service record of Mirror Profile.
 
-    \returns A pointer to the service record of Shadow Profile.
+    \returns A pointer to the service record of Mirror Profile.
 */
-const uint8 *appSdpGetShadowProfileServiceRecord(void)
+const uint8 *appSdpGetMirrorProfileServiceRecord(void)
 {
-    return shadow_profile_service_record;
+    return mirror_profile_service_record;
 }
 
-/*! \brief Get the size of the Shadow Profile service record.
+/*! \brief Get the size of the Mirror Profile service record.
 
-    \returns Size of Shadow Profile service record.
+    \returns Size of Mirror Profile service record.
 */
-uint16 appSdpGetShadowProfileServiceRecordSize(void)
+uint16 appSdpGetMirrorProfileServiceRecordSize(void)
 {
-    return sizeof(shadow_profile_service_record);
+    return sizeof(mirror_profile_service_record);
 }
 
-/*! \brief Get a pointer to an SDP search record that can be used to find Shadow Profile.
+/*! \brief Get a pointer to an SDP search record that can be used to find Mirror Profile.
 
     The pointer returned can be passed to ConnectionSdpServiceSearchAttributeRequest
     as the search_pattern parameter.
 
-    \returns A pointer to an SDP search record that can be used to find a Shadow Profile.
+    \returns A pointer to an SDP search record that can be used to find a Mirror Profile.
  */
-const uint8 *appSdpGetShadowProfileServiceSearchRequest(void)
+const uint8 *appSdpGetMirrorProfileServiceSearchRequest(void)
 {
-    return shadow_profile_service_search_request;
+    return mirror_profile_service_search_request;
 }
 
-/*! \brief Get the size of Shadow Profile search request record.
+/*! \brief Get the size of Mirror Profile search request record.
 
-    \returns The size of Shadow Profile search request record.
+    \returns The size of Mirror Profile search request record.
 */
-uint16 appSdpGetShadowProfileServiceSearchRequestSize(void)
+uint16 appSdpGetMirrorProfileServiceSearchRequestSize(void)
 {
-    return sizeof(shadow_profile_service_search_request);
+    return sizeof(mirror_profile_service_search_request);
 }
 
-/*! \brief Gets pointer to an attribute search record that can be used to find Shadow Profile.
+/*! \brief Gets pointer to an attribute search record that can be used to find Mirror Profile.
 
     The pointer returned can be passed to ConnectionSdpServiceSearchAttributeRequest
     as the search_pattern parameter.
 
-    \returns A pointer to an attribute search record that can be used to find Shadow Profile.
+    \returns A pointer to an attribute search record that can be used to find Mirror Profile.
 */
-const uint8 *appSdpGetShadowProfileAttributeSearchRequest(void)
+const uint8 *appSdpGetMirrorProfileAttributeSearchRequest(void)
 {
-    return shadow_profile_attribute_list;
+    return mirror_profile_attribute_list;
 }
 
 /*! \brief Gets the size of attribute search request record.
 
-    \returns The size of Shadow Profile attribute search request record.
+    \returns The size of Mirror Profile attribute search request record.
 */
-uint16 appSdpGetShadowProfileAttributeSearchRequestSize(void)
+uint16 appSdpGetMirrorProfileAttributeSearchRequestSize(void)
 {
-    return sizeof(shadow_profile_attribute_list);
+    return sizeof(mirror_profile_attribute_list);
 }
 

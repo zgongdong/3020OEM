@@ -16,7 +16,6 @@
 
 #define DEFAULT_OUTPUT_SAMPLE_RATE (48000)
 #define DEFAULT_MIC_SAMPLE_RATE    (8000)
-#define UCID                       (UCID_AEC_WB_VA)
 
 typedef enum
 {
@@ -117,7 +116,7 @@ static void kymera_RemoveAecConnection(aec_connections_t connection)
 
 static kymera_operator_ucid_t kymera_GetAecUcid(void)
 {
-    return UCID;
+    return UCID_AEC_WB_VA;
 }
 
 static void kymera_ConfigureAecChain(void)

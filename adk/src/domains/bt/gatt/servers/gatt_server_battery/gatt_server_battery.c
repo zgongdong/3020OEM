@@ -55,7 +55,7 @@ static const gatt_connect_observer_callback_t gatt_battery_connect_observer_call
     .OnDisconnection = gattServerBattery_RemoveClient
 };
 
-static le_adv_data_callback_t gatt_battery_le_advert_callback =
+static const le_adv_data_callback_t gatt_battery_le_advert_callback =
 {
     .GetNumberOfItems = gattServerBattery_NumberOfAdvItems,
     .GetItem = gattServerBattery_GetAdvDataItems,

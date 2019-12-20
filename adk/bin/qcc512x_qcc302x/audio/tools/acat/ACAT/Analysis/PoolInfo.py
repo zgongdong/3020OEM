@@ -202,9 +202,10 @@ class PoolInfo(Analysis.Analysis):
         for pool in range(self.pool_count):
             # Work out the extent of the pool
             start_of_pool = self.p_pool[pool]
-            block_size = self.pooldata[pool].get_member(
+            block_size_words = self.pooldata[pool].get_member(
                 'blockSizeWords'
             ).value + self.block_overhead_words
+            block_size = block_size_words * Arch.addr_per_word
 
             # get total number of blocks
             blocks_total = self._get_blockcount(pool)
@@ -539,6 +540,8 @@ class PoolInfo(Analysis.Analysis):
 
         We need need this information to get the memory pool usage.
         """
+        self.core = self.chipdata.get_reg_strict('$PROCESSOR_ID').value
+
         # Look up the data addresses of the variables we need
         self.pooldata = self.chipdata.get_var_strict(
             'L_aMemoryPoolControl'
@@ -569,9 +572,14 @@ class PoolInfo(Analysis.Analysis):
         )  # Pool control block
 
         # Look up for the pool block count
-        self.pool_block_count_p1 = self.chipdata.get_var_strict(
-            'L_pool_block_counts_p1'
-        )  # Pool control block
+        try:
+            self.pool_block_count_p1 = self.chipdata.get_var_strict(
+                'L_pool_block_counts_p1'
+            )  # Pool control block
+        except DebugInfoNoVariableError:
+            # The variable might be missing in some emulators. i.e. Kalsim.
+            if self.core != 0:
+                raise
 
         # Blocks all have a header, so work out the actual size of each
         # block (in words).  block_header_size needs to be rounded up
@@ -609,8 +617,6 @@ class PoolInfo(Analysis.Analysis):
         poolname = "L_mem2PoolEnd"
         self.p_pool_ends.append(
             self.chipdata.get_var_strict(poolname).value)
-
-        self.core = self.chipdata.get_reg_strict('$PROCESSOR_ID').value
 
     def _inspect_pool(self, pool):
         """Examines a memory pool.

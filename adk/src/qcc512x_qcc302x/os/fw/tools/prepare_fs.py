@@ -5,16 +5,22 @@
 # Copyright (c) 2016 Qualcomm Technologies International, Ltd.
 #   %%version
 #
-############################################################################# 
+#############################################################################
+
+from __future__ import print_function
 
 # Create an LPC file system
 
-import sys, optparse, subprocess, os, tempfile
+import optparse
+import os
+import subprocess
+import sys
+import tempfile
 
-scriptdir = os.path.dirname(os.path.abspath(__file__))
-pylibdir = os.path.join(scriptdir, "pylib")
-if not pylibdir in sys.path:
-    sys.path.insert(0, pylibdir)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PYLIB_DIR = os.path.join(SCRIPT_DIR, "pylib")
+if PYLIB_DIR not in sys.path:
+    sys.path.insert(0, PYLIB_DIR)
 
 from csr.dev.fw.meta.xuv_stream_decoder import XUVStreamDecoder
 from csr.dev.fw.meta.xuv_stream_encoder import XUVStreamEncoder
@@ -29,88 +35,88 @@ REQUIRED_FILE_EXTENSION = ".xuv"
 def add_cmd_line_options(parser):
     parser.add_option("-d", "--dir",
                       dest="dir_to_pack",
-                      type = "string",
-                      help = "Directory to pack",
-                      default = ".")
+                      type="string",
+                      help="Directory to pack",
+                      default=".")
 
     parser.add_option("-o", "--output",
                       dest="output_file",
-                      type = "string",
+                      type="string",
                       help="Name of output file",
-                      default = "")
+                      default="")
 
     parser.add_option("-p", "--packfile",
                       dest="packfile",
-                      type = "string",
-                      help = "Path to packfile executable",
-                      default = DEFAULT_PACKFILE)
+                      type="string",
+                      help="Path to packfile executable",
+                      default=DEFAULT_PACKFILE)
 
     parser.add_option("-f", "--offset",
                       dest="offset",
-                      type= "int",
+                      type="int",
                       help="Address offset",
-                      default = DEFAULT_OFFSET)
+                      default=DEFAULT_OFFSET)
 
     parser.add_option("-w", "--program",
                       dest="program",
                       type="string",
-                      help = "romloadercmd binary (optional)",
+                      help="romloadercmd binary (optional)",
                       default="")
 
     parser.add_option("-a", "--appsfs",
                       dest="appsfs",
                       action="store_true",
-                      help = "Prepares the filesystem for the application subsystem",
+                      help="Prepares the filesystem for the application subsystem",
                       default=False)
 
 def pack_dir(dir_to_pack, out, packfile=DEFAULT_PACKFILE, offset=DEFAULT_OFFSET, appsfs=False):
     """
     Create a filesystem image starting at the specified address offset
     """
-    
+
     #1. Run packfile on the specified directory
-    print "Packing directory..."
-    f, tmp_packed_img = tempfile.mkstemp(suffix = ".fs")
-    os.close(f) # We close this since we need packfile to write to it first
-    
-    if subprocess.call([packfile,
-                        dir_to_pack,tmp_packed_img], stderr=subprocess.STDOUT) != 0:
+    print("Packing directory...")
+    handle, tmp_packed_img = tempfile.mkstemp(suffix=".fs")
+    os.close(handle) # We close this since we need packfile to write to it first
+
+    if subprocess.call([packfile, dir_to_pack, tmp_packed_img],
+                       stderr=subprocess.STDOUT) != 0:
         raise RuntimeError("%s failed" % packfile)
-    
+
     #2. Translate the XUV file to the offset addresses
-    print "Translating filesystem image by 0x%06x" % offset
+    print("Translating filesystem image by 0x%06x" % (offset))
     with open(tmp_packed_img) as raw_img:
         decoder = XUVStreamDecoder(raw_img)
         encoder = XUVStreamEncoder(out)
         if appsfs:
-            profs = PackfileReadOnlyFS([(a,v) for a,v in decoder.address_value_pairs])
+            profs = PackfileReadOnlyFS([(a, v) for a, v in decoder.address_value_pairs])
             data = loadable_to_bytes(profs.loadable_le32, verbose=True)
             if len(data) & 1:
-                print "padding odd length with a single byte"
+                print("padding odd length with a single byte")
                 data += bytearray([0xff])
-            a = 0
-            for v in bytes_to_words(data):
-                encoder.address_value_pair(a + offset, v)
-                a += 1
+            addr = 0
+            for val in bytes_to_words(data):
+                encoder.address_value_pair(addr + offset, val)
+                addr += 1
         else:
-            for a,v in decoder.address_value_pairs:
-                encoder.address_value_pair(a+offset,v)
+            for addr, val in decoder.address_value_pairs:
+                encoder.address_value_pair(addr+offset, val)
     os.remove(tmp_packed_img)
-    
-def program_img(program,output_file):
+
+def program_img(program, output_file):
     """
     Use the specified LPC programming tool (romloadercmd) to write the filesystem
     image onto the LPC flash.
     """
-    if subprocess.call([program,"program","lpc0",output_file]) != 0:
+    if subprocess.call([program, "program", "lpc0", output_file]) != 0:
         raise RuntimeError("%s failed" % program)
 
 def main():
     'main routine used by hydra fw tools package entry point - see setup.py'
 
-    PARSER = optparse.OptionParser()
-    add_cmd_line_options(PARSER)
-    (options, args) = PARSER.parse_args()
+    parser = optparse.OptionParser()
+    add_cmd_line_options(parser)
+    (options, _args) = parser.parse_args()
 
     if options.output_file:
         output_file = options.output_file
@@ -118,13 +124,13 @@ def main():
             output_file = output_file + REQUIRED_FILE_EXTENSION
     else:
         output_file = "/tmp/packed.xuv"
-        
-    with open(output_file,"w") as out:
-        
-        pack_dir(options.dir_to_pack,out,
+
+    with open(output_file, "w") as out:
+
+        pack_dir(options.dir_to_pack, out,
                  packfile=options.packfile, offset=options.offset,
                  appsfs=options.appsfs)
-        print "Successfully wrote %s" % output_file
+        print("Successfully wrote %s" % (output_file))
 
     if options.program:
         program_img(options.program, output_file)

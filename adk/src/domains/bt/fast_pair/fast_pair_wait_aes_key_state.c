@@ -6,11 +6,12 @@
 \file       fast_pair_wait_aes_key_state.c
 \brief      Fast Pair Wait for AES Key State Event handling
 */
-
 #include "fast_pair_wait_aes_key_state.h"
 #include "fast_pair_pairing_if.h"
 #include "bt_device.h"
 #include "fast_pair_events.h"
+#include "fast_pair_advertising.h"
+#include "fast_pair_gfps.h"
 
 #define FAST_PAIR_REQ_DISCOVERABILITY   (0x01)
 #define FAST_PAIR_REQ_START_PAIRING     (0x02)
@@ -78,6 +79,7 @@ static void fastPair_ConvertBigEndianBDAddress(bdaddr *device_addr, uint16 *decr
 static bool fastPair_MatchProviderAddress(uint16 *decrypted_data)
 {
     bool status = FALSE;
+    uint8 index;
     bdaddr provider_addr;
     fastPairTaskData *theFastPair;
 
@@ -85,16 +87,23 @@ static bool fastPair_MatchProviderAddress(uint16 *decrypted_data)
 
     fastPair_ConvertBigEndianBDAddress(&provider_addr, decrypted_data, FAST_PAIR_PROVIDER_ADDRESS_OFFSET);
 
+    for(index = 0; index < MAX_BLE_CONNECTIONS; index++)
+    {
+        /*! Check if the provider adress is matching with any random address entry in the table */
+        if(BdaddrIsSame(&theFastPair->own_random_address[index], &provider_addr))
+        {
+            /*! Copy the random address */
+            memcpy(&theFastPair->rpa_bd_addr, &theFastPair->own_random_address[index], sizeof(bdaddr));
+            status = TRUE;
+        }
+    }
+
     DEBUG_LOG("Provider addr provided by FP Seeker %04x%02x%06lx\n", provider_addr.nap, provider_addr.uap, provider_addr.lap);
     DEBUG_LOG("Local BLE Address %04x%02x%06lx\n", theFastPair->rpa_bd_addr.nap, theFastPair->rpa_bd_addr.uap, theFastPair->rpa_bd_addr.lap);
 
-    if (!BdaddrIsSame(&(theFastPair->rpa_bd_addr), &provider_addr))
+    if(status == FALSE)
     {
-        DEBUG_LOG("Fast Pair provider addr mismatch!\n");
-    }
-    else
-    {
-        status = TRUE;
+        DEBUG_LOG("Fast Pair provider addr mismatch!");
     }
     return status;
 }
@@ -139,6 +148,27 @@ static uint8* fastPair_GenerateKbPResponse(void)
 
     return response;
 
+}
+
+static bool fastpair_StateWaitAESKeyHandleAuthCfm(fast_pair_state_event_auth_args_t* args)
+{
+    le_adv_data_set_t data_set;
+    fastPairTaskData *theFastPair;
+
+    theFastPair = fastPair_GetTaskData();
+
+    if(args->auth_cfm->status == auth_status_success)
+    {
+        DEBUG_LOG("fastpair_StateWaitAESKeyHandleAuthCfm. CL_SM_AUTHENTICATE_CFM status %d", args->auth_cfm->status);
+        data_set = le_adv_data_set_handset_unidentifiable;
+        fastPair_SetIdentifiable(data_set);
+
+        /* After setting the identifiable parameter to unidentifiable, Set the FP state to idle */
+        fastPair_SetState(theFastPair, FAST_PAIR_STATE_IDLE);
+
+        return TRUE;
+    }
+    return FALSE;
 }
 
 static bool fastPair_ValidateAESKey(fast_pair_state_event_crypto_decrypt_args_t* args)
@@ -291,7 +321,17 @@ bool fastPair_StateWaitAESKeyHandleEvent(fast_pair_state_event_t event)
             fastPair_SetState(theFastPair, FAST_PAIR_STATE_IDLE);
         }
         break;
-        
+
+        case fast_pair_state_event_auth:
+        {
+            if(event.args == NULL)
+            {
+                return FALSE;
+            }
+            status = fastpair_StateWaitAESKeyHandleAuthCfm((fast_pair_state_event_auth_args_t *) event.args);
+        }
+        break;
+
         default:
         {
             DEBUG_LOG("Unhandled event [%d]", event.id);

@@ -49,6 +49,18 @@ void stateProxy_GetInitialFlags(void)
     proxy->local_state->flags.ble_connected = ConManagerAnyTpLinkConnected(cm_transport_ble);
 }
 
+/*! \brief Set remote device flags to initial state. */
+void stateProxy_SetRemoteInitialFlags(void)
+{
+    state_proxy_task_data_t *proxy = stateProxy_GetTaskData();
+
+    /* Resetting all the flags */
+    memset(&proxy->remote_state->flags, 0, sizeof(state_proxy_data_flags_t));
+
+    /* Setting InCase, as expectation that earbud in InCase at startup*/
+    proxy->remote_state->flags.in_case = TRUE;
+}
+
 /*! \brief Handle local flags event. 
     
     Update the local state for the flag

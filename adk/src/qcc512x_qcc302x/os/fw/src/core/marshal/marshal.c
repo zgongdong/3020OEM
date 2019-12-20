@@ -340,18 +340,22 @@ bool marshal(marshal_context_t *m, void *addr, marshal_type_t type)
                    pointer member registered adds an object to the base set, the
                    iterator handles new objects being added during the iteration. */
                 assert(mobs_iterate(set, m->next_values_index, register_pointer_members));
-                /* Iterate the base set, adding shared members to the shared
-                   member set. */
-                assert(mobs_iterate(set, m->next_values_index, register_shared_members));
 
-                /* During the iterations, the pointer registration may register
-                   the address of a shared member of another object. Such objects
-                   should not be treated as independent objects - the parent of
-                   the object is responsible for marshalling all its members.
-                   Remove any shared members from the main set */
-                mobs_difference_update(set, &m->base.shared_member_set);
+                if (m->base.has_shared_objects)
+                {
+                    /* Iterate the base set, adding shared members to the shared
+                    member set. */
+                    assert(mobs_iterate(set, m->next_values_index, register_shared_members));
 
-                assert((mobs_size(set) + mobs_size(&m->base.shared_member_set)) <= MOBS_MAX_OBJECTS);
+                    /* During the iterations, the pointer registration may register
+                    the address of a shared member of another object. Such objects
+                    should not be treated as independent objects - the parent of
+                    the object is responsible for marshalling all its members.
+                    Remove any shared members from the main set */
+                    mobs_difference_update(set, &m->base.shared_member_set);
+
+                    assert((mobs_size(set) + mobs_size(&m->base.shared_member_set)) <= MOBS_MAX_OBJECTS);
+                }
             }
             else
             {

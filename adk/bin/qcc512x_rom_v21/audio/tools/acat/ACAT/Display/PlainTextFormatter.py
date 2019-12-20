@@ -21,21 +21,16 @@ from ACAT.Core.exceptions import FormatterError
 
 
 class PlainTextFormatter(Formatter):
-    """
-    @brief Implements the Formatter interface to provide plain-text output.
-    """
+    """Implements the Formatter interface to provide plain-text output."""
 
     def __init__(self):
-        """
-        @brief Initialises the object.
-        @param[in] self Pointer to the current object
-        """
         self.sectionlevel = 0
 
         # untitled sections
         self.untitled_sectionlevel = 0
 
-        self.log_file = None  # Initialise here so that there is always one when we start logging
+        # Initialise here so that there is always one when we start logging.
+        self.log_file = None
 
         # All the lines we want to output
         self.text = ""
@@ -50,20 +45,21 @@ class PlainTextFormatter(Formatter):
         super(PlainTextFormatter, self).__init__()
 
     def change_log_file(self, new_log_filename, suppress_stdout=False):
-        """
-        @brief Creates a log file, and ensures that everything output via
-        this formatter (e.g. via formatter.output) will be copied to the
-        file as well as to stdout. Setting 'suppress_stdout' to True will
-        mean that we don't output to stdout either, unless we're outputting
-        an alert or error.
+        """Creates a log file.
+
+        It ensures that everything output via this formatter (e.g. via
+        formatter.output) will be copied to the file as well as to stdout.
+        Setting ``suppress_stdout`` to True will mean that we don't output to
+        stdout either, unless we're outputting an alert or error.
 
         If we are already logging, setting a new filename allows the
         log file to be changed over to a new file. A filename of None
         stops logging to a file (and stops suppressing stdout, if we
         were).
-        @param[in] self Pointer to the current object
-        @param[in] new_log_filename
-        @param[in] suppress_stdout = False
+
+        Args:
+            new_log_filename
+            suppress_stdout
         """
         self.suppress_stdout_when_logging = suppress_stdout
 
@@ -93,21 +89,24 @@ class PlainTextFormatter(Formatter):
             self.output("Logging to file stopped")
 
     def set_logfile(self, log_file):
-        """
-        @brief Sets the log file, and ensures that everything output via
-        this formatter (e.g. via formatter.output) will be copied to the
-        file.
-        @param[in] self Pointer to the current object
-        @param[in] log_file This must be a file handler
+        """Sets the log file.
+
+        It ensures that everything output via this formatter (e.g. via
+        ``formatter.output``) will be copied to the file.
+
+        Args:
+            log_file: This must be a file handler.
         """
         self.suppress_stdout_when_logging = True
         self.log_file = log_file
 
     def section_start(self, header_str):
-        """
-        @brief Starts a new section. Sections can be nested.
-        @param[in] self Pointer to the current object
-        @param[in] header_str
+        """Starts a new section.
+
+        Sections can be nested.
+
+        Args:
+            header_str
         """
         if header_str != "":
             # Increment our section level
@@ -125,10 +124,7 @@ class PlainTextFormatter(Formatter):
             self._log('-' * 5)
 
     def section_end(self):
-        """
-        @brief End a section.
-        @param[in] self Pointer to the current object
-        """
+        """End a section."""
         if self.untitled_sectionlevel > 0:
             self.untitled_sectionlevel -= 1
         else:
@@ -136,18 +132,17 @@ class PlainTextFormatter(Formatter):
                 self.sectionlevel -= 1
 
     def section_reset(self):
-        """
-        @brief Reset the section formatting, ending all open sections.
+        """Reset the section formatting, ending all open sections.
+
         This is provided so that in case of an error we can continue safely.
-        @param[in] self Pointer to the current object
         """
         self.sectionlevel = 0
 
     def output(self, string_to_output):
-        """
-        @brief Normal body text. Lists/dictionaries will be compacted.
-        @param[in] self Pointer to the current object
-        @param[in] string_to_output
+        """Normal body text. Lists/dictionaries will be compacted.
+
+        Args:
+            string_to_output (str)
         """
         with self.lock:
             if isinstance(string_to_output, (list, tuple)):
@@ -159,28 +154,30 @@ class PlainTextFormatter(Formatter):
                     self._log(str(string_to_output))
 
     def output_svg(self, string_to_output):
-        """
-        @brief svg body text. Lists/dictionaries will be compacted.
-        @param[in] self Pointer to the current object
-        @param[in] string_to_output
+        """svg body text. Lists/dictionaries will be compacted.
+
+        Args:
+            string_to_output (str)
         """
         # we cannot pipe the svg to the output.
         raise FormatterError("Text formatter cannot diplay a svg file")
 
     def output_raw(self, string_to_output):
-        """
-        @brief Unformatted text output. Useful when displaying tables.
-        @param[in] self Pointer to the current object
-        @param[in] string_to_output
+        """Unformatted text output. Useful when displaying tables.
+
+        Args:
+            string_to_output (str)
         """
         self.output(string_to_output)
 
     def alert(self, alert_str):
-        """
-        @brief Raise a alert - important information that we want to be highlighted.
-        For example, 'pmalloc pools exhausted' or 'chip has panicked'.
-        @param[in] self Pointer to the current object
-        @param[in] alert_str
+        """Raise a alert.
+
+        Important information that we want to be highlighted. For example,
+        *pmalloc pools exhausted* or *chip has panicked*.
+
+        Args:
+            alert_str (str)
         """
         # Make sure alerts have the same type
         alert_str = str(alert_str)
@@ -188,11 +185,13 @@ class PlainTextFormatter(Formatter):
         self.alerts.append(alert_str)
 
     def error(self, error_str):
-        """
-        @brief Raise an error. This signifies some problem with the analysis tool
-        itself, e.g. an analysis can't complete for some reason.
-        @param[in] self Pointer to the current object
-        @param[in] error_str
+        """Raise an error.
+
+        This signifies some problem with the analysis tool itself, e.g. an
+        analysis can't complete for some reason.
+
+        Args:
+            error_str (str)
         """
         # Make sure errors have the same type
         error_str = str(error_str)
@@ -201,12 +200,11 @@ class PlainTextFormatter(Formatter):
         self.errors.append(error_str)
 
     def flush(self):
-        """
-        @brief Output all logged events (body text, alerts, errors etc.), then forget
-        about them. You could then re-use the formatter if you really wanted.
-        If outputting to a file then the file will be (over)written at this
-        point.
-        @param[in] self Pointer to the current object
+        """Output all logged events (body text, alerts, errors etc.).
+
+        It removed the current logged events and you can re-use the formatter
+        if you really wanted. If outputting to a file then the file will be (
+        over)written at this point.
         """
 
         # Before we output the log, we can apply some finishing-touches.
@@ -237,25 +235,26 @@ class PlainTextFormatter(Formatter):
     ##################################################
 
     def _indent(self, input_str):
-        """
-        @brief Indent the supplied string by an amount based on section level.
-        @param[in] self Pointer to the current object
-        @param[in] input_str
+        """Indent the supplied string by an amount based on section level.
+
+        Args:
+            input_str (str)
         """
         indent = "    " * self.sectionlevel
         input_str = indent + input_str
         return input_str.replace('\n', '\n' + indent)
 
     def _log(self, output_str, indent=True):
-        """
-        @brief Log some text. Optionally, override the indentation rules.
-        If 'can_suppress' is True, this output *may* in some circumstances
-        be suppressed on stdout.
-        This doesn't actually output anything; the log needs to be flushed
-        for that to happen.
-        @param[in] self Pointer to the current object
-        @param[in] output_str
-        @param[in] indent = True
+        """Log some text.
+
+        Optionally, override the indentation rules. If ``can_suppress`` is
+        True, this output *may* in some circumstances be suppressed on
+        stdout. This doesn't actually output anything; the log needs to be
+        flushed for that to happen.
+
+        Args:
+            output_str (str)
+            indent (bool)
         """
         if indent:
             str_to_write = self._indent(output_str)

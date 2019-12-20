@@ -12,6 +12,6 @@
 
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_cancel_find_role_fns;
+extern const tws_topology_procedure_fns_t proc_cancel_find_role_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_CANCEL_FIND_ROLE_H */

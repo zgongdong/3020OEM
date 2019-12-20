@@ -332,8 +332,22 @@ void connectionHandleDmAclClosedInd(
         connectionSmState* smState,
         const DM_ACL_CLOSED_IND_T* ind
         );
-		
-		
+
+/*****************************************************************************
+NAME
+    connectionHandleDmAclCloseCfm
+
+DESCRIPTION
+    This function is called when confirmation that a previously requested
+    close ACL connection has completed.
+RETURNS
+
+*/
+void connectionHandleDmAclCloseCfm(
+        Task task,
+        const DM_ACL_CLOSE_CFM_T *cfm
+        );
+
 /****************************************************************************
 NAME	
     connectionHandleReadLocalOobDataReq	

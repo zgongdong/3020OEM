@@ -7,6 +7,7 @@
 */
 
 #include "le_advertising_manager_uuid.h"
+#include "le_advertising_manager_utils.h"
 
 #include <stdlib.h>
 #include <panic.h>
@@ -26,20 +27,6 @@ typedef struct
     uint8  octets_in_uuid;
     le_adv_data_params_t params;
 } uuid_list_t;
-
-static bool leAdvertisingManager_ParametersMatch(const le_adv_data_params_t * params1, const le_adv_data_params_t * params2)
-{
-    if(params1->data_set != params2->data_set)
-        return FALSE;
-
-    if(params1->placement != params2->placement)
-        return FALSE;
-    
-    if(params1->completeness != params2->completeness)
-        return FALSE;
-    
-    return TRUE;
-}
 
 static ble_ad_type leAdvertisingManager_GetListType(const uuid_list_t* list, bool shortened)
 {
@@ -168,7 +155,7 @@ static void leAdvertisingManager_AddItemToList(uuid_list_t* list, const le_adv_d
 
 static bool leAdvertisingManager_GetListAsItem(const uuid_list_t* list, le_adv_data_item_t* item, const le_adv_data_params_t* params)
 {
-    if(leAdvertisingManager_ParametersMatch(&list->params, params))
+    if(LeAdvertisingManager_ParametersMatch(&list->params, params))
     {
         item->data = list->data;
         item->size = list->size;

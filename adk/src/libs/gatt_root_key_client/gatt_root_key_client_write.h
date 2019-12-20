@@ -33,7 +33,7 @@ void handleRootKeyWriteValueResp(GATT_ROOT_KEY_CLIENT *instance,
     \param[in]  content     Content to include in the message
 */
 void gattRootKeyClientWriteChallenge(GATT_ROOT_KEY_CLIENT *instance, 
-                                     GattRootKeyServiceShadowChallengeControlOpCode opcode,
+                                     GattRootKeyServiceMirrorChallengeControlOpCode opcode,
                                      const GRKS_KEY_T *content);
 
 

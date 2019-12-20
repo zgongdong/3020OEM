@@ -24,8 +24,8 @@ void handleRoleSelectionReadValueResp(GATT_ROLE_SELECTION_CLIENT *instance,
 {
     if (role_selection_client_waiting_read == gattRoleSelectionClientGetState(instance))
     {
-        GattRoleSelectionServiceShadowingState prev_state = instance->peer_state;
-        GattRoleSelectionServiceShadowingState state_to_report = prev_state;
+        GattRoleSelectionServiceMirroringState prev_state = instance->peer_state;
+        GattRoleSelectionServiceMirroringState state_to_report = prev_state;
 
         if (instance->handle_state == read_cfm->handle)
         {
@@ -33,7 +33,7 @@ void handleRoleSelectionReadValueResp(GATT_ROLE_SELECTION_CLIENT *instance,
 
             if (gatt_status_success == read_cfm->status)
             {
-                GattRoleSelectionServiceShadowingState new_state = read_cfm->value[0];
+                GattRoleSelectionServiceMirroringState new_state = read_cfm->value[0];
 
                 if (prev_state != new_state)
                 {
@@ -46,7 +46,7 @@ void handleRoleSelectionReadValueResp(GATT_ROLE_SELECTION_CLIENT *instance,
         }
 
         /* This will report the last state if we did not get a new one.
-            This can (theoretically) be GrssShadowStateUnknown if out of touch with 
+            This can (theoretically) be GrssMirrorStateUnknown if out of touch with 
             our peer */
         makeRoleSelectionClientStateIndMsg(instance, state_to_report);
     }
@@ -80,7 +80,7 @@ void handleRoleSelectionReadValueResp(GATT_ROLE_SELECTION_CLIENT *instance,
 
 
 void makeRoleSelectionClientStateIndMsg(GATT_ROLE_SELECTION_CLIENT *instance, 
-                                        GattRoleSelectionServiceShadowingState state)
+                                        GattRoleSelectionServiceMirroringState state)
 {
     MAKE_ROLE_SELECTION_MESSAGE(GATT_ROLE_SELECTION_CLIENT_STATE_IND);
 

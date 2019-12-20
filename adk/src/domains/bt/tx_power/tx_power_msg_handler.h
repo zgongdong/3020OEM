@@ -6,13 +6,13 @@
 
 /***************************************************************************
 NAME
-    txPowerTaskHandler
+    TxPowerTaskHandler
 
 DESCRIPTION
     Handler for external messages sent to the tx power module.
 */
-void txPowerTaskHandler(Task task, MessageId id, Message message);
+void TxPowerTaskHandler(Task task, MessageId id, Message message);
 
-Task txpower_GetTaskData(void);
+Task TxPower_GetTaskData(void);
 
 #endif

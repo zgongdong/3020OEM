@@ -104,8 +104,8 @@ DESCRIPTION
 #define CONNECTION_FLAG_SCOM_ENABLE     0x04
 /* Disable Cross Transport Key Derivation, which is enabled by default. */
 #define CONNECTION_FLAG_CTKD_DISABLE    0x08
-/* Unused global flag bit */
-#define CONNECTION_FLAG_UNUSED_4        0x10
+/* Selective Cross Transport Key Derivation during Pairing. */
+#define CONNECTION_FLAG_SELECTIVE_CTKD  0x10
 /* Unused global flag bit */
 #define CONNECTION_FLAG_UNUSED_3        0x20
 /* Unused global flag bit */

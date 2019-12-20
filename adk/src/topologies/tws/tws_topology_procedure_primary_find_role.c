@@ -9,21 +9,14 @@
 
 #include "tws_topology_procedure_script_engine.h"
 
+#include "tws_topology_procedure_set_role.h"
 #include "tws_topology_procedure_find_role.h"
 
 #include <logging.h>
 
-const tws_topology_procedure_fns_t* primary_find_role_procs[] = {
-    &proc_find_role_fns,
-};
+#define PRIMARY_FIND_ROLE_SCRIPT(ENTRY) \
+    ENTRY(proc_set_role_fns, PROC_SET_ROLE_TYPE_DATA_ACTING_PRIMARY), \
+    ENTRY(proc_find_role_fns, PROC_FIND_ROLE_TIMEOUT_DATA_CONTINUOUS)
 
-const Message primary_find_role_procs_data[] = {
-    PROC_FIND_ROLE_TIMEOUT_DATA_CONTINUOUS,
-};
-
-const tws_topology_proc_script_t primary_find_role_script = {
-    primary_find_role_procs,
-    primary_find_role_procs_data,
-    ARRAY_DIM(primary_find_role_procs),
-};
-
+/* Define the primary_find_role_script */
+DEFINE_TOPOLOGY_SCRIPT(primary_find_role, PRIMARY_FIND_ROLE_SCRIPT);

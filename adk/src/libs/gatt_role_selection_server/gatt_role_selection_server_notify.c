@@ -11,14 +11,14 @@
 /****************************************************************************/
 void gattRoleSelectionServerSendStateNotification(GATT_ROLE_SELECTION_SERVER *instance,
                                                   uint16 cid,
-                                                  GattRoleSelectionServiceShadowingState state)
+                                                  GattRoleSelectionServiceMirroringState state)
 {
-    uint8 notification[GRSS_SIZE_SHADOW_STATE_PDU_OCTETS] = {state};
+    uint8 notification[GRSS_SIZE_MIRROR_STATE_PDU_OCTETS] = {state};
 
     GattManagerRemoteClientNotify(&instance->lib_task,
                                   cid,
-                                  HANDLE_ROLE_SELECTION_SHADOWING_STATE,
-                                  GRSS_SIZE_SHADOW_STATE_PDU_OCTETS,
+                                  HANDLE_ROLE_SELECTION_MIRRORING_STATE,
+                                  GRSS_SIZE_MIRROR_STATE_PDU_OCTETS,
                                   notification);
 }
 
@@ -40,11 +40,11 @@ void gattRoleSelectionServerSendFigureNotification(GATT_ROLE_SELECTION_SERVER *i
 void handleRoleSelectionServerStateChanged(GATT_ROLE_SELECTION_SERVER *instance,
                                            const ROLE_SELECTION_SERVER_INTERNAL_STATE_UPDATED_T *update)
 {
-    if (instance->shadow_client_config
-        && !instance->shadow_state_notified)
+    if (instance->mirror_client_config
+        && !instance->mirror_state_notified)
     {
-        gattRoleSelectionServerSendStateNotification(instance, update->cid, instance->shadow_state);
-        instance->shadow_state_notified = TRUE;
+        gattRoleSelectionServerSendStateNotification(instance, update->cid, instance->mirror_state);
+        instance->mirror_state_notified = TRUE;
     }
 }
 
@@ -61,8 +61,8 @@ void handleRoleSelectionServerFigureChanged(GATT_ROLE_SELECTION_SERVER *instance
 }
 
 
-/*! Send an internal message for the shadow state having changed */
-void sendInternalShadowStateChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16 cid)
+/*! Send an internal message for the mirror state having changed */
+void sendInternalMirrorStateChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16 cid)
 {
     MAKE_ROLE_SELECTION_MESSAGE(ROLE_SELECTION_SERVER_INTERNAL_STATE_UPDATED);
 
@@ -72,7 +72,7 @@ void sendInternalShadowStateChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16
 }
 
 
-/*! Send an internal message for the shadow state having changed */
+/*! Send an internal message for the mirror state having changed */
 void sendInternalFigureOfMeritChanged(GATT_ROLE_SELECTION_SERVER *instance, uint16 cid)
 {
     MAKE_ROLE_SELECTION_MESSAGE(ROLE_SELECTION_SERVER_INTERNAL_FIGURE_UPDATED);
@@ -92,7 +92,7 @@ static void handleRoleSelectionNotificationDelivered(GATT_ROLE_SELECTION_SERVER 
             immediately, especially for this service, and the flag 
             makes no immediate sense. Perhaps introducing an 'error'
             state would help. */
-        instance->shadow_state_notified = FALSE;
+        instance->mirror_state_notified = FALSE;
     }
 }
 

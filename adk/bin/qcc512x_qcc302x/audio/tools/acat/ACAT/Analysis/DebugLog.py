@@ -55,9 +55,8 @@ class LogController(object):
 
     def __enter__(self):
         # Debug logging can cause erroneous profiling in many ways*, for
-        # simplicity always disable it.
-        # *The SPI can wake up the chip ( Amber chips will wake up whenever
-        # live chip access is done) or the SPI bandwidth comes to a limit.
+        # simplicity always disable it. The SPI can wake up the chip or
+        # the SPI bandwidth comes to a limit.
         if self.analysis.interpreter.get_analysis(
                 "debuglog", self.analysis.chipdata.processor
             ).logging_active():
@@ -677,12 +676,12 @@ class Logging(threading.Thread):
                     if num_args_missing == mystr.count('%s'):
                         temp_arguments = tmp_debug_log[-num_args_missing:]
                         if Arch.addr_per_word != 4:
-                            # For Hydra platforms, like Crescendo, Aura and
-                            # Napier the arguments in tmp_debug_log[] are in
-                            # the right order, because the order in which the
-                            #  arguments are stored. For Blucore platforms,
-                            # like Gordon and Rick, the array slice is in the
-                            #  wrong order.
+                            # For Hydra platforms, like Crescendo and Aura
+                            # the arguments in tmp_debug_log[] are in the
+                            # right order, because the order in which the
+                            # arguments are stored. For Blucore platforms,
+                            # like Gordon and Rick, the array slice is in
+                            # the wrong order.
                             temp_arguments.reverse()
                         arguments = temp_arguments + arguments
                         # now arguments[] contains what it would have held,

@@ -26,7 +26,7 @@ bool gattRootKeyServerSendChallengeIndication(const GATT_ROOT_KEY_SERVER *instan
 
         GattManagerRemoteClientIndicate((Task)&instance->lib_task, 
                                         cid, 
-                                        HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT, 
+                                        HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT, 
                                         GRKS_SIZE_CONTROL_WITH_KEY_OCTETS, 
                                         indication);
     }
@@ -62,7 +62,7 @@ static void handleRootKeyIndicationDelivered(GATT_ROOT_KEY_SERVER *instance,
 {
     switch (handle)
     {
-        case HANDLE_ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT:
+        case HANDLE_ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT:
             handleRootKeyChallengeIndicationDelivered(instance);
             break;
 

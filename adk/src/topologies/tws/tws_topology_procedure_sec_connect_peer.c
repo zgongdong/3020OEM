@@ -25,7 +25,7 @@ void TwsTopology_ProcedureSecConnectPeerStart(Task result_task,
                                         Message goal_data);
 void TwsTopology_ProcedureSecConnectPeerCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_sec_connect_peer_fns = {
+const tws_topology_procedure_fns_t proc_sec_connect_peer_fns = {
     TwsTopology_ProcedureSecConnectPeerStart,
     TwsTopology_ProcedureSecConnectPeerCancel,
     NULL,

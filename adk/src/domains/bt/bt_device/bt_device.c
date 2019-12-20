@@ -33,7 +33,7 @@
 #include <hfp_profile.h>
 #include <scofwd_profile.h>
 #include "scofwd_profile_config.h"
-#include "shadow_profile.h"
+#include "mirror_profile.h"
 #include "ui.h"
 
 /*! \brief Macro for simplifying creating messages */
@@ -116,9 +116,9 @@ static void btDevice_PrintDeviceInfo(device_t device, void *data)
         DEBUG_LOG("has flag DEVICE_FLAGS_SECONDARY_ADDR");
     }
 
-    if(flags & DEVICE_FLAGS_SHADOWING_C_ROLE)
+    if(flags & DEVICE_FLAGS_MIRRORING_C_ROLE)
     {
-        DEBUG_LOG("has flag DEVICE_FLAGS_SHADOWING_C_ROLE");
+        DEBUG_LOG("has flag DEVICE_FLAGS_MIRRORING_C_ROLE");
     }
 }
 
@@ -483,15 +483,9 @@ static void btDevice_DeserialisePersistentDeviceData(device_t device, void *buf,
     free(object);
 }
 
-bool appDeviceInit(Task init_task)
+void BtDevice_RegisterPddu(void)
 {
     deviceTaskData *theDevice = DeviceGetTaskData();
-
-    DEBUG_LOG("appDeviceInit");
-
-    DeviceList_Init();
-    DeviceDbSerialiser_Init();
-
     theDevice->pdd_len = btDevice_calculateLengthPdd();
 
     DeviceDbSerialiser_RegisterPersistentDeviceDataUser(
@@ -499,8 +493,13 @@ bool appDeviceInit(Task init_task)
         btDevice_GetDeviceDataLen,
         btDevice_SerialisePersistentDeviceData,
         btDevice_DeserialisePersistentDeviceData);
+}
 
-    DeviceDbSerialiser_Deserialise();
+bool appDeviceInit(Task init_task)
+{
+    deviceTaskData *theDevice = DeviceGetTaskData();
+
+    DEBUG_LOG("appDeviceInit");
 
     theDevice->task.handler = appDeviceHandleMessage;
     TaskList_InitialiseWithCapacity(DeviceGetVersionClientTasks(), DEVICE_VERSION_CLIENT_TASKS_LIST_INIT_CAPACITY);
@@ -890,9 +889,9 @@ bool appDeviceIsPeerScoFwdConnected(void)
     return ScoFwdIsConnected();
 }
 
-bool appDeviceIsPeerShadowConnected(void)
+bool appDeviceIsPeerMirrorConnected(void)
 {
-    return ShadowProfile_IsConnected();
+    return MirrorProfile_IsConnected();
 }
 
 /*! \brief Set flag for handset device indicating if address needs to be sent to peer earbud.

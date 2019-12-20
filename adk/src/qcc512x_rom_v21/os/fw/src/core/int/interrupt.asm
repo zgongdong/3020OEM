@@ -261,15 +261,15 @@
 //       instruction after the rest of the flags have a copy of them
 //       taken. See B-88464.
 
-   #ifdef DEBUG_STACK_OVERFLOW
       // check the interrupt hasn't fired because of stack overflow
       Null = M[$STACK_OVERFLOW_PC];
-      if NZ call $error_stack_overflow;
-   #endif
+      if NZ jump error_stack_overflow;
 .InterruptEntry:
    pushm <FP(=SP), r0, r1, r2, rFlags>;
 .IntPush1_Fp012Fl:
 
+    // Set clock divider to return the clock to normal speed
+    M[$CLKGEN_CORE_CLK_RATE] = NULL;
 
 #ifndef MINIMAL_C_INTERRUPT_FRAME
    r0 = M[$ARITHMETIC_MODE];
@@ -534,6 +534,11 @@ safe_rti:
    rti;
 .InterruptExit:
 
+error_stack_overflow:
+    // Trigger the P0 panic_interrupt_handler() in the ipc module
+    M[$P1_TO_P0_INTERPROC_EVENT_2] = Null;
+$stack_overflow_error:
+    jump $stack_overflow_error;
 .ENDMODULE;
 
 

@@ -820,6 +820,9 @@ class Capability(object):
             opmsg_handler_table = helper.chipdata.get_var_strict(
                 cap_entry.get_member('opmsg_handler_table').value, cap_elf_id
             )
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+
         except Exception:
             # the capability may reuse a handle table from kymera
             opmsg_handler_table = helper.chipdata.get_var_strict(

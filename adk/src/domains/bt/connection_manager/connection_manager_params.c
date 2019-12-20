@@ -60,7 +60,7 @@ static const ble_connection_params short_connection_params =
     LE_FIXED_PARAMS, LE_SHORT_CONNECTION_PARAMS
 };
 
-const ble_connection_params* cm_qos_params[cm_qos_max] = 
+const ble_connection_params* const cm_qos_params[cm_qos_max] =
 {
     [cm_qos_invalid]                = NULL,
     [cm_qos_low_power]              = &low_power_connection_params,

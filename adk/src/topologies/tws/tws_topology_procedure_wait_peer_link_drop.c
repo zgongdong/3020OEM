@@ -14,8 +14,15 @@
 #include <bt_device.h>
 
 #include <logging.h>
-
 #include <message.h>
+#include <panic.h>
+
+typedef enum
+{
+    TWSTOP_PROC_WAIT_PEER_LINK_DROP_INTERNAL_TIMEOUT,
+};
+
+const WAIT_PEER_LINK_DROP_TYPE_T wait_peer_link_drop_default_timeout = {TWSTOP_PROC_WAIT_PEER_LINK_DROP_DEFAULT_TIMEOUT_MS};
 
 static void twsTopology_ProcWaitPeerLinkDropHandleMessage(Task task, MessageId id, Message message);
 void TwsTopology_ProcedureWaitPeerLinkDropStart(Task result_task,
@@ -24,7 +31,7 @@ void TwsTopology_ProcedureWaitPeerLinkDropStart(Task result_task,
                                                 Message goal_data);
 void TwsTopology_ProcedureWaitPeerLinkDropCancel(twstop_proc_cancel_cfm_func_t proc_cancel_fn);
 
-tws_topology_procedure_fns_t proc_wait_peer_link_drop_fns = {
+const tws_topology_procedure_fns_t proc_wait_peer_link_drop_fns = {
     TwsTopology_ProcedureWaitPeerLinkDropStart,
     TwsTopology_ProcedureWaitPeerLinkDropCancel,
     NULL,
@@ -41,53 +48,77 @@ twsTopProcWaitPeerLinkDropTaskData twstop_proc_wait_peer_link_drop = {twsTopolog
 #define TwsTopProcWaitPeerLinkDropGetTaskData()     (&twstop_proc_wait_peer_link_drop)
 #define TwsTopProcWaitPeerLinkDropGetTask()         (&twstop_proc_wait_peer_link_drop.task)
 
+static void twsTopology_ProcWaitPeerLinkDropCleanup(void)
+{
+    twsTopProcWaitPeerLinkDropTaskData* td = TwsTopProcWaitPeerLinkDropGetTaskData();
+
+    ConManagerUnregisterTpConnectionsObserver(cm_transport_bredr, TwsTopProcWaitPeerLinkDropGetTask());
+
+    td->complete_fn = NULL;
+    MessageCancelAll(TwsTopProcWaitPeerLinkDropGetTask(), 
+                     TWSTOP_PROC_WAIT_PEER_LINK_DROP_INTERNAL_TIMEOUT);
+}
+
+
+static void twsTopology_ProcWaitPeerLinkDropCompleteWithStatus(proc_result_t status)
+{
+    twsTopProcWaitPeerLinkDropTaskData* td = TwsTopProcWaitPeerLinkDropGetTaskData();
+
+    TwsTopology_DelayedCompleteCfmCallback(td->complete_fn,
+                                           tws_topology_procedure_wait_peer_link_drop,
+                                           status);
+    twsTopology_ProcWaitPeerLinkDropCleanup();
+}
+
 void TwsTopology_ProcedureWaitPeerLinkDropStart(Task result_task,
                                                 twstop_proc_start_cfm_func_t proc_start_cfm_fn,
                                                 twstop_proc_complete_func_t proc_complete_fn,
                                                 Message goal_data)
 {
     twsTopProcWaitPeerLinkDropTaskData* td = TwsTopProcWaitPeerLinkDropGetTaskData();
+    WAIT_PEER_LINK_DROP_TYPE_T *procedure_params = (WAIT_PEER_LINK_DROP_TYPE_T *)goal_data;
+    uint32 timeout;
     bdaddr peer_addr;
 
     UNUSED(result_task);
-    UNUSED(goal_data);
 
     DEBUG_LOG("TwsTopology_ProcedureWaitPeerLinkDropStart");
+
+    PanicNull(procedure_params);
+
+    timeout = procedure_params->timeout_ms;
+    PanicZero(timeout);
 
     /* start is synchronous, use the callback to confirm now */
     proc_start_cfm_fn(tws_topology_procedure_wait_peer_link_drop, proc_result_success);
 
-    /* register to get notification of peer disconnect, do it now before checking synchrnously
-     * to avoid message race */
+    /* remember the completion callback and we wait for indication from connection
+     * manager */
+    td->complete_fn = proc_complete_fn;
+
+    /* register to get notification of peer disconnect.
+       This is done now (before checking synchronously) to avoid message race */
     ConManagerRegisterTpConnectionsObserver(cm_transport_bredr, TwsTopProcWaitPeerLinkDropGetTask());
 
     if (!appDeviceGetPeerBdAddr(&peer_addr))
     {
         /* no peer address, shouldn't happen, but would be a hard fail */
-        TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn,
-                                               tws_topology_procedure_wait_peer_link_drop,
-                                               proc_result_failed);
-        ConManagerUnregisterTpConnectionsObserver(cm_transport_bredr, TwsTopProcWaitPeerLinkDropGetTask());
+        twsTopology_ProcWaitPeerLinkDropCompleteWithStatus(proc_result_failed);
     }
     else
     {
         if (!ConManagerIsConnected(&peer_addr))
         {
-            /* not connected already is success already */
-            proc_start_cfm_fn(tws_topology_procedure_wait_peer_link_drop, proc_result_success);
-            TwsTopology_DelayedCompleteCfmCallback(proc_complete_fn,
-                                                   tws_topology_procedure_wait_peer_link_drop,
-                                                   proc_result_success);
-            ConManagerUnregisterTpConnectionsObserver(cm_transport_bredr, TwsTopProcWaitPeerLinkDropGetTask());
+            twsTopology_ProcWaitPeerLinkDropCompleteWithStatus(proc_result_success);
         }
         else
         {
-            /* remember the completion callback and we wait for indication from connection
-             * manager */
-            td->complete_fn = proc_complete_fn;
             DEBUG_LOG("TwsTopology_ProcedureWaitPeerLinkDropStart waiting for peer link to drop");
-            
-            /*! \todo needs timeout to execute secondary no role find role */ 
+
+            MessageSendLater(TwsTopProcWaitPeerLinkDropGetTask(),
+                             TWSTOP_PROC_WAIT_PEER_LINK_DROP_INTERNAL_TIMEOUT,
+                             NULL,
+                             timeout);
         }
     }
 
@@ -97,38 +128,48 @@ void TwsTopology_ProcedureWaitPeerLinkDropCancel(twstop_proc_cancel_cfm_func_t p
 {
     DEBUG_LOG("TwsTopology_ProcedureWaitPeerLinkDropCancel");
 
-    ConManagerUnregisterTpConnectionsObserver(cm_transport_bredr, TwsTopProcWaitPeerLinkDropGetTask());
     TwsTopology_DelayedCancelCfmCallback(proc_cancel_fn, tws_topology_procedure_wait_peer_link_drop, proc_result_success);
+    twsTopology_ProcWaitPeerLinkDropCleanup();
 }
 
 static void twsTopology_ProcWaitPeerLinkDropHandleConManTpDisconnectInd(const CON_MANAGER_TP_DISCONNECT_IND_T* ind)
 {
-    twsTopProcWaitPeerLinkDropTaskData* td = TwsTopProcWaitPeerLinkDropGetTaskData();
-
     DEBUG_LOG("twsTopology_ProcWaitPeerLinkDropHandleConManTpDisconnectInd %04x,%02x,%06lx",
                 ind->tpaddr.taddr.addr.nap, ind->tpaddr.taddr.addr.uap, ind->tpaddr.taddr.addr.lap);
 
     if (appDeviceIsPeer(&ind->tpaddr.taddr.addr))
     {
-        ConManagerUnregisterTpConnectionsObserver(cm_transport_bredr, TwsTopProcWaitPeerLinkDropGetTask());
-        TwsTopology_DelayedCompleteCfmCallback(td->complete_fn,
-                                               tws_topology_procedure_wait_peer_link_drop,
-                                               proc_result_success);
+        twsTopology_ProcWaitPeerLinkDropCompleteWithStatus(proc_result_success);
     }
 }
+
+
+static void twsTopology_ProcWaitPeerLinkDropHandleTimeout(void)
+{
+    twsTopology_ProcWaitPeerLinkDropCompleteWithStatus(proc_result_timeout);
+}
+
 
 static void twsTopology_ProcWaitPeerLinkDropHandleMessage(Task task, MessageId id, Message message)
 {
     UNUSED(task);
 
-    switch (id)
+    if (TwsTopProcWaitPeerLinkDropGetTaskData()->complete_fn)
     {
-        case CON_MANAGER_TP_DISCONNECT_IND:
-            twsTopology_ProcWaitPeerLinkDropHandleConManTpDisconnectInd((CON_MANAGER_TP_DISCONNECT_IND_T*)message);
-            break;
-        default:
-            DEBUG_LOG("twsTopology_ProcWaitPeerLinkDropHandleMessage unhandled id 0x%x", id);
-            break;
+        switch (id)
+        {
+            case CON_MANAGER_TP_DISCONNECT_IND:
+                twsTopology_ProcWaitPeerLinkDropHandleConManTpDisconnectInd((CON_MANAGER_TP_DISCONNECT_IND_T*)message);
+                break;
+
+            case TWSTOP_PROC_WAIT_PEER_LINK_DROP_INTERNAL_TIMEOUT:
+                twsTopology_ProcWaitPeerLinkDropHandleTimeout();
+                break;
+
+            default:
+                DEBUG_LOG("twsTopology_ProcWaitPeerLinkDropHandleMessage unhandled id 0x%x", id);
+                break;
+        }
     }
 }
 

@@ -30,9 +30,15 @@
 */
 #define PIO2MASK(pio) (1UL << ((pio) % 32))
 
+/*! \brief IR LED current = Value (dec.) x 10 mA. In this case -30mA
+*/
+#define PROXIMITY_IR_LED_CURRENT_VALUE    (3)
+
+/*! \brief The threshold low and high should be changed based on the enclosure for the earbud.
+*/
 const struct __proximity_config proximity_config = {
-    .threshold_low = 3000,
-    .threshold_high = 3500,
+    .threshold_low = 9500,
+    .threshold_high = 11000,
     .threshold_counts = vncl3020_threshold_count_4,
     .rate = vncl3020_proximity_rate_7p8125_per_second,
     .i2c_clock_khz = 100,
@@ -133,7 +139,7 @@ static bool vncl3020EnableInterruptOnThreshold(bitserial_handle handle,
 static bool vncl3020DisableInterrupts(bitserial_handle handle)
 {
     vncl3020_interrupt_status_register_t reg = {0};
-    return vncl3020WriteRegister(handle, VNCL3020_INTERRUPT_STATUS_REG, reg.reg);
+    return vncl3020WriteRegister(handle, VNCL3020_INTERRUPT_CONTORL_REG, reg.reg);
 }
 
 /*! \brief Clear all interrupt flags */
@@ -156,6 +162,15 @@ static bool vncl3020SetLowThreshold(bitserial_handle handle, uint16 threshold)
 {
     return vncl3020WriteRegister(handle, VNCL3020_LOW_THRESHOLD_HI_REG, threshold >> 8) &&
            vncl3020WriteRegister(handle, VNCL3020_LOW_THRESHOLD_LO_REG, threshold & 0xff);
+}
+
+/*! \brief Enable the interrupts for thresholds of proximity sensor */
+static void appProximityInterruptsEnable(void)
+{
+    DEBUG_LOG("vncl3020:appProximityRegisterInterrupts");
+    proximityTaskData *prox = ProximityGetTaskData();
+    const proximityConfig *config = appConfigProximity();
+    PanicFalse(vncl3020EnableInterruptOnThreshold(prox->handle, config->threshold_counts));
 }
 
 /*! \brief Read a proximity result.
@@ -196,12 +211,6 @@ static void vncl3020InterruptHandler(Task task, MessageId id, Message msg)
                 {
                     vncl3020_interrupt_status_register_t isr;
 
-                    /* Revert to slow rate after initial proximity measurement */
-                    if (proximity->state->proximity == proximity_state_unknown)
-                    {
-                        PanicFalse(vncl3020SetRate(proximity->handle, config->rate));
-                    }
-
                     PanicFalse(vncl3020ReadInterruptStatus(proximity->handle, &isr));
                     if (isr.bits.threshold_high)
                     {
@@ -229,7 +238,15 @@ static void vncl3020InterruptHandler(Task task, MessageId id, Message msg)
                 }
             }
         }
+        break; 
+
+        case INPUT_EVENT_MANAGER_ENABLE_CFM:
+        {
+            DEBUG_LOG("Received event: INPUT_EVENT_MANAGER_ENABLE_CFM");
+            appProximityInterruptsEnable();
+        }
         break;
+
         default:
         break;
     }
@@ -327,14 +344,27 @@ static void vncl3020Reset(bitserial_handle handle)
     PanicFalse(vncl3020ClearInterruptFlags(handle));
 }
 
+/*! \brief Set the proximity sensor LED level */
+static bool vncl3020SetLED(bitserial_handle handle, unsigned current)
+{
+
+    DEBUG_LOG("vncl3020SetLED VNCL3020 LED=%d", current);
+    vncl3020_ir_led_current_register_t reg = {0};
+    reg.bits.current = current;
+
+    return vncl3020WriteRegister(handle, VNCL3020_IR_LED_CURRENT_REG, reg.reg);
+}
+
 bool appProximityClientRegister(Task task)
 {
     vncl3020_revision_register_t rev;
     proximityTaskData *prox = ProximityGetTaskData();
+    uint16 result;
+
+    const proximityConfig *config = appConfigProximity();
 
     if (NULL == prox->clients)
     {
-        const proximityConfig *config = appConfigProximity();
         prox->config = config;
         prox->state = PanicUnlessNew(proximityState);
         prox->state->proximity = proximity_state_unknown;
@@ -351,17 +381,33 @@ bool appProximityClientRegister(Task task)
         /* Set the fastest measurement rate to get an initial reading as fast as possible */
         PanicFalse(vncl3020SetRate(prox->handle, vncl3020_proximity_rate_250_per_second));
         PanicFalse(vncl3020SetPeriodic(prox->handle));
+
+        /* Set the IR LED's current level to 30mA */
+        PanicFalse(vncl3020SetLED(prox->handle, PROXIMITY_IR_LED_CURRENT_VALUE));
         PanicFalse(vncl3020SetHighThreshold(prox->handle, config->threshold_high));
         PanicFalse(vncl3020SetLowThreshold(prox->handle, config->threshold_low));
 
-        /* Register for interrupt events */
+        /* Set the handler and PIO for sensor interrupt events. Sensor interrupts are not configured until #INPUT_EVENT_MANAGER_ENABLE_CFM */
         prox->task.handler = vncl3020InterruptHandler;
         InputEventManagerRegisterTask(&prox->task, config->pios.interrupt);
-
-        PanicFalse(vncl3020EnableInterruptOnThreshold(prox->handle, config->threshold_counts));
     }
 
-    /* Send initial message to client */
+    /* Send initial message to client by reading from sensor. Post app init, the state is updated via interrupts */
+    if(prox->state->proximity == proximity_state_unknown)
+    {
+        PanicFalse(vncl3020ReadProximityResult(prox->handle, &result));
+        if(result >= config->threshold_high)
+        {
+            DEBUG_LOG("vncl3020 Initial State: IN PROXIMITY");
+            prox->state->proximity = proximity_state_in_proximity;
+        }
+        else if(result <= config->threshold_low)
+        {
+            DEBUG_LOG("vncl3020 Initial State: NOT IN PROXIMITY");
+            prox->state->proximity = proximity_state_not_in_proximity;
+        }
+        PanicFalse(vncl3020SetRate(prox->handle, config->rate));
+    }
     switch (prox->state->proximity)
     {
         case proximity_state_in_proximity:

@@ -22,6 +22,7 @@ DESCRIPTION
 #include "avrcp_browsing_handler.h"
 #include "avrcp_init.h"
 #include "avrcp_profile_handler.h"
+#include "avrcp_handover_policy.h"
 
 /****************************************************************************
 * NAME    
@@ -98,6 +99,10 @@ void avrcpHandleL2capConnectCfm(AVRCP *avrcp, const CL_L2CAP_CONNECT_CFM_T *cfm)
 
     if (cfm->status == l2cap_connect_success)
     {
+        /* Set the handover policy */
+        Source src = StreamSourceFromSink(cfm->sink);
+        PanicFalse(avrcpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW_WITHOUT_DATA));
+
         status = avrcp_success;
         
         /* Break any Source connections */

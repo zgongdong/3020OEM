@@ -114,16 +114,16 @@ static void roleSelectionServiceAccess(GATT_ROLE_SELECTION_SERVER *instance,
 /*!
     Processes access of the RTS Features characteristic.
 */
-static void roleSelectionShadowingStateAccess(GATT_ROLE_SELECTION_SERVER *instance, 
+static void roleSelectionMirroringStateAccess(GATT_ROLE_SELECTION_SERVER *instance, 
                                               const GATT_MANAGER_SERVER_ACCESS_IND_T *access_ind)
 {
     if (roleSelectionPermittedReadRequested(instance, access_ind))
     {
-        uint8 state = (uint8)instance->shadow_state;
-        instance->shadow_state_notified = TRUE;
+        uint8 state = (uint8)instance->mirror_state;
+        instance->mirror_state_notified = TRUE;
         sendRoleSelectionAccessRsp(&instance->lib_task, access_ind->cid,
-                                   HANDLE_ROLE_SELECTION_SHADOWING_STATE, gatt_status_success, 
-                                   GRSS_SIZE_SHADOW_STATE_PDU_OCTETS, &state);
+                                   HANDLE_ROLE_SELECTION_MIRRORING_STATE, gatt_status_success, 
+                                   GRSS_SIZE_MIRROR_STATE_PDU_OCTETS, &state);
     }
 }
 
@@ -194,7 +194,7 @@ static void roleSelectionControlAccess(GATT_ROLE_SELECTION_SERVER *instance,
 
 
 /*!
-    Handle access to the client config option for the shadowing state
+    Handle access to the client config option for the mirroring state
 
     Read and write of the values are handled by the server.
 
@@ -207,7 +207,7 @@ static void roleSelectionStateClientConfigAccess(GATT_ROLE_SELECTION_SERVER *ins
     if (access_ind->flags & ATT_ACCESS_READ)
     {
         sendRoleSelectionConfigAccessRsp(instance, access_ind->cid, 
-                                         instance->shadow_client_config);
+                                         instance->mirror_client_config);
     }
     else if (access_ind->flags & ATT_ACCESS_WRITE)
     {
@@ -215,19 +215,19 @@ static void roleSelectionStateClientConfigAccess(GATT_ROLE_SELECTION_SERVER *ins
         {
             uint16 config_value =    (access_ind->value[0] & 0xFF) 
                                   + ((access_ind->value[1] << 8) & 0xFF00);
-            uint16 old_config = instance->shadow_client_config;
+            uint16 old_config = instance->mirror_client_config;
 
-            instance->shadow_client_config = config_value;
+            instance->mirror_client_config = config_value;
 
             sendRoleSelectionAccessRsp(&instance->lib_task, 
-                                 access_ind->cid, HANDLE_ROLE_SELECTION_SHADOWING_STATE_CLIENT_CONFIG,
+                                 access_ind->cid, HANDLE_ROLE_SELECTION_MIRRORING_STATE_CLIENT_CONFIG,
                                  gatt_status_success, 0, NULL);
 
             if (config_value && !old_config
-                && !instance->shadow_state_notified)
+                && !instance->mirror_state_notified)
             {
                 /* Now enabled and latest state has not been read/notified */
-                sendInternalShadowStateChanged(instance, access_ind->cid);
+                sendInternalMirrorStateChanged(instance, access_ind->cid);
             }
         }
         else
@@ -306,8 +306,8 @@ void handleRoleSelectionServiceAccess(GATT_ROLE_SELECTION_SERVER *instance,
             roleSelectionServiceAccess(instance, access_ind);
             break;
 
-        case HANDLE_ROLE_SELECTION_SHADOWING_STATE:
-            roleSelectionShadowingStateAccess(instance, access_ind);
+        case HANDLE_ROLE_SELECTION_MIRRORING_STATE:
+            roleSelectionMirroringStateAccess(instance, access_ind);
             break;
 
         case HANDLE_ROLE_SELECTION_CONTROL:
@@ -318,7 +318,7 @@ void handleRoleSelectionServiceAccess(GATT_ROLE_SELECTION_SERVER *instance,
             roleSelectionFigureOfMeritAccess(instance, access_ind);
             break;
 
-        case HANDLE_ROLE_SELECTION_SHADOWING_STATE_CLIENT_CONFIG:
+        case HANDLE_ROLE_SELECTION_MIRRORING_STATE_CLIENT_CONFIG:
             roleSelectionStateClientConfigAccess(instance, access_ind);
             break;
 
@@ -343,28 +343,28 @@ void sendRoleSelectionConfigAccessRsp(const GATT_ROLE_SELECTION_SERVER *instance
     config_resp[1] = (client_config >> 8) & 0xFF;
 
     sendRoleSelectionAccessRsp((Task)&instance->lib_task, cid,
-                                HANDLE_ROLE_SELECTION_SHADOWING_STATE_CLIENT_CONFIG,
+                                HANDLE_ROLE_SELECTION_MIRRORING_STATE_CLIENT_CONFIG,
                                 gatt_status_success,
                                 GRSS_CLIENT_CONFIG_OCTET_SIZE, config_resp);
 }
 
 
-void GattRoleSelectionServerSetShadowState(GATT_ROLE_SELECTION_SERVER *instance,
+void GattRoleSelectionServerSetMirrorState(GATT_ROLE_SELECTION_SERVER *instance,
                                            uint16 cid,
-                                           GattRoleSelectionServiceShadowingState shadow_state)
+                                           GattRoleSelectionServiceMirroringState mirror_state)
 {
-    GattRoleSelectionServiceShadowingState old_state = instance->shadow_state;
-    bool old_notified = instance->shadow_state_notified;
+    GattRoleSelectionServiceMirroringState old_state = instance->mirror_state;
+    bool old_notified = instance->mirror_state_notified;
 
-    if (shadow_state != old_state)
+    if (mirror_state != old_state)
     {
-        instance->shadow_state = shadow_state;
-        instance->shadow_state_notified = FALSE;
-        sendInternalShadowStateChanged(instance, cid);
+        instance->mirror_state = mirror_state;
+        instance->mirror_state_notified = FALSE;
+        sendInternalMirrorStateChanged(instance, cid);
     }
     else if (!old_notified)
     {
-        sendInternalShadowStateChanged(instance, cid);
+        sendInternalMirrorStateChanged(instance, cid);
     }
 }
 

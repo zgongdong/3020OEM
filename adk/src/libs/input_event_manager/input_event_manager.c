@@ -535,9 +535,15 @@ static void updateDebounced(const InputEventConfig_t *config, uint8 pio)
             pio_bank_mask |= client_bank_pio_mask;
         }
     }
-    IEM_DEBUG(("IEM: updateDebounced pio_bank %d, mask %08x\n", pio_bank, pio_bank_mask));
-    PioDebounce32Bank(pio_bank, pio_bank_mask | config->pio_config[pio_bank],
-                      config->debounce_reads, config->debounce_period);
+    if(PioDebounce32Bank(pio_bank, pio_bank_mask | config->pio_config[pio_bank],
+                      config->debounce_reads, config->debounce_period))
+    {
+        IEM_DEBUG(("IEM: updateDebounced: Monitoring not set for pio_bank %d, mask %08x\n", pio_bank, pio_bank_mask));
+    }
+    else
+    {
+         IEM_DEBUG(("IEM: updateDebounced pio_bank %d, mask %08x\n", pio_bank, pio_bank_mask));
+    }
 }
 
 
@@ -553,16 +559,40 @@ Task InputEventManagerInit(Task client,
     input_event_manager_state.num_action_messages = size_action_table / sizeof(InputActionMessage_t);
     input_event_manager_state.config = config;
 
+    return &input_event_manager_state.task;
+}
+
+
+/*! Send message to the registered clients that Input Event Manager is enabled */
+static void enableClients(void)
+{
+    InputEventClient_t *client = NULL;
+
+    for (client = input_event_manager_state.client_list; client != NULL; client = client->next)
+    {
+        /* We have the ownership of all the PIOs now. Update the debounce for them */
+        updateDebounced(input_event_manager_state.config, client->pio);
+
+        /* Send INPUT_EVENT_MANAGER_ENABLE_CFM to client task */
+        IEM_DEBUG(("IEM: Sending INPUT_EVENT_MANAGER_ENABLE_CFM to task %p\n", client->task));
+        MessageSend(client->task, INPUT_EVENT_MANAGER_ENABLE_CFM, NULL);
+    }
+}
+
+
+void InputEventManagerEnable(void)
+{
     configurePioHardware(&input_event_manager_state.task, input_event_manager_state.config);
     setStartupStates(&input_event_manager_state);
 
-    return &input_event_manager_state.task;
+    /* Notify the clients of IEM that the module is enabled */
+    enableClients();
 }
+
 
 void InputEventManagerRegisterTask(Task client, uint8 pio)
 {
     addClient(client, pio);
-    updateDebounced(input_event_manager_state.config, pio);
 }
 
 void InputEventManagerUnregisterTask(Task client, uint8 pio)

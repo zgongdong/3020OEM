@@ -191,9 +191,10 @@ class PoolInfo(Analysis.Analysis):
         for pool in range(self.pool_count):
             # Work out the extent of the pool
             start_of_pool = self.p_pool[pool]
-            block_size = self.pooldata[pool].get_member(
+            block_size_words = self.pooldata[pool].get_member(
                 'blockSizeWords'
             ).value + self.block_overhead_words
+            block_size = block_size_words * Arch.addr_per_word
             blocks_total = self.debuginfo.get_dm_const(
                 self.pooldata[pool].get_member('numBlocksFree').address,
                 0,

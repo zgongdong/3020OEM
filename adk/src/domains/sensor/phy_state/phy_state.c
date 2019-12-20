@@ -8,6 +8,8 @@
 */
 
 #include "phy_state.h"
+#include "phy_state_config.h"
+
 #include "earbud_log.h"
 #include "proximity.h"
 #include "acceleration.h"
@@ -43,6 +45,14 @@ static void appPhyStateMsgSendStateChangedInd(phyState state, phy_state_event ev
     MAKE_PHYSTATE_MESSAGE(PHY_STATE_CHANGED_IND);
     message->new_state = state;
     message->event = event;
+
+    /* start notification limit timer if configured */
+    if (appPhyStateNotificationsLimitMs())
+    {
+        MessageSendLater(PhyStateGetTask(), PHY_STATE_INTERNAL_TIMEOUT_NOTIFICATION_LIMIT,
+                         NULL, appPhyStateNotificationsLimitMs());
+    }
+
     TaskList_MessageSend(TaskList_GetFlexibleBaseTaskList(PhyStateGetClientTasks()), PHY_STATE_CHANGED_IND, message);
 }
 
@@ -303,6 +313,19 @@ static void appPhyStateHandleInternalNotInMotionEvent(void)
     }
 }
 
+/*! \brief When notification limit timer fires, progress the state machine if current
+           state doesn't equal reported state.
+*/
+static void appPhyStateHandleInternalTimeoutNotificationLimit(void)
+{
+    phyStateTaskData *phy_state = PhyStateGetTaskData();
+    
+    if (phy_state->state != phy_state->reported_state)
+    {
+        appPhyStateSetState(phy_state, phy_state->state);
+    }
+}
+
 /*! \brief Physical State module message handler. */
 static void appPhyStateHandleMessage(Task task, MessageId id, Message message)
 {
@@ -328,6 +351,10 @@ static void appPhyStateHandleMessage(Task task, MessageId id, Message message)
             break;
         case PHY_STATE_INTERNAL_NOT_IN_MOTION:
             appPhyStateHandleInternalNotInMotionEvent();
+            break;
+
+        case PHY_STATE_INTERNAL_TIMEOUT_NOTIFICATION_LIMIT:
+            appPhyStateHandleInternalTimeoutNotificationLimit();
             break;
 
         case CHARGER_MESSAGE_ATTACHED:
@@ -384,6 +411,7 @@ bool appPhyStateInit(Task init_task)
 
     phy_state->task.handler = appPhyStateHandleMessage;
     phy_state->state = PHY_STATE_UNKNOWN;
+    phy_state->reported_state = PHY_STATE_UNKNOWN;
     TaskList_InitialiseWithCapacity(PhyStateGetClientTasks(), PHY_STATE_CLIENT_TASK_LIST_INIT_CAPACITY);
     phy_state->in_motion = FALSE;
     phy_state->in_proximity = FALSE;
@@ -432,7 +460,24 @@ void appPhyStatePrepareToEnterDormant(void)
  */
 void appPhyStateSetState(phyStateTaskData* phy_state, phyState new_state)
 {
-    switch (phy_state->state)
+    int32 due;
+
+    DEBUG_LOG("appPhyStateSetState current %d reported %d new %d", phy_state->state, phy_state->reported_state, new_state);
+
+    /* always update true state of the device */
+    PhyStateGetTaskData()->state = new_state;
+
+    /* If we're within the notification limit timer, don't perform any state transition that
+     * would notify clients, when the limit expires this state transition will be kicked
+     * again */
+    if (MessagePendingFirst(PhyStateGetTask(), PHY_STATE_INTERNAL_TIMEOUT_NOTIFICATION_LIMIT, &due))
+    {
+        return;
+    }
+
+    /* The state machine reflects what has been reported to clients, so transitions are
+     * based on reported_state not state */
+    switch (phy_state->reported_state)
     {
         case PHY_STATE_UNKNOWN:
             appPhyStateExitUnknown();
@@ -450,13 +495,34 @@ void appPhyStateSetState(phyStateTaskData* phy_state, phyState new_state)
             appPhyStateExitInEar();
             break;
         default:
-            appPhyStateHandleBadState(phy_state->state);
+            appPhyStateHandleBadState(phy_state->reported_state);
             break;
     }
 
-    phy_state->state = new_state;
+    /* Take advantage of the structure of the phy_state FSM to update reported state,
+     * as all transitions go through PHY_STATE_OUT_OF_EAR and we report all transitions
+     * one step at a time. */
+    /* PHY_STATE_UNKNOWN
+        - Initialising, set new_state
+       PHY_STATE_OUT_OF_EAR
+        - Can only move to to the latest state, set new_state
+       PHY_STATE_IN_CASE
+       PHY_STATE_OUT_OF_EAR_AT_REST
+       PHY_STATE_IN_EAR
+        - Otherwise we were in PHY_STATE_IN_CASE, PHY_STATE_IN_EAR or PHY_STATE_OUT_OF_EAR_AT_REST
+          and are now either in PHY_STATE_OUT_OF_EAR or a different one of those 3 but
+          having passed through PHY_STATE_OUT_OF_EAR, either way that is the next 
+          reported state. */
+    if ((phy_state->reported_state == PHY_STATE_UNKNOWN) || (phy_state->reported_state == PHY_STATE_OUT_OF_EAR))
+    {
+        phy_state->reported_state = new_state;
+    }
+    else
+    {
+        phy_state->reported_state = PHY_STATE_OUT_OF_EAR;
+    }
 
-    switch (phy_state->state)
+    switch (phy_state->reported_state)
     {
         case PHY_STATE_IN_CASE:
             appPhyStateEnterInCase();
@@ -471,7 +537,7 @@ void appPhyStateSetState(phyStateTaskData* phy_state, phyState new_state)
             appPhyStateEnterInEar();
             break;
         default:
-            appPhyStateHandleBadState(phy_state->state);
+            appPhyStateHandleBadState(phy_state->reported_state);
             break;
     }
 

@@ -15,6 +15,6 @@
 #include <panic.h>
 #include <message.h>
 
-extern tws_topology_procedure_fns_t proc_sec_connect_peer_fns;
+extern const tws_topology_procedure_fns_t proc_sec_connect_peer_fns;
 
 #endif /* TWS_TOPOLOGY_PROC_SEC_CONNECT_PEER_H */

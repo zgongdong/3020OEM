@@ -67,7 +67,17 @@ static void SetResumePoint(upgrade_peer_resume_point_t point)
  */
 bool UpgradePeerIsPeerDFUAborted(void)
 {
-    return upgradePeerInfo->is_dfu_aborted;
+    if(upgradePeerInfo != NULL)
+    {
+        return upgradePeerInfo ->is_dfu_aborted;
+    }
+    else
+    {
+        DEBUG_LOGF("UpgradePeer: Invalid access of upgradePeerInfo ptr. Panic the app");
+        Panic();
+        /* To satisfy the compiler */
+        return FALSE;
+    }
 }
 
 /**
@@ -1281,6 +1291,13 @@ bool UpgradePeerStartDfu(void)
 
 void UpgradePeerSetDeviceRolePrimary(bool is_primary)
 {
+    /* If upgradePeerInfo context is not yet created */
+    if(upgradePeerInfo == NULL)
+    {
+        DEBUG_LOGF("UpgradePeerSetDeviceRolePrimary upgradePeerInfo context is not yet created, return");
+        return;
+    }
+
     DEBUG_LOGF("UpgradePeerSetDeviceRolePrimary is_primary %d\n", is_primary);
     upgradePeerInfo->is_primary_device = is_primary;
     upgradePeerInfo->UpgradePSKeys.is_secondary_device =
@@ -1291,6 +1308,13 @@ void UpgradePeerSetDeviceRolePrimary(bool is_primary)
 
 void UpgradePeerSetDFUMode(bool is_dfu_mode)
 {
+    /* If upgradePeerInfo context is not yet created */
+    if(upgradePeerInfo == NULL)
+    {
+        DEBUG_LOGF("UpgradePeerSetDFUMode upgradePeerInfo context is not yet created, return");
+        return;
+    }
+
     DEBUG_LOGF("UpgradePeerSetDFUMode is_dfu_mode %d", is_dfu_mode);
     upgradePeerInfo->UpgradePSKeys.is_dfu_mode = is_dfu_mode;
     SavePSKeys();

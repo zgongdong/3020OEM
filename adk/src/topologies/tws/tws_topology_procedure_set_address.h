@@ -14,7 +14,7 @@
 #include "tws_topology_procedures.h"
 
 /*! Set Address procedure functions interface. */
-extern tws_topology_procedure_fns_t proc_set_address_fns;
+extern const tws_topology_procedure_fns_t proc_set_address_fns;
 
 /*! Procedure configuration parameter, used to specify Primary or Secondary address.
     Not typically used directly, but instead via the constants and macros below.

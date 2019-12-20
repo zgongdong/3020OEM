@@ -14,6 +14,8 @@ They are equivalent to the Inquiry_Priority BCCMD.
 
 /**
  *  \brief Sets the priority level of Bluetooth inquiry.
+ *           Trap unsupported on QCC514x and QCC304x and newer devices, if called
+ *  it will return FALSE. 
  *     
  *  \param priority The desired priority level.
  *  \return TRUE if the level was successfully set, FALSE otherwise.
@@ -26,6 +28,8 @@ bool InquirySetPriority(InquiryPriority priority);
 
 /**
  *  \brief Gets the current priority level of Bluetooth inquiry.
+ *           Trap unsupported on QCC514x and QCC304x and newer devices, if called
+ *  it will return 0. 
  *     
  *  \return The current priority level.
  * 

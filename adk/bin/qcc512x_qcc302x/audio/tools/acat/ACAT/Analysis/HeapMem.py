@@ -19,7 +19,7 @@ from ACAT.Core.exceptions import (
 # 'mem_node' also has members 'line' and 'file' missing since they are in try
 VARIABLE_DEPENDENCIES = {
     'strict': (
-        '$_processor_heap_info_list', 'L_pheap_info', '$_heap_debug_free',
+        'L_processor_heap_info_list', 'L_pheap_info', '$_heap_debug_free',
         '$_heap_debug_min_free'
     )
 }
@@ -40,12 +40,10 @@ class HeapMem(Heap):
     """
     # heap names
     heap_names = [
-        "DM1 heap",
-        "DM2 heap",
-        "DM2 shared heap",
-        "DM1 ext heap",
-        "DM1 heap+",
-        "SRAM"
+        "Main heap",
+        "Shared heap",
+        "Slow heap",
+        "External heap",
     ]
     # maximum number of heaps per processor.
     max_num_heaps = len(heap_names)
@@ -127,10 +125,11 @@ class HeapMem(Heap):
     def _check_kymera_version(self):
         """Checks if the Kymera version is compatible with this analysis.
 
-        For outdated Kymera OutdatedFwAnalysisError will be raised.
+        Raises:
+            OutdatedFwAnalysisError: For an outdated Kymera.
         """
         try:
-            self.debuginfo.get_var_strict("$_processor_heap_info_list")
+            self.debuginfo.get_var_strict("L_heap_single_mode")
         except DebugInfoNoVariableError:
             # fallback to the old implementation
             raise OutdatedFwAnalysisError()
@@ -155,73 +154,23 @@ class HeapMem(Heap):
         """
         heap_name = self.heap_names[heap_number]
         processor_number = self.chipdata.processor
+        heap_free_start = 0
 
-        if heap_name == "DM1 heap+":
+        # when offloading is enabled the private heap property of the
+        # second core is not populated. Use the common heap config to
+        # decide if the heap is enabled.
+        available, heap_size, heap_start, heap_end = self._get_heap_config(
+            processor_number, heap_number)
+
+        # Adjust the heap number
+        if heap_name == "External heap" and available is True:
             try:
-                # remove this if the memory is re-arranged
-                temp_name = "$_heap1_p%d_DM1_addition_start" % processor_number
-                heap_start = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
-                temp_name = "$_heap1_p%d_DM1_addition_size" % processor_number
-                heap_size = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
-                # "DM1 heap+" has the same free heap list as "DM1 heap".
-                # "DM1 heap" is at index
-                dm1_heap_index = self.heap_names.index("DM1 heap")
-                heap_free_start = self.freelist[dm1_heap_index].value
-                available = heap_start != 0
-                heap_end = heap_start + heap_size - 1
+                self.chipdata.get_var_strict("L_slow_heap").value
             except DebugInfoNoVariableError:
-                heap_start = 0
-                heap_size = 0
-                heap_free_start = 0
-                heap_end = 0
-                available = False
-        elif heap_name == "SRAM":
-            sram_enabled = False
-            try:
-                temp_name = "$_ext_freelist_p%d" % processor_number
-                heap_free_start = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
-                if heap_free_start != 0:
-                    sram_enabled = True
-            except DebugInfoNoVariableError:
-                pass
-            # exit if SRAM is disabled.
-            if not sram_enabled:
-                return (False, 0, 0, 0, 0)
-            # calculate the end and return.
-            heap_end = SRAM_START_ADDRESS + SRAM_SIZE - 1
-            return (
-                True,
-                SRAM_SIZE,
-                SRAM_START_ADDRESS,
-                heap_end,
-                heap_free_start
-            )
-        else:
-            # when offloading is enabled the private heap property of the
-            # second core is not populated. Use the common heap config to
-            # decide if the heap is enabled.
-            heap_configuration = self._get_heap_config(
-                self.chipdata.processor,
-                heap_number
-            )
-            heap_enabled = heap_configuration[0]
-            if not heap_enabled:
-                return (False, 0, 0, 0, 0)
-            # the current heap is enabled in the common config. Now read
-            # the processor specific properties.
-            current_heap = self.heap_info[heap_number]
-            heap_size = current_heap.get_member("heap_size").value
-            heap_start = current_heap.get_member("heap_start").value
-            heap_end = current_heap.get_member("heap_end").value
-            heap_end = heap_end - 1
+                heap_number = heap_number - 1
+
+        if available is True:
             heap_free_start = self.freelist[heap_number].value
-            available = heap_start != 0
 
         return available, heap_size, heap_start, heap_end, heap_free_start
 
@@ -241,64 +190,56 @@ class HeapMem(Heap):
 
             (available, heap_size, heap_start, heap_end)
 
-            available - True, if the heap is present in the build.
+            available - True, if the heap is present and the size is non-zero.
+            heap_num  - The actual heap number
             heap_size - Size in octets.
             heap_start - Start address.
             heap_end - The last valid address.
         """
         heap_name = self.heap_names[heap_number]
-        if heap_name == "DM1 heap+":
-            available = False
-            heap_start = 0
-            heap_end = 0
-            heap_size = 0
-            try:
-                # remove this if the memory is re-arranged
-                temp_name = "$_heap1_p%d_DM1_addition_start" % processor_number
-                heap_start = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
-                temp_name = "$_heap1_p%d_DM1_addition_end" % processor_number
-                heap_end = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
-                temp_name = "$_heap1_p%d_DM1_addition_size" % processor_number
-                heap_size = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
+        heap_start = 0
+        heap_end = 0
+        heap_size = 0
+        extmem_cntrl = 0
 
-                if heap_start != 0:
-                    available = True
-            except DebugInfoNoVariableError:
-                pass
-        elif heap_name == "SRAM":
-            sram_enabled = False
-            try:
-                temp_name = "$_ext_freelist_p%d" % processor_number
-                heap_free_start = self.chipdata.get_var_strict(
-                    temp_name
-                ).value
-                if heap_free_start != 0:
-                    sram_enabled = True
-            except DebugInfoNoVariableError:
-                pass
-            # exit if SRAM is disabled.
-            if not sram_enabled:
+        try:
+            self.chipdata.get_var_strict("L_slow_heap").value
+        except DebugInfoNoVariableError:
+            if heap_name == "Slow heap":
                 return False, 0, 0, 0
-            # calculate the end and return.
-            heap_end = SRAM_START_ADDRESS + SRAM_SIZE - 1
-            return True, SRAM_SIZE, SRAM_START_ADDRESS, heap_end
+            elif heap_name == "External heap":
+                heap_number = heap_number - 1
 
-        else:
-            heap_info = self.heap_info_list[processor_number]
-            proc_config = heap_info.get_member("heap")
+        try:
+            extmem_cntrl = self.chipdata.get_var_strict("$_extmem_cntrl").value
+        except DebugInfoNoVariableError:
+            pass
 
-            heap = proc_config[heap_number]
-            available = heap.get_member('heap_end').value != 0
+        if heap_name == "External heap":
+            sram_enabled = False
+            if extmem_cntrl != 0:
+                extmem_blk = self.chipdata.cast(
+                    extmem_cntrl, "EXTMEM_CNTRL_BLOCK")
+                clk = extmem_blk.get_member('cur_clk').value
+                # If clk is greater than EXT_CLK_OFF , then sram is available
+                if clk > 1:
+                    sram_enabled = True
 
-            heap_size = heap.get_member('heap_size').value
-            heap_start = heap.get_member('heap_start').value
-            heap_end = heap.get_member('heap_end').value - 1
+            if sram_enabled is False:
+                return False, 0, 0, 0
+
+        # Once we reach here, the heap is avialable
+
+        heap_info = self.heap_info_list[processor_number]
+        proc_config = heap_info.get_member("heap")
+        heap = proc_config[heap_number]
+
+        heap_size = heap.get_member('heap_size').value
+        heap_start = heap.get_member('heap_start').value
+        heap_end = heap.get_member('heap_end').value - 1
+
+        # If the heap size is zero, it's not available.
+        available = heap_size != 0
 
         return available, heap_size, heap_start, heap_end
 
@@ -332,5 +273,5 @@ class HeapMem(Heap):
 
         # processor_heap_info_list should be always different than NULL!
         self.heap_info_list = self.chipdata.get_var_strict(
-            "$_processor_heap_info_list"
+            "L_processor_heap_info_list"
         )

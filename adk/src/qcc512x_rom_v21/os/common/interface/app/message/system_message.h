@@ -29,7 +29,7 @@
 
   Bluestack messages are sent to the task registered with MessageBlueStackTask(),
   except MESSAGE_BLUESTACK_ATT_PRIM which are routed to the task registered with MessageAttTask(),
-  and MESSAGE_BLUESTACK_SDM_PRIM which are routed to the task registered with MessageSdmTask().
+  and MESSAGE_BLUESTACK_MDM_PRIM which are routed to the task registered with MessageMdmTask().
 */
 #define MESSAGE_BLUESTACK_BASE_           (SYSTEM_MESSAGE_BASE_)
 
@@ -50,7 +50,7 @@
 #define MESSAGE_BLUESTACK_UDP_PRIM        (MESSAGE_BLUESTACK_BASE_ + 15) /*!< UDP primitive from Bluestack.*/
 #define MESSAGE_BLUESTACK_FB_PRIM         (MESSAGE_BLUESTACK_BASE_ + 16) /*!< FB primitive from Bluestack.*/
 #define MESSAGE_BLUESTACK_ATT_PRIM        (MESSAGE_BLUESTACK_BASE_ + 18) /*!< ATT primitive from Bluestack.*/
-#define MESSAGE_BLUESTACK_SDM_PRIM        (MESSAGE_BLUESTACK_BASE_ + 22) /*!< SDM primitive from Bluestack. */
+#define MESSAGE_BLUESTACK_MDM_PRIM        (MESSAGE_BLUESTACK_BASE_ + 22) /*!< MDM primitive from Bluestack. */
 
 #define MESSAGE_BLUESTACK_END_            (MESSAGE_BLUESTACK_BASE_ + 23) /*!< End of Bluestack primitives.*/
 
@@ -484,6 +484,23 @@ This message is sent to the task registered with MessageOperatorFrameworkTask().
 */
 #define MESSAGE_RA_PARTITION_BG_ERASE_STATUS (SYSTEM_MESSAGE_BASE_ + 79)
 
+/*!
+  Message to indicate audio synchronisation of source stream. The message
+  content is a #MessageSourceAudioSynchronised.
+
+  This message is sent to any task associated with the source using
+  #MessageStreamTaskFromSource().
+ */
+#define MESSAGE_SOURCE_AUDIO_SYNCHRONISED (SYSTEM_MESSAGE_BASE_ + 80)
+
+/*!
+  Message to indicate audio synchronisation of sink stream. The message
+  content is a #MessageSinkAudioSynchronised.
+
+  This message is sent to any task associated with the sink using
+  #MessageStreamTaskFromSink().
+ */
+#define MESSAGE_SINK_AUDIO_SYNCHRONISED (SYSTEM_MESSAGE_BASE_ + 81)
 
 /*!
   #MESSAGE_MORE_DATA: Message type received when more data has arrived at a Source.
@@ -801,5 +818,25 @@ typedef struct
                                      erased. */
 } MessageRaPartitionBgEraseStatus;
 #endif /* TRAPSET_RA_PARTITION */
+
+/*!
+  #MESSAGE_SOURCE_AUDIO_SYNCHRONISED received to indicate audio synchronisation
+  of source stream
+*/
+typedef struct
+{
+    Source source;    /*!< The source to be synchronised. */
+    uint32 sync_time; /*!< Local system time (in usec) at which source will be synchronised*/
+} MessageSourceAudioSynchronised;
+
+/*!
+  #MESSAGE_SINK_AUDIO_SYNCHRONISED received to indicate audio synchronisation
+  of sink stream
+*/
+typedef struct
+{
+    Sink sink;        /*!< The sink stream to be synchronised. */
+    uint32 sync_time; /*!< Local system time (in usec) at which sink will be synchronised*/
+} MessageSinkAudioSynchronised;
 
 #endif

@@ -72,14 +72,34 @@ class DataSym(object):
         else:
             hex_addr = 'None'
 
-        if self.value is not None:
-            hex_val = hex(self.value)
-        else:
-            hex_val = 'None'
-
-        # Using str(x) here since it copes with the value being None
         return ('Name: ' + str(self.name) + '\n' + 'Address: ' +
-                hex_addr + '\n' + 'Value: ' + hex_val + '\n')
+                hex_addr + '\n' + 'Value: ' + self._value_to_hex() + '\n')
+
+    def _value_to_hex(self):
+        """Converts the value into hex and return it.
+        
+        The value of the Variable might be in different types. This method
+        supports the conversion when the type is in Integer, list or tuple
+        of Integers and None.
+
+        When the value is a list of integers, each number will be
+        converted into hex. Also, in case the value is None, the `None`
+        string will be returned.
+
+        Returns:
+            str: A string representation of the Variable's value.
+        """
+        if isinstance(self.value, numbers.Integral):
+            display_value = hex(self.value)
+
+        elif isinstance(self.value, (list, tuple)):
+            display_value = str([hex(val) for val in self.value])
+
+        else:
+            # Conversion to hex was unsuccessful.
+            display_value = str(self.value)
+
+        return display_value
 
 
 class Variable(DataSym):
@@ -159,55 +179,11 @@ class Variable(DataSym):
         The standard representation will be the same as the standard to
         string to make the interactive interpreter more user-friendly.
         """
-        return self.__str__()
-
-    def __str__(self, debug=False):
-        """The standard to string function."""
-        if debug:
-            return self._debug_var_to_str()
-
         return self.var_to_str()
 
-    def _debug_var_to_str(self):
-        """Converts var to string.
-
-        The standard to string function used in debug mode. The debug mode
-        will display more information about the variable. These additional
-        information is more bitfield and address related.
-        """
-        mystr = DataSym.__str__(self)
-        mystr = self.indent + mystr.replace('\n', '\n' + self.indent)
-        # By default, assume we want to poke into every member.
-        dont_recurse = False
-
-        # Construct typestr
-        typestr = self.type_name
-        if self.array_len > 0:
-            typestr += '[' + str(self.array_len) + ']'
-            if self.array_len > 10:
-                dont_recurse = True
-
-        if self.size_bits:
-            mystr += ('Size (bitfield): ' + str(self.size_bits) + ' bits \n')
-        else:
-            mystr += ('Size: ' + str(self.size) + '\n')
-        mystr += (self.indent + 'Type: ' + typestr + '\n')
-
-        if self.parent:
-            mystr += (self.indent + 'Parent: ' + self.parent.name + '\n')
-        # Members
-        if self.members and dont_recurse:
-            mystr += (self.indent + 'Members: TOO MANY TO LIST\n')
-
-        if self.members and not dont_recurse:
-            mystr += (self.indent + 'Members: \n')
-            for member in self.members:
-                member.indent = self.indent + '  '
-                mystr += str(member)
-                mystr += member.indent + '----\n'
-                member.indent = ""  # Reset the indent once we're done with it
-
-        return mystr
+    def __str__(self):
+        """The standard to string function."""
+        return self.var_to_str()
 
     def _get_enum_name(self):
         """Returns the enum name based on the value."""
@@ -244,7 +220,7 @@ class Variable(DataSym):
                         self.value
                     )
                 except (InvalidDebuginfoTypeError,
-                        InvalidDebuginfoEnumErrorError):
+                        InvalidDebuginfoEnumError):
                     error_msg += (
                         "(enum type \"" + enum_type_name +
                         "\" not found for \"" + self.base_name + "\" member)"
@@ -252,16 +228,16 @@ class Variable(DataSym):
                 except KeyError:  # the enum is missing the values
                     error_msg += (
                         "(enum \"" + enum_type_name +
-                        "\" has no value " + hex(self.value) + ")"
+                        "\" has no value " + self._value_to_hex() + ")"
                     )
             except KeyError:  # the enum is missing the values
                 error_msg += (
                     "(enum \"" + enum_type_name +
-                    "\" has no value " + hex(self.value) + ")"
+                    "\" has no value " + self._value_to_hex() + ")"
                 )
 
             if enum_value_name == "":
-                enum_value_name = hex(self.value) + " " + error_msg
+                enum_value_name = self._value_to_hex() + " " + error_msg
             else:
                 if len(enum_value_name) > 1:
                     enum_value_name = sorted(enum_value_name)
@@ -277,22 +253,22 @@ class Variable(DataSym):
                         else:
                             temp_name += ", "
                         temp_name += value_name
-                    temp_name += " have value " + hex(self.value)
+                    temp_name += " have value " + self._value_to_hex()
                     temp_name += " in " + enum_type_name + ")"
-                    enum_value_name = hex(self.value) + " " + temp_name
+                    enum_value_name = self._value_to_hex() + " " + temp_name
                 else:
                     # get_enum panics if there are no matches so we are
                     # sure that enum_value_name has at lest one element.
                     temp_name = enum_value_name[0]
-                    enum_value_name = temp_name + " " + hex(self.value)
+                    enum_value_name = temp_name + " " + self._value_to_hex()
             # concatenate the return string.
             ret_string += self.base_name + ": " + enum_value_name + "\n"
         elif self.base_name != "":
             # Just display the base name and value.
-            ret_string += self.base_name + ": " + hex(self.value) + "\n"
+            ret_string += self.base_name + ": " + self._value_to_hex() + "\n"
         else:
             # Display the value and name.
-            ret_string += self.name + ": " + hex(self.value) + "\n"
+            ret_string += self.name + ": " + self._value_to_hex() + "\n"
         return ret_string
 
     def var_to_str(self, depth=0):
@@ -332,9 +308,9 @@ class Variable(DataSym):
                 # display integers in hex
                 if not part_of_array:
                     fv_str += (depth_str + self.base_name)
-                fv_str += (": " + hex(self.value) + "\n")
+                fv_str += (": " + self._value_to_hex() + "\n")
             elif "bool" in self.type_name:
-                # buleans are displayed as true (1) or false (0).
+                # booleans are displayed as true (1) or false (0).
                 fv_str += (depth_str + self.base_name + ": ")
                 if self.value != 0:
                     fv_str += ("True\n")
@@ -350,12 +326,8 @@ class Variable(DataSym):
                     else:
                         fv_str += (depth_str + self.name)
 
-                try:
-                    hex_value = hex(self.value)
-                except TypeError:
-                    hex_value = str([hex(value) for value in self.value])
+                fv_str += (": " + self._value_to_hex() + "\n")
 
-                fv_str += (": " + hex_value + "\n")
         return fv_str
 
     def set_debuginfo(self, debuginfo):

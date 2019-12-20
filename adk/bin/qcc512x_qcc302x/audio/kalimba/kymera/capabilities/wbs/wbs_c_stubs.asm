@@ -198,7 +198,7 @@ $_wbsdec_init_dec_param:
 //
 // INPUTS:
 //    r0 - wbs_dec.CODEC_DATA_FIELD
-//    r1 - payload length in words
+//    r1 - payload length in octets
 //    r2 - pointer which will be populated with the wbs packet length.
 //    r3 - pointer which will be populated with the amount the input
 //         buffer advanced (in words)
@@ -229,7 +229,7 @@ $_sco_decoder_wbs_validate:
    r7 = r0;
 
    // payload length
-   r5 = r1;// this should be already in words.
+   r5 = r1;// this should be already in octets.
 
 #if defined(PATCH_LIBS)
    LIBS_SLOW_SW_ROM_PATCH_POINT($wbs_cap.WBS_C_STUBS_ASM.SCO_DECODER.WBS._VALIDATE._SCO_DECODER_WBS_VALIDATE.PATCH_ID_0,r1)
@@ -317,8 +317,20 @@ $_sco_decoder_wbs_validate:
    // see how much read pointer has advanced;
    r4 = r1 - r6;
    if NEG r4 = r4 + L0;
-   r4 = r4 ASHIFT (-LOG2_ADDR_PER_WORD); // output is in words
    if NEG r4 = 0; // this shall not happen, just for safeguard
+
+   // r4 is now (amount_advanced % buffer_size). Normally amount_advanced
+   // by validate function is zero or positive up to packet length so r4
+   // will hold true value of amount_advanced. However in special circumstances
+   // where the function finds WBS sync at the end of previous packet
+   // it actually moves the pointer back by one word, so amount_advanced is -1 word.
+   // For that special case we need to re-fix r4 to represent true value of
+   // amount_advanced.
+   r2 = L0 - ADDR_PER_WORD;      // r2 = buffer_size - 1 word
+   Null = r4 - r2;               // if r4 == buffer_size - 1 word
+   if Z r4 = r4 - L0;            // set r4 to -1 word by taking away a full buffer size
+
+   r4 = r4 ASHIFT (-LOG2_ADDR_PER_WORD); // output is in words
 
    // restore pointer to amount_advanced
    pop r6;

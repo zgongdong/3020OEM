@@ -79,16 +79,36 @@ uint16 GattHandler_GetGattStartHandle(gatt_server_t gatt_server)
     uint16 start_handle = 0;
     switch(gatt_server)
     {
-        case gatt_server_gaa:
+        case gatt_server_gaa_comm:
 #ifdef INCLUDE_GAA_COMM_SERVER
             start_handle = HANDLE_GAA_COMM_SERVICE;
 #endif
-            break;
+        break;
+
+        case gatt_server_gaa_ams_proxy:
+#ifdef INCLUDE_GATT_AMS_PROXY
+            start_handle = HANDLE_AMS_PROXY_SERVICE;
+#endif
+        break;
+
+        case gatt_server_gaa_ancs_proxy:
+#ifdef INCLUDE_GATT_ANCS_PROXY
+            start_handle = HANDLE_ANCS_PROXY_SERVICE;
+#endif
+        break;
+
+        case gatt_server_gaa_media_server:
+#ifdef INCLUDE_GAA_MEDIA_SERVER
+            start_handle = HANDLE_GAA_MEDIA_SERVICE;
+#endif
+        break;
 
         default:
             Panic();
-            break;
+        break;
     }
+    
+    PanicZero(start_handle);
 
     return start_handle;
 }
@@ -98,16 +118,34 @@ uint16 GattHandler_GetGattEndHandle(gatt_server_t gatt_server)
     uint16 end_handle = 0;
     switch(gatt_server)
     {
-        case gatt_server_gaa:
+        case gatt_server_gaa_comm:
 #ifdef INCLUDE_GAA_COMM_SERVER
             end_handle = HANDLE_GAA_COMM_SERVICE_END;
 #endif
             break;
+        case gatt_server_gaa_ams_proxy:
+#ifdef INCLUDE_GATT_AMS_PROXY
+            end_handle = HANDLE_AMS_PROXY_SERVICE_END;
+#endif
+        break;
 
+        case gatt_server_gaa_ancs_proxy:
+#ifdef INCLUDE_GATT_ANCS_PROXY
+            end_handle = HANDLE_ANCS_PROXY_SERVICE_END;
+#endif
+        break;
+
+        case gatt_server_gaa_media_server:
+#ifdef INCLUDE_GAA_MEDIA_SERVER
+            end_handle = HANDLE_GAA_MEDIA_SERVICE_END;
+#endif
+        break;
         default:
             Panic();
             break;
     }
+    
+    PanicZero(end_handle);
 
     return end_handle;
 }

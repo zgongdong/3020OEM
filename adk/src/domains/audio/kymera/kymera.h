@@ -373,4 +373,5 @@ void KymeraAnc_ExitTuning(void);
 void appKymeraCancelA2dpStart(void);
 #define appKymeraIsTonePlaying() (KymeraGetTaskData()->tone_count > 0)
 
+
 #endif /* KYMERA_H */

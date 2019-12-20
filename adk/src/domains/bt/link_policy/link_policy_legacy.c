@@ -4,7 +4,7 @@
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \version    
 \file
-\brief      Link policy manager legacy (non-shadowing products)
+\brief      Link policy manager legacy (non-mirroring products)
 */
 
 #include "earbud_log.h"

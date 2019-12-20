@@ -238,7 +238,7 @@ void MessageSendMulticastLater(Task * tasks, MessageId id, void * message, uint3
 
 /**
  *  \brief Send a message to be be delivered when the corresponding uint16 is zero.
- *  \param t Pointer to the NULL-terminated table of tasks to deliver the message to. You
+ *  \param tlist Pointer to the NULL-terminated table of tasks to deliver the message to. You
  *  must not include a task more than once in the list. 
  *  \param id The message identifier. 
  *  \param m The message data. 
@@ -248,7 +248,7 @@ void MessageSendMulticastLater(Task * tasks, MessageId id, void * message, uint3
  * 
  * \ingroup trapset_core
  */
-void MessageSendMulticastConditionally(Task * t, MessageId id, Message m, const uint16 * c);
+void MessageSendMulticastConditionally(Task * tlist, MessageId id, Message m, const uint16 * c);
 #endif /* TRAPSET_CORE */
 #if TRAPSET_NFC
 
@@ -273,7 +273,7 @@ Task MessageNfcTask(Task task);
  *  \brief Register a task to handle BlueStack primitives.
  *  \param task This task will receive MESSAGE_BLUESTACK_*_PRIM, except
  *  \#MESSAGE_BLUESTACK_ATT_PRIM that are handled by the MessageAttTask() and
- *  \#MESSAGE_BLUESTACK_SDM_PRIM that are handled by the MessageSdmTask(). 
+ *  \#MESSAGE_BLUESTACK_MDM_PRIM that are handled by the MessageMdmTask(). 
  *  \return The old task (or zero).
  * 
  * \note This trap may be called from a high-priority task handler
@@ -453,6 +453,19 @@ Task MessageBitserialTask(Task task);
  */
 Task MessageKalimbaTask(Task task);
 #endif /* TRAPSET_KALIMBA */
+#if TRAPSET_MIRRORING
+
+/**
+ *  \brief Register a task to handle BlueStack Mirroring Manager(MDM) primitives.
+ *  \param task This task will receive \#MESSAGE_BLUESTACK_MDM_PRIM. 
+ *  \return The old task (or zero).
+ * 
+ * \note This trap may be called from a high-priority task handler
+ * 
+ * \ingroup trapset_mirroring
+ */
+Task MessageMdmTask(Task task);
+#endif /* TRAPSET_MIRRORING */
 #if TRAPSET_INFRARED
 
 /**
@@ -558,17 +571,4 @@ Task MessageAttTask(Task task);
  */
 Task MessageCapacitiveSensorTask(Task task);
 #endif /* TRAPSET_CAPACITIVE_SENSOR */
-#if TRAPSET_SHADOWING
-
-/**
- *  \brief Register a task to handle BlueStack Shadow Manager(SDM) primitives.
- *  \param task This task will receive \#MESSAGE_BLUESTACK_SDM_PRIM. 
- *  \return The old task (or zero).
- * 
- * \note This trap may be called from a high-priority task handler
- * 
- * \ingroup trapset_shadowing
- */
-Task MessageSdmTask(Task task);
-#endif /* TRAPSET_SHADOWING */
 #endif

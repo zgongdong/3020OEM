@@ -20,6 +20,7 @@
 
 #include "tws_topology_procedures.h"
 #include "tws_topology_procedure_acting_primary_role.h"
+#include "tws_topology_procedure_allow_handset_connect.h"
 #include "tws_topology_procedure_cancel_find_role.h"
 #include "tws_topology_procedure_connect_handset.h"
 #include "tws_topology_procedure_connectable_handset.h"
@@ -78,7 +79,7 @@ static tws_topology_goal_id twstopology_GetHandoverGoal(hdma_handover_reason_t r
           avoiding an extra value for length. Length could be calculated 
           at compile time, but wastes space where concurrency is not used
  */
-#define CONCURRENT_GOALS_INIT(...) (tws_topology_goal_id[]){__VA_ARGS__,tws_topology_goal_none}
+#define CONCURRENT_GOALS_INIT(...) (const tws_topology_goal_id[]){__VA_ARGS__,tws_topology_goal_none}
 
 /*! \brief This table defines each goal supported by the topology.
 
@@ -114,7 +115,8 @@ const tws_topology_goal_entry_t goals[] =
                           &proc_pri_connect_peer_profiles_fns, tws_topology_goal_primary_disconnect_peer_profiles,
                           CONCURRENT_GOALS_INIT(tws_topology_goal_primary_connectable_peer, 
                                                 tws_topology_goal_connectable_handset,
-                                                tws_topology_goal_connect_handset)),
+                                                tws_topology_goal_connect_handset,
+                                                tws_topology_goal_allow_handset_connect)),
 
     GOAL(tws_topology_goal_primary_disconnect_peer_profiles, tws_topology_procedure_disconnect_peer_profiles,
          &proc_disconnect_peer_profiles_fns, tws_topology_goal_primary_connect_peer_profiles),
@@ -124,7 +126,8 @@ const tws_topology_goal_entry_t goals[] =
                                   TWSTOP_RULE_EVENT_FAILED_PEER_CONNECT,
                                   CONCURRENT_GOALS_INIT(tws_topology_goal_primary_connect_peer_profiles,
                                                         tws_topology_goal_connect_handset,
-                                                        tws_topology_goal_connectable_handset)),
+                                                        tws_topology_goal_connectable_handset,
+                                                        tws_topology_goal_allow_handset_connect)),
 
     SCRIPT_GOAL_CANCEL(tws_topology_goal_no_role_idle, tws_topology_procedure_no_role_idle,
                        &no_role_idle_script, tws_topology_goal_none),
@@ -136,7 +139,8 @@ const tws_topology_goal_entry_t goals[] =
                           &proc_connect_handset_fns, tws_topology_goal_disconnect_handset,
                           CONCURRENT_GOALS_INIT(tws_topology_goal_primary_connect_peer_profiles,
                                                 tws_topology_goal_primary_connectable_peer,
-                                                tws_topology_goal_connectable_handset)),
+                                                tws_topology_goal_connectable_handset,
+                                                tws_topology_goal_allow_handset_connect)),
 
     GOAL(tws_topology_goal_disconnect_handset, tws_topology_procedure_disconnect_handset,
          &proc_disconnect_handset_fns, tws_topology_goal_connect_handset),
@@ -145,7 +149,8 @@ const tws_topology_goal_entry_t goals[] =
                           &proc_connectable_handset_fns, tws_topology_goal_none,
                           CONCURRENT_GOALS_INIT(tws_topology_goal_primary_connectable_peer,
                                                 tws_topology_goal_primary_connect_peer_profiles,
-                                                tws_topology_goal_connect_handset)),
+                                                tws_topology_goal_connect_handset,
+                                                tws_topology_goal_allow_handset_connect)),
 
     SCRIPT_GOAL_CANCEL_SUCCESS(tws_topology_goal_become_primary, tws_topology_procedure_become_primary,
                         &primary_role_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_ROLE_SWITCH),
@@ -192,9 +197,10 @@ const tws_topology_goal_entry_t goals[] =
     GOAL(tws_topology_goal_release_peer, tws_topology_procedure_release_peer, 
          &proc_release_peer_fns, tws_topology_goal_none),
          
-    SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_secondary_static_handover,
+    SCRIPT_GOAL_CANCEL_TIMEOUT_FAILED(tws_topology_goal_secondary_static_handover,
                                       tws_topology_procedure_secondary_static_handover,
                                       &secondary_static_handover_script, tws_topology_goal_none,
+                                       TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED,
                                        TWSTOP_RULE_EVENT_STATIC_HANDOVER_FAILED),
 
     SCRIPT_GOAL_CANCEL_FAILED(tws_topology_goal_primary_static_handover_in_case,
@@ -214,8 +220,14 @@ const tws_topology_goal_entry_t goals[] =
             &dynamic_handover_failure_script, tws_topology_goal_none, TWSTOP_RULE_EVENT_HANDOVER_FAILURE_HANDLED),
 
     GOAL(tws_topology_goal_le_connectable_handset, tws_topology_procedure_le_connectable,
-            &proc_le_connectable_fns, tws_topology_goal_none)
+            &proc_le_connectable_fns, tws_topology_goal_none),
 
+    GOAL_WITH_CONCURRENCY(tws_topology_goal_allow_handset_connect, tws_topology_procedure_allow_handset_connection,
+                          &proc_allow_handset_connect_fns, tws_topology_goal_none,
+                          CONCURRENT_GOALS_INIT(tws_topology_goal_primary_connectable_peer,
+                                                tws_topology_goal_connectable_handset,
+                                                tws_topology_goal_primary_connect_peer_profiles,
+                                                tws_topology_goal_connect_handset))
 };
 
 /******************************************************************************
@@ -309,12 +321,17 @@ static tws_topology_goal_id twsTopology_FindGoalForProcedure(tws_topology_proced
 /*! \brief From a bitmask of goals return the least significant set goal.
  
     For example from a mask of goals with bit pattern 0b1010 it will return 0b10.
-    Given an empty mask it will return 0.
 */
 static tws_topology_goal_id twsTopology_FirstGoalFromMask(tws_topology_goal_msk goal_mask)
 {
     tws_topology_goal_msk one_bit = ((goal_mask ^ (goal_mask-1)) & goal_mask);
-    PanicZero(goal_mask);
+
+    /* Development panic, should not be used with zero goal_mask.
+     * Effectively PanicZero(), but that macro doesn't work with unsigned long long types */
+    if (!goal_mask)
+    {
+        Panic();
+    }
 
     tws_topology_goal_id goal = tws_topology_goal_none;
     do {
@@ -523,7 +540,7 @@ static bool twsTopology_HandleCancellationGoals(tws_topology_goal_id new_goal,
 
 static tws_topology_goal_msk twsTopology_GetConcurrentGoalsMask(const tws_topology_goal_entry_t* goal)
 {
-    tws_topology_goal_id *concurrent_goals = goal->concurrent_goals;
+    const tws_topology_goal_id *concurrent_goals = goal->concurrent_goals;
     tws_topology_goal_msk goals_mask = 0;
     
     if (concurrent_goals)
@@ -559,8 +576,8 @@ static bool twsTopology_HandleConcurrentGoals(tws_topology_goal_id new_goal,
 
         *wait_mask &= ~mask;
 
-        DEBUG_LOG("twsTopology_HandleConcurrentGoals Ok goal:%d 0x%x mask 0x%x",
-                    new_goal, GOAL_MASK(new_goal), mask);
+        DEBUG_LOG("twsTopology_HandleConcurrentGoals Ok goal:%d 0x%x mask 0x%08lx%08lx",
+                    new_goal, GOAL_MASK(new_goal), PRINT_ULL(mask));
     }
     else
     {
@@ -621,8 +638,8 @@ static void twsTopology_UpdateQueueMasks(void)
 
                 if (wait_mask != old_mask)
                 {
-                    DEBUG_LOG("twsTopology_UpdateQueueMasks. Goal:%d (x%x) mask changed from x%x to x%x",
-                                i, GOAL_MASK(i), old_mask, wait_mask);
+                    DEBUG_LOG("twsTopology_UpdateQueueMasks. Goal:%d (x%x) mask changed from 0x%08lx%08lx to 0x%08lx%08lx",
+                                i, GOAL_MASK(i), PRINT_ULL(old_mask), PRINT_ULL(wait_mask));
 
                     td->pending_goal_lock_mask[i] = wait_mask;
                     changes++;
@@ -707,7 +724,13 @@ static void TwsTopology_AddGoal(tws_topology_goal_id new_goal, MessageId rule_id
 {
     twsTopologyTaskData* td = TwsTopologyGetTaskData();
 
-    DEBUG_LOG("TwsTopology_AddGoal new_goal %d existing goals 0x%x", new_goal, td->active_goals_mask);
+    if (tws_topology_goal_none == new_goal)
+    {
+        DEBUG_LOG("TwsTopology_AddGoal. WARNING. Attempted to add a goal of tws_topology_goal_none.");
+        return;
+    }
+
+    DEBUG_LOG("TwsTopology_AddGoal new_goal %d existing goals 0x%08lx%08lx", new_goal, PRINT_ULL(td->active_goals_mask));
     DEBUG_LOG("TwsTopology_AddGoal pending_queue_size %u", td->pending_goal_queue_size);
 
     if (twsTopology_GoalCanRunNow(is_new_goal))
@@ -723,7 +746,7 @@ static void TwsTopology_AddGoal(tws_topology_goal_id new_goal, MessageId rule_id
          * active goals, it may be modified by consideration of cancellation,
          * exclusive or concurrent goals later. */
         tws_topology_goal_msk wait_mask = td->active_goals_mask;
-        DEBUG_LOG("TwsTopology_AddGoal must queue, wait_mask 0x%x", wait_mask);
+        DEBUG_LOG("TwsTopology_AddGoal must queue, wait_mask 0x%08lx%08lx", PRINT_ULL(wait_mask));
 
         /* first see if this goal will cancel everything */
         if (twsTopology_HandleCancellationGoals(new_goal, &wait_mask))
@@ -746,13 +769,13 @@ static void TwsTopology_AddGoal(tws_topology_goal_id new_goal, MessageId rule_id
              * for them to complete in order to start. */
             bool concurrent = twsTopology_HandleConcurrentGoals(new_goal, &wait_mask);
 
-            DEBUG_LOG("TwsTopology_AddGoal after conncurrent handling, wait_mask 0x%x", wait_mask);
+            DEBUG_LOG("TwsTopology_AddGoal after conncurrent handling, wait_mask 0x%08lx%08lx", PRINT_ULL(wait_mask));
 
             /* handle cancellation of any exclusive goals specified by
              * the new goal */
             twsTopology_HandleExclusiveGoals(new_goal, &wait_mask);
 
-            DEBUG_LOG("TwsTopology_AddGoal after exclusive handling, wait_mask 0x%x", wait_mask);
+            DEBUG_LOG("TwsTopology_AddGoal after exclusive handling, wait_mask 0x%08lx%08lx", PRINT_ULL(wait_mask));
 
             /* if goal supports concurrency and the wait_mask is clear then the
              * goal can be started now
@@ -790,7 +813,7 @@ static void TwsTopology_ClearGoal(tws_topology_goal_id goal)
 
     REMOVE_GOAL_FROM_MASK(td->active_goals_mask, goal);
 
-    DEBUG_LOG("TwsTopology_ClearGoal goal %d. Mask now x%x", goal, td->active_goals_mask);
+    DEBUG_LOG("TwsTopology_ClearGoal goal %d. Mask now 0x%08lx%08lx", goal, PRINT_ULL(td->active_goals_mask));
 
     /*! clear this goal from all pending goal locks,
         may result in a queued goal being delivered to start */
@@ -825,6 +848,7 @@ tws_topology_goal_id twstopology_GetHandoverGoal(hdma_handover_reason_t reason)
         case HDMA_HANDOVER_REASON_OUT_OF_EAR:
         case HDMA_HANDOVER_REASON_BATTERY_LEVEL:
         case HDMA_HANDOVER_REASON_VOICE_QUALITY:
+        case HDMA_HANDOVER_REASON_EXTERNAL:
             if (TwsTopologyConfig_DynamicHandoverSupported())
             {
                 goal = tws_topology_goal_dynamic_handover;
@@ -832,7 +856,6 @@ tws_topology_goal_id twstopology_GetHandoverGoal(hdma_handover_reason_t reason)
             break;
 
         case HDMA_HANDOVER_REASON_SIGNAL_QUALITY:
-        case HDMA_HANDOVER_REASON_EXTERNAL:
             DEBUG_LOG("twstopology_GetHandoverGoal HDMA handover reason code 0x%x Not Supported", reason);
             break;
 
@@ -936,7 +959,7 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
             break;
 
         case TWSTOP_PRIMARY_GOAL_PRIMARY_FIND_ROLE:
-            TwsTopology_AddGoal(tws_topology_goal_primary_find_role, id, PROC_FIND_ROLE_TIMEOUT_DATA_CONTINUOUS, sizeof(FIND_ROLE_PARAMS_T), new_goal);
+            TwsTopology_AddGoal(tws_topology_goal_primary_find_role, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_PRIMARY_GOAL_CONNECT_PEER_PROFILES:
@@ -968,6 +991,11 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
             TwsTopology_AddGoal(tws_topology_goal_connect_handset, id, message, sizeof(TWSTOP_PRIMARY_GOAL_CONNECT_HANDSET_T), new_goal);
             break;
 
+        case TWSTOP_PRIMARY_GOAL_ALLOW_HANDSET_CONNECT:
+        case TWSTOP_DFU_GOAL_ALLOW_HANDSET_CONNECT:
+            TwsTopology_AddGoal(tws_topology_goal_allow_handset_connect, id, message, sizeof(TWSTOP_PRIMARY_GOAL_ALLOW_HANDSET_CONNECT_T), new_goal);
+            break;
+
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_PEER_FIND_ROLE:
             TwsTopology_AddGoal(tws_topology_goal_disconnect_peer_find_role, id, NULL, 0, new_goal);
             break;
@@ -979,15 +1007,18 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
         case TWSTOP_PRIMARY_GOAL_HANDOVER_FAILED:
             TwsTopology_AddGoal(tws_topology_goal_dynamic_handover_failure, id, NULL, 0, new_goal);
             break;
-#if 0
+
         case TWSTOP_PRIMARY_GOAL_DISCONNECT_HANDSET:
-            TwsTopology_AddGoal(tws_topology_goal_disconnect_handset, id, message, new_goal);
+            TwsTopology_AddGoal(tws_topology_goal_disconnect_handset, id, message, 0, new_goal);
             break;
-#endif
 
         case TWSTOP_PRIMARY_GOAL_DFU_ROLE:
         case TWSTOP_SECONDARY_GOAL_DFU_ROLE:
             TwsTopology_AddGoal(tws_topology_goal_dfu_role, id, message, 0, new_goal);
+            break;
+
+        case TWSTOP_DFU_GOAL_LE_PRI_ABORT_CLEANUP:
+            TwsTopology_AddGoal(tws_topology_goal_disconnect_handset, id, NULL, 0, new_goal);
             break;
 
         case TWSTOP_DFU_GOAL_SECONDARY:
@@ -999,7 +1030,7 @@ void TwsTopology_HandleGoalDecision(Task task, MessageId id, Message message)
             break;
 
         case TWSTOP_SECONDARY_GOAL_STATIC_HANDOVER:
-            TwsTopology_AddGoal(tws_topology_goal_secondary_static_handover, TWSTOP_SECONDARY_GOAL_STATIC_HANDOVER, NULL, 0, new_goal);
+            TwsTopology_AddGoal(tws_topology_goal_secondary_static_handover, id, message, 0, new_goal);
             break;
 
         default:

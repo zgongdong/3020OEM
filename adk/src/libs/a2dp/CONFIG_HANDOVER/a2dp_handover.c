@@ -7,13 +7,13 @@ FILE NAME
 
 DESCRIPTION
     TWS Handover and Marshaling interface for A2DP
-    
+
 NOTES
-    See handover_if.h for further interface description    
-    
+    See handover_if.h for further interface description
+
     Builds requiring this should include CONFIG_HANDOVER in the
     makefile. e.g.
-        CONFIG_FEATURES:=CONFIG_HANDOVER    
+        CONFIG_FEATURES:=CONFIG_HANDOVER
 */
 
 
@@ -23,12 +23,14 @@ NOTES
 #include "a2dp_marshal_desc.h"
 #include "a2dp_private.h"
 #include "a2dp_init.h"
+#include "a2dp_handover_policy.h"
 
 #include "marshal.h"
 
 #include <panic.h>
 #include <sink.h>
 #include <stream.h>
+#include <source.h>
 #include <stdlib.h>
 #include <bdaddr.h>
 
@@ -78,11 +80,11 @@ extern const handover_interface a2dp_handover_if =  {
         &a2dpMarshal,
         &a2dpUnmarshal,
         &a2dpHandoverCommit,
-        &a2dpHandoverComplete,        
+        &a2dpHandoverComplete,
         &a2dpHandoverAbort};
 
 /****************************************************************************
-NAME    
+NAME
     a2dpVeto
 
 DESCRIPTION
@@ -163,11 +165,11 @@ bool a2dpVeto( void )
 }
 
 /****************************************************************************
-NAME    
+NAME
     stitchRemoteDevice
 
 DESCRIPTION
-    Stitch connection information to A2DP instance 
+    Stitch connection information to A2DP instance
 
 RETURNS
     void
@@ -184,36 +186,36 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn, const bd
 
     a2dp_marshal_inst->device_id = remote_conn->bitfields.device_id;
     unmarshalled_remote_conn->bitfields.device_id = a2dp_marshal_inst->device_id;
-    unmarshalled_remote_conn->bd_addr = *bd_addr;    
-    
+    unmarshalled_remote_conn->bd_addr = *bd_addr;
+
     /* Initialize the connection context for the relevant connection id on signalling channel */
     convertL2capCidToSink(&unmarshalled_remote_conn->signal_conn.connection.active.sink);
     cid = SinkGetL2capCid(unmarshalled_remote_conn->signal_conn.connection.active.sink);
-    PanicZero(cid); /* Invalid Connection ID */    
+    PanicZero(cid); /* Invalid Connection ID */
     VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
     /* Stitch the signalling channel sink and the task */
     MessageStreamTaskFromSink(unmarshalled_remote_conn->signal_conn.connection.active.sink, &a2dp->task);
     /* Configure sink messages */
-    SinkConfigure(unmarshalled_remote_conn->signal_conn.connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);    
-    
+    SinkConfigure(unmarshalled_remote_conn->signal_conn.connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
+
     /* Initialize the connection context for the relevant connection id on the media channels */
     for (mediaChannelIndex=0; mediaChannelIndex < A2DP_MAX_MEDIA_CHANNELS; mediaChannelIndex++)
     {
         media_channel *media = &unmarshalled_remote_conn->media_conn[mediaChannelIndex];
-        
-        if ( ((media->status.conn_info.connection_state == avdtp_connection_connected) || 
+
+        if ( ((media->status.conn_info.connection_state == avdtp_connection_connected) ||
               (media->status.conn_info.connection_state == avdtp_connection_disconnecting) ||
-              (media->status.conn_info.connection_state == avdtp_connection_disconnect_pending)) && 
+              (media->status.conn_info.connection_state == avdtp_connection_disconnect_pending)) &&
               (media->connection.active.sink) )
         {
             convertL2capCidToSink(&media->connection.active.sink);
             cid = SinkGetL2capCid(media->connection.active.sink);
-            PanicZero(cid); /* Invalid Connection ID */            
+            PanicZero(cid); /* Invalid Connection ID */
             VmOverrideL2capConnContext(cid, (conn_context_t)&a2dp->task);
             /* Stitch the media channel sink and the task */
             MessageStreamTaskFromSink(media->connection.active.sink, &a2dp->task);
             /* Configure sink messages */
-            SinkConfigure(media->connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);            
+            SinkConfigure(media->connection.active.sink, VM_SINK_MESSAGES, VM_MESSAGES_ALL);
         }
     }
 
@@ -221,12 +223,12 @@ static void stitchRemoteDevice(remote_device *unmarshalled_remote_conn, const bd
 }
 
 /****************************************************************************
-NAME    
+NAME
     stitchDataBlockHeader
 
 DESCRIPTION
     Stitch data block headers
-    
+
 RETURNS
     void
 */
@@ -241,7 +243,7 @@ static void stitchDataBlockHeader(data_block_header *data_blocks)
 }
 
 /****************************************************************************
-NAME    
+NAME
     a2dpMarshal
 
 DESCRIPTION
@@ -328,12 +330,12 @@ bool a2dpUnmarshal(const tp_bdaddr *tp_bd_addr,
 }
 
 /****************************************************************************
-NAME    
+NAME
     a2dpHandoverCommit
 
 DESCRIPTION
-    The A2DP library performs time-critical actions to commit to the specified 
-    new role (primary or  secondary)
+    The A2DP library performs time-critical actions to commit to the specified
+    new role (primary or secondary)
 
 RETURNS
     void
@@ -343,21 +345,56 @@ static void a2dpHandoverCommit(const tp_bdaddr *tp_bd_addr, const bool newRole)
     UNUSED(tp_bd_addr);
 
     /* Stitch the unmarshalled state on committing to primary role */
-    if (newRole)
+    if (newRole && a2dp_marshal_inst)
     {
+        unsigned  device_id = 0;
+
         /* Commit must be called after unmarshalling */
-        PanicNull(a2dp_marshal_inst);
         PanicNull(a2dp_marshal_inst->data);
 
         /* Stitch connection information to A2DP instance */
         stitchRemoteDevice(a2dp_marshal_inst->data->remote_conn, &a2dp_marshal_inst->bd_addr);
         /* Stitch data_blocks */
         stitchDataBlockHeader(a2dp_marshal_inst->data->data_blocks);
+
+
+        for (device_id=0; device_id<A2DP_MAX_REMOTE_DEVICES; device_id++)
+        {
+            Source src;
+            uint8 mediaChannelIndex = 0;
+
+            if(!a2dp_marshal_inst->data->remote_conn[device_id].signal_conn.connection.active.sink)
+            {
+                continue;
+            }
+            src = StreamSourceFromSink(a2dp_marshal_inst->data->remote_conn[device_id].signal_conn.connection.active.sink);
+            if(!src)
+            {
+                continue;
+            }
+            /* Set the handover policy on the signalling channel */
+            PanicFalse(a2dpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW_WITHOUT_DATA));                       
+            
+            /* Set the handover policy on the media channel */
+            for (mediaChannelIndex=0; mediaChannelIndex < A2DP_MAX_MEDIA_CHANNELS; mediaChannelIndex++)
+            {
+                media_channel *media = &a2dp_marshal_inst->data->remote_conn[device_id].media_conn[mediaChannelIndex];
+
+                if ( ((media->status.conn_info.connection_state == avdtp_connection_connected) ||
+                      (media->status.conn_info.connection_state == avdtp_connection_disconnecting) ||
+                      (media->status.conn_info.connection_state == avdtp_connection_disconnect_pending)) &&
+                      (media->connection.active.sink) )
+                {
+                    src = StreamSourceFromSink(media->connection.active.sink);
+                    PanicFalse(a2dpSourceConfigureHandoverPolicy(src, SOURCE_HANDOVER_ALLOW));                                       
+                }
+            }
+        }
     }
 }
 
 /****************************************************************************
-NAME    
+NAME
     a2dpHandoverComplete
 
 DESCRIPTION
@@ -369,10 +406,8 @@ RETURNS
 */
 static void a2dpHandoverComplete( const bool newRole )
 {
-    if (newRole)
+    if (newRole && a2dp_marshal_inst)
     {
-        /* Commit must be called after unmarshalling */
-        PanicNull(a2dp_marshal_inst);
         PanicNull(a2dp_marshal_inst->data);
         UnmarshalDestroy(a2dp_marshal_inst->unmarshaller, FALSE);
         a2dp_marshal_inst->unmarshaller = NULL;
@@ -383,7 +418,7 @@ static void a2dpHandoverComplete( const bool newRole )
 }
 
 /****************************************************************************
-NAME    
+NAME
     a2dpHandoverAbort
 
 DESCRIPTION

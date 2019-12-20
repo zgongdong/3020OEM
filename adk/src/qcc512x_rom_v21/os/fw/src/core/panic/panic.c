@@ -85,15 +85,6 @@ void panic_diatribe(panicid deathbed_confession, DIATRIBE_TYPE diatribe)
     PIO_TRACE_POINT(PANIC);
 #endif
 
-#if !defined(DESKTOP_TEST_BUILD) && !defined(PRODUCTION_BUILD)
-    /* We want to end up in an infinite loop here rather than in the CRT (which
-     * is how exit is implemented) so that we remain in DWARF-instrumented code
-     * and can get the all-important panic backtrace. */
-    for (;;)
-    {
-    }
-#else /* !DESKTOP_TEST_BUILD && !PRODUCTION_BUILD */
-
     /*
      * On a standalone chip we would reset or halt the processor as
      * appropriate.  Here, we wait for the Curator to take action
@@ -102,12 +93,20 @@ void panic_diatribe(panicid deathbed_confession, DIATRIBE_TYPE diatribe)
 
     /* On an embedded platform this enters an infinite loop (at least until
        the chip is reset, e.g. by the watchdog if enabled) */
+#if defined(DESKTOP_TEST_BUILD)
     /*NOTREACHED*/
 #ifdef DESKTOP_TEST_BUILD
     #include <stdlib.h>
 #endif
     exit((int) deathbed_confession);
-#endif /* !DESKTOP_TEST_BUILD && !PRODUCTION_BUILD */
+#else
+    /* We want to end up in an infinite loop here rather than in the CRT (which
+     * is how exit is implemented) so that we remain in DWARF-instrumented code
+     * and can get the all-important panic backtrace. */
+    for (;;)
+    {
+    } /* Note: if you write the obvious "for (;;);" lint whinges */
+#endif /* DESKTOP_TEST_BUILD */
 }
 
 /**

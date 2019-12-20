@@ -9,9 +9,13 @@
 The interface to the debug information is defined in this module.
 """
 import abc
+import logging
 
 from . import Arch
 from ACAT.Core.exceptions import DebugInfoNoLabelError
+from ACAT.Core.logger import method_logger
+
+logger = logging.getLogger(__name__)
 
 
 ##################################################
@@ -114,6 +118,7 @@ class DebugInfoInterface(object):
             a CodeLabel object.
         """
 
+    @method_logger(logger)
     def get_label(self, address):
         """Finds the code label at the exact supplied address.
 
@@ -185,6 +190,7 @@ class DebugInfoInterface(object):
         Takes a type name (e.g. 'ENDPOINT' or 'audio_buf_handle_struc') or
         a valid typeId, and looks up information in the type database.
         Returns a tuple containing:
+
             * The (fully-qualified) name of the type.
             * The typeid (redundant if 'type' is already a typeid)
             * The pointed-to typeid (if the type is a pointer)

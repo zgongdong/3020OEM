@@ -24,13 +24,13 @@ primary_service {
     },
     characteristic {
         uuid        : UUID_ROOT_KEY_CHALLENGE_CONTROL,  # Note that this is an Indicate characterisic
-        name        : "ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT",
+        name        : "ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT",
         flags       : [ FLAG_IRQ, FLAG_DYNLEN, FLAG_ENCR_W ],
         properties  : [ write, indicate ],
         value       : 0x00,
         client_config
         {
-            name  : "ROOT_TRANSFER_SERVICE_SHADOW_CONTROL_POINT_CLIENT_CONFIG",
+            name  : "ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT_CLIENT_CONFIG",
             flags : [ FLAG_IRQ , FLAG_DYNLEN ]
         }
     },

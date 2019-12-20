@@ -861,12 +861,22 @@ bool HandsetService_GetConnectedLeHandsetAddress(bdaddr *addr)
 
 void HandsetService_SetBleConnectable(bool connectable)
 {
-    if (   (HandsetService_Get()->ble_connectable != connectable)
-        && (!HandsetService_Get()->le_advert_handle))
+    handset_service_data_t *hs = HandsetService_Get();
+
+    DEBUG_LOG("HandsetService_SetBleConnectable connectable %d le_connectable %d adv_hdl %p",
+              connectable, hs->ble_connectable, hs->le_advert_handle);
+
+    if (connectable == hs->ble_connectable)
     {
+        /* We still need to send a HANDSET_SERVICE_LE_CONNECTABLE_IND when the
+           requested value is the same as the current value */
         handsetService_SendLeConnectableIndication(connectable);
     }
-
-    HandsetService_Get()->ble_connectable = connectable;
-    handsetService_UpdateAdvertisingData();
+    else
+    {
+        /* Connectable flag has changed so may need to update the advertising
+           data to match the new value. */
+        hs->ble_connectable = connectable;
+        handsetService_UpdateAdvertisingData();
+    }
 }

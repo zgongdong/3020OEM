@@ -1422,6 +1422,27 @@ void connectionHandleDmAclClosedInd(
     }
 }
 
+/*****************************************************************************/
+void connectionHandleDmAclCloseCfm(
+        Task task,
+        const DM_ACL_CLOSE_CFM_T *cfm
+        )
+{
+    typed_bdaddr taddr;
+    const msg_filter *msgFilter = connectionGetMsgFilter();
+
+    BdaddrConvertTypedBluestackToVm(&taddr, &cfm->addrt);
+
+    if (task && (msgFilter[0] & msg_group_acl))
+    {
+        MAKE_CL_MESSAGE(CL_DM_ACL_CLOSE_CFM);
+        message->taddr = taddr;
+        message->status = cfm->status;
+        message->flags = cfm->flags;
+        MessageSend(task, CL_DM_ACL_CLOSE_CFM, message);
+    }
+}
+
 /****************************************************************************
 NAME
     connectionHandleReadLocalOobDataReq

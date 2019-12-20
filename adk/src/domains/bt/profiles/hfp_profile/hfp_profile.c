@@ -112,7 +112,6 @@ const message_group_t hfp_ui_inputs[] =
 };
 
 /* Local Function Prototypes */
-static void appHfpHandleInternalConfigWriteRequest(void);
 static void appHfpHandleMessage(Task task, MessageId id, Message message);
 
 /*! \brief returns hfp task pointer to requesting component
@@ -1369,7 +1368,7 @@ static void appHfpHandleHfpAudioDisconnectIndication(const HFP_AUDIO_DISCONNECT_
 static bool hfpProfile_IsPeerRingForwardSupported(void)
 {
     return TRUE;
-    /*! \todo Modified for VMCSA-808 Application modifications to TWSS-1 Bluetooth Address Management demo.
+    /*! \todo Modified for VMCSA-808 Application modifications to Bluetooth Address Management demo.
      *  return TRUE to queries about SCO and MICFWD support, as LE Peer Pairing doesn't do SDP search to set this up correctly.  */
 #if 0
     if (appConfigScoForwardingEnabled())
@@ -2425,7 +2424,7 @@ static void appHfpHandleInternalHfpTransferRequest(const HFP_INTERNAL_HFP_TRANSF
     This functions is called to write the current HFP configuration
     to persistent store.
 */
-static void appHfpHandleInternalConfigWriteRequest(void)
+void appHfpHandleInternalConfigWriteRequest(void)
 {
     hfpPsConfigData ps_config;
 
@@ -2650,6 +2649,9 @@ bool appHfpConnectWithBdAddr(const bdaddr *bd_addr, hfp_profile profile)
     /* Check if not already connected */
     if (!appHfpIsConnected())
     {
+        /* Store address of AG */
+        appGetHfp()->ag_bd_addr = *bd_addr;
+        
         MAKE_HFP_MESSAGE(HFP_INTERNAL_HFP_CONNECT_REQ);
 
         /* Send message to HFP task */

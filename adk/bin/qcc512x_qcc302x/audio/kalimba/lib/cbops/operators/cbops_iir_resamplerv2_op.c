@@ -71,14 +71,14 @@ cbops_op* create_iir_resamplerv2_op(unsigned nr_channels, unsigned* input_idx, u
         /* Input shifted to 16-bit for processing head-room */
         if(shift>=0)
         {
-            params->common.input_scale  =  shift-8;
-            params->common.output_scale =  8;
+            params->common.input_scale  =  shift-IIR_RESAMPLEV2_IO_SCALE_FACTOR;
+            params->common.output_scale =  IIR_RESAMPLEV2_IO_SCALE_FACTOR;
             /* Output shift to 24-bit */
         }
         else
         {
-            params->common.input_scale  = -8;
-            params->common.output_scale =  8-shift;
+            params->common.input_scale  = -IIR_RESAMPLEV2_IO_SCALE_FACTOR;
+            params->common.output_scale =  IIR_RESAMPLEV2_IO_SCALE_FACTOR-shift;
             /* Output shift to 16-bit */
         }
         iir_resamplerv2_set_config(&params->common,lpconfig);

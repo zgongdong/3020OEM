@@ -13,7 +13,6 @@
 
 #include <handover_if.h>
 #include <domain_message.h>
-#include <app/bluestack/sdm_prim.h>
 
 /*! Messages that can be sent by handover profile to client tasks. */
 typedef enum
@@ -75,7 +74,7 @@ typedef HANDOVER_PROFILE_CONNECT_CFM_T HANDOVER_PROFILE_DISCONNECT_CFM_T;
 
 #define HandoverProfile_Handover(remote_addr) (HANDOVER_PROFILE_STATUS_HANDOVER_FAILURE)
 
-#define HandoverProfile_HandleSdmSetBredrSlaveAddressInd(ind) /* Nothing to do */
+#define HandoverProfile_HandleMdmSetBredrSlaveAddressInd(ind) /* Nothing to do */
 
 
 #endif /*HANDOVER_PROFILE_H_*/

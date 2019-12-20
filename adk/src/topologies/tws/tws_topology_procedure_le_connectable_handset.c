@@ -33,7 +33,7 @@ void TwsTopology_ProcedureLeConnectableStart(Task result_task,
 
 void TwsTopology_ProcedureLeConnectableCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_le_connectable_fns = {
+const tws_topology_procedure_fns_t proc_le_connectable_fns = {
     TwsTopology_ProcedureLeConnectableStart,
     TwsTopology_ProcedureLeConnectableCancel,
     NULL,

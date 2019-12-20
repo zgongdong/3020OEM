@@ -13,6 +13,12 @@
 
 #include "earbud_test_le.h"
 
+#ifdef GC_SECTIONS
+/* Move all functions in KEEP_PM section to ensure they are not removed during
+ * garbage collection */
+#pragma unitcodesection KEEP_PM
+#endif
+
 void appTestSetAdvertEnable(bool enable)
 {
     ConnectionDmBleSetAdvertiseEnable(enable);

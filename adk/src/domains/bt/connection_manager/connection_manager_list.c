@@ -277,6 +277,7 @@ static void conManagerResetConnection(cm_connection_t* connection)
     if (connection)
     {
         MessageFlushTask(&connection->task_data);
+        /* The default values for mode and interval are acceptable */
         memset(connection, 0, sizeof(cm_connection_t));
         ConManagerSetConnectionState(connection, ACL_DISCONNECTED);
         BdaddrTpSetEmpty(&connection->tpaddr);
@@ -407,5 +408,7 @@ void ConManagerConnectionCopy(cm_connection_t* dest, const cm_connection_t* src)
     dest->lock = src->lock;
     dest->bitfields = src->bitfields;
     dest->lp_state = src->lp_state;
+    dest->mode = src->mode;
+    dest->interval = src->interval;
     memmove(dest->qos_list, src->qos_list, sizeof(src->qos_list[0]) * cm_qos_max);
 }

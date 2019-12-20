@@ -125,15 +125,13 @@ class LiveSpi(LiveChip.LiveChip):
                 raise Exception
         except AttributeError:
             raise Exception("Could not detect the arch or chip name")
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+
         except Exception:
-            # Dealing with non-Hydra/Bluecore chips.
-            if self.kal.arch.get_chip_name() == "marco":
-                chip_arch = "KAS"
-            # Napier audio added on kal-python tools 1.1.2
-            elif self.kal.arch.get_chip_name() == "napier_audio":
-                chip_arch = "Napier"
-            else:
-                raise Exception("Could not detect the arch or chip name")
+            # Non-Hydra/Bluecore chips aren't supported.
+            raise Exception("Could not detect the arch or chip name")
 
         # From KalimaLab23 onwards, we can read the chip ID. If we can't
         # get it, just pass in zero so that any compatibility issue
@@ -147,17 +145,42 @@ class LiveSpi(LiveChip.LiveChip):
         except AttributeError:
             Arch.chip_select(self.kal.arch.get_arch(), chip_arch, 0)
 
+    @staticmethod
+    def _uri_to_device(device_uri):
+        """Remove the leading `device://` string from unsupported URIs.
+
+        Some URIs aren't supported in `kalaccess.connect_with_uri` yet. We
+        have to remove the leading bit and use the `kalaccess.connect` method
+        instead.
+        """
+        startswith_uris = (
+            'device://trb/usb2trb/',
+            'device://lauterbach/jtag/',
+            'device://usb2tc/',
+            'device://tcp/',
+        )
+        if device_uri.lower().startswith(startswith_uris):
+            device_uri = device_uri[len('device://'):]
+
+        return device_uri
+
     def reconnect(self):
         """Reconnects to the chip."""
-        spi_trans = self.spi_trans
-        # Support connect_with_uri transport format
+        spi_trans = self._uri_to_device(self.spi_trans)
+
         if spi_trans.startswith("device://"):
             spi_trans += "/audio/p{}".format(str(self.processor))
             connect_func = self.kal.connect_with_uri
+
         else:
             connect_func = self.kal.connect
+
         try:
             connect_func(spi_trans)
+
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+
         except Exception as exception:
             if re.search("Could not connect", str(exception)):
                 raise

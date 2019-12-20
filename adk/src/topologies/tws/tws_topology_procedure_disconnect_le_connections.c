@@ -23,7 +23,7 @@ void TwsTopology_ProcedureDisconnectLeConnectionsStart(Task result_task,
                                                        Message goal_data);
 void TwsTopology_ProcedureDisconnectLeConnectionsCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 
-tws_topology_procedure_fns_t proc_disconnect_le_connections_fns = {
+const tws_topology_procedure_fns_t proc_disconnect_le_connections_fns = {
     TwsTopology_ProcedureDisconnectLeConnectionsStart,
     TwsTopology_ProcedureDisconnectLeConnectionsCancel,
     NULL,

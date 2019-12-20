@@ -33,6 +33,7 @@
 #define ANC_TUNING_SOURCE_DAC_LEFT    2 /* must be connected to internal DAC */
 #define ANC_TUNING_SOURCE_DAC_RIGHT   3
 
+#define ANC_TUNNING_START_DELAY       (200U)
 
 /*! Macro for creating messages */
 #define MAKE_KYMERA_MESSAGE(TYPE) \
@@ -82,7 +83,18 @@ void KymeraAnc_TuningStart(uint16 usb_rate)
     DEBUG_LOG("KymeraAnc_TuningStart");
     MAKE_KYMERA_MESSAGE(KYMERA_INTERNAL_ANC_TUNING_START);
     message->usb_rate = usb_rate;
-    MessageSendConditionally(&theKymera->task, KYMERA_INTERNAL_ANC_TUNING_START, message, &theKymera->busy_lock);
+    if(theKymera->busy_lock)
+    {
+        MessageSendConditionally(&theKymera->task, KYMERA_INTERNAL_ANC_TUNING_START, message, &theKymera->busy_lock);
+    }
+    else if(theKymera->state == KYMERA_STATE_TONE_PLAYING)
+    {
+        MessageSendLater(&theKymera->task, KYMERA_INTERNAL_ANC_TUNING_START, message, ANC_TUNNING_START_DELAY);
+    }
+    else
+    {
+       MessageSend(&theKymera->task, KYMERA_INTERNAL_ANC_TUNING_START, message);
+    }
 }
 
 void KymeraAnc_TuningStop(void)
@@ -176,10 +188,13 @@ void KymeraAnc_TuningCreateChain(uint16 usb_rate)
 
     microphone_number_t mic0, mic1;
     kymeraAnc_GetMics(&mic0, &mic1);
-    Source mic_in0 = Kymera_GetMicrophoneSource(mic0, NULL, theKymera->sco_info->rate, high_priority_user);
-    Source mic_in1 = Kymera_GetMicrophoneSource(mic1, NULL, theKymera->sco_info->rate, high_priority_user);
-    Source fb_mon0 = Kymera_GetMicrophoneSource(appConfigAncTuningMonitorMic(), NULL, theKymera->sco_info->rate, high_priority_user);
-    PanicFalse(SourceSynchronise(fb_mon0, mic_in0));
+    Source mic_in0 = Kymera_GetMicrophoneSource(mic0, NULL, theKymera->usb_rate, high_priority_user);
+    Source mic_in1 = Kymera_GetMicrophoneSource(mic1, NULL, theKymera->usb_rate, high_priority_user);
+    if (mic_in1)
+        PanicFalse(SourceSynchronise(mic_in0,mic_in1));
+    Source fb_mon0 = Kymera_GetMicrophoneSource(appConfigAncTuningMonitorMic(), NULL, theKymera->usb_rate, high_priority_user);
+    if (fb_mon0)
+       PanicFalse(SourceSynchronise(mic_in0,fb_mon0));
 
     uint16 anc_tuning_frontend_config[3] =
     {
@@ -264,10 +279,15 @@ void KymeraAnc_TuningDestroyChain(void)
     Source fb_mon0 = Kymera_GetMicrophoneSource(appConfigAncTuningMonitorMic(), NULL, theKymera->usb_rate, high_priority_user);
 
     StreamDisconnect(mic_in0, 0);
+    Kymera_CloseMicrophone(mic0, high_priority_user);
     if (mic_in1)
+    {
         StreamDisconnect(mic_in1, 0);
+        Kymera_CloseMicrophone(mic1, high_priority_user);
+    }
 
     StreamDisconnect(fb_mon0, 0);
+    Kymera_CloseMicrophone(appConfigAncTuningMonitorMic(), high_priority_user);
 
     /* Disconnect speaker */
     StreamDisconnect(0, DAC_L);

@@ -120,7 +120,7 @@ bool GattRootKeyClientChallengePeer(GATT_ROOT_KEY_CLIENT *instance,
 
 
 void gattRootKeyClientWriteChallenge(GATT_ROOT_KEY_CLIENT *instance, 
-                                     GattRootKeyServiceShadowChallengeControlOpCode opcode,
+                                     GattRootKeyServiceMirrorChallengeControlOpCode opcode,
                                      const GRKS_KEY_T *content)
 {
     uint8 value[GRKS_KEY_SIZE_128BIT_OCTETS + 1];

@@ -426,4 +426,3 @@ bool ScoFwdProfile_IsScoForwardingAllowed(void);
 bool ScoFwdProfile_IsMicForwardingAllowed(void);
 
 #endif /* SCOFWD_PROFILE_H_ */
-

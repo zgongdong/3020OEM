@@ -32,9 +32,7 @@
 #include "pio_debug/pio_debug.h"
 #endif
 #include "hydra_log/hydra_log.h"
-#if defined(PRODUCTION_BUILD)
 #include "crt/crt.h"
-#endif
 #ifdef IPC_MODULE_PRESENT
 #include "ipc/ipc.h"
 #endif

@@ -44,6 +44,13 @@ typedef enum
     The scores are compared to determine the device best suited to be primary. */
 typedef uint16 peer_find_role_score_t;
 
+/*! Type representing the setting of a fixed role for the device. */
+typedef enum {
+    peer_find_role_fixed_role_not_set,
+    peer_find_role_fixed_role_primary,
+    peer_find_role_fixed_role_secondary,
+    peer_find_role_fixed_role_invalid
+} peer_find_role_fixed_role_t;
 
 /*! \brief Initialise the PEER FIND ROLE component
 
@@ -80,8 +87,9 @@ bool PeerFindRole_Init(Task init_task);
           and scanning has terminated.
 
     \note When function is called again before the outcome message is sent,
-          then it will return without any effect.
-          That means no new message should be expected.
+          then it will panic. If a client wants to start a new find role it
+          must cancel the in-progress find role by calling
+          #PeerFindRole_FindRoleCancel first.
  */
 void PeerFindRole_FindRole(int32 high_speed_time_ms);
 
@@ -176,6 +184,22 @@ void PeerFindRole_UnregisterPrepareClient(Task task);
 */
 void PeerFindRole_PrepareResponse(void);
 
+/*! \brief Query if a fixed role has been assigned to the device.
+
+    \return The current role assigend to this device or peer_find_role_fixed_role_not_set if
+            role switching is allowed
+*/
+peer_find_role_fixed_role_t PeerFindRole_GetFixedRole(void);
+
+/*! \brief Assign a fixed role to the device or enable role switching.
+           The device should be reset after changing this setting
+
+    \param role emum representing role behaviour the device is to adopt.
+*/
+void PeerFindRole_SetFixedRole(peer_find_role_fixed_role_t role);
+
+/*! \brief Macro to check if a fixed role has been assigned to the device */
+#define PeerFindRole_HasFixedRole() (PeerFindRole_GetFixedRole() != peer_find_role_fixed_role_not_set)
 
 /*\}*/
 

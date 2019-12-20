@@ -13,7 +13,7 @@
 #include "tws_topology.h"
 #include "tws_topology_procedures.h"
 
-extern tws_topology_procedure_fns_t proc_set_role_fns;
+extern const tws_topology_procedure_fns_t proc_set_role_fns;
 
 typedef struct
 {

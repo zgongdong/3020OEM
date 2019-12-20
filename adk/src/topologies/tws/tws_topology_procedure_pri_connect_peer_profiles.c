@@ -14,7 +14,7 @@
 #include <bt_device.h>
 #include <peer_signalling.h>
 #include <scofwd_profile.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 #include <av.h>
 #include <handover_profile.h>
 #include <connection_manager.h>
@@ -29,12 +29,11 @@ void TwsTopology_ProcedurePriConnectPeerProfilesStart(Task result_task,
                                         twstop_proc_complete_func_t proc_complete_fn,
                                         Message goal_data);
 void TwsTopology_ProcedurePriConnectPeerProfilesCancel(twstop_proc_cancel_cfm_func_t proc_cancel_fn);
-void TwsTopology_ProcedurePriConnectPeerProfilesUpdate(Message goal_data);
 
-tws_topology_procedure_fns_t proc_pri_connect_peer_profiles_fns = {
+const tws_topology_procedure_fns_t proc_pri_connect_peer_profiles_fns = {
     TwsTopology_ProcedurePriConnectPeerProfilesStart,
     TwsTopology_ProcedurePriConnectPeerProfilesCancel,
-    TwsTopology_ProcedurePriConnectPeerProfilesUpdate,
+    NULL,
 };
 
 typedef struct
@@ -53,6 +52,12 @@ twsTopProcPriConnectPeerProfilesTaskData twstop_proc_pri_connect_peer_profiles =
 static void twsTopology_ProcedurePriConnectPeerProfilesReset(void)
 {
     twsTopProcPriConnectPeerProfilesTaskData* td = TwsTopProcPriConnectPeerProfilesGetTaskData();
+    bdaddr secondary_addr;
+
+    /* release the ACL, now held open by L2CAP */
+    appDeviceGetSecondaryBdAddr(&secondary_addr);
+    ConManagerReleaseAcl(&secondary_addr);
+
     td->profiles_status = 0;
     td->active = FALSE;
 }
@@ -114,39 +119,30 @@ void TwsTopology_ProcedurePriConnectPeerProfilesStart(Task result_task,
 
 void TwsTopology_ProcedurePriConnectPeerProfilesCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn)
 {
-    bdaddr secondary_addr;
-
     DEBUG_LOG("TwsTopology_ProcedurePriConnectPeerProfilesCancel");
-
-    appDeviceGetSecondaryBdAddr(&secondary_addr);
-    ConManagerReleaseAcl(&secondary_addr);
 
     twsTopology_ProcedurePriConnectPeerProfilesReset();
     TwsTopology_DelayedCancelCfmCallback(proc_cancel_cfm_fn, tws_topology_procedure_pri_connect_peer_profiles, proc_result_success);
 }
 
-void TwsTopology_ProcedurePriConnectPeerProfilesUpdate(Message goal_data)
-{
-    /* request connect for newly requested profiles */
-    TWSTOP_PRIMARY_GOAL_CONNECT_PEER_PROFILES_T* cpp = (TWSTOP_PRIMARY_GOAL_CONNECT_PEER_PROFILES_T*)goal_data;
-    twsTopology_ProcedurePriConnectPeerProfilesStartProfile(cpp->profiles);
-}
-
-static void twsTopology_ProcPriConnectPeerProfilesStatus(uint8 profile)
+static void twsTopology_ProcPriConnectPeerProfilesStatus(uint8 profile, bool succeeded)
 {
     twsTopProcPriConnectPeerProfilesTaskData* td = TwsTopProcPriConnectPeerProfilesGetTaskData();
 
-    /* clear the connected profile */
+    /* remove the profile from the list being handled */
     td->profiles_status &= ~profile;
 
-    /* report start complete if all done and release the ACL (now held open by L2CAP)*/
-    if (!td->profiles_status)
+    /* if one of the profiles failed to connect, then reset this procedure and report
+     * failure */
+    if (!succeeded)
     {
-        bdaddr secondary_addr;
-
-        appDeviceGetSecondaryBdAddr(&secondary_addr);
-        ConManagerReleaseAcl(&secondary_addr);
-
+        DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesStatus failed");
+        twsTopology_ProcedurePriConnectPeerProfilesReset();
+        td->complete_fn(tws_topology_procedure_pri_connect_peer_profiles, proc_result_failed);
+    }
+    else if (!td->profiles_status)
+    {
+        /* reset procedure and report start complete if all profiles connected */
         twsTopology_ProcedurePriConnectPeerProfilesReset();
         td->complete_fn(tws_topology_procedure_pri_connect_peer_profiles, proc_result_success);
     }
@@ -157,7 +153,7 @@ static void twsTopology_ProcPriConnectPeerProfilesHandleMessage(Task task, Messa
     twsTopProcPriConnectPeerProfilesTaskData* td = TwsTopProcPriConnectPeerProfilesGetTaskData();
 
     UNUSED(task);
-    UNUSED(message);
+
     /* if no longer active then ignore any CFM messages,
      * they'll be connect_cfm(cancelled) */
     if (!td->active)
@@ -167,18 +163,19 @@ static void twsTopology_ProcPriConnectPeerProfilesHandleMessage(Task task, Messa
 
     switch (id)
     {
-        /*! \todo handle PEERSIG connect CFM */
         case PEER_SIG_CONNECT_CFM:
         {
-            DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesHandleMessage PEERSIG");
-            twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_PEERSIG);
+            PEER_SIG_CONNECT_CFM_T* cfm = (PEER_SIG_CONNECT_CFM_T*)message;
+            DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesHandleMessage PEERSIG status %d", cfm->status);
+            twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_PEERSIG, cfm->status == peerSigStatusSuccess);
         }
         break;
 
         case SFWD_CONNECT_CFM:
         {
-            DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesHandleMessage SCOFWD");
-            twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_SCOFWD);
+            SFWD_CONNECT_CFM_T* cfm = (SFWD_CONNECT_CFM_T*)message;
+            DEBUG_LOG("twsTopology_ProcPriConnectPeerProfilesHandleMessage SCOFWD status %d", cfm->status);
+            twsTopology_ProcPriConnectPeerProfilesStatus(DEVICE_PROFILE_SCOFWD, cfm->status == sfwd_status_success);
         }
         break;
 

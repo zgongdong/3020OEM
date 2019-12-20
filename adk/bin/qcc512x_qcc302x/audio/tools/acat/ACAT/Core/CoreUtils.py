@@ -768,57 +768,6 @@ def import_pythontools():
 #########################################
 
 
-def common_func(proc):
-    """Apply common justifications to a processor instance.
-
-    This function contains functionalities that are applied to each
-    processor instance that does special decoration for pciespi.
-
-    Args:
-        proc: Proccessor object.
-    """
-    if "pciespi" in global_options.spi_trans:
-        # pciespi transport doesn't read good values until the clock is up
-        # to the speed in the DUT.  The reading from the dm memory will be
-        # decorated to read the first element from the capability data
-        # table until is null. ( The first element from the capability
-        # tables  is the first capability address. This table is null
-        # terminated and we know that at least one capability is
-        # installed) Because the read method is static we need to decorate
-        # the class.
-        var = proc.debuginfo.get_var_strict("$_capability_data_table")
-        address = var.address
-
-        def _dm_decorator(getitem, address):
-            # function decorator
-            def _new_getitem(self, index):
-                prev_value = getitem(self, address)
-                value = getitem(self, address)
-                while (prev_value != value) or (value == 0):
-                    prev_value = value
-                    value = getitem(self, address)
-                return getitem(self, index)
-
-            return _new_getitem
-
-        def _dm_accessor_decorator(kls):
-            # class decorator
-            kls.__getitem__ = _dm_decorator(kls.__getitem__, address)
-            return kls
-
-        dm_accessor_mod = _dm_accessor_decorator(
-            global_options.kmem.DmAccessor
-        )
-        if proc.processor == 0:
-            global_options.kal.dm = dm_accessor_mod(global_options.kal)
-        else:
-            global_options.kal2.dm = dm_accessor_mod(global_options.kal2)
-        logger.info("kalmemaccessors.DmAccessor was decorated for pciespi")
-
-
-#########################################
-
-
 def load_session(analyses=None):
     """Returns an interpreter loaded with the specified analyses.
 
@@ -880,7 +829,6 @@ def load_session(analyses=None):
             global_options.build_output_path_p0
         )
         kwargs = {'p0': p0}
-        common_func(p0)
 
         if global_options.is_dualcore:
             p1 = Processor(
@@ -892,7 +840,6 @@ def load_session(analyses=None):
                 "build_output_path for P1 is %s",
                 global_options.build_output_path_p1
             )
-            common_func(p1)
     else:
         p1 = Processor(
             global_options.coredump_lines, global_options.build_output_path_p1,
@@ -903,7 +850,6 @@ def load_session(analyses=None):
             global_options.build_output_path_p1
         )
         kwargs = {'p1': p1}
-        common_func(p1)
 
         if global_options.is_dualcore:
             p0 = Processor(
@@ -915,7 +861,6 @@ def load_session(analyses=None):
                 global_options.build_output_path_p0
             )
             kwargs = {'p0': p0}
-            common_func(p0)
 
     # if analyses is not none only the given analysis will be run.
     if analyses:
@@ -988,9 +933,14 @@ class MatplotlibImporter(object):
         try:
             # pylint: disable=import-error
             matplotlib = importlib.import_module('matplotlib')
-            if global_options.under_test:
-                # tkinter isn't thread-safe. Replace it with `agg` instead.
-                # Since we dynamically import the module the `use` method gets
+            if global_options.under_test or global_options.html_path:
+                # When `html_path` is set we no longer need tkinter, so
+                # the script can be executed on a machine without having
+                # the X Display enabled.
+
+                # pytest uses threads to execute tests and tkinter isn't
+                # thread-safe. Replace it with `agg` instead. Since we
+                # dynamically import the module the `use` method gets
                 # confused and warn that this call may not have any effect
                 # since there is a sub-module of `matplotlib` is already
                 # loaded. But in fact the effect is already there with the

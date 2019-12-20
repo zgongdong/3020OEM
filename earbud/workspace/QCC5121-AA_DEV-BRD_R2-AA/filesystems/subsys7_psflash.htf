@@ -1,1 +1,6 @@
 file=app1
+
+#USR2 Setting for earbud to have a fixed role. If this key is not set then the earbud wil be able to switch roles (recommended)
+#If fixed roles are to be used each earbud pair must have one primary and one secondary. This setting is currently only supported on Aura 2.1.
+#USR2 = [ 01 00 ] #Uncomment to set the earbud to always be a primary device
+#USR2 = [ 02 00 ] #Uncomment to set the earbud to always be a secondary device

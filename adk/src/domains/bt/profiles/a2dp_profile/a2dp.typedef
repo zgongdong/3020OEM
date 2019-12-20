@@ -68,7 +68,9 @@
     /*! Suspend AV due to remote request */
     AV_SUSPEND_REASON_REMOTE = (1 &lt;&lt; 4),
     /*! Suspend AV due to SCO forwarding */
-    AV_SUSPEND_REASON_SCOFWD = (1 &lt;&lt; 5)
+    AV_SUSPEND_REASON_SCOFWD = (1 &lt;&lt; 5),
+    /*! Suspend AV due to VA activity */
+    AV_SUSPEND_REASON_VA = (1 &lt;&lt; 6)
 </typedef_enum>
 
     <typedef_struct name="a2dpTaskData" doc="A2DP task data structure">

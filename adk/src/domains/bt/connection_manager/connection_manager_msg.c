@@ -76,8 +76,9 @@ void conManagerSendCloseTpAclRequest(const tp_bdaddr* tpaddr, bool force)
     if(force)
     {
         prim->flags |= DM_ACL_FLAG_FORCE;
+        prim->reason = HCI_ERROR_OETC_USER;
     }
-    
+
     if(tpaddr->transport == TRANSPORT_BLE_ACL)
     {
         prim->flags |= DM_ACL_FLAG_ULP;

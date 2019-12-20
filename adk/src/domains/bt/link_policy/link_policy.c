@@ -4,7 +4,7 @@
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
 \version    
 \file
-\brief      Link policy manager common code for shadowing and non-shadowing products.
+\brief      Link policy manager common code for mirroring and non-mirroring products.
 */
 
 #include "earbud_log.h"
@@ -339,9 +339,12 @@ void appLinkPolicyHandleAddressSwap(void)
 
     appLinkPolicyAlwaysMaster(&bd_addr_secondary.addr);
 
-    /* By default, BR/EDR secure connections is disabled. TWS Shadowing
-    requires the link between the two earbuds to have BR/EDR secure connections
-    enabled, so selectively enable SC for connections to the other earbud */
+    /* By default, BR/EDR secure connections is disabled.
+    TWM requires the link between the two earbuds to have BR/EDR secure connections
+    enabled, so selectively enable SC for connections to the other earbud.
+    The addresses of both earbuds need to be overridden, as the addresses of the
+    two devices swap during handover. Handover will fail if both addresses
+    are not overridden. */
     appLinkPolicyBredrSecureConnectionHostSupportOverrideEnable(&bd_addr_primary.addr);
     appLinkPolicyBredrSecureConnectionHostSupportOverrideEnable(&bd_addr_secondary.addr);
 }

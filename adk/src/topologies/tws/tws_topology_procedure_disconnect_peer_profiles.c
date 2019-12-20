@@ -16,7 +16,7 @@
 #include <peer_signalling.h>
 #include <handover_profile.h>
 #include <scofwd_profile.h>
-#include <shadow_profile.h>
+#include <mirror_profile.h>
 #include <av.h>
 #include <connection_manager.h>
 
@@ -36,7 +36,7 @@ void TwsTopology_ProcedureDisconnectPeerProfilesStart(Task result_task,
 void TwsTopology_ProcedureDisconnectPeerProfilesCancel(twstop_proc_cancel_cfm_func_t proc_cancel_cfm_fn);
 void TwsTopology_ProcedureDisconnectPeerProfilesUpdate(Message goal_data);
 
-tws_topology_procedure_fns_t proc_disconnect_peer_profiles_fns = {
+const tws_topology_procedure_fns_t proc_disconnect_peer_profiles_fns = {
     TwsTopology_ProcedureDisconnectPeerProfilesStart,
     TwsTopology_ProcedureDisconnectPeerProfilesCancel,
     TwsTopology_ProcedureDisconnectPeerProfilesUpdate,
@@ -72,7 +72,7 @@ static void twsTopology_ProcedureDisconnectPeerProfilesStopProfile(uint8 profile
     /* update profiles being tracked for disconnect complete */
     td->profiles_status |= profiles;
 
-    TwsTopology_GetPeerBdAddr(&peer_addr);
+    appDeviceGetPeerBdAddr(&peer_addr);
 
     /* If the profiles did not come up originally, the ACL may be held open */
     ConManagerReleaseAcl(&peer_addr);

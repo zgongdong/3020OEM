@@ -57,17 +57,6 @@ typedef struct
     uint8* pattern;
 } le_advertising_report_filter_t;
 
-/* \brief LE scan handle data. */
-struct le_scan_handle
-{
-    le_scan_interval_t scan_interval;
-    le_advertising_report_filter_t  filter;
-    Task scan_task;
-};
-
-/*! \brief Opaque type for an le scan handle index object. */
-typedef struct le_scan_handle * le_scan_handle_t;
-
 /*! \brief Confirmation Messages to be sent to ccanning clients */
 typedef enum scan_manager_messages
 {
@@ -108,8 +97,6 @@ typedef struct {
 
 /*! \brief Data sent with LE_SCAN_MANAGER_START_CFM message. */
 typedef struct {
-    /*! Scan handle */
-    le_scan_handle_t handle;
     le_scan_result_t status;
 } LE_SCAN_MANAGER_START_CFM_T;
 
@@ -180,11 +167,11 @@ void LeScanManager_Disable(Task task);
            as response to requester. \ref LE_SCAN_MANAGER_START_CFM_T for
            corresponding message data.
 
-           Scan handle received in LE SCAN_MANAGER_START_CFM can be later
-           used by client to stop the scan.
+           Scan client's task can be later used by client to stop the scan.
 
            If scan cannot be started, LE SCAN_MANAGER_START_CFM is
-           sent with NULL handle. This could happen if scan has been disabled.
+           sent with status LE_SCAN_MANAGER_RESULT_FAILURE.
+           This could happen if scan has been disabled.
 
            If Scan Manager has been Paused (using LeScanManager_Pause()), the
            request is queued. Confirmation would be sent to requester once the
@@ -202,20 +189,15 @@ void LeScanManager_Start(Task task, le_scan_interval_t scan_interval, le_adverti
            only when all the clients have requested Stop. This request is honored
            even when scanning has been paused by any client.
 
-           This request is responded with LE SCAN_MANAGER_STOP_CFM message.
-           No data is associated with this response.
+           This request is responded with LE_SCAN_MANAGER_STOP_CFM message.
 
-           If the request is sent with incorrect handle, Panic is raised.
-           This could happen in two cases,
-           1. Client had already stopped scanning once, resulting in invalidation
-              of scan handle.
-           2. Another client has requested Disable, resulting in invalidation of
-              scan requests and handles.
+           The LE_SCAN_MANAGER_STOP_CFM will be sent with status LE_SCAN_MANAGER_RESULT_SUCCESS
+           when the scan is stopped, or if a scanning is already stopped and
+           LeScanManager_Stop is called again.
 
-    \param[in] handle LE scan handle \ref le_scan_handle_t
     \param[in] task   Requester's Task \ref Task
 */
-void LeScanManager_Stop(Task task, le_scan_handle_t handle);
+void LeScanManager_Stop(Task task);
 
 /*! \brief Pauses the scan.
            This request stops the scan for all active clients. However no indication
@@ -243,6 +225,14 @@ void LeScanManager_Pause(Task task);
     \param[in] task Requester's Task \ref Task
 */
 void LeScanManager_Resume(Task task);
+
+/*! \brief Query if a task has enabled scanning.
+
+    \param[in] task The task to query.
+
+    \return TRUE if the task has enabled scanning, otherwise FALSE.
+*/
+bool LeScanManager_IsTaskScanning(Task task);
 
 /*\}*/
 

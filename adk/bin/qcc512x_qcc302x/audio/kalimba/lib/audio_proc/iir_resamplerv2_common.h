@@ -9,8 +9,8 @@
 
 
 #define IIR_RESAMPLEV2_IIR_BUFFER_SIZE      19
-#define IIR_RESAMPLEV2_FIR_BUFFER_SIZE      10  
-
+#define IIR_RESAMPLEV2_FIR_BUFFER_SIZE      10
+#define IIR_RESAMPLEV2_IO_SCALE_FACTOR      9
 
 /* Constants for reampler functions */
 typedef enum{
