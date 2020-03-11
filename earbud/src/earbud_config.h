@@ -27,6 +27,8 @@
 #define appConfigIsRight()          (appConfigIsLeft() ^ 1)
 #endif
 
+//state_proxy_event_type_a2dp_not_streaming | \  jacob ?
+
 /*! Default state proxy events to register */
 #define appConfigStateProxyRegisteredEventsDefault()            \
                    (state_proxy_event_type_phystate |           \

@@ -16,7 +16,7 @@
 #define appConfigDfuOnlyFromUiInCase()              FALSE
 
 /*! Can BLE be used to perform upgrades when not in the case */
-#define appConfigDfuAllowBleUpgradeOutOfCase()      FALSE
+#define appConfigDfuAllowBleUpgradeOutOfCase()      FALSE // jacob
 
 /*! Can BREDR be used to perform upgrades when not in the case */
 #define appConfigDfuAllowBredrUpgradeOutOfCase()    FALSE

@@ -2,17 +2,17 @@
 \copyright  Copyright (c) 2008 - 2019 Qualcomm Technologies International, Ltd.\n
             All Rights Reserved.\n
             Qualcomm Technologies International, Ltd. Confidential and Proprietary.
-\version    
+\version
 \file       main.c
 \brief      Main application task
 */
 
-#include <hfp.h>
-#include <a2dp.h>
-#include <avrcp.h>
+#include <hfp.h>         // handfree  zsd
+#include <a2dp.h>        // advanced audio distribution profile
+#include <avrcp.h>       // audio video remote control profile
 #include <connection.h>
 #include <panic.h>
-#include <pio.h>
+#include <pio.h>         //gpio
 #include <ps.h>
 #include <string.h>
 #include <boot.h>

@@ -1,0 +1,28 @@
+Build using a makefile
+Added DEVKIT_ROOT=C:\qtil\ADK_Toolkit_0.9.1.9_x64 to the environment
+Running C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools/bin/make.exe -s -f Makefile -R DEVKIT_ROOT=C:\qtil\ADK_Toolkit_0.9.1.9_x64 -j4 -Otarget clean CHIP_TYPE=qcc512x_qcc302x BUILD_TYPE=MAKEFILE INCPATHS=core/include_fw ../../common/interface ../../common/interface/app bt/qbluestack/adapter bt/qbluestack/port customer/core customer/apps customer/libs gen/customer/core customer/core customer/apps customer/libs gen/customer/core core core/include gen/core bt customer/core/trap_api gen/customer/core/trap_api customer/core gen/customer/core customer/core/trap_api gen/customer/core/trap_api customer/core gen/customer/core . MAKEFILE_RULES_DIR=D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\adk\src\qcc512x_qcc302x\os\fw\src\..\..\..\adk\tools in D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\adk\src\qcc512x_qcc302x\os\fw\src
+
+>>> [C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools/bin/make.exe -s -f Makefile -R DEVKIT_ROOT=C:\qtil\ADK_Toolkit_0.9.1.9_x64 -j4 -Otarget clean CHIP_TYPE=qcc512x_qcc302x BUILD_TYPE=MAKEFILE 's' MAKEFILE_RULES_DIR=D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\adk\src\qcc512x_qcc302x\os\fw\src\..\..\..\adk\tools]
+
+
+
+Build using a makefile
+Added DEVKIT_ROOT=C:\qtil\ADK_Toolkit_0.9.1.9_x64 to the environment
+Running C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools/bin/make.exe -s -f Makefile -R DEVKIT_ROOT=C:\qtil\ADK_Toolkit_0.9.1.9_x64 -j4 -Otarget CONFIGS=qcc512x_qcc302x clean CHIP_TYPE=qcc512x_qcc302x BUILD_TYPE=DEBUG PRIVATE_LIBS= PRIVATE_LIBS_SEED=20158 INCPATHS=..\..\..\..\installed_libs\include\profiles\default_qcc512x_qcc302x C:\qtil\ADK_Toolkit_0.9.1.9_x64\apps\installed_libs\include\firmware_qcc512x_qcc302x C:\qtil\ADK_Toolkit_0.9.1.9_x64\apps\installed_libs\include\firmware_qcc512x_qcc302x\app C:\qtil\ADK_Toolkit_0.9.1.9_x64\apps\installed_libs\include\standard MAKEFILE_RULES_DIR=D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\adk\src\libs\..\..\..\adk\tools in D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\adk\src\libs
+
+>>> [C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools/bin/make.exe -s -f Makefile -R DEVKIT_ROOT=C:\qtil\ADK_Toolkit_0.9.1.9_x64 -j4 -Otarget CONFIGS=qcc512x_qcc302x clean CHIP_TYPE=qcc512x_qcc302x BUILD_TYPE=DEBUG PRIVATE_LIBS= PRIVATE_LIBS_SEED=20158 's' MAKEFILE_RULES_DIR=D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\adk\src\libs\..\..\..\adk\tools]
+SDK is C:\qtil\ADK_Toolkit_0.9.1.9_x64/tools
+BUILDING FOR qcc512x_qcc302x
+
+
+
+
+>>> [C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools/bin/make.exe SDK=C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools DEVKIT_ROOT=C:/qtil/ADK_Toolkit_0.9.1.9_x64 -s -j4 clean -f D:/work_for_jetblue/zhou/NY-ZHOU/qcc/3020oem/3020oem/earbud/workspace/QCC3020-AA_DEV-BRD-R2-AA/earbud.debug.mak MAKEFILE_RULES_DIR=D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\earbud\workspace\QCC3020-AA_DEV-BRD-R2-AA\..\..\..\adk\tools]
+Using D:\work_for_jetblue\zhou\NY-ZHOU\qcc\3020oem\3020oem\earbud\workspace\QCC3020-AA_DEV-BRD-R2-AA\..\..\..\adk\tools/Makefile.rules
+SDK is C:/qtil/ADK_Toolkit_0.9.1.9_x64/tools
+BUILDING FOR qcc512x_qcc302x
+------ Deleting intermediate files and output files for earbud [debug] ------
+----------------------------------- Clean finished -----------------------------------------
+
+
+

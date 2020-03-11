@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project path="">
+<project path="D:/gitclone/3020oem/earbud/workspace/QCC3020-AA_DEV-BRD-R2-AA/bsp/" name="appsp0" type="auto">
     <file path="../../../../adk/bin/qcc512x_qcc302x/apps0/image/apps_p0_firmware.xuv"/>
-    <configurations>
-        <configuration name="prebuilt_image" options="deploy">
-            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
-            <deployProject>deploy</deployProject>
+    <configurations defaultKit="kitres://{663c7b2b-7f55-483e-936a-ca1dd345fbba}">
+        <configuration name="prebuilt_image" kit="kitres://{663c7b2b-7f55-483e-936a-ca1dd345fbba}" options="deploy|default">
             <devkitConfiguration>prebuilt_image</devkitConfiguration>
-            <property name="SUBSYSTEM_NAME">apps0</property>
+            <devkitPath>C:/qtil/ADK_Toolkit_0.9.1.9_x64</devkitPath>
+            <devkitGroup>kitres://{ce02c436-164b-46aa-8938-497c1665beae}</devkitGroup>
+            <deployProject>deploy</deployProject>
+            <devkitRevision>1576251075</devkitRevision>
+            <property name="BUILD_TYPE">DO_NOT_BUILD</property>
             <property name="CHIP_TYPE">qcc512x_qcc302x</property>
+            <property name="OUTPUT_TYPE">NONE</property>
+            <property name="SUBSYSTEM_NAME">apps0</property>
         </configuration>
     </configurations>
 </project>

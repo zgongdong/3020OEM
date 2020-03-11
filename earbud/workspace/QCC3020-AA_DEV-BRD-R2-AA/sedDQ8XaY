@@ -1,0 +1,247 @@
+
+
+
+
+
+
+
+
+
+
+primary_service {
+    uuid : 0x1801,
+    name : "GATT_SERVICE",
+    characteristic {
+        uuid : 0x2A05,
+        name : "GATT_SERVICE_CHANGED",
+        properties : [ indicate ],
+        client_config
+        {
+            name : "GATT_SERVICE_CHANGED_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ ]
+        }
+    },
+
+    characteristic {
+        uuid : 0x2B29,
+        name : "GATT_CLIENT_SUPPORTED_FEATURES",
+        properties : [read, write],
+        flags : [FLAG_IRQ],
+        size_value : 1
+    }
+},
+
+
+
+
+primary_service {
+    uuid : 0x1800,
+    name : "GAP_SERVICE",
+    sdp : true,
+    characteristic {
+        uuid : 0x2A00,
+        name : "DEVICE_NAME",
+        flags : [ FLAG_IRQ ],
+        properties : [ read ]
+    },
+    characteristic {
+        uuid : 0x2A01,
+        name : "DEVICE_APPEARANCE",
+        flags : [ FLAG_IRQ ],
+        properties : [ read ]
+    }
+},
+
+
+
+
+
+
+
+
+
+
+
+primary_service {
+    uuid : 0x1100D10211E19B2300025B00A5A5,
+    name : "GAIA_SERVICE",
+    characteristic {
+        uuid : 0x1101D10211E19B2300025B00A5A5,
+        name : "GAIA_COMMAND_ENDPOINT",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN, FLAG_ENCR_W ],
+        properties : [ write ],
+        value : 0x0
+    },
+ characteristic {
+        uuid : 0x1102D10211E19B2300025B00A5A5,
+        name : "GAIA_RESPONSE_ENDPOINT",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN ],
+        properties : [ read, notify ],
+        value : 0x0,
+        client_config
+        {
+            name : "GAIA_RESPONSE_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ , FLAG_DYNLEN ]
+        }
+    },
+ characteristic {
+        uuid : 0x1103D10211E19B2300025B00A5A5,
+        name : "GAIA_DATA_ENDPOINT",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN, FLAG_ENCR_W, FLAG_ENCR_R ],
+        properties : [ write_cmd, notify, read ],
+        value : 0x0,
+        client_config
+        {
+            name : "GAIA_DATA_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ , FLAG_DYNLEN ]
+        }
+ }
+},
+
+
+
+
+
+
+primary_service {
+    uuid : 0xFE2C,
+    name : "FAST_PAIR_SERVICE",
+
+
+
+    characteristic {
+        uuid : 0x1234,
+        name : "KEYBASED_PAIRING",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN ],
+        properties : [ write, indicate ],
+
+        value : [0x00, 0x00],
+
+        client_config {
+            name : "KEYBASED_PAIRING_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ ]
+            }
+    },
+
+
+
+
+    characteristic {
+        uuid : 0x1235,
+        name : "PASSKEY",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN ],
+        properties : [ write, indicate ],
+
+        value : [ 0x00, 0x00 ],
+
+        client_config {
+            name : "PASSKEY_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ ]
+            }
+    },
+
+
+
+
+    characteristic {
+        uuid : 0x1236,
+        name : "ACCOUNT_KEY",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN ],
+        properties : [ write ],
+
+        value : [ 0x00, 0x00 ]
+    }
+},
+
+
+
+
+
+
+primary_service {
+    uuid : 0x0000eb10d10211e19b2300025b00a5a5,
+    name : "ROOT_TRANSFER_SERVICE",
+    sdp : FALSE, # Included as an aide memoire. SDP records only of use for BREDR.
+    characteristic {
+        uuid : 0x0000eb11d10211e19b2300025b00a5a5,
+        name : "ROOT_TRANSFER_SERVICE_FEATURES",
+        flags : [ FLAG_IRQ, FLAG_ENCR_R],
+        properties : [ read ],
+        size_value : 0x02,
+        value : 0x0000
+    },
+    characteristic {
+        uuid : 0x0000eb12d10211e19b2300025b00a5a5,
+        name : "ROOT_TRANSFER_SERVICE_STATUS",
+        flags : [ FLAG_IRQ, FLAG_ENCR_R],
+        properties : [ read ],
+        value : 0x00
+    },
+    characteristic {
+        uuid : 0x0000eb13d10211e19b2300025b00a5a5, # Note that this is an Indicate characterisic
+        name : "ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN, FLAG_ENCR_W ],
+        properties : [ write, indicate ],
+        value : 0x00,
+        client_config
+        {
+            name : "ROOT_TRANSFER_SERVICE_MIRROR_CONTROL_POINT_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ , FLAG_DYNLEN ]
+        }
+    },
+    characteristic {
+        uuid : 0x0000eb14d10211e19b2300025b00a5a5,
+        name : "ROOT_TRANSFER_SERVICE_KEYS_CONTROL",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN, FLAG_ENCR_W ],
+        properties : [ write ],
+        value : 0x00
+    }
+},
+
+
+
+
+
+primary_service {
+    uuid : 0xFD92,
+    name : "ROLE_SELECTION_SERVICE",
+    sdp : FALSE, # Included as an aide memoire. SDP records only of use for BREDR.
+    characteristic {
+        uuid : 0x0000eb20d10211e19b2300025b00a5a5,
+        name : "ROLE_SELECTION_MIRRORING_STATE",
+        flags : [ FLAG_IRQ, FLAG_ENCR_R ],
+        properties : [ read, notify ],
+        size_value : 0x01,
+        value : 0x00,
+        client_config
+        {
+            name : "ROLE_SELECTION_MIRRORING_STATE_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ , FLAG_DYNLEN ]
+        }
+    },
+    characteristic {
+        uuid : 0x0000eb21d10211e19b2300025b00a5a5,
+        name : "ROLE_SELECTION_CONTROL",
+        flags : [ FLAG_IRQ, FLAG_DYNLEN, FLAG_ENCR_W ],
+        properties : [ write ],
+        value : 0x00
+    },
+    characteristic {
+        uuid : 0x0000eb22d10211e19b2300025b00a5a5,
+        name : "ROLE_SELECTION_FIGURE_OF_MERIT",
+        flags : [ FLAG_IRQ, FLAG_ENCR_R ],
+        properties : [ read, notify ],
+        size_value : 0x02,
+        value : 0x0000,
+        client_config
+        {
+            name : "ROLE_SELECTION_FIGURE_OF_MERIT_CLIENT_CONFIG",
+            flags : [ FLAG_IRQ , FLAG_DYNLEN ]
+        }
+    }
+},
+
+
+
+primary_service { uuid : 0x180f, name : "BATTERY_SERVICELEFT", sdp : true, characteristic { uuid : 0x2a19, name : "BATTERY_LEVELLEFT", flags : [ FLAG_IRQ ], properties : [ read , notify ], value : 0x0, presentation_format { name : "BATTERY_LEVEL_PRESENTATIONLEFT", flags : [ FLAG_IRQ , FLAG_DYNLEN ] }, client_config { name : "BATTERY_LEVEL_CLIENT_CONFIGLEFT", flags : [ FLAG_IRQ , FLAG_DYNLEN ] } } },
+primary_service { uuid : 0x180f, name : "BATTERY_SERVICERIGHT", sdp : true, characteristic { uuid : 0x2a19, name : "BATTERY_LEVELRIGHT", flags : [ FLAG_IRQ ], properties : [ read , notify ], value : 0x0, presentation_format { name : "BATTERY_LEVEL_PRESENTATIONRIGHT", flags : [ FLAG_IRQ , FLAG_DYNLEN ] }, client_config { name : "BATTERY_LEVEL_CLIENT_CONFIGRIGHT", flags : [ FLAG_IRQ , FLAG_DYNLEN ] } } },

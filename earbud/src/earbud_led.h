@@ -48,6 +48,7 @@ extern const ledPattern app_led_pattern_sco[];
 extern const ledPattern app_led_pattern_call_incoming[];
 extern const ledPattern app_led_pattern_battery_empty[];
 extern const ledPattern app_led_pattern_peer_pairing[];
+extern const ledPattern app_led_pattern_flash_once[];
 
 #ifdef INCLUDE_DFU
 extern const ledPattern app_led_pattern_dfu[];
@@ -79,6 +80,7 @@ extern const ledPattern app_led_pattern_streaming_aptx[];
 #define appUiAvStreamingActive() \
     (appLedSetPattern(app_led_pattern_streaming, LED_PRI_MED))
 
+//jacob to be discussed
 /*! \brief Show AV APIX streaming active LED pattern */
 #define appUiAvStreamingActiveAptx() \
     ( appLedSetPattern(app_led_pattern_streaming_aptx, LED_PRI_MED))
@@ -139,5 +141,9 @@ extern const ledPattern app_led_pattern_streaming_aptx[];
 #define appUiChargerDisconnected() \
     appLedCancelFilter(1)
 #endif
+
+/*! \brief flash once LED pattern  */			//jacob
+#define appUiLedFlashOnce() \
+    appLedSetPattern(app_led_pattern_flash_once, LED_PRI_HIGH)
 
 #endif // EARBUD_LED_H

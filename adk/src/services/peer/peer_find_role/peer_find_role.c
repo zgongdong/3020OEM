@@ -245,6 +245,7 @@ peer_find_role_fixed_role_t PeerFindRole_GetFixedRole(void)
 
     DEBUG_LOG("PeerFindRole_GetFixedRole. role = %d", peer_find_role.fixed_role);
 
+//	return peer_find_role_fixed_role_not_set;	//jacob
     return peer_find_role.fixed_role;
 }
 

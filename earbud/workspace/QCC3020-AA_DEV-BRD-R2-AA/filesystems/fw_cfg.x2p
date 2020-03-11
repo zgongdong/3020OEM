@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project path="">
-    <file path="../../QCC3020-AA_DEV-BRD-R2-AA/filesystems/subsys1_config1.htf"/>
-    <file path="../../QCC3020-AA_DEV-BRD-R2-AA/filesystems/subsys3_config2.htf"/>
-    <file path="../../QCC3020-AA_DEV-BRD-R2-AA/filesystems/subsys3_config3.htf"/>
-    <file path="../../QCC3020-AA_DEV-BRD-R2-AA/filesystems/subsys7_config2.htf"/>
+<project path="D:/gitclone/3020oem/earbud/workspace/QCC3020-AA_DEV-BRD-R2-AA/filesystems/" name="fw_cfg" type="auto">
     <file path="../../../../adk/bin/qcc512x_qcc302x/audio/kalimba_ROM_4786/kymera/output/stre_rom_v02_release/build/patchbin/subsys3_patch0_fw000012B2.hcf"/>
     <file path="../../../../adk/bin/qcc512x_qcc302x/bluetooth/patches/vfbga90/subsys1_patch0_fw000033EF.hcf"/>
-    <configurations>
-        <configuration name="filesystem" options="build|deploy">
+    <configurations defaultKit="kitres://{663c7b2b-7f55-483e-936a-ca1dd345fbba}">
+        <configuration name="filesystem" kit="kitres://{663c7b2b-7f55-483e-936a-ca1dd345fbba}" options="build|deploy|default">
             <devkitConfiguration>filesystem</devkitConfiguration>
-            <devkitGroup>kitres://{CE02C436-164B-46AA-8938-497C1665BEAE}</devkitGroup>
+            <devkitPath>C:/qtil/ADK_Toolkit_0.9.1.9_x64</devkitPath>
+            <devkitGroup>kitres://{ce02c436-164b-46aa-8938-497c1665beae}</devkitGroup>
             <deployProject>deploy</deployProject>
-            <property name="TYPE">firmware_config</property>
-            <property name="system_label">QCC512X_CONFIG</property>
+            <devkitRevision>1576251075</devkitRevision>
             <property name="CHIP_TYPE">qcc512x_qcc302x</property>
             <property name="HYDRACORE_CONFIG_SDB_FILE">../../../../adk/bin/qcc512x_qcc302x/hydracore_config.sdb</property>
+            <property name="TYPE">firmware_config</property>
+            <property name="system_label">QCC512X_CONFIG</property>
         </configuration>
     </configurations>
+    <file path="subsys1_config1.htf"/>
+    <file path="subsys3_config2.htf"/>
+    <file path="subsys3_config3.htf"/>
+    <file path="subsys7_config2.htf"/>
 </project>

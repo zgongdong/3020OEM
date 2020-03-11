@@ -474,6 +474,8 @@ static void appEnterStartup(void)
     DEBUG_LOG("appEnterStartup");
 
     TwsTopology_Start(SmGetTask());
+    /* first find peer*/
+    appUiPeerPairingActive(FALSE);		//just ui  jacob
 }
 
 static void appExitStartup(void)
@@ -2253,6 +2255,9 @@ static void appSm_HandleTwsTopologyStartCfm(TWS_TOPOLOGY_START_CFM_T* cfm)
 
     if (appGetState() == APP_STATE_STARTUP)
     {
+        /* peer pairing complete */
+        appUiPeerPairingInactive();			//ui  jacob
+		
         /* topology up and running, SM can move on from STARTUP state */
         appSmSetInitialCoreState();
 
@@ -2333,6 +2338,8 @@ static void appSmHandleUiInput(MessageId  ui_input)
     {
         case ui_input_connect_handset:
             appSmConnectHandset();
+            appUiLedFlashOnce();
+            appUiButton();
             break;
         case ui_input_sm_pair_handset:
             appSmPairHandset();
@@ -2431,6 +2438,9 @@ static void appSmHandleStateProxyEvent(const STATE_PROXY_EVENT_T* sp_event)
             }
         }
         break;
+        case state_proxy_event_type_a2dp_not_streaming:		//jacob
+            //appUiAvStreamingActive();
+            break;
         case state_proxy_event_type_a2dp_conn: 
             appSmGenerateA2dpRulesEvents(TRUE);
             break;
@@ -2580,6 +2590,19 @@ static void earbudSm_HandleBatteryUpdate(MESSAGE_BATTERY_LEVEL_UPDATE_STATE_T *m
     if (msg->state == battery_level_too_low)
     {
         appPowerOffRequest();
+    }
+}
+//jacob
+/*! \brief Handle HANDSET_SERVICE_CONNECT_CFM message */
+static void appSm_HandleHandsetConnectCfm(HANDSET_SERVICE_CONNECT_CFM_T *message)
+{
+    smTaskData *sm = SmGetTaskData();
+
+    DEBUG_LOG("appSm_HandleHandsetConnectCfm: %d", message->status);
+
+    if(handset_service_status_success != message->status)
+    {
+        MessageSendLater(&sm->task, SM_INTERNAL_PAIR_HANDSET, NULL, 500);
     }
 }
 
@@ -2945,6 +2968,11 @@ void appSmHandleMessage(Task task, MessageId id, Message message)
         case PAIRING_STOP_CFM:
             appSm_HandlePairingStopCfm();
             break;
+		//jacob
+        case HANDSET_SERVICE_CONNECT_CFM:
+            //appSm_HandleHandsetConnectCfm((HANDSET_SERVICE_CONNECT_CFM_T *)message);
+            break;
+        
 
         default:
             appHandleUnexpected(id);

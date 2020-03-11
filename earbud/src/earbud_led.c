@@ -233,4 +233,13 @@ const ledPattern app_led_pattern_battery_empty[] =
 /*! \endcond led_patterns_well_named
  */
 
+const ledPattern app_led_pattern_flash_once[] =
+{
+	LED_LOCK,
+	LED_ON(LED_RED), LED_WAIT(100),
+	LED_OFF(LED_RED), LED_WAIT(100),
+	LED_UNLOCK,
+	LED_END
+};		//jacob
+
 

@@ -19,7 +19,7 @@
 
     After this the connection request will be completed with a fail status.
 */
-#define handsetService_BrEdrAclConnectAttemptLimit() (3)
+#define handsetService_BrEdrAclConnectAttemptLimit() (1) //(3)		//jacob
 
 /*! Time delay between each handset ACL connect retry.
 

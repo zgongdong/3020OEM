@@ -1608,6 +1608,7 @@ bool PeerFindRole_Init(Task init_task)
 
     /* invalidate the fixed role setting forcing a PsRetrieve */
     peer_find_role.fixed_role = peer_find_role_fixed_role_invalid;
-
+	//PeerFindRole_SetFixedRole(peer_find_role_fixed_role_primary);		//jacob
+	
     return TRUE;
 }

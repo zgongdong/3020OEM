@@ -86,12 +86,15 @@ static void earbudUi_PlayToneFeedbackOnButtonPress(MessageId ui_input)
     switch (ui_input)
     {
         case ui_input_button_held_1:
+            appUiLedFlashOnce();
             appUiButton();
             break;
         case ui_input_button_held_2:
+            appUiLedFlashOnce();
             appUiButton2();
             break;
         case ui_input_button_held_3:
+            appUiLedFlashOnce();
             appUiButton3();
             break;
         case ui_input_button_held_4:
@@ -101,9 +104,11 @@ static void earbudUi_PlayToneFeedbackOnButtonPress(MessageId ui_input)
             appUiDfuRequested();
             break;
         case ui_input_play_dfu_button_held_tone:
+            appUiLedFlashOnce();
             appUiButtonDfu();
             break;
         case ui_input_play_factory_reset_tone:
+            appUiLedFlashOnce();
             appUiButtonFactoryReset();
             break;
         default:
